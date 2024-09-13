@@ -1,0 +1,1521 @@
+const express = require('express');
+const http = require('http');
+const mysql = require('mysql2');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const socketIO = require('socket.io');
+const crypto = require('crypto');
+const admin = require('firebase-admin');
+const cron = require('node-cron');
+const app = express();
+const multer = require('multer');
+const path = require('path');
+const fetchRetry = require('node-fetch-retry');
+const server = http.createServer(app);
+const io = socketIO(server);
+const port = process.env.PORT || 3308;
+const requestIp = require('request-ip');
+app.use(requestIp.mw())
+
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+  }),
+);
+app.use(bodyParser.json({type: 'application/json'}));
+app.use(bodyParser.urlencoded({extended: true}));
+
+
+var serviceAccount = require('./nodejs/doctracknotif-firebase-adminsdk-l5hyw-4ecbd3cc3b.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+
+//const ServerIp = "http://192.168.203.13";
+const ServerIp = "http://192.168.254.111";
+
+//const ServerIp = "http://192.168.1.194";
+//const ServerIp = "http://192.168.100.217";
+
+
+//https://www.davaocityportal.com/gord/ajax/dataprocessor.php?seize=1
+//http://localhost/gord/ajax/dataprocessor.php?seize=1
+async function sendNotifForNonRegulatory() {
+  try {
+    const response = await fetch(`${ServerIp}/gord/ajax/dataprocessor.php?seize=1`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+    
+    const data = await response.json(); 
+
+    const tokens = data.map(item => ({ PushToken: item.PushToken, TransactionDelay: item.TransactionDelay, EmployeeNumber: item.EmployeeNumber }));
+
+    //console.log('Fetched tokens:', tokens);
+
+    for (let i = 0; i < tokens.length; i++) {
+      const { PushToken, TransactionDelay: delay } = tokens[i]; // Corrected destructuring
+    
+
+      // Skip sending notification if TransactionDelay is 0
+      if (delay === 0) {
+        continue; // Move to the next iteration of the loop
+      }
+
+
+      const message = {
+        notification: {
+          title: 'Delayed Transactions',
+          body: `${delay} transactions that have more than 3 days delayed`,
+        },
+        data: {
+          screens: 'OfficeDelays',
+          channelId: 'nonregulatorydelays',
+          actions: JSON.stringify([
+            {
+              title: 'Mark as Read',
+              pressAction: {
+                id: 'read',
+              },
+            },
+          ]),
+        },
+        groupId: 'NonRegDelays',
+      };
+    
+
+    const payload = {
+      tokens: [PushToken],
+      data: {
+        notifee: JSON.stringify(message),
+        groupId: 'NonRegDelays',
+      },
+    };
+
+    // Send the multicast message
+    const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
+    const fcmResponse = await messaging.sendEachForMulticast(payload);
+
+    //console.log('FCM Response:', fcmResponse);
+
+    fcmResponse.responses.forEach((resp, idx) => {
+      //console.log(`FCM Response for token ${tokens[idx].PushToken}:`, resp);
+      //console.log(
+       // `Successfully sent messages for token ${tokens[idx].PushToken}:`,
+      //  resp.successCount,
+     // );
+    });
+  }
+
+    console.log(
+      'Messages sent successfully to users non reg',
+      
+      tokens.map(token => token.EmployeeNumber),
+    );
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+}
+//sendNotifForNonRegulatory();
+
+
+//https://www.davaocityportal.com/gord/ajax/dataprocessor.php?snatch=1
+//http://localhost/gord/ajax/dataprocessor.php?snatch=1
+async function sendNotifForRegulatory() {
+  try {
+    const response = await fetch(`${ServerIp}/gord/ajax/dataprocessor.php?snatch=1`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+    
+    const data = await response.json(); 
+
+    const tokens = data.map(item => ({ PushToken: item.PushToken, TransactionDelay: item.TransactionDelay, EmployeeNumber: item.EmployeeNumber }));
+
+    //console.log('Fetched tokens:', tokens);
+
+    for (let i = 0; i < tokens.length; i++) {
+      const { PushToken, TransactionDelay: delay } = tokens[i]; // Corrected destructuring
+
+         // Skip sending notification if TransactionDelay is 0
+         if (delay === 0) {
+          continue; // Move to the next iteration of the loop
+        }
+    
+      const message = {
+        notification: {
+          title: 'Delayed Transactions',
+          body: `${delay} transactions that have more than 3 days delayed`,
+        },
+        data: {
+          screens: 'Summary',
+          channelId: 'regulatorydelays',
+          actions: JSON.stringify([
+            {
+              title: 'Mark as Read',
+              pressAction: {
+                id: 'read',
+              },
+            },
+          ]),
+        },
+        groupId: 'RegDelays',
+      };
+    
+
+    const payload = {
+      tokens: [PushToken],
+      data: {
+        notifee: JSON.stringify(message),
+        groupId: 'RegDelays',
+      },
+    };
+
+    // Send the multicast message
+    const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
+    const fcmResponse = await messaging.sendEachForMulticast(payload);
+
+    //console.log('FCM Response:', fcmResponse);
+
+    fcmResponse.responses.forEach((resp, idx) => {
+      //console.log(`FCM Response for token ${tokens[idx].PushToken}:`, resp);
+      //console.log(
+       // `Successfully sent messages for token ${tokens[idx].PushToken}:`,
+      //  resp.successCount,
+     // );
+    });
+  }
+
+    console.log(
+      'Messages sendNotifForReg sent successfully to users ',
+      
+      tokens.map(token => token.EmployeeNumber),
+    );
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+}
+//sendNotifForRegulatory();
+
+
+app.post('/triggerFunction', async (req, res) => {
+ // const officeCodes = ['8751', '1031', '1081', 'BAAC', '1071', '1061', '1091'];
+ const officeCode = 'TRAC';
+
+  try {
+    // Call the function
+   // await sendToUsersWithOfficeCodes(officeCodes);
+
+    sendNotifForNonRegulatory();
+    sendNotifForRegulatory();
+  //sendNotifRealtime(officeCode);
+    res.status(200).send('Function triggered successfully');
+  } catch (error) {
+    console.error('Error triggering function:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+const serverTime = new Date();
+console.log(`Server time is: ${serverTime}`);
+
+try {
+  cron.schedule('0 8,13,15 * * 1-5', () => {
+    const currentTime = new Date();
+    console.log(`Cron job executed at ${currentTime}`);
+    sendNotifForRegulatory();
+    sendNotifForNonRegulatory();
+  });
+} catch (error) {
+  console.error('Error scheduling cron job:', error);
+}
+
+//if(substr($docType, 0, 5) == "WAGES" || (substr($docType, 0, 8)  == "BENEFITS" && $docType != "BENEFITS - ELAP") || substr($docType, 0, 9)  == "ALLOWANCE" || $docType  == "ASSISTANCE - FINANCIAL"){
+
+/* app.get('/julien/:office/:tn/:doctype', async (req, res) => {
+  try {
+    const ip = req.ip; 
+    console.log('Requester IP:', ip);
+
+    if (ip !== '::ffff:192.168.200.4' && ip !== '::ffff:192.168.100.217' && ip !== '::ffff:192.168.203.13' && ip !== '::ffff:192.168.61.1'){
+      return res.status(403).json({ error: 'Forbidden' }); 
+    }
+
+    const headers = req.headers;
+    const host = req.headers.host; 
+    console.log('Host:', host);
+
+    const officeCode = (req.params.office);
+    console.log('Office Code:', officeCode);
+
+    const tn = (req.params.tn);
+    console.log('TN:', tn);
+
+    const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
+    console.log('DT:', doctype);
+
+
+    const sendNotifMyTransaction = (officeCode) => {
+      console.log(`Notification sent for transaction in office: ${officeCode}`);
+      // Implement the logic to send notification for my transaction
+       };
+
+      // Filter the doctype based on the given conditions
+      if (doctype.startsWith("WAGES") || 
+      (doctype.startsWith("BENEFITS") && doctype !== "BENEFITS - ELAP") || 
+      doctype.startsWith("ALLOWANCE") || 
+      doctype === "ASSISTANCE - FINANCIAL") {
+
+      sendNotifMyTransaction(tn);
+    }
+
+    if (typeof officeCode === 'string' && officeCode.trim().length > 0) {
+      try {
+        const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?killua=1&office=${officeCode}`;
+
+        const apiResponse = await fetch(apiUrl);
+
+        if (!apiResponse.ok) {
+          throw new Error(`API request failed with status: ${apiResponse.status}`);
+        }
+        const data = await apiResponse.json();
+
+        io.to(officeCode).emit('updatedNowData', {Count: data, officeCode: officeCode});
+
+        sendNotifRealtime(officeCode);
+
+        return res.json({
+          message: 'Data received and processed successfully',
+          ip: ip,
+          headers: headers,
+          host: host,
+          data: data 
+        });
+      } catch(error) {
+        console.error('Error occurred:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Invalid office code' });
+    }
+  } catch (error) {
+    console.error('Error occurred:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+ */
+
+/* app.get('/julien/:office/:tn/:doctype', async (req, res) => {
+  try {
+    const ip = req.ip; 
+    //console.log('Requester IP:', ip);
+
+    if (ip !== '::ffff:192.168.200.4' && ip !== '::ffff:192.168.100.217' && ip !== '::ffff:192.168.203.13' && ip !== '::ffff:192.168.61.1'){
+      return res.status(403).json({ error: 'Forbidden' }); 
+    }
+
+    const headers = req.headers;
+    const host = req.headers.host; 
+   // console.log('Host:', host);
+
+    const officeCode = (req.params.office);
+    console.log('Office Code:', officeCode);
+
+    const tn = (req.params.tn);
+    console.log('TN:', tn);
+
+    const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
+    console.log('DT:', doctype);
+
+    // Filter the doctype based on the given conditions
+    if (doctype.startsWith("WAGES") || doctype.includes("SLP") || 
+      (doctype.startsWith("BENEFITS") && doctype !== "BENEFITS - ELAP") || 
+      doctype.startsWith("ALLOWANCE") || 
+      doctype === "ASSISTANCE - FINANCIAL") {
+
+      sendNotifMyTransaction(tn);
+
+      // Return early if the first condition is met
+      return res.json({
+        message: 'Notification sent for specific document types',
+        ip: ip,
+        headers: headers,
+        host: host
+      });
+    }
+
+    if (typeof officeCode === 'string' && officeCode.trim().length > 0) {
+      try {
+        const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?killua=1&office=${officeCode}`;
+
+        const apiResponse = await fetch(apiUrl);
+
+        if (!apiResponse.ok) {
+          throw new Error(`API request failed with status: ${apiResponse.status}`);
+        }
+        const data = await apiResponse.json();
+
+        io.to(officeCode).emit('updatedNowData', {Count: data, officeCode: officeCode});
+
+        sendNotifRealtime(officeCode);
+
+        return res.json({
+          message: 'Data received and processed successfully',
+          ip: ip,
+          headers: headers,
+          host: host,
+          data: data 
+        });
+      } catch(error) {
+        console.error('Error occurred:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Invalid office code' });
+    }
+  } catch (error) {
+    console.error('Error occurred:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+ */
+
+
+/* app.get('/julien/:office/:tn/:doctype', async (req, res) => {
+  try {
+    const ip = req.ip;
+    //console.log('Requester IP:', ip);
+
+    if (ip !== '::ffff:192.168.200.4' && ip !== '::ffff:192.168.100.217' && ip !== '::ffff:192.168.203.13' && ip !== '::ffff:192.168.61.1'){
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const headers = req.headers;
+    const host = req.headers.host;
+    //console.log('Host:', host);
+
+    const officeCode = req.params.office;
+    console.log('Office Code:', officeCode);
+
+    const tn = req.params.tn;
+    console.log('TN:', tn);
+
+    const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
+    console.log('DT:', doctype);
+
+    // Condition for sending notification for document types except those starting with "SLP"
+    if (!doctype.startsWith("SLP")) {
+      sendNotifRealtime(officeCode);
+    }
+
+    // Filter the doctype based on the given conditions
+    if (doctype.startsWith("WAGES") || doctype.includes("SLP") || 
+      (doctype.startsWith("BENEFITS") && doctype !== "BENEFITS - ELAP") || 
+      doctype.startsWith("ALLOWANCE") || 
+      doctype === "ASSISTANCE - FINANCIAL") {
+
+      sendNotifMyTransaction(tn);
+
+      // Return early if the first condition is met
+      return res.json({
+        message: 'Notification sent for specific document types',
+        ip: ip,
+        headers: headers,
+        host: host
+      });
+    }
+
+    if (typeof officeCode === 'string' && officeCode.trim().length > 0) {
+      try {
+        const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?killua=1&office=${officeCode}`;
+
+        const apiResponse = await fetch(apiUrl);
+
+        if (!apiResponse.ok) {
+          throw new Error(`API request failed with status: ${apiResponse.status}`);
+        }
+        const data = await apiResponse.json();
+
+        io.to(officeCode).emit('updatedNowData', {Count: data, officeCode: officeCode});
+
+        return res.json({
+          message: 'Data received and processed successfully',
+          ip: ip,
+          headers: headers,
+          host: host,
+          data: data
+        });
+      } catch(error) {
+        console.error('Error occurred:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Invalid office code' });
+    }
+  } catch (error) {
+    console.error('Error occurred:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}); */
+
+
+app.get('/julien/:office/:tn/:doctype', async (req, res) => {
+  try {
+    const ip = req.ip;
+
+    console.log(ip);
+
+
+    if (ip !== '::ffff:192.168.200.4' && ip !== '::ffff:192.168.100.217' && ip !== '::ffff:192.168.203.13' && ip !== '::ffff:192.168.61.1' && ip !== '::ffff:192.168.254.111') {
+     
+     
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const headers = req.headers;
+    const host = req.headers.host;
+
+    const officeCode = req.params.office;
+    console.log('Office Code:', officeCode);
+
+    const tn = req.params.tn;
+    console.log('TN:', tn);
+
+    const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
+    console.log('DT:', doctype);
+
+    // Condition for sending notification for document types except those starting with "SLP"
+    if (!doctype.startsWith("SLP")) {
+      sendNotifRealtime(officeCode);
+    }
+
+
+    
+
+    // Filter the doctype based on the given conditions
+    if (doctype.startsWith("WAGES") || doctype.includes("SLP") || 
+      (doctype.startsWith("BENEFITS") && doctype !== "BENEFITS - ELAP") || 
+      doctype.startsWith("ALLOWANCE") || 
+      doctype === "ASSISTANCE - FINANCIAL") {
+
+      sendNotifMyTransaction(tn);
+
+      // Continue to the next part to trigger the socket.io emit
+    }
+
+    if (typeof officeCode === 'string' && officeCode.trim().length > 0) {
+      try {
+        const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?killua=1&office=${officeCode}`;
+
+        const apiResponse = await fetch(apiUrl);
+
+        if (!apiResponse.ok) {
+          throw new Error(`API request failed with status: ${apiResponse.status}`);
+        }
+        const data = await apiResponse.json();
+
+         // Emit the socket event unless the document type starts with "SLP"
+         if (!doctype.startsWith("SLP")) {
+          io.to(officeCode).emit('updatedNowData', { Count: data, officeCode: officeCode });
+        }
+
+        return res.json({
+          message: 'Data received and processed successfully',
+          ip: ip,
+          headers: headers,
+          host: host,
+          data: data
+        });
+      } catch (error) {
+        console.error('Error occurred:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Invalid office code' });
+    }
+  } catch (error) {
+    console.error('Error occurred:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+
+
+
+//https://www.davaocityportal.com/gord/ajax/dataprocessor.php?itachi=1
+//http://localhost/gord/ajax/dataprocessor.php?itachi=1
+async function sendNotifRealtime(officeCode) {
+  if (!officeCode) {
+    return;
+  } else {
+    try {
+      const response = await fetch(`${ServerIp}/gord/ajax/dataprocessor.php?itachi=1&office=${officeCode}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      
+      const data = await response.json(); 
+      console.log(data);
+
+      const tokens = data.map(item => ({
+        PushToken: item.PushToken,
+        TransactionCountperOffice: item.TransactionCountperOffice,
+        EmployeeNumber: item.EmployeeNumber
+      })).filter(item => item.PushToken); // Filter out items without a PushToken
+
+    /*   if (tokens.length === 0) {
+        return; // Exit early if there are no valid push tokens
+      }
+ */
+      for (let i = 0; i < tokens.length; i++) {
+        const { PushToken, TransactionCountperOffice: count } = tokens[i]; 
+
+        if (!count) {
+          continue;
+        }
+
+
+        const message = { 
+          notification: {
+            title: 'Recently Updated',
+            body: `${count} of your office transactions have already been updated.`,
+          },
+          data: {
+            screens: 'RecentUpdated',
+            channelId: 'recentlyupdated',
+            groupId: 'Updated',
+            officeCode: officeCode,
+            actions: JSON.stringify([
+              {
+                title: 'Mark as Read',
+                pressAction: {
+                  id: 'read',
+                },
+              },
+            ]),
+          },
+        };
+
+        const payload = {
+          tokens: [PushToken],
+          data: {
+            notifee: JSON.stringify(message),
+            groupId: 'Updated',
+          },
+        };
+
+        // Send the multicast message
+        const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
+        const fcmResponse = await messaging.sendEachForMulticast(payload);
+
+        fcmResponse.responses.forEach((resp, idx) => {
+          // Handle each response if needed
+        });
+      }
+
+      console.log(
+        'Messages sendNotifRealtime sent successfully to users ',
+        tokens.map(token => token.EmployeeNumber),
+      );
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  }
+}
+
+async function sendNotifMyTransaction(tn) {
+  console.log(`Notification for My Transaction`);
+  //console.log("TN",tn);
+
+  if (!tn) {
+    return;
+  } else {
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await fetch(`${ServerIp}/gord/ajax/dataprocessor.php?gusion=1&year=${currentYear}&tn=${tn}`);
+      //console.log("res",response)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      
+      const data = await response.json(); 
+
+
+      const tokens = data.map(item => ({
+        PushToken: item.PushToken,
+        EmployeeNumber: item.EmployeeNumber
+      })).filter(item => item.PushToken); 
+
+      if (tokens.length === 0) {
+        return; 
+      }
+
+      for (let i = 0; i < tokens.length; i++) {
+        const { PushToken } = tokens[i]; 
+
+        if (!PushToken) {
+          continue;
+        }
+
+
+        const message = { 
+          notification: {
+            title: 'My Personal',
+            body: `${tn} have already been updated.`,
+          },
+          data: {
+            screens: 'MyTransactions',
+            channelId: 'mypersonal',
+            actions: JSON.stringify([
+              {
+                title: 'Mark as Read',
+                pressAction: {
+                  id: 'read',
+                },
+              },
+            ]),
+          },
+          groupId: 'MyTransactions',
+          channelId: 'MyPersonal'
+        };
+
+        const payload = {
+          tokens: [PushToken],
+          data: {
+            notifee: JSON.stringify(message),
+            groupId: 'MyTransactions',
+          },
+        };
+
+        // Send the multicast message
+        const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
+        const fcmResponse = await messaging.sendMulticast(payload);
+
+        fcmResponse.responses.forEach((resp, idx) => {
+          // Handle each response if needed
+        });
+      }
+
+      console.log(
+        'Messages sendNotifMyTransactions sent successfully to users ',
+        tokens.map(token => token.EmployeeNumber),
+      );
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  }
+}
+
+
+const latestVersion = {
+  version: '1.6',
+  updateUrl: 'https://www.davaocityportal.com/gm8/DocMobile.apk' // URL where the update can be downloaded
+};
+console.log(latestVersion.version);
+
+/* const latestVersion = '1.0.4';
+console.log(latestVersion); */
+
+app.get('/get-latest-version', (req, res) => {
+  res.json({ latestVersion });
+});
+/*-------------------API -----------------------*/
+
+/* app.get('/protectedRoute', verifyToken, (req, res) => {
+  res.json({ message: 'Access granted!' });
+});
+ */
+
+/* 
+// Middleware to verify JWT token
+function verifyToken(req, res, next) {
+  const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : req.query.token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+  }
+
+  jwt.verify(token, 'feitan', (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    }
+    req.user = decoded;
+    next();
+  });
+} */
+
+
+app.post('/loginApi', async (req, res) => {
+  const { EmployeeNumber, Password, PushToken, UserDevice} = req.body;
+
+
+  const hashedPassword = crypto
+    .createHash('md5')
+    .update(Password)
+    .digest('hex');
+
+
+  if (!EmployeeNumber || !Password || !PushToken || !UserDevice) {
+    return res.status(400).json({ error: 'Missing credentials' });
+  }
+  //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?ark=1&user=${EmployeeNumber}&pass=${hashedPassword}&pushToken=${PushToken}`;
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?ark=1&user=${EmployeeNumber}&pass=${encodeURIComponent(hashedPassword)}&pushToken=${PushToken}&userDevice=${encodeURIComponent(UserDevice)}`;
+
+  //console.log(apiUrl);
+
+  try {
+    const apiResponse = await fetch(apiUrl);
+  
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+  
+    const data = await apiResponse.json();
+  
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+  
+    const employeeNumber = data[0].EmployeeNumber;
+    const password = data[0].Password;
+
+    if (EmployeeNumber !== employeeNumber || hashedPassword !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+  
+    //console.log(data);
+  
+    const token = jwt.sign({ data }, 'feitan');
+  
+    return res.json({ token });
+  } catch (error) {
+    console.error('Error fetching data from external API:', error.message);
+    return res.status(500).json({ error: 'Error fetching data from external API' });
+
+  }});
+
+
+app.post('/logoutApi', async (req, res) => {
+  const { EmployeeNumber } = req.body;
+  //console.log(EmployeeNumber);
+
+  if (!EmployeeNumber) {
+    return res.status(400).json({ error: 'Missing credentials' });
+    
+  }
+
+ //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?sayonara=1&user=${EmployeeNumber}`; //live
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?sayonara=1&user=${EmployeeNumber}`; //local
+
+  try {
+
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+    console.log('Logged out successfully');
+
+    // Assuming you don't expect any response from the API
+    // If you do, you need to handle it accordingly
+    // const data = await apiResponse.json();
+
+    return res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Error updating LoginState and PushToken:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/userInfo', async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+
+    if (!token || !token.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const tokenString = token.split(' ')[1];
+
+    // Verify token format before further processing
+    const isValidTokenFormat =
+      /^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/.test(tokenString);
+  
+    if (!isValidTokenFormat) {
+      return res.status(401).json({ error: 'Invalid token format' });
+    }
+  
+    jwt.verify(tokenString, process.env.JWT_SECRET || 'defaultSecret', async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+      //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?ark=1&user=${decoded.EmployeeNumber}&pass=${decoded.hashedPassword}`;
+
+      const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?ark=1&user=${decoded.EmployeeNumber}&pass=${decoded.hashedPassword}`;
+
+      const apiResponse = await fetchRetry(apiUrl);
+
+      if (!apiResponse.ok) {
+        throw new Error(`API request failed with status: ${apiResponse.status}`);
+      }
+
+      const userData = await apiResponse.json();
+
+      return res.json(userData);
+    });
+
+  } catch (error) {
+    console.error('Internal server error:', error.message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+app.get('/regOfficeDelays', async (req, res) => {
+
+  try {
+    const {OfficeCode} = req.query;
+
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}` // live
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}`  //localhost
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}` // development
+
+    const apiResponse = await fetchRetry(apiUrl);
+
+    
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error fetching data in regOfficeDelays:', error.message);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
+
+
+app.get('/officeDelays', async (req, res) => {
+
+  try {
+    const {OfficeCode} = req.query;
+
+    //console.log(OfficeCode);
+
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}` // live
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?silvana=1&office=${OfficeCode}`  //localhost
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?silvana=1&office=${OfficeCode}`  //localhost
+
+
+    const apiResponse = await fetchRetry(apiUrl);
+
+    //console.log(apiResponse);
+    
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    res.json(data);
+
+    //console.log(data);
+
+  } catch (error) {
+    console.error('Error fetching data in officeDelays:', error.message);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
+
+app.get('/genInformation', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?starfield=1&year=${Year}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?starfield=1&year=${Year}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?starfield=1&year=${Year}&tn=${TrackingNumber}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in genInformation:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/obrInformation', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?palworld=1&year=${Year}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?palworld=1&year=${Year}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?palworld=1&year=${Year}&tn=${TrackingNumber}`;
+
+    
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in genInformation:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/salaryList', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?madara=1&year=${Year}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?madara=1&year=${Year}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?madara=1&year=${Year}&tn=${TrackingNumber}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error fetching data in SalaryList:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// PR, PO, PX DETAILS
+app.get('/prpopxDetails', async (req, res) => {
+  const { TrackingNumber, Year, TrackingType } = req.query;
+
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?enshrouded=1&year=${Year}&tn=${TrackingNumber}&type=${TrackingType}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?enshrouded=1&year=${Year}&tn=${TrackingNumber}&type=${TrackingType}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?enshrouded=1&year=${Year}&tn=${TrackingNumber}&type=${TrackingType}`;
+
+    const apiResponse = await fetch(apiUrl);
+    //console.log(apiUrl)
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+   // console.log("From server", data);
+    
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in prpopxDetails:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/paymentBreakdown', async (req, res) => {
+  const { TrackingNumber, TrackingType, Year } = req.query;
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?falldown=1&year=${Year}&tt=${TrackingType}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?falldown=1&year=${Year}&tt=${TrackingType}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?falldown=1&year=${Year}&tt=${TrackingType}&tn=${TrackingNumber}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    //console.log("frmserver",data)
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in payementBreakdown:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/paymentHistory', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?horizon=1&year=${Year}&tn=${TrackingNumber}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    //console.log("frmserver",data)
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in payementHistory:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/computationBreakdown', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?fallout=1&year=${Year}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?fallout=1&year=${Year}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?fallout=1&year=${Year}&tn=${TrackingNumber}`;
+
+    
+    const apiResponse = await fetch(apiUrl);
+    //console.log(apiUrl)
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in payementBreakdown:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/transactionHistory', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
+    
+    const apiResponse = await fetch(apiUrl);
+    //console.log(apiUrl)
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+   // console.log(data)
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in genInformation:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/myTransactions', async (req, res) => {
+  const {EmployeeNumber, Year} = req.query;
+
+  //console.log("Year-- Server",Year, EmployeeNumber);
+  
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`; //
+
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+
+    //console.log(data);
+
+   // io.emit('myTransactionData', data);
+
+    
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in myTransactions:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/recentlyUpdated', async (req, res) => {
+  const {OfficeCode} = req.query;
+
+  //console.log("Year-- Server",Year);
+  
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in recentlyUpdated:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+io.on('connection', (socket) => {
+  //console.log('a user connected');
+
+  const officeCode = socket.handshake.query.officeCode;
+
+
+  socket.join(officeCode);
+  /* console.log(`Client joined room: ${officeCode}`); */
+
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+  /*   console.log('user disconnected'); */
+  });
+});
+
+app.get('/updatedNow', async (req, res) => {
+  const {OfficeCode} = req.query;
+  
+  //http://192.168.100.217/gord/ajax/dataprocessor.php?killua=1&office=
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
+    
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    res.json(data);
+
+    io.emit('updatedNowData', data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in updated now:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/transactionUpdate', async (req, res) => {
+  const {Office, Year} = req.query;
+  
+  //http://192.168.100.217/gord/ajax/dataprocessor.php?killua=1&office=
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?gusion=1&year=${Year}&office=${Office}`; //
+    
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    res.json(data); 
+
+    io.emit('updatedNowData', data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in updated now:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
+
+
+
+
+app.get('/read', async (req, res) => {
+  const {OfficeCode} = req.query;
+  try {
+
+
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?kakashi=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?kakashi=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?kakashi=1&office=${OfficeCode}`;
+
+    
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    console.log(data);
+    
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in reading notification:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.get('/transactionSummary', async (req, res) => {
+  const {Year, TrackingType, OfficeCode} = req.query;
+
+  //console.log(Year, TrackingType, OfficeCode);
+
+  //console.log("Year-- Server",Year);
+  
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?gojo=1&year=${Year}&tt=${TrackingType}&office=${OfficeCode}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+    //console.log(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in transactionSummary:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+app.get('/othersVouchers', async (req, res) => {
+  const { year, office } = req.query; // Use lower case to match the frontend query parameters
+
+  //console.log(year, office);
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?toji=1&year=${year}&office=${office}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+    //console.log(data);
+
+  } catch (error) {
+    console.error('Error fetching data in othersVouchers:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+app.get('/othersOthers', async (req, res) => {
+  const { year, office } = req.query; // Use lower case to match the frontend query parameters
+
+  //console.log(year, office);
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?itadori=1&year=${year}&office=${office}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+    //console.log(data);
+
+  } catch (error) {
+    console.error('Error fetching data in othersothers:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+
+
+app.get('/projectCleansing', async (req, res) => {
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?sukuna=1`;
+
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+    //console.log(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in project cleansing:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+
+app.get('/projectCleansingDetails', async (req, res) => {
+  const {Barangay, Title, Office, Status, Inspected, Fund} = req.query;
+  //console.log(Barangay, Title, Office, Status, Inspected, Fund);
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?mahoraga=1&barangayName=${Barangay}&title=${Title}&office=${Office}&status=${Status}&inspected=${Inspected}&fund=${Fund}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+    //console.log(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in project cleansing details:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
+
+// Configure multer for image storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Create the uploads folder if it doesn't exist
+const fs = require('fs');
+const uploadDir = 'uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// POST endpoint for image upload
+app.post('/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded.');
+  }
+  res.status(200).send({
+    message: 'File uploaded successfully!',
+    file: req.file
+  });
+});
+
+
+
+
+
+
+
+
+
+
+server.listen(3308, () => {
+  console.log('Server is running on port 3308');
+  console.log(`Server is running at http://localhost:${port}/`);
+});

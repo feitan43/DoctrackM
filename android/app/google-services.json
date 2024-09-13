@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "81849788632",
+    "project_id": "doctracknotif",
+    "storage_bucket": "doctracknotif.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81849788632:android:c86ed7cc2f417f23da0fad",
+        "android_client_info": {
+          "package_name": "com.doctrackm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBngsyHvtjvFdEwf_tfn8b7haDRpyvZNYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
