@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../../config';
+import BASE_URL from '../../../config';
 
 const useProjectCleansingDetails = ({ barangay, title, office, status, inspected, fund }) => {
     const [projectCleansingDetails, setProjectCleansingDetails] = useState(null);
@@ -21,7 +21,7 @@ const useProjectCleansingDetails = ({ barangay, title, office, status, inspected
             const formattedFund = fund ? encodeURIComponent(fund) : '';
 
             const response = await fetch(
-                `${baseUrl}/projectCleansingDetails?Barangay=${formattedBarangay}&Title=${formattedTitle}&Office=${formattedOffice}&Status=${formattedStatus}&Inspected=${formattedInspected}&Fund=${formattedFund}`,
+                `${BASE_URL}/projectCleansingDetails?Barangay=${formattedBarangay}&Title=${formattedTitle}&Office=${formattedOffice}&Status=${formattedStatus}&Inspected=${formattedInspected}&Fund=${formattedFund}`,
                 {
                     method: 'GET',
                     headers: {

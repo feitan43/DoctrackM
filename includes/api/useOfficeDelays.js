@@ -1,7 +1,7 @@
 import {useState, useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
 import useUserInfo from './useUserInfo';
+import BASE_URL from '../../config';
 
 const useOfficeDelays = () => {
   const [officeDelaysData, setOfficeDelaysData] = useState(null);
@@ -22,7 +22,7 @@ const useOfficeDelays = () => {
       setToken(storedToken);
 
       const response = await fetch(
-        `${baseUrl}/officeDelays?OfficeCode=${officeCode}`,
+        `${BASE_URL}/officeDelays?OfficeCode=${officeCode}`,
         {
           method: 'GET',
           headers: {

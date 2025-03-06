@@ -137,7 +137,7 @@ export const checkBatteryOptimization = async () => {
           title: notifeeData.notification.title,
           body: notifeeData.notification.body,
           android: {
-            channelId: notifeeData.data.channelId || 'default',  // Use 'default' if channelId is not provided
+            channelId: notifeeData.data.channelId || 'default',  
             badgeIconType: AndroidBadgeIconType.LARGE,
             smallIcon: 'ic_launcher_round',
             showTimestamp: true,

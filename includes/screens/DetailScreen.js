@@ -29,6 +29,9 @@ const screenWidth = Dimensions.get('window').width;
 
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
+  
+  //console.log(selectedItem)
+  //console.log(selectedItem.DocumentType, selectedItem.TrackingType, selectedItem.TrackingNumber)
   const {
     genInformationData,
     genInfoLoading,
@@ -48,36 +51,16 @@ const DetailScreen = ({route, navigation}) => {
     salaryListLoading,
   } = useGenInformation(selectedItem.index, selectedItem);
 
-  const [genRemarks, setGenRemarks] = useState([]);
-
-  const [genNetAmount, setGenNetAmount] = useState([]);
   const [genStatusGuide, setGenStatusGuide] = useState([]);
-
   const [genStatusOffice, setGenStatusOffice] = useState([]);
   const [genOrderStat, setGenOrderStat] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
-  const [obrInformation, setOBRInformation] = useState([]);
-
-  const [PBTotalCost, setPBTotalCost] = useState([]);
-  const [pxLD, setPXLD] = useState([]);
-  const [tax1Percent, setTax1Percent] = useState([]);
-  const [tax5Percent, setTax5Percent] = useState([]);
-  const [totalTaxfromPercent, setTotalTaxFromPercent] = useState([]);
-  const [PRPOPXTotalAmount, setPRPOPXTotalAmount] = useState();
-
   const [error, setError] = useState(null);
   const [token, setToken] = useState(null);
-
-  const [expanded, setExpanded] = useState(false);
-
   const scrollViewRef = useRef(null);
   const obrInfoRef = useRef(null);
   const prDetailsRef = useRef(null);
-  const printablesRef = useRef(null);
   const remarksRef = useRef(null);
-  const pendingNoteRef = useRef(null);
   const transactionHistoryRef = useRef(null);
   const genInfoRef = useRef(null);
   const paymentHistoryRef = useRef(null);
@@ -139,13 +122,9 @@ const DetailScreen = ({route, navigation}) => {
       return '';
     }
 
-    // Regular expression to match closing </b> tags
     const boldEndRegex = /<\/b>/g;
-    // Replace closing </b> tags with a newline character
     const newText = text.replace(boldEndRegex, '</b>\n');
-    // Regular expression to match all other HTML tags
     const htmlRegex = /<[^>]*>/g;
-    // Replace remaining HTML tags with a space
     return newText.replace(htmlRegex, ' ');
   }
 
@@ -204,7 +183,7 @@ const DetailScreen = ({route, navigation}) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedItem, baseUrl]);
+  }, []);
 
   useEffect(() => {
     if (transactionHistory && transactionHistory.length > 0) {
@@ -235,6 +214,12 @@ const DetailScreen = ({route, navigation}) => {
       setLoading(paymentBreakdownLoading);
     }
   }, [paymentBreakdown]);
+
+  useEffect(() => {
+    if (paymentHistory && paymentHistory.length > 0) {
+      setLoading(paymentHistoryLoading);
+    }
+  }, [paymentHistory]);
 
   const genPendingNote = genInformationData?.Remarks1;
 
@@ -267,7 +252,7 @@ const DetailScreen = ({route, navigation}) => {
   }; */
 
   const renderDetailsPRRequest = () => {
-    if (selectedItem.DocumentType === 'Purchase Request') {
+    if (selectedItem.TrackingType === 'PR') {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
@@ -290,7 +275,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     GENERAL INFORMATION
                   </Text>
@@ -509,7 +494,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     OBR INFORMATION
                   </Text>
@@ -677,7 +662,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PR DETAILS
                   </Text>
@@ -872,7 +857,7 @@ const DetailScreen = ({route, navigation}) => {
                     color: 'white',
                     fontSize: 16,
                     textAlign: 'center',
-                    marginStart:10
+                    marginStart: 10,
                   }}>
                   REMARKS
                 </Text>
@@ -934,7 +919,7 @@ const DetailScreen = ({route, navigation}) => {
                     color: 'white',
                     fontSize: 16,
                     textAlign: 'center',
-                    marginStart:10
+                    marginStart: 10,
                   }}>
                   PENDING NOTE
                 </Text>
@@ -996,7 +981,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     TRANSACTION HISTORY
                   </Text>
@@ -1132,7 +1117,7 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderDetailsPOOrder = () => {
-    if (selectedItem.DocumentType === 'Purchase Order') {
+    if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
@@ -1160,7 +1145,7 @@ const DetailScreen = ({route, navigation}) => {
                         fontFamily: 'Oswald-Regular',
                         color: 'white',
                         fontSize: 16,
-                        marginStart:10
+                        marginStart: 10,
                       }}>
                       GENERAL INFORMATION
                     </Text>
@@ -1168,6 +1153,7 @@ const DetailScreen = ({route, navigation}) => {
                   <View style={styles.detailItem}>
                     <Text style={styles.label}>Office</Text>
                     <Text style={styles.labelValue}>
+                      {/* {genInformationData.OfficeName} */}
                       {genInformationData.OfficeName.replace(/\\/g, '')}
                     </Text>
                   </View>
@@ -1194,41 +1180,6 @@ const DetailScreen = ({route, navigation}) => {
                     marginBottom={5}
                     style={{bottom: 5}}
                   />
-                  {/*       <View style={styles.detailItem}>
-                    <Text style={styles.label}></Text>
-
-                    <Text style={styles.labelValue}>
-                      ({genInformationData.RegOffice})
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  /> */}
-                  {/*   <View style={styles.detailItem}>
-                    <Text style={styles.label}></Text>
-                    <Text style={styles.labelValue}>
-                      <Text style={styles.progressText}>
-                        {`${genInformationData.OrderStat}/19`}{' '}
-                      </Text>
-                      <Text style={styles.progressText}>
-                        {Math.floor(parseFloat(width))}%
-                      </Text>
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  /> */}
-
                   <View style={styles.detailItem}>
                     <Text style={styles.label}>TN</Text>
                     <Text style={styles.labelValue}>
@@ -1526,17 +1477,12 @@ const DetailScreen = ({route, navigation}) => {
                     backgroundColor: 'rgba(0,0,0,0.3)',
                     alignItems: 'center',
                   }}>
-                  {/* <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
                   <Text
                     style={{
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PAYMENT HISTORY
                   </Text>
@@ -1552,120 +1498,127 @@ const DetailScreen = ({route, navigation}) => {
                   }}>
                   <Text
                     style={{
-                      width: '5%',
+                      flex:1,
                       fontSize: 11,
                       fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'center',
+                      textAlign: 'left',
                       color: 'white',
                     }}>
                     TN
                   </Text>
+                  <View style={{flex: 2, flexDirection:'row', justifyContent:'space-around'}}>
                   <Text
                     style={{
-                      width: '20%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'center',
+                      //textAlign: 'center',
                       color: 'white',
                     }}>
                     STATUS
                   </Text>
                   <Text
                     style={{
-                      width: '10%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'left',
                       color: 'white',
                     }}>
                     GROSS
                   </Text>
                   <Text
                     style={{
-                      width: '10%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
                       color: 'white',
-                      textAlign: 'center',
                     }}>
                     LD
                   </Text>
                   <Text
                     style={{
-                      width: '15%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
                       color: 'white',
-                      textAlign: 'center',
                     }}>
                     TOTAL TAX
                   </Text>
                   <Text
                     style={{
-                      width: '15%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
                       color: 'white',
-                      textAlign: 'center',
                     }}>
                     RETENTION
                   </Text>
                   <Text
                     style={{
-                      width: '18%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
                       color: 'white',
-                      textAlign: 'center',
                     }}>
                     ADJUSTMENT
                   </Text>
                   <Text
                     style={{
-                      width: '10%',
-                      fontSize: 11,
+                      fontSize: 8,
                       fontFamily: 'Oswald-ExtraLight',
                       color: 'white',
-                      textAlign: 'center',
                     }}>
                     NET
                   </Text>
+                  </View>
+               
                 </View>
 
-                {paymentHistory &&
-                paymentHistory.payment &&
-                paymentHistory.payment.length > 0 ? (
-                  paymentHistory.payment.map((payment, index) => (
-                    <View key={index} style={styles.obrRow}>
-                      <View style={{width: 80}}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            fontFamily: 'Oswald-Regular',
-                            paddingRight: 30,
-                            paddingStart: 5,
-                            fontSize: 12,
-                          }}>
-                          {payment.TrackingNumber}
+                {paymentHistory && paymentHistory.length > 0 ? (
+                  paymentHistory.map(payment => (
+                    <View
+                      key={payment.TrackingNumber}
+                      style={{marginBottom: 5}}>
+                      <View style={{flexDirection: 'row'}}>
+                        <View style={{width: 90}}>
+                          <Text
+                            style={{
+                              color: 'white',
+                              fontFamily: 'Oswald-Regular',
+                              paddingRight: 30,
+                              paddingStart: 5,
+                              fontSize: 12,
+                            }}>
+                            {payment.TrackingNumber}
+                          </Text>
+                        </View>
+                        <View style={{flex: 1,justifyContent:'space-around', flexDirection:'row'}}>
+                        <View style={{}}>
+                          <Text style={[styles.paymentText]}>
+                            {payment.Status}
+                          </Text>
+                        </View>
+                        <Text style={styles.paymentText}>{payment.Gross}</Text>
+                        <Text style={styles.paymentText}>
+                          {payment.LiquidatedDamages}
                         </Text>
-                      </View>
-                      <View style={{flex: 1}}>
-                        <Text style={[styles.paymentText]}>
-                          {paymentHistory.tracking[index].Status}
+                        <Text style={styles.paymentText}>
+                          {payment.TotalTax}
                         </Text>
+                        <Text style={styles.paymentText}>
+                          {payment.Retention}
+                        </Text>
+                        <Text style={styles.paymentText}>
+                          {payment.AdjustmentAmount}
+                        </Text>
+                        <Text style={styles.paymentText}>
+                          {payment.NetAmount}
+                        </Text>
+                        </View>
+
                       </View>
-                      <Text style={styles.paymentText}>{payment.Gross}</Text>
-                      <Text style={styles.paymentText}>
-                        {payment.LiquidatedDamages}
-                      </Text>
-                      <Text style={styles.paymentText}>{payment.TotalTax}</Text>
-                      <Text style={styles.paymentText}>
-                        {payment.Retention}
-                      </Text>
-                      <Text style={styles.paymentText}>
-                        {payment.Adjustment}
-                      </Text>
-                      <Text style={styles.paymentText}>{payment.Amount}</Text>
+                      <Divider
+                        width={1.9}
+                        color={'rgba(217, 217, 217, 0.1)'}
+                        borderStyle={'solid'}
+                        marginBottom={5}
+                        paddingTop={10}
+                        style={{bottom: 5}}
+                      />
                     </View>
                   ))
                 ) : (
@@ -1704,7 +1657,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     OBR INFORMATION
                   </Text>
@@ -1872,7 +1825,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PO DETAILS
                   </Text>
@@ -2066,7 +2019,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     REMARKS
                   </Text>
@@ -2129,7 +2082,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PENDING NOTE
                   </Text>
@@ -2192,7 +2145,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     TRANSACTION HISTORY
                   </Text>
@@ -2327,7 +2280,7 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderDetailsPayment = () => {
-    if (selectedItem.DocumentType === 'Payment') {
+    if (selectedItem.TrackingType === 'PX') {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
@@ -2351,7 +2304,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     GENERAL INFORMATION
                   </Text>
@@ -2785,7 +2738,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PARTICULARS
                   </Text>
@@ -2847,7 +2800,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     AUDIT AND COMPLIANCE OFFICERS
                   </Text>
@@ -2888,10 +2841,11 @@ const DetailScreen = ({route, navigation}) => {
           <View ref={prDetailsRef}>
             <View style={styles.obrContainer}>
               <View>
+
                 {paymentBreakdown &&
-                paymentBreakdown.length &&
-                computationBreakdown &&
-                computationBreakdown.length > 0 ? (
+                /* paymentBreakdown.length && */
+                computationBreakdown /* &&
+                computationBreakdown.length > 0 */ ? (
                   <View style={styles.detailsContainer}>
                     <View
                       style={{
@@ -2910,7 +2864,7 @@ const DetailScreen = ({route, navigation}) => {
                           fontFamily: 'Oswald-Regular',
                           color: 'white',
                           fontSize: 16,
-                          marginStart:10
+                          marginStart: 10,
                         }}>
                         PAYMENT BREAKDOWN
                       </Text>
@@ -3028,7 +2982,7 @@ const DetailScreen = ({route, navigation}) => {
                               }}>
                               <Text
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 10,
                                   fontFamily: 'Oswald-ExtraLight',
                                   textAlign: 'right',
                                   color: 'white',
@@ -3050,7 +3004,7 @@ const DetailScreen = ({route, navigation}) => {
                               }}>
                               <Text
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 10,
                                   fontFamily: 'Oswald-ExtraLight',
                                   textAlign: 'right',
                                   color: 'white',
@@ -3082,7 +3036,7 @@ const DetailScreen = ({route, navigation}) => {
                             <Text
                               style={{
                                 fontFamily: 'Oswald-ExtraLight',
-                                fontSize: 12,
+                                fontSize: 10,
                                 color: 'white',
                               }}>
                               {item.Amount}
@@ -3092,7 +3046,7 @@ const DetailScreen = ({route, navigation}) => {
                           <Text
                             style={{
                               width: '20%',
-                              fontSize: 12,
+                              fontSize: 10,
                               fontFamily: 'Oswald-ExtraLight',
                               textAlign: 'left',
                               color: 'white',
@@ -3104,7 +3058,7 @@ const DetailScreen = ({route, navigation}) => {
                           <Text
                             style={{
                               width: '10%',
-                              fontSize: 12,
+                              fontSize: 10,
                               fontFamily: 'Oswald-ExtraLight',
                               textAlign: 'center',
                               color: 'white',
@@ -3115,7 +3069,7 @@ const DetailScreen = ({route, navigation}) => {
                           <Text
                             style={{
                               width: '15%',
-                              fontSize: 12,
+                              fontSize: 10,
                               fontFamily: 'Oswald-ExtraLight',
                               textAlign: 'left',
                               color: 'white',
@@ -3126,7 +3080,7 @@ const DetailScreen = ({route, navigation}) => {
                           <Text
                             style={{
                               width: '15%',
-                              fontSize: 12,
+                              fontSize: 10,
                               fontFamily: 'Oswald-ExtraLight',
                               textAlign: 'left',
                               color: 'white',
@@ -3407,7 +3361,7 @@ const DetailScreen = ({route, navigation}) => {
                                     ? computationBreakdown[1].PercentageAmount
                                     : ''}
                                 </Text>
-                              </Text>
+                              </Text> 
                             </View>
                           ) : (
                             <></>
@@ -3596,7 +3550,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     REMARKS
                   </Text>
@@ -3659,7 +3613,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PENDING NOTE
                   </Text>
@@ -3722,7 +3676,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     TRANSACTION HISTORY
                   </Text>
@@ -3858,9 +3812,9 @@ const DetailScreen = ({route, navigation}) => {
 
   const renderOtherDetails = () => {
     if (
-      selectedItem.DocumentType !== 'Payment' &&
-      selectedItem.DocumentType !== 'Purchase Request' &&
-      selectedItem.DocumentType !== 'Purchase Order'
+      selectedItem.TrackingType !== 'PR' &&
+      selectedItem.TrackingType !== 'PO' &&
+      selectedItem.TrackingType !== 'PX'
     ) {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -3885,7 +3839,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     GENERAL INFORMATION
                   </Text>
@@ -3970,26 +3924,44 @@ const DetailScreen = ({route, navigation}) => {
                   marginBottom={5}
                   style={{bottom: 5}}
                 />
+
+                {genInformationData.TrackingPartner && (
+                  <>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.label}>TN Partner</Text>
+                      <Text style={styles.labelValue}>
+                        {genInformationData.TrackingPartner}
+                      </Text>
+                    </View>
+                    <Divider
+                      width={1.9}
+                      color={'rgba(217, 217, 217, 0.1)'}
+                      borderStyle={'dashed'}
+                      marginHorizontal={20}
+                      marginBottom={5}
+                      style={{bottom: 5}}
+                    />
+                  </>
+                )}
+
                 {genInformationData.BatchTracking ? (
                   <>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>SLP Tracking</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.BatchTracking}
-                    </Text>
-                  </View>
-                   <Divider
-                   width={1.9}
-                   color={'rgba(217, 217, 217, 0.1)'}
-                   borderStyle={'dashed'}
-                   marginHorizontal={20}
-                   marginBottom={5}
-                   style={{bottom: 5}}
-                 />
-                 </>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.label}>SLP Tracking</Text>
+                      <Text style={styles.labelValue}>
+                        {genInformationData.BatchTracking}
+                      </Text>
+                    </View>
+                    <Divider
+                      width={1.9}
+                      color={'rgba(217, 217, 217, 0.1)'}
+                      borderStyle={'dashed'}
+                      marginHorizontal={20}
+                      marginBottom={5}
+                      style={{bottom: 5}}
+                    />
+                  </>
                 ) : null}
-
-
 
                 {genInformationData.DocumentType === 'SLP' && (
                   <>
@@ -4010,79 +3982,97 @@ const DetailScreen = ({route, navigation}) => {
                   </>
                 )}
 
-               <View>
-  {((genInformationData.DocumentType.startsWith('WAGES') &&
-    genInformationData.DocumentType !== 'WAGES - SALARY DIFFERENTIAL') ||
-    (genInformationData.DocumentType.startsWith('ALLOWANCE') &&
-      genInformationData.DocumentType !== 'ALLOWANCE - HEALTH AND EMERGENCY' &&
-      genInformationData.DocumentType !== 'ALLOWANCE - TRANSPORTATION') ||
-    genInformationData.DocumentType.startsWith('ASSISTANCE') ||
-    genInformationData.DocumentType.startsWith('PAYMENT') ||
-    genInformationData.DocumentType.startsWith('BILLS') ||
-    genInformationData.DocumentType.startsWith('REGISTRATION') ||
-    genInformationData.DocumentType.startsWith('REIMBURSEMENT') ||
-    (genInformationData.DocumentType.startsWith('BENEFITS') &&
-      genInformationData.DocumentType !== 'BENEFITS - ELAP') ||
-    genInformationData.DocumentType.startsWith('REPLENISHMENT') ||
-    genInformationData.DocumentType.startsWith('CASH ADVANCE')) && (
-    <>
-     <View style={styles.detailItem}>
-  <Text style={styles.label}>ADV Number</Text>
-  <Text style={styles.labelValue}>
-    {genInformationData.ADV === '0' ? '' : genInformationData.ADV}
-  </Text>
-</View>
-      <Divider
-        width={1.9}
-        color={'rgba(217, 217, 217, 0.1)'}
-        borderStyle={'dashed'}
-        marginHorizontal={20}
-        marginBottom={5}
-        style={{ bottom: 5 }}
-      />
-      {genInformationData.OBR_Number ? (
-        <>
-          <View style={styles.detailItem}>
-            <Text style={styles.label}>OBR Number</Text>
-            <Text style={styles.labelValue}>{genInformationData.OBR_Number}</Text>
-          </View>
-          <Divider
-            width={1.9}
-            color={'rgba(217, 217, 217, 0.1)'}
-            borderStyle={'dashed'}
-            marginHorizontal={20}
-            marginBottom={5}
-            style={{ bottom: 5 }}
-          />
-        </>
-      ) : null}
-    </>
-  )}
+                {genInformationData.ControlNo &&
+                  genInformationData.ControlNo >= 1 && (
+                    <>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.label}>Ctrl Number </Text>
+                        <Text style={styles.labelValue}>
+                          {genInformationData.ControlNo}
+                        </Text>
+                      </View>
+                      <Divider
+                        width={1.9}
+                        color={'rgba(217, 217, 217, 0.1)'}
+                        borderStyle={'dashed'}
+                        marginHorizontal={20}
+                        marginBottom={5}
+                        style={{bottom: 5}}
+                      />
+                    </>
+                  )}
 
-  {(genInformationData.DocumentType.startsWith('REFUND') ||
-    genInformationData.DocumentType === 'WAGES - SALARY DIFFERENTIAL' ||
-    genInformationData.DocumentType === 'BOND - OTHERS' ||
-    genInformationData.DocumentType === 'ALLOWANCE - HEALTH AND EMERGENCY' ||
-    genInformationData.DocumentType === 'ALLOWANCE - TRANSPORTATION' ||
-    genInformationData.DocumentType === 'BENEFITS - ELAP' ||
-    genInformationData.DocumentType === 'SLP') && (
-    <>
-      <View style={styles.detailItem}>
-        <Text style={styles.label}>ADV Number</Text>
-        <Text style={styles.labelValue}>{genInformationData.ADV}</Text>
-      </View>
-      <Divider
-        width={1.9}
-        color={'rgba(217, 217, 217, 0.1)'}
-        borderStyle={'dashed'}
-        marginHorizontal={20}
-        marginBottom={5}
-        style={{ bottom: 5 }}
-      />
-    </>
-  )}
-</View>
+                {/* {(genInformationData.DocumentType.startsWith('REFUND') ||
+                  genInformationData.DocumentType.startsWith('SLP') ||
+                    genInformationData.DocumentType ===
+                      'WAGES - SALARY DIFFERENTIAL' ||
+                    genInformationData.DocumentType === 'BOND - OTHERS' ||
+                    genInformationData.DocumentType ===
+                      'ALLOWANCE - HEALTH AND EMERGENCY' ||
+                    genInformationData.DocumentType ===
+                      'ALLOWANCE - TRANSPORTATION' ||
+                    genInformationData.DocumentType === 'BENEFITS - ELAP' ||
+                    genInformationData.DocumentType === 'SLP' ||
+                    genInformationData.DocumentType === 'B16')  && (
+                    <>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.label}>ADV Number</Text>
+                        <Text style={styles.labelValue}>
+                          {genInformationData.ADV}
+                        </Text>
+                      </View>
+                      <Divider
+                        width={1.9}
+                        color={'rgba(217, 217, 217, 0.1)'}
+                        borderStyle={'dashed'}
+                        marginHorizontal={20}
+                        marginBottom={5}
+                        style={{bottom: 5}}
+                      />
+                    </>
+                  )} */}
 
+                <View>
+                  {(genInformationData.PR_ProgramCode ||
+                    genInformationData.ADV) && (
+                    <>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.label}>ADV Number</Text>
+                        <Text style={styles.labelValue}>
+                          {genInformationData.ADV === '0'
+                            ? ''
+                            : genInformationData.ADV}
+                        </Text>
+                      </View>
+                      <Divider
+                        width={1.9}
+                        color={'rgba(217, 217, 217, 0.1)'}
+                        borderStyle={'dashed'}
+                        marginHorizontal={20}
+                        marginBottom={5}
+                        style={{bottom: 5}}
+                      />
+                      {genInformationData.OBR_Number ? (
+                        <>
+                          <View style={styles.detailItem}>
+                            <Text style={styles.label}>OBR Number</Text>
+                            <Text style={styles.labelValue}>
+                              {genInformationData.OBR_Number}
+                            </Text>
+                          </View>
+                          <Divider
+                            width={1.9}
+                            color={'rgba(217, 217, 217, 0.1)'}
+                            borderStyle={'dashed'}
+                            marginHorizontal={20}
+                            marginBottom={5}
+                            style={{bottom: 5}}
+                          />
+                        </>
+                      ) : null}
+                    </>
+                  )}
+                </View>
 
                 {!genInformationData.ClaimType === 'Window' && (
                   <View style={styles.detailItem}>
@@ -4146,7 +4136,7 @@ const DetailScreen = ({route, navigation}) => {
                 {genInformationData.ClaimType === 'Window' && (
                   <>
                     <View style={styles.detailItem}>
-                      <Text style={styles.label}>PTRS Value</Text>
+                      <Text style={styles.label}>PTRS {/* Value */}</Text>
                       <Text style={styles.labelValue}>
                         {genInformationData.PTRSNo}
                       </Text>
@@ -4191,30 +4181,31 @@ const DetailScreen = ({route, navigation}) => {
                   style={{bottom: 5}}
                 />
 
-                {genInformationData.PeaceOfficeId != 0 && (
-                  <View>
-                    <View style={styles.detailItem}>
-                      <Text style={styles.label}>Sub Program</Text>
-                      <Text style={styles.labelValue}>
-                        <Text style={{color: 'rgb(22, 178, 217)'}}>
-                          {genInformationData.SubCodeName}
-                        </Text>{' '}
-                        {genInformationData.SubCodeFund}
-                      </Text>
+                {genInformationData.PeaceOfficeId != 0 &&
+                  genInformationData.SubCodeName &&
+                  genInformationData.SubCodeFund && (
+                    <View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.label}>Sub Program</Text>
+                        <Text style={styles.labelValue}>
+                          <Text style={{color: 'rgb(22, 178, 217)'}}>
+                            {genInformationData.SubCodeName}
+                          </Text>{' '}
+                          {genInformationData.SubCodeFund}
+                        </Text>
+                      </View>
+                      <Divider
+                        width={1.9}
+                        color={'rgba(217, 217, 217, 0.1)'}
+                        borderStyle={'dashed'}
+                        marginHorizontal={20}
+                        marginBottom={5}
+                        style={{bottom: 5}}
+                      />
                     </View>
-                    <Divider
-                      width={1.9}
-                      color={'rgba(217, 217, 217, 0.1)'}
-                      borderStyle={'dashed'}
-                      marginHorizontal={20}
-                      marginBottom={5}
-                      style={{bottom: 5}}
-                    />
-                  </View>
-                )}
+                  )}
 
-                {(genInformationData.DocumentType === 'SLP' ||
-                  genInformationData.DocumentType === 'REGISTRATION - LTO') && (
+                {genInformationData.CheckNumber && (
                   <>
                     <View style={styles.detailItem}>
                       <Text style={styles.label}>Check Number</Text>
@@ -4230,7 +4221,11 @@ const DetailScreen = ({route, navigation}) => {
                       marginBottom={5}
                       style={{bottom: 5}}
                     />
+                  </>
+                )}
 
+                {genInformationData.CheckDate && (
+                  <>
                     <View style={styles.detailItem}>
                       <Text style={styles.label}>Check Date</Text>
                       <Text style={styles.labelValue}>
@@ -4245,11 +4240,15 @@ const DetailScreen = ({route, navigation}) => {
                       marginBottom={5}
                       style={{bottom: 5}}
                     />
+                  </>
+                )}
 
+                {genInformationData.Amount && (
+                  <>
                     <View style={styles.detailItem}>
                       <Text style={styles.label}>Gross Amount</Text>
                       <Text style={styles.labelValue}>
-                        {genInformationData.Amount}
+                        {insertCommas(genInformationData.Amount)}
                       </Text>
                     </View>
                     <Divider
@@ -4263,8 +4262,28 @@ const DetailScreen = ({route, navigation}) => {
                   </>
                 )}
 
-                {(genInformationData.DocumentType.startsWith('REFUND') ||
-                  genInformationData.DocumentType === 'BOND - OTHERS') && (
+                {genInformationData.NetAmount && (
+                  <>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.label}>Net Amount</Text>
+                      <Text style={styles.labelValue}>
+                        {insertCommas(genInformationData.NetAmount)}
+                      </Text>
+                    </View>
+                    <Divider
+                      width={1.9}
+                      color={'rgba(217, 217, 217, 0.1)'}
+                      borderStyle={'dashed'}
+                      marginHorizontal={20}
+                      marginBottom={5}
+                      style={{bottom: 5}}
+                    />
+                  </>
+                )}
+
+                {/* {(genInformationData.DocumentType.startsWith('REFUND') ||
+  genInformationData.DocumentType === 'BOND - OTHERS' ||
+  genInformationData.DocumentType === 'B16') && (
                   <>
                     <View style={styles.detailItem}>
                       <Text style={styles.label}>Gross Amount</Text>
@@ -4280,9 +4299,7 @@ const DetailScreen = ({route, navigation}) => {
                       marginBottom={5}
                       style={{bottom: 5}}
                     />
-                  </>
-                )}
-
+               
                 <View style={styles.detailItem}>
                   <Text style={styles.label}>Net Amount</Text>
                   <Text
@@ -4305,6 +4322,9 @@ const DetailScreen = ({route, navigation}) => {
                   marginBottom={5}
                   style={{bottom: 5}}
                 />
+                   </>
+                )} */}
+
                 <View style={styles.detailItem}>
                   <Text style={styles.label}>EncodedBy</Text>
                   <Text style={styles.labelValue}>
@@ -4371,7 +4391,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     AUDIT AND COMPLIANCE OFFICERS
                   </Text>
@@ -4431,7 +4451,7 @@ const DetailScreen = ({route, navigation}) => {
                         fontFamily: 'Oswald-Regular',
                         color: 'white',
                         fontSize: 16,
-                        marginStart:10
+                        marginStart: 10,
                       }}>
                       SALARY LIST OF PAYROLLS
                     </Text>
@@ -4576,183 +4596,178 @@ const DetailScreen = ({route, navigation}) => {
             !genInformationData.DocumentType.includes('BOND - OTHERS') &&
             !genInformationData.DocumentType.includes('SLP')  */}
 
-          {genInformationData.DocumentType !== 'BENEFITS - ELAP' &&
-            !(
-              genInformationData.DocumentType.startsWith('REFUND') ||
-              genInformationData.DocumentType.startsWith('REMITTANCE') ||
-              genInformationData.DocumentType === 'BOND - OTHERS'
-            ) && (
-              <View ref={obrInfoRef}>
-                <View style={styles.obrContainer}>
-                  <View style={styles.detailsContainer}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        padding: 10,
-                        backgroundColor: 'rgba(0,0,0,0.3)',
-                        alignItems: 'center',
-                      }}>
-                      {/* <Icon
+          {genInformationData.PR_ProgramCode && (
+            <View ref={obrInfoRef}>
+              <View style={styles.obrContainer}>
+                <View style={styles.detailsContainer}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      padding: 10,
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                      alignItems: 'center',
+                    }}>
+                    {/* <Icon
                       name={'information-circle-outline'}
                       size={28}
                       color={'rgba(132, 218, 92, 1)'}
                     /> */}
-                      <Text
-                        style={{
-                          fontFamily: 'Oswald-Regular',
-                          color: 'white',
-                          fontSize: 16,
-                          marginStart:10
-                        }}>
-                        OBR INFORMATION
-                      </Text>
-                    </View>
-                    <View>
-                      <View
-                        style={{
-                          backgroundColor: 'rgba(0,0,0, 0.5)',
-                          padding: 5,
-                          flexDirection: 'row',
-                        }}>
-                        <Text
-                          style={{
-                            fontFamily: 'Oswald-ExtraLight',
-                            color: 'white',
-                            marginEnd: 20,
-                            marginStart: 5,
-                            flex: 1,
-                            fontSize: 12,
-                          }}>
-                          PROGRAM
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: 'Oswald-ExtraLight',
-                            color: 'white',
-                            marginEnd: 40,
-                            flex: 1,
-                            fontSize: 12,
-                          }}>
-                          CODE
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: 'Oswald-ExtraLight',
-                            color: 'white',
-                            marginEnd: 5,
-                            flex: 1,
-                            textAlign: 'right',
-                            fontSize: 12,
-                          }}>
-                          AMOUNT
-                        </Text>
-                      </View>
-
-                      {OBRInformation && OBRInformation.length > 0 ? (
-                        OBRInformation.map((item, index) => (
-                          <View key={index}>
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                paddingVertical: 5,
-                                paddingBottom: 15,
-                                //borderBottomWidth: 1,
-                                paddingStart: 10,
-                                //borderBottomColor: 'silver',
-                              }}>
-                              <View style={{flex: 1}}>
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    color: 'white',
-                                    fontFamily: 'Oswald-Regular',
-                                  }}>
-                                  {item.PR_ProgramCode}
-                                </Text>
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    color: 'silver',
-                                    fontFamily: 'Oswald-ExtraLight',
-                                  }}>
-                                  {item.ProgramName}
-                                </Text>
-                              </View>
-                              <View style={{flex: 1}}>
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    color: 'white',
-                                    fontFamily: 'Oswald-Regular',
-                                  }}>
-                                  {item.PR_AccountCode}
-                                </Text>
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    color: 'silver',
-                                    fontFamily: 'Oswald-ExtraLight',
-                                  }}>
-                                  {item.AccountTitle}
-                                </Text>
-                              </View>
-                              <View
-                                style={{
-                                  flex: 1,
-                                  alignItems: 'flex-end',
-                                  marginEnd: 10,
-                                }}>
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    color: 'white',
-                                    fontFamily: 'Oswald-Regular',
-                                  }}>
-                                  {insertCommas(item.Amount)}
-                                </Text>
-                              </View>
-                            </View>
-                            <Divider
-                              width={1.9}
-                              color={'rgba(217, 217, 217, 0.1)'}
-                              borderStyle={'solid'}
-                              marginHorizontal={10}
-                              marginBottom={5}
-                              style={{bottom: 5}}
-                            />
-                          </View>
-                        ))
-                      ) : (
-                        <Text
-                          style={{
-                            color: 'silver',
-                            fontFamily: 'Oswald-Regular',
-                          }}>
-                          No data available
-                        </Text>
-                      )}
-                    </View>
+                    <Text
+                      style={{
+                        fontFamily: 'Oswald-Regular',
+                        color: 'white',
+                        fontSize: 16,
+                        marginStart: 10,
+                      }}>
+                      OBR INFORMATION
+                    </Text>
+                  </View>
+                  <View>
                     <View
                       style={{
-                        alignItems: 'flex-end',
-                        paddingRight: 5,
-                        paddingBottom: 10,
+                        backgroundColor: 'rgba(0,0,0, 0.5)',
+                        padding: 5,
+                        flexDirection: 'row',
                       }}>
                       <Text
                         style={{
+                          fontFamily: 'Oswald-ExtraLight',
                           color: 'white',
-                          fontSize: 20,
-                          fontFamily: 'Oswald-Regular',
-                          paddingEnd: 5,
-                          textAlign: 'right',
+                          marginEnd: 20,
+                          marginStart: 5,
+                          flex: 1,
+                          fontSize: 12,
                         }}>
-                        {insertCommas(totalAmount.toFixed(2))}
+                        PROGRAM
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: 'Oswald-ExtraLight',
+                          color: 'white',
+                          marginEnd: 40,
+                          flex: 1,
+                          fontSize: 12,
+                        }}>
+                        CODE
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: 'Oswald-ExtraLight',
+                          color: 'white',
+                          marginEnd: 5,
+                          flex: 1,
+                          textAlign: 'right',
+                          fontSize: 12,
+                        }}>
+                        AMOUNT
                       </Text>
                     </View>
+
+                    {OBRInformation && OBRInformation.length > 0 ? (
+                      OBRInformation.map((item, index) => (
+                        <View key={index}>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              paddingVertical: 5,
+                              paddingBottom: 15,
+                              //borderBottomWidth: 1,
+                              paddingStart: 10,
+                              //borderBottomColor: 'silver',
+                            }}>
+                            <View style={{flex: 1}}>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: 'white',
+                                  fontFamily: 'Oswald-Regular',
+                                }}>
+                                {item.PR_ProgramCode}
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: 'silver',
+                                  fontFamily: 'Oswald-ExtraLight',
+                                }}>
+                                {item.ProgramName}
+                              </Text>
+                            </View>
+                            <View style={{flex: 1}}>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: 'white',
+                                  fontFamily: 'Oswald-Regular',
+                                }}>
+                                {item.PR_AccountCode}
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: 'silver',
+                                  fontFamily: 'Oswald-ExtraLight',
+                                }}>
+                                {item.AccountTitle}
+                              </Text>
+                            </View>
+                            <View
+                              style={{
+                                flex: 1,
+                                alignItems: 'flex-end',
+                                marginEnd: 10,
+                              }}>
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  color: 'white',
+                                  fontFamily: 'Oswald-Regular',
+                                }}>
+                                {insertCommas(item.Amount)}
+                              </Text>
+                            </View>
+                          </View>
+                          <Divider
+                            width={1.9}
+                            color={'rgba(217, 217, 217, 0.1)'}
+                            borderStyle={'solid'}
+                            marginHorizontal={10}
+                            marginBottom={5}
+                            style={{bottom: 5}}
+                          />
+                        </View>
+                      ))
+                    ) : (
+                      <Text
+                        style={{
+                          color: 'silver',
+                          fontFamily: 'Oswald-Regular',
+                        }}>
+                        No data available
+                      </Text>
+                    )}
+                  </View>
+                  <View
+                    style={{
+                      alignItems: 'flex-end',
+                      paddingRight: 5,
+                      paddingBottom: 10,
+                    }}>
+                    <Text
+                      style={{
+                        color: 'white',
+                        fontSize: 20,
+                        fontFamily: 'Oswald-Regular',
+                        paddingEnd: 5,
+                        textAlign: 'right',
+                      }}>
+                      {insertCommas(totalAmount.toFixed(2))}
+                    </Text>
                   </View>
                 </View>
               </View>
-            )}
+            </View>
+          )}
 
           <View ref={remarksRef}>
             <View style={styles.obrContainer}>
@@ -4774,7 +4789,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     REMARKS
                   </Text>
@@ -4837,7 +4852,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     PENDING NOTE
                   </Text>
@@ -4900,7 +4915,7 @@ const DetailScreen = ({route, navigation}) => {
                       fontFamily: 'Oswald-Regular',
                       color: 'white',
                       fontSize: 16,
-                      marginStart:10
+                      marginStart: 10,
                     }}>
                     TRANSACTION HISTORY
                   </Text>
@@ -4917,7 +4932,7 @@ const DetailScreen = ({route, navigation}) => {
                         style={{
                           flexDirection: 'row',
                           paddingVertical: 5,
-                          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.4)',
                         }}>
                         <View style={{flex: 1}}></View>
                         <View style={{flex: 3, marginEnd: 15}}>
@@ -5013,8 +5028,11 @@ const DetailScreen = ({route, navigation}) => {
                       ))}
                     </DataTable>
                   ) : (
-                    <View style={{}}>
-                      <Text>No Transaction History available</Text>
+                    <View style={{padding: 10}}>
+                      <Text
+                        style={{fontFamily: 'Oswald-Regular', color: 'silver'}}>
+                        {/* No Transaction History available */}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -5104,23 +5122,47 @@ const DetailScreen = ({route, navigation}) => {
               </Pressable>
             </View>
             <View style={{alignItems: 'center', rowGap: -5}}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 20,
-                  fontFamily: 'Oswald-Medium',
-                  lineHeight: 22,
-                }}>
-                {selectedItem.TrackingNumber}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontFamily: 'Oswald-Regular',
-                  color: '#FFFFFF',
-                }}>
-                Tracking Number
-              </Text>
+              {genInformationData ? (
+                <>
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontSize: 20,
+                      fontFamily: 'Oswald-Medium',
+                      lineHeight: 22,
+                    }}>
+                    {genInformationData.TrackingNumber}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontFamily: 'Oswald-Regular',
+                      color: '#FFFFFF',
+                    }}>
+                    Tracking Number
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontSize: 20,
+                      fontFamily: 'Oswald-Medium',
+                      lineHeight: 22,
+                    }}>
+                    {''}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontFamily: 'Oswald-Regular',
+                      color: '#FFFFFF',
+                    }}>
+                    {/* Tracking Number */}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
 
@@ -5143,19 +5185,13 @@ const DetailScreen = ({route, navigation}) => {
             </View>
           ) : (
             <View style={{height: '100%', paddingBottom: 55}}>
-              {selectedItem.DocumentType === 'Purchase Request' ? (
-                renderDetailsPRRequest()
-              ) : selectedItem.DocumentType === 'Purchase Order' ? (
-                renderDetailsPOOrder()
-              ) : selectedItem.DocumentType === 'Payment' ? (
-                renderDetailsPayment()
-              ) : selectedItem.DocumentType !== 'Payment' &&
-                selectedItem.DocumentType !== 'Purchase Request' &&
-                selectedItem.DocumentType !== 'Purchase Order' ? (
-                renderOtherDetails()
-              ) : (
-                <EmptyScreen />
-              )}
+              {selectedItem.TrackingType === 'PR'
+                ? renderDetailsPRRequest()
+                : selectedItem.TrackingType === 'PO'
+                ? renderDetailsPOOrder()
+                : selectedItem.TrackingType === 'PX'
+                ? renderDetailsPayment()
+                : renderOtherDetails()}
             </View>
           )}
         </View>
@@ -5295,9 +5331,9 @@ const styles = StyleSheet.create({
   },
   paymentText: {
     fontFamily: 'Oswald-Light',
-    fontSize: 12,
+    fontSize: 10,
     paddingRight: 5,
-    color: 'black', // Example color, change as needed
+    color: 'white', // Example color, change as needed
   },
   particularsText: {
     fontSize: 14,

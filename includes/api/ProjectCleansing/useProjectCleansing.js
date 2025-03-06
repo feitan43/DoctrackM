@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../../config';
+import BASE_URL from '../../../config';
 
 const useProjectCleansing = () => {
   const [projectCleansingData, setprojectCleansingData] = useState(null);
@@ -15,7 +15,7 @@ const useProjectCleansing = () => {
       setToken(storedToken);
 
       const response = await fetch(
-        `${baseUrl}/projectCleansing`,
+        `${BASE_URL}/projectCleansing`,
         {
           method: 'GET',
           headers: {

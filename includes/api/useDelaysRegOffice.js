@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
 import useUserInfo from './useUserInfo';
+import BASE_URL from '../../config';
 
 const useDelaysRegOffice = () => {
   const [delaysRegOfficeData, setDelaysRegOfficeData] = useState(null);
@@ -10,7 +10,6 @@ const useDelaysRegOffice = () => {
   const [error, setError] = useState(null);
   const { officeCode } = useUserInfo();
   const [delaysLoading, setDelaysLoading] = useState(true);
-
   const fetchDataRegOfficeDelays = async () => {
     try {
       setDelaysLoading(true);
@@ -22,7 +21,7 @@ const useDelaysRegOffice = () => {
       }
 
       const response = await fetch(
-        `${baseUrl}/regOfficeDelays?OfficeCode=${officeCode}`,
+        `${BASE_URL}/regOfficeDelays?OfficeCode=${officeCode}`,
         {
           method: 'GET',
           headers: {

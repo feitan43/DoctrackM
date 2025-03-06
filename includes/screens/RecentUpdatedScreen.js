@@ -64,6 +64,24 @@ const insertCommas = value => {
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
+const monthMap = {
+  1: 'January',
+  2: 'February',
+  3: 'March',
+  4: 'April',
+  5: 'May',
+  6: 'June',
+  7: 'July',
+  8: 'August',
+  9: 'September',
+  10: 'October',
+  11: 'November',
+  12: 'December',
+};
+
+const getMonthName = PMonth => {
+  return monthMap[PMonth] || PMonth; // Return month name or PMonth if not valid
+};
 const currentDate = new Date();
 const formatDate = date => {
   const year = date.getFullYear();
@@ -155,8 +173,19 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
                     fontFamily: 'Oswald-Light',
                     fontSize: 12,
                   }}>
-                  {insertCommas(item.Amount)}
+                  {insertCommas(item.Amount ? item.Amount : '')}
                 </Text>
+                <View style={{width: 50}}>
+                  <Text
+                    style={{
+                      //backgroundColor: 'rgba(0,0,0,0.1)', // Move background color here
+                      color: 'white',
+                      fontFamily: 'Oswald-Light',
+                      fontSize: 12,
+                    }}>
+                    {item.PeriodMonth ? getMonthName(item.PeriodMonth) : ''}
+                  </Text>
+                </View>
               </View>
             </View>
             <View>
@@ -186,7 +215,7 @@ const RecentUpdatedScreen = ({navigation}) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const {refreshing, onRefresh} = useRefresh(fetchRecentlyUpdatedData);
 
-  useEffect(() => {
+  /*   useEffect(() => {
     const retrieveInitialNotification = async () => {
       const initialNotification = await notifee.getInitialNotification();
       if (initialNotification) {
@@ -194,7 +223,7 @@ const RecentUpdatedScreen = ({navigation}) => {
       }
     };
     retrieveInitialNotification();
-  }, []);
+  }, []); */
 
   const onPressItem = useCallback(
     index => {
@@ -246,6 +275,8 @@ const RecentUpdatedScreen = ({navigation}) => {
           onEndReached={loadMore}
           onEndReachedThreshold={0.1}
           onScroll={handleScroll}
+          initialNumToRender={10}
+          windowSize={5}
           ListEmptyComponent={() => <Text>No results found</Text>}
           ListFooterComponent={() =>
             recentLoading ? <ActivityIndicator color="white" /> : null

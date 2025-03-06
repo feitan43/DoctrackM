@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
 import useUserInfo from './useUserInfo';
+import BASE_URL from '../../config';
 
 const useTransactionSummary = (selectedYear) => {
   const [dataPR, setDataPR] = useState(null);
@@ -35,7 +35,7 @@ const useTransactionSummary = (selectedYear) => {
       if (!token || !officeCode) return;
 
       const response = await fetch(
-        `${baseUrl}/transactionSummary?Year=${currentYear}&TrackingType=${trackingType}&OfficeCode=${officeCode}`,
+        `${BASE_URL}/transactionSummary?Year=${currentYear}&TrackingType=${trackingType}&OfficeCode=${officeCode}`,
         {
           method: 'GET',
           headers: {
@@ -91,7 +91,7 @@ const useTransactionSummary = (selectedYear) => {
   useEffect(() => {
     const fetchAllTransactionSummaries = async () => {
       if (token && officeCode) {
-        setLoadingTransSum(true); // Set loading to true before starting fetch
+        setLoadingTransSum(true); 
 
         try {
           await Promise.all([
@@ -102,7 +102,7 @@ const useTransactionSummary = (selectedYear) => {
         } catch (err) {
           setError(err);
         } finally {
-          setLoadingTransSum(false); // Set loading to false after all fetches are done
+          setLoadingTransSum(false); 
         }
       }
     };

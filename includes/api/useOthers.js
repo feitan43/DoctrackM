@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useUserInfo from './useUserInfo';
-import baseUrl from '../../config';
+import BASE_URL from '../../config';
 
 const useOthers = (selectedYear) => {
   const [data, setData] = useState({
@@ -21,8 +21,8 @@ const useOthers = (selectedYear) => {
       setData(prev => ({ ...prev, loading: true }));
 
       const [vouchersRes, othersRes] = await Promise.all([
-        fetch(`${baseUrl}/othersVouchers?office=${officeCode}&year=${currentYear}`),
-        fetch(`${baseUrl}/othersOthers?office=${officeCode}&year=${currentYear}`),
+        fetch(`${BASE_URL}/othersVouchers?office=${officeCode}&year=${currentYear}`),
+        fetch(`${BASE_URL}/othersOthers?office=${officeCode}&year=${currentYear}`),
       ]);
 
       if (!vouchersRes.ok || !othersRes.ok) {
@@ -42,7 +42,7 @@ const useOthers = (selectedYear) => {
         error: null,
       });
     } catch (err) {
-      console.error('Error fetching data:', err);
+      //console.error('Error fetching data:', err);
       setData({
         vouchers: null,
         others: null,

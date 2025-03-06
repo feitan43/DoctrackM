@@ -17,19 +17,15 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-
+import BASE_URL from '../../config';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import baseUrl from '../../config';
-import LottieView from 'lottie-react-native';
-import FastImage from 'react-native-fast-image';
 import {CommonActions} from '@react-navigation/native';
 
 const {encrypt} = require('../security/encryption');
 
 import messaging from '@react-native-firebase/messaging';
-import {Input} from '@rneui/base';
 import DeviceInfo from 'react-native-device-info';
 
 const LoginScreen = ({navigation}) => {
@@ -41,6 +37,8 @@ const LoginScreen = ({navigation}) => {
   const [isLoading, setLoading] = useState(true);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+  const [errorApi, setErrorApi] = useState('');
+
   const [loginError, setLoginError] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
   const [isApiAccessible, setIsApiAccessible] = useState(false);
@@ -85,7 +83,7 @@ const LoginScreen = ({navigation}) => {
   useEffect(() => {
     const checkApiAccessibility = async () => {
       try {
-        const response = await fetch(`${baseUrl}/`, {
+        const response = await fetch(`${BASE_URL}/`, {
           method: 'HEAD',
         });
 
@@ -130,13 +128,101 @@ const LoginScreen = ({navigation}) => {
     retrieveStoredCredentials();
   }, []);
 
-  /*   const handleSplash = async () => {
-    navigation.navigate('Splash');
-  }; */
+  // const handleLogin = async () => {
+  //   setLoading(true);
+
+  //   if (rememberMe) {
+  //     try {
+  //       await AsyncStorage.setItem('employeeNumber', employeeNumber);
+  //       await AsyncStorage.setItem('password', password);
+  //     } catch (error) {
+  //       console.error('Error storing credentials:', error);
+  //     }
+  //   } else {
+  //     // If "Remember Me" is unchecked, clear the stored credentials
+  //     try {
+  //       await AsyncStorage.removeItem('employeeNumber');
+  //       await AsyncStorage.removeItem('password');
+  //     } catch (error) {
+  //       console.error('Error clearing stored credentials:', error);
+  //     }
+  //   }
+
+  //   if (!isConnected) {
+  //     Alert.alert('Network Error', 'Please check your network connection.');
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   if (!employeeNumber || !password) {
+  //     setError(true);
+  //     setLoading(false);
+  //     return;
+  //   } else {
+  //     setError(false);
+  //   }
+
+  //   try {
+  //     const pushToken = await messaging().getToken();
+  //     const userDevice = DeviceInfo.getDeviceId();
+  //     const response = await fetch(`${BASE_URL}/loginApi`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         EmployeeNumber: employeeNumber,
+  //         Password: password,
+  //         PushToken: pushToken,
+  //         UserDevice: userDevice,
+  //       }),
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (response.ok) {
+  //       await AsyncStorage.setItem('token', data.token);
+
+  //       navigation.dispatch(
+  //         CommonActions.reset({
+  //           index: 0,
+  //           routes: [
+  //             {
+  //               name: 'Home',
+  //               params: {
+  //                 employeeNumber: employeeNumber,
+  //                 password: password,
+  //                 pushToken: pushToken,
+  //                 token: data.token,
+  //                 userDevice: userDevice,
+  //               },
+  //             },
+  //           ],
+  //         }),
+  //       );
+  //     } else {
+  //       if (data.error) {
+  //         setLoginError(true);
+  //         setErrorApi(data.error);
+  //         setModalVisible(true);
+  //         /*  Alert.alert('Authentication Error', data.error); */
+  //       } else {
+  //         setModalVisible(true);
+  //         setErrorApi(data.message);
+  //         //Alert.alert('Network Error', 'Failed to connect to the server.');
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     Alert.alert('Error', 'An error occurred while processing your request.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleLogin = async () => {
     setLoading(true);
-
+  
     if (rememberMe) {
       try {
         await AsyncStorage.setItem('employeeNumber', employeeNumber);
@@ -153,13 +239,13 @@ const LoginScreen = ({navigation}) => {
         console.error('Error clearing stored credentials:', error);
       }
     }
-
+  
     if (!isConnected) {
       Alert.alert('Network Error', 'Please check your network connection.');
       setLoading(false);
       return;
     }
-
+  
     if (!employeeNumber || !password) {
       setError(true);
       setLoading(false);
@@ -167,12 +253,19 @@ const LoginScreen = ({navigation}) => {
     } else {
       setError(false);
     }
-
+  
+    const controller = new AbortController();  // Create an AbortController
+    const signal = controller.signal;  // Extract the signal to be passed into fetch
+  
+    const timeout = setTimeout(() => {
+      controller.abort();  // Abort the fetch request if it takes too long
+    }, 10000); // 10 seconds timeout
+  
     try {
       const pushToken = await messaging().getToken();
-      const userDevice = DeviceInfo.getDeviceId(); // Get device ID or any other information you need
-
-      const response = await fetch(`${baseUrl}/loginApi`, {
+      const userDevice = DeviceInfo.getDeviceId();
+      
+      const response = await fetch(`${BASE_URL}/loginApi`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,13 +276,14 @@ const LoginScreen = ({navigation}) => {
           PushToken: pushToken,
           UserDevice: userDevice,
         }),
+        signal,  // Attach the abort signal to the fetch request
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
         await AsyncStorage.setItem('token', data.token);
-
+  
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
@@ -210,20 +304,28 @@ const LoginScreen = ({navigation}) => {
       } else {
         if (data.error) {
           setLoginError(true);
+          setErrorApi(data.error);
           setModalVisible(true);
-          /*  Alert.alert('Authentication Error', data.error); */
         } else {
-          Alert.alert('Network Error', 'Failed to connect to the server.');
+          setModalVisible(true);
+          setErrorApi(data.message);
         }
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'An error occurred while processing your request.');
+      if (error.name === 'AbortError') {
+        console.log('Fetch request aborted due to timeout');
+        Alert.alert('Error', 'The request timed out. Please try again.');
+      } else {
+        console.error(error);
+        Alert.alert('Error', 'An error occurred while processing your request.');
+      }
     } finally {
+      clearTimeout(timeout);  // Clear the timeout once the fetch is completed
       setLoading(false);
     }
   };
 
+  
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
@@ -238,7 +340,7 @@ const LoginScreen = ({navigation}) => {
           style={styles.backgroundImage}>
           <View style={styles.textContainer}>
             <Text style={styles.centeredText}>
-              DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v1</Text>
+              DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.4</Text>
             </Text>
 
             <View
@@ -247,13 +349,6 @@ const LoginScreen = ({navigation}) => {
                 isInputFocused === 'employeeNumber' &&
                   styles.inputContainerFocused,
               ]}>
-              {/*   <Icon
-              name="person"
-              size={26}
-              color="#143d6b"
-              style={{paddingStart: 10}}
-            /> */}
-
               <TextInput
                 label="Outlined input"
                 style={styles.input}
@@ -312,7 +407,7 @@ const LoginScreen = ({navigation}) => {
                 onPress={() => setRememberMe(!rememberMe)}
                 style={{flexDirection: 'row', alignItems: 'center'}}>
                 <Icon
-                  name={rememberMe ? 'checkbox' : 'checkbox-outline'}
+                  name={rememberMe ? 'checkbox-outline' : 'square-outline'}
                   size={24}
                   color="white"
                 />
@@ -361,21 +456,6 @@ const LoginScreen = ({navigation}) => {
                   </View>
                 )}
               </TouchableOpacity>
-
-              {/*   <TouchableOpacity  style={{
-                backgroundColor: '#143d6b',
-                padding: 15,
-                height: 50,
-                alignItems: 'center',
-                borderRadius: 5,
-                marginBottom: 10,
-                marginTop: 10,
-                elevation: 5,
-              }} onPress={handleSplash}>
-              <Text style={{color: 'white'}}>
-                SPLASHSCREENTEST
-              </Text>
-            </TouchableOpacity> */}
             </View>
 
             <View style={{marginTop: -10}}>
@@ -402,13 +482,12 @@ const LoginScreen = ({navigation}) => {
               <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                   {/* <Icon name="close-circle" size={100} color="#E53935" /> */}
-                  <LottieView
-                    style={{width: 120, height: 120}}
-                    source={require('../../assets/images/redAlert.json')}
-                    autoPlay
-                    loop
+                  <Image
+                    style={{width: 185, height: 150}}
+                    source={require('../../assets/images/errorState.png')}
                   />
-                  <Text style={styles.modalText}>Invalid Credentials</Text>
+                  <Text style={styles.modalText}>{errorApi}</Text>
+
                   <TouchableOpacity
                     style={styles.closeButton}
                     onPress={() => setModalVisible(false)}>
@@ -543,23 +622,29 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    padding: 50,
+    padding: 20,
     borderRadius: 10,
     alignItems: 'center',
   },
   modalText: {
-    fontSize: 18,
-    marginBottom: 20,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+    marginVertical: 20,
+    fontFamily: 'Oswald-Regular',
   },
   closeButton: {
-    backgroundColor: '#143d6b',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(8, 106, 235, 1)',
     paddingVertical: 10,
-    paddingHorizontal: 50,
+    paddingHorizontal: 90,
     borderRadius: 5,
   },
   closeButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
   },
   buttonDisabled: {
     backgroundColor: '#888', // Change to a disabled color

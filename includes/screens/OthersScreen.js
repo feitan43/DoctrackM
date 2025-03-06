@@ -14,18 +14,12 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import useOthers from '../api/useOthers';
 import ProgressBar from '../utils/ProgressBar'; // Import your ProgressBar component
+import { insertCommas } from '../utils/insertComma';
 
 const OthersScreen = ({route, navigation}) => {
   const [visibleItems, setVisibleItems] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const {selectedItem, details, loadingDetails} = route.params;
-
-  function insertCommas(value) {
-    if (value === null) {
-      return '';
-    }
-    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
 
   const onPressItem = useCallback(
     index => {

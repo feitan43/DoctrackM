@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useState,
-  useEffect,
-  memo,
-  useRef,
-} from 'react';
+import React, {useCallback, useState, useEffect, memo, useRef} from 'react';
 import {
   View,
   Text,
@@ -67,6 +61,25 @@ function insertCommas(value) {
   }
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
+
+const monthMap = {
+  1: "January",
+  2: "February",
+  3: "March",
+  4: "April",
+  5: "May",
+  6: "June",
+  7: "July",
+  8: "August",
+  9: "September",
+  10: "October",
+  11: "November",
+  12: "December"
+};
+
+const getMonthName = (PMonth) => {
+  return monthMap[PMonth] || PMonth; // Return month name or PMonth if not valid
+};
 
 const RenderOfficeDelays = memo(({item, index, onPressItem}) => {
   return (
@@ -150,21 +163,29 @@ const RenderOfficeDelays = memo(({item, index, onPressItem}) => {
                   }}>
                   {insertCommas(item.Amount)}
                 </Text>
+                <Text
+                  style={{
+                    color: 'white',
+                    fontFamily: 'Oswald-Light',
+                    fontSize: 12,
+                  }}>
+                  {getMonthName(item.PMonth)}
+                </Text>
 
                 <View
                   style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
                   {/*   <View style={{alignSelf: 'flex-end', flexDirection: 'row'}}>
-          <Text style={{fontSize: 12,color:'#808080', fontFamily: 'Oswald-ExtraLight'}}>Last Updated : </Text>
-          <Text
-            style={{
-              color: 'white',
-              fontFamily: 'Oswald-Light',
-              fontSize: 12,
-              textTransform: 'uppercase',
-            }}>
-            {item.DateModified}
-          </Text>
-        </View> */}
+                  <Text style={{fontSize: 12,color:'#808080', fontFamily: 'Oswald-ExtraLight'}}>Last Updated : </Text>
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontFamily: 'Oswald-Light',
+                      fontSize: 12,
+                      textTransform: 'uppercase',
+                    }}>
+                    {item.DateModified}
+                  </Text>
+                </View> */}
 
                   <View
                     style={{
@@ -235,7 +256,8 @@ const RenderOfficeDelays = memo(({item, index, onPressItem}) => {
 });
 
 const OfficeDelaysScreen = ({navigation}) => {
-  const {officeDelaysData, delaysLoading, fetchOfficeDelays} = useOfficeDelays();
+  const {officeDelaysData, delaysLoading, fetchOfficeDelays} =
+    useOfficeDelays();
 
   const [visibleItems, setVisibleItems] = useState(10);
 

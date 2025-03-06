@@ -56,7 +56,7 @@ apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -82,7 +82,15 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.6"
+        versionName "2.3"
+    }
+       kotlinOptions {
+         jvmTarget = "17"
+         freeCompilerArgs += ["-Xskip-metadata-version-check"]
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
     signingConfigs {
           release {
@@ -108,9 +116,21 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
+           // signingConfig signingConfigs.release
+           // minifyEnabled enableProguardInReleaseBuilds
+           // proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources true // Removes unused resources (optional but recommended for reducing APK size)
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+     splits {
+        abi {
+            enable true              // Enables ABI splitting
+            reset()                  // Reset previous splits if any
+            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"  // Specify the ABIs you want to include
+            universalApk true       // Avoid creating a universal APK
         }
     }
 }
@@ -120,9 +140,11 @@ dependencies {
     implementation 'com.facebook.react:react-native:+'
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation("com.facebook.react:react-android")
-    
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0' 
     implementation("com.facebook.react:flipper-integration")
-
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'com.facebook.fresco:animated-gif:2.6.0'
+    
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

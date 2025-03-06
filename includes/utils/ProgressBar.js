@@ -122,7 +122,8 @@ const ProgressBar = ({TrackingType, Status, DocumentType, ClaimType, Mode}) => {
       '7* Fund Control',
       'x* Pending at CBO',
       'x* Pending Released - CBO',
-      '8* Waiting for Delivery',
+      'x* Waiting for Delivery',
+      '8* Delivered',
     ];
   }
    if (TrackingType === 'PX' || TrackingType === 'Payment') {
@@ -132,6 +133,11 @@ const ProgressBar = ({TrackingType, Status, DocumentType, ClaimType, Mode}) => {
       '3*Inspection - GSO',
       'x*Pending Inspection - GSO',
       'x*Pending Released - Inspection',
+      'x*Inspection On Hold',
+      '4*Inspected',
+      'x*For Tagging',
+      
+      '5*Voucher Received - - CAO',
       '4*Inventory - GSO',
       'x*Pending Inventory - GSO',
       'x*Pending Released - Inventory',
@@ -142,7 +148,7 @@ const ProgressBar = ({TrackingType, Status, DocumentType, ClaimType, Mode}) => {
       '6*On Evaluation - Accounting',
       '7*Evaluated - Accounting',
       '8*Released - CAO',
-      '9*Check Preparation',
+      '9*Check Preparation - CTO',
     ];
 
     if (Status === 'Forwarded to Admin - Operation') {

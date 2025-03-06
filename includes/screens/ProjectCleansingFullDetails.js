@@ -164,7 +164,6 @@ const ProjectCleansingFullDetails = () => {
       // Check the result directly
       if (result?.status === 'success') {
         Alert.alert('Data saved successfully');
-        hideAddingModal();
       } else {
         Alert.alert(
           'Failed to save data:',

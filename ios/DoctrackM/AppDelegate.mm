@@ -1,5 +1,5 @@
 #import "AppDelegate.h"
-
+#import <HotUpdater/HotUpdater.h> 
 #import <React/RCTBundleURLProvider.h>
 
 @implementation AppDelegate
@@ -26,6 +26,7 @@
 #else
   return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
 #endif
+  return [HotUpdater bundleURL]; 
 }
 
 @end

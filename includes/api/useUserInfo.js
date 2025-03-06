@@ -12,6 +12,8 @@ const useUserInfo = () => {
   const [officeName, setOfficeName] = useState(null);
   const [employeeNumber, setEmployeeNumber] = useState(null);
   const [privilege, setPrivilege] = useState(null)
+  const [accountType, setAccountType] = useState(null);
+  const [permission, setPermission] = useState(null);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -22,12 +24,15 @@ const useUserInfo = () => {
         }
         setToken(storedToken);
         const decodedResult = decodeToken(storedToken);
+
         setUserData(decodedResult.data[0]);
         setOfficeCode(decodedResult.data[0].OfficeCode);
         setFullName(decodedResult.data[0].FullName);
         setOfficeName(decodedResult.data[0].OfficeName);
         setEmployeeNumber(decodedResult.data[0].EmployeeNumber);
-        setPrivilege(decodedResult.data[0].Privilege);   
+        setPrivilege(decodedResult.data[0].Privilege);
+        setAccountType(decodedResult.data[0].AccountType);
+        setPermission(decodedResult.data[0].Permission);
       } catch (error) {
         console.error('Error fetching user info:', error);
         setError(error.message);
@@ -53,6 +58,8 @@ const useUserInfo = () => {
     officeName,
     employeeNumber,
     privilege,
+    accountType,
+    permission,
     token,
     error,
   };

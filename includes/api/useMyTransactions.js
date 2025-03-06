@@ -1,69 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
 import useUserInfo from './useUserInfo';
+import BASE_URL from '../../config';
+
+const TIMEOUT_DURATION = 10000; 
 
 const useMyTransactions = (selectedYear) => {
   const [myTransactionsData, setMyTransactionsData] = useState(null);
-  const [myTransactionsLength, setMyTransactionsLength] = useState(null);
-  const [token, setToken] = useState(null);
+  const [myTransactionsLength, setMyTransactionsLength] = useState(0);
   const [error, setError] = useState(null);
-  const { employeeNumber } = useUserInfo();
   const [loading, setLoading] = useState(false);
+  
+  const { employeeNumber, token} = useUserInfo();
 
-  const fetchToken = async () => {
-    try {
-      const storedToken = await AsyncStorage.getItem('token');
-      setToken(storedToken);
-    } catch (err) {
-      console.error('Error fetching token:', err.message);
-    }
-  };
+  const fetchMyPersonal = useCallback(async () => {
+    if (!employeeNumber || !token) return;
 
-  const fetchMyPersonal = async () => {
     try {
       setLoading(true);
-
-      if (!employeeNumber || !token) return;
+      setError(null);
 
       const currentYear = selectedYear || new Date().getFullYear();
-      const response = await fetch(
-        `${baseUrl}/myTransactions?Year=${currentYear}&EmployeeNumber=${employeeNumber}`,
-        {
+
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), TIMEOUT_DURATION)
+      );
+
+      const response = await Promise.race([
+        fetch(`${BASE_URL}/myTransactions?Year=${currentYear}&EmployeeNumber=${employeeNumber}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-        }
-      );
+        }),
+        timeout,
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        setMyTransactionsData(data);
-        setMyTransactionsLength(data.length);
-      } else {
-        throw new Error('Failed to fetch My Transactions data');
-      }
-    } catch (error) {
-      setError(error.message);
-      console.error('Error during data fetching My Transactions:', error.message);
+      if (!response.ok) throw new Error('Something went wrong');
+
+      const data = await response.json();
+      setMyTransactionsData(data);
+      setMyTransactionsLength(data.length || 0);
+    } catch (err) {
+      setError(err.message || 'An error occurred while fetching data.');
+      setMyTransactionsData(null);
+      setMyTransactionsLength(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear, employeeNumber, token]);
 
-  useEffect(() => {
-    fetchToken();
-  }, []);
-
+  // Trigger fetch when token & employeeNumber are available
   useEffect(() => {
     if (token && employeeNumber) {
       fetchMyPersonal();
     }
-  }, [token, employeeNumber, selectedYear]);
+  }, [token, employeeNumber, selectedYear, fetchMyPersonal]);
 
-  return { myTransactionsData, myTransactionsLength, loading, token, error, fetchMyPersonal };
+  return { myTransactionsData, myTransactionsLength, loading, error, fetchMyPersonal };
 };
 
 export default useMyTransactions;

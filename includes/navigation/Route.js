@@ -16,6 +16,8 @@ import {
   TouchableOpacity,
   Linking,
   StatusBar,
+  Modal,
+  Image,
 } from 'react-native';
 import notifee, {
   EventType,
@@ -59,7 +61,8 @@ import {
 } from '@react-navigation/stack';
 import {Easing} from 'react-native-reanimated';
 import SettingsScreen from '../screens/SettingsScreen';
-import baseUrl from '../../config';
+import BASE_URL from '../../config';
+
 import CameraComponent from '../utils/CameraComponent';
 import DeviceInfo from 'react-native-device-info';
 import RNFetchBlob from 'react-native-blob-util';
@@ -71,6 +74,34 @@ import ProjectCleansingDetails from '../screens/ProjectCleansingDetails';
 import ProjectCleansingFullDetails from '../screens/ProjectCleansingFullDetails';
 import OthersScreen from '../screens/OthersScreen';
 import ProjectCleansingScreen from '../screens/ProjectCleansingScreen';
+import SearchScreen from '../screens/SearchScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import ContactUsScreen from '../screens/ContactUs';
+import InspectionSearchScreen from '../screens/InspectionSearchScreen';
+import InspectionScreen from '../screens/InspectionScreen';
+import InspectionDetails from '../screens/InspectionDetails';
+import ForInspection from '../screens/inspector/ForInspection';
+import Inspected from '../screens/inspector/Inspected';
+import InspectionOnHold from '../screens/inspector/InspectionOnHold';
+import ReceiverScreen from '../screens/receiver/ReceiverScreen';
+import SendToReceive from '../screens/sender/SendtoReceive';
+import QRManual from '../screens/receiver/QRManual';
+import QRAuto from '../screens/receiver/QRAuto';
+import QRRevert from '../screens/receiver/QRRevert';
+import MyAccountabilityScreen from '../screens/MyAccountabilityScreen';
+import MyAccountabilityDetails from '../screens/MyAccountabilityDetails';
+import TrackingSummaryScreen from '../screens/TrackingSummaryScreen';
+import RegTrackingSummaryScreen from '../screens/RegTrackingSummaryScreen';
+import RequestScreen from '../screens/inspector/RequestScreen';
+import OnScheduleScreen from '../screens/inspector/OnScheduleScreen';
+import OnEvaluationScreen from '../screens/evaluator/OnEvaluationScreen';
+import EvaluatedScreen from '../screens/evaluator/EvaluatedScreen';
+import EvalPendingScreen from '../screens/evaluator/EvalPendingScreen';
+import EvaluateScreen from '../screens/evaluator/EvaluateScreen';
+import EvalPendingReleasedScreen from '../screens/evaluator/EvalPendingReleasedScreen';
+import EvalDaily from '../screens/evaluator/EvalDaily';
+import EvalMonthly from '../screens/evaluator/EvalMonthly';
+import EvalAnnual from '../screens/evaluator/EvalAnnual';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -78,10 +109,13 @@ export function Route() {
   const [tokens, setToken] = useState(null);
   const [showReminder, setShowReminder] = useState(false);
 
+  const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
+  const [updateUrl, setUpdateUrl] = useState(''); 
+
   const {delaysRegOfficeData, delaysLoading} = useDelaysPerOffice();
   const {genInformationData} = useGenInformation();
 
-  const {userData, fullName, officeCode} = useUserInfo();
+  const {userData, fullName, officeCode, permission} = useUserInfo();
 
   const [currentVersion, setCurrentVersion] = useState('');
   const [latestVersion, setLatestVersion] = useState('');
@@ -94,16 +128,13 @@ export function Route() {
 
     init().finally(async () => {
       await BootSplash.hide({fade: true});
-      //console.log("BootSplash has been hidden successfully");
     });
   }, []);
 
   useEffect(() => {
-    // Get the current version of the app
     const getVersion = async () => {
       const version = DeviceInfo.getVersion();
       setCurrentVersion(version);
-      // Call a function to check against the latest version
       checkForUpdates(version);
     };
     getVersion();
@@ -128,47 +159,34 @@ export function Route() {
 
   const checkForUpdates = async currentVersion => {
     try {
-      const response = await fetch(`${baseUrl}/get-latest-version`);
+      //console.log('Checking for updates...');
+      const response = await fetch(`${BASE_URL}/get-latest-version`);
+      //console.log('Response:', response);
       const data = await response.json();
       const latestVersionFromServer = data.latestVersion;
-      const url = data.latestVersion.updateUrl;
+      const url = latestVersionFromServer.updateUrl;
       setLatestVersion(latestVersionFromServer);
-      //console.log(data.latestVersion.updateUrl)
-      /* console.log("v",latestVersionFromServer) */
-
+  
       if (latestVersionFromServer.version !== currentVersion) {
-        Alert.alert(
-          'Update Available',
-          'A new version of the app is available. Please update to the latest version.',
-          [
-            {text: 'Update Now', onPress: () => handleUpdate(url)},
-            {text: 'Cancel', style: 'cancel'},
-          ],
-          {cancelable: false},
-        );
-      } else {
-        // App is up to date
-        // Alert.alert('Up to Date', 'You are already using the latest version of the app.');
+        setUpdateUrl(url);
+        setIsUpdateModalVisible(true);
       }
     } catch (error) {
-      // console.error('Error fetching the latest version:', error);
-      Alert.alert(
-        'Error',
-        'Failed to check for updates. Please try again later.',
-      );
+      console.error('Error fetching the latest version:', error);
     }
   };
+  
 
   const handleUpdate = async updateUrl => {
     const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
     const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
 
-    const path = `${RNFetchBlob.fs.dirs.DocumentDir}/update.apk`; 
+    const path = `${RNFetchBlob.fs.dirs.DocumentDir}/update.apk`;
     await notifee.createChannel({
       id: 'update',
       name: 'Update Channel',
       importance: AndroidImportance.HIGH,
-      vibration: false, 
+      vibration: false,
     });
 
     await notifee.displayNotification({
@@ -177,7 +195,6 @@ export function Route() {
       body: 'Please wait while the update is being downloaded.',
       android: {
         channelId: 'update',
-        vibrationPattern: [500, 1000, 500, 1000],
         progress: {
           max: 100,
           current: 0,
@@ -192,7 +209,6 @@ export function Route() {
     })
       .fetch('GET', url)
       .progress((received, total) => {
-        // console.log('Received:', received, 'Total:', total);
         const progress = Math.floor((received / total) * 100);
         notifee.displayNotification({
           id: 'progress',
@@ -200,8 +216,6 @@ export function Route() {
           body: `Downloading... ${progress}%`,
           android: {
             channelId: 'update',
-            smallIcon: 'ic_launcher_round',
-            vibrationPattern: [500, 1000, 500, 1000],
             progress: {
               max: 100,
               current: progress,
@@ -211,10 +225,7 @@ export function Route() {
         });
       })
       .then(async res => {
-        console.log('File downloaded to ', path);
-
         await notifee.cancelNotification('progress');
-
         await notifee.displayNotification({
           title: 'Download Complete',
           body: 'The update has been downloaded successfully.',
@@ -228,25 +239,19 @@ export function Route() {
         if (Platform.OS === 'android') {
           RNFetchBlob.android.actionViewIntent(
             res.path(),
-            'application/vnd.android.package-archive',
+            'application/vnd.android.package-archive'
           );
         } else if (Platform.OS === 'ios') {
-          Linking.openURL(appStoreUrl)
-            .then(() => {
-              console.log('Opened app store successfully');
-            })
-            .catch(error => {
-              console.error('Failed to open app store:', error);
-              Alert.alert('Error', 'Failed to open app store.');
-            });
+          Linking.openURL(appStoreUrl);
         }
       })
       .catch(async error => {
-        console.error('Failed to download update:', error);
         await notifee.cancelNotification('progress');
-        Alert.alert('Error', 'Failed to download update.');
+        console.error('Failed to download update:', error);
       });
   };
+
+
 
   useEffect(() => {
     if (Platform.OS === 'android' && Platform.Version > 30) {
@@ -328,7 +333,7 @@ export function Route() {
             if (channelId === 'recentlyupdated') {
               console.log('Navigating to RecentUpdated');
               NavigationService.navigate('RecentUpdated');
-              await fetch(`${baseUrl}/read?OfficeCode=${officeCode}`, {
+              await fetch(`${BASE_URL}/read?OfficeCode=${officeCode}`, {
                 method: 'GET',
               });
             } else if (channelId === 'regulatorydelays') {
@@ -340,6 +345,9 @@ export function Route() {
             } else if (channelId === 'mypersonal') {
               console.log('Navigating to MyPersonal');
               NavigationService.navigate('MyTransactions');
+            } else if (channelId === 'forinspection') {
+              console.log('Navigating to ForInspection');
+              NavigationService.navigate('ForInspection');
             } else {
               console.log('Unknown channelId:', channelId);
             }
@@ -351,7 +359,6 @@ export function Route() {
     }
   }, [officeCode]);
 
-  // Bootstrap sequence function
   async function bootstrap() {
     const initialNotification = await notifee.getInitialNotification();
 
@@ -390,6 +397,11 @@ export function Route() {
       setTimeout(() => {
         NavigationService.navigate('MyTransactions');
       }, 2000);
+    } else if (channelId === 'forinspection') {
+      // Delay navigation by 2 seconds
+      setTimeout(() => {
+        NavigationService.navigate('ForInspection');
+      }, 2000); 
     } else {
       console.log('Unknown channelId:', channelId);
     }
@@ -403,11 +415,11 @@ export function Route() {
 
   return (
     <NavigationContainer ref={NavigationService.setTopLevelNavigator}>
-      <StatusBar
+     {/*  <StatusBar
         barStyle="light-content"
         backgroundColor={'transparent'}
         translucent
-      />
+      /> */}
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
@@ -454,6 +466,41 @@ export function Route() {
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="StatusView" component={StatusView} />
         <Stack.Screen name="Others" component={OthersScreen} />
+        <Stack.Screen name="Search" component={SearchScreen}/>
+        <Stack.Screen name="Profile" component={ProfileScreen}/>
+        <Stack.Screen name="ContactUs" component={ContactUsScreen}/>
+        <Stack.Screen name="InspectionSearch" component={InspectionSearchScreen}/>
+        <Stack.Screen name='Inspection' component={InspectionScreen} />
+        <Stack.Screen name='InspectionDetails' component={InspectionDetails} />
+        <Stack.Screen name='ForInspection' component={ForInspection}/>
+        <Stack.Screen name='Inspected' component={Inspected}/>
+        <Stack.Screen name='InspectionOnHold' component={InspectionOnHold}/>
+
+        <Stack.Screen name='QRManual' component={QRManual}/>
+        <Stack.Screen name='QRAuto' component={QRAuto}/>
+        <Stack.Screen name='QRRevert' component={QRRevert}/>
+
+        <Stack.Screen name='Receiver' component={ReceiverScreen}/>
+
+        <Stack.Screen name='Sender' component={SendToReceive}/>
+
+        <Stack.Screen name='MyAccountability' component={MyAccountabilityScreen}/>
+        <Stack.Screen name='MyAccountabilityDetails' component={MyAccountabilityDetails}/>
+        <Stack.Screen name='TrackingSummaryScreen' component={TrackingSummaryScreen}/>
+        <Stack.Screen name='RegTrackingSummaryScreen' component={RegTrackingSummaryScreen}/>
+
+        <Stack.Screen name='RequestScreen' component={RequestScreen} />
+        <Stack.Screen name='OnScheduleScreen' component={OnScheduleScreen} />
+
+
+        <Stack.Screen name='Evaluate' component={EvaluateScreen} />
+        <Stack.Screen name='OnEvaluation' component={OnEvaluationScreen} />
+        <Stack.Screen name='Evaluated' component={EvaluatedScreen} />
+        <Stack.Screen name='EvalPending' component={EvalPendingScreen} />
+        <Stack.Screen name='EvalPendingReleased' component={EvalPendingReleasedScreen} />
+        <Stack.Screen name='EvalDaily' component={EvalDaily}/>
+        <Stack.Screen name='EvalMonthly' component={EvalMonthly} />
+        <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
 
         <Stack.Screen
           name="ProjectCleansing"
@@ -469,10 +516,146 @@ export function Route() {
         />
         <Stack.Screen name="WebView" component={WebViewScreen} />
         <Stack.Screen name="Camera" component={CameraComponent} />
+
+
+
       </Stack.Navigator>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isUpdateModalVisible}
+        onRequestClose={() => setIsUpdateModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Update Available</Text>
+            <View></View>
+            <Image
+                 source={require('../../assets/images/updateavailable.png')}
+                 style={{height: 180, width: '80%', paddingBottom: 10}}
+                />
+            <Text style={styles.modalText}>
+              A new version of the app is available. Please update to the latest version.
+            </Text>
+            <TouchableOpacity
+              style={styles.updateButton}
+              onPress={() => {
+                handleUpdate(updateUrl);
+                setIsUpdateModalVisible(false); 
+              }}
+            >
+              <Text style={styles.updateButtonText}>Update Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setIsUpdateModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </NavigationContainer>
   );
 }
+
+// return (
+//   <NavigationContainer ref={NavigationService.setTopLevelNavigator}>
+//     <StatusBar
+//       barStyle="light-content"
+//       backgroundColor={'transparent'}
+//       translucent
+//     />
+//     <Stack.Navigator
+//       initialRouteName={initialRoute}
+//       screenOptions={{
+//         headerShown: false,
+//         gestureEnabled: true,
+//         gestureDirection: 'vertical',
+//         ...TransitionPresets.SlideFromRightIOS,
+//         navigationBarColor: 'transparent',
+//         animationDuration: 500,
+//         presentation: 'transparentModal',
+//       }}
+//     >
+//       {/* Conditional Middleware */}
+//       {userData?.accountCode === 10 || userData?.accountCode === 48 ? (
+//         // Screens accessible only to inspectors
+//         <>
+//           <Stack.Screen name="InspectionSearch" component={InspectionSearchScreen} />
+//           <Stack.Screen name="InspectionCalendar" component={InspectionCalendar} />
+//           <Stack.Screen name="Inspection" component={InspectionScreen} />
+//           <Stack.Screen name="InspectionDetails" component={InspectionDetails} />
+//           <Stack.Screen name="ForInspection" component={ForInspection} />
+//           <Stack.Screen name="Inspected" component={Inspected} />
+//           <Stack.Screen name="InspectionOnHold" component={InspectionOnHold} />
+//         </>
+//       ) : (
+//         // Screens accessible to regular users
+//         <>
+//           <Stack.Screen name="Home">
+//             {props => (
+//               <HomeScreen
+//                 {...props}
+//                 token={tokens}
+//                 userData={userData}
+//                 fullName={fullName}
+//                 delaysRegOfficeData={delaysRegOfficeData}
+//                 genInformationData={genInformationData}
+//               />
+//             )}
+//           </Stack.Screen>
+//           <Stack.Screen name="Splash" component={SplashScreen} />
+//           <Stack.Screen name="Login" component={LoginScreen} />
+//           {/* Other regular user screens */}
+//         </>
+//       )}
+
+//       {/* Common screens for both user roles */}
+//       <Stack.Screen name="Settings" component={SettingsScreen} />
+//       <Stack.Screen name="ContactUs" component={ContactUsScreen} />
+//       {/* Add any other common screens */}
+      
+//     </Stack.Navigator>
+
+//     {/* Update Modal */}
+//     <Modal
+//       animationType="slide"
+//       transparent={true}
+//       visible={isUpdateModalVisible}
+//       onRequestClose={() => setIsUpdateModalVisible(false)}
+//     >
+//       <View style={styles.modalContainer}>
+//         <View style={styles.modalContent}>
+//           <Text style={styles.modalTitle}>Update Available</Text>
+//           <Image
+//             source={require('../../assets/images/update.jpg')}
+//             style={{ height: 180, width: '70%', paddingBottom: 10 }}
+//           />
+//           <Text style={styles.modalText}>
+//             A new version of the app is available. Please update to the latest version.
+//           </Text>
+//           <TouchableOpacity
+//             style={styles.updateButton}
+//             onPress={() => {
+//               handleUpdate(updateUrl);
+//               setIsUpdateModalVisible(false);
+//             }}
+//           >
+//             <Text style={styles.updateButtonText}>Update Now</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             style={styles.cancelButton}
+//             onPress={() => setIsUpdateModalVisible(false)}
+//           >
+//             <Text style={styles.cancelButtonText}>Not now</Text>
+//           </TouchableOpacity>
+//         </View>
+//       </View>
+//     </Modal>
+//   </NavigationContainer>
+// );
+
 
 const styles = StyleSheet.create({
   permissionReminder: {
@@ -512,5 +695,53 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    alignSelf:'flex-start',
+  },
+  modalText: {
+    fontSize: 12,
+    marginBottom: 10,
+    textAlign: 'center',
+    paddingVertical:10
+  },
+  updateButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  cancelButton: {
+    //backgroundColor: '#d9534f',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: 'gray',
+    fontSize: 14,
   },
 });

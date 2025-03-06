@@ -7,7 +7,6 @@ import {
   StyleSheet,
   SafeAreaView,
 } from "react-native";
-import { HeaderBackButton } from "@react-navigation/elements";
 
 const CreateMessage = ({ navigation }) => {
   const [message, setMessage] = useState("");
@@ -18,25 +17,9 @@ const CreateMessage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <HeaderBackButton
-          onPress={() => navigation.goBack()}
-          labelVisible={false} // Hide the back button label
-        />
-        <Text style={styles.headerTitle}>Create Message</Text>
-      </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Type your message here"
-        multiline
-        value={message}
-        onChangeText={(text) => setMessage(text)}
-      />
-      <Button
-        title="Send"
-        onPress={sendMessage}
-        disabled={!message} // Disable the button if the message is empty
-      />
+     <View>
+      <Text>Create Message</Text>
+     </View>
     </SafeAreaView>
   );
 };

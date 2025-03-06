@@ -1,41 +1,29 @@
 import {useState, useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
+import useUserInfo from './useUserInfo';
+import BASE_URL from '../../config';
 
 const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
   const [genInformationData, setGenInformationData] = useState(null);
   const [genInfoLoading, setGenInfoLoading] = useState(true);
-  
+  const {accountType, officeCode} = useUserInfo();
   const [token, setToken] = useState(null);
   const [error, setError] = useState(null);
-
   const [OBRInformation, setOBRInformation] = useState(null);
   const [OBRInfoLoading, setOBRInfoLoading] = useState(true);
-
   const [salaryList, setSalaryList] = useState(null);
   const [salaryListLoading, setSalaryListLoading] = useState(true);
-
   const [transactionHistory, setTransactionHistory] = useState(null);
-  const [transactionHistoryLoading, setTransactionHistoryLoading] =
-    useState(true);
-
+  const [transactionHistoryLoading, setTransactionHistoryLoading] = useState(true);
   const [prpopxDetails, setPRPOPXDetails] = useState(null);
   const [prpopxLoading, setPRPOPXLoading] = useState(true);
-
   const [paymentBreakdown, setPaymentBreakdown] = useState(null);
   const [paymentBreakdownLoading, setPaymentBreakdownLoading] = useState(true);
-
   const [paymentHistory, setPaymentHistory] = useState(null);
   const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(true);
-
   const [computationBreakdown, setComputationBreakdown] = useState(null);
   const [computationBreakdownLoading, setComputationBreakdownLoading] = useState(true);
 
-
-/*   useEffect(() => {
-    console.log(regOfficeDelaysData)
-  }, [selectedItemIndex, regOfficeDelaysData]);
- */
   useEffect(() => {
     //const timer = setTimeout(() => {
       fetchGenInformation();
@@ -52,7 +40,6 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
   }, [selectedItemIndex, regOfficeDelaysData]);
 
   const fetchGenInformation = async () => {
-
     try {
       setGenInfoLoading(true);
       const storedToken = await AsyncStorage.getItem('token');
@@ -67,7 +54,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
         const {TrackingNumber, Year} = regOfficeDelaysData;
         
 
-        const apiUrl = `${baseUrl}/genInformation?Year=${Year}&TrackingNumber=${TrackingNumber}`;
+        const apiUrl = `${BASE_URL}/genInformation?Year=${Year}&TrackingNumber=${TrackingNumber}&accountType=${accountType}&office=${officeCode}`;
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -113,7 +100,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
 
 
 
-        const apiUrl = `${baseUrl}/obrInformation?Year=${Year}&TrackingNumber=${TrackingNumber}`;
+        const apiUrl = `${BASE_URL}/obrInformation?Year=${Year}&TrackingNumber=${TrackingNumber}`;
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -152,7 +139,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
       ) {
         const {TrackingNumber, Year} = regOfficeDelaysData;
 
-        const apiUrl = `${baseUrl}/salaryList?Year=${Year}&TrackingNumber=${TrackingNumber}`;
+        const apiUrl = `${BASE_URL}/salaryList?Year=${Year}&TrackingNumber=${TrackingNumber}`;
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -170,7 +157,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
         }
       }
     } catch (error) {
-      console.error('Error in fetch Salary List:', error);
+      //console.error('Error in fetch Salary List:', error);
       setError(error.message);
     } finally {
       setSalaryListLoading(false);
@@ -191,7 +178,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
       ) {
         const {TrackingNumber, Year} = regOfficeDelaysData;
 
-        const apiUrl = `${baseUrl}/transactionHistory?TrackingNumber=${TrackingNumber}&Year=${Year}`;
+        const apiUrl = `${BASE_URL}/transactionHistory?TrackingNumber=${TrackingNumber}&Year=${Year}`;
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -221,19 +208,25 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
       setPRPOPXLoading(true);
       const storedToken = await AsyncStorage.getItem('token');
       setToken(storedToken);
-
+  
       if (
         selectedItemIndex !== null &&
         regOfficeDelaysData &&
         regOfficeDelaysData.TrackingNumber &&
         regOfficeDelaysData.Year &&
-        regOfficeDelaysData.DocumentType 
-
+        (regOfficeDelaysData.DocumentType || regOfficeDelaysData.TrackingType) // Ensure at least one exists
       ) {
-        const {TrackingNumber, Year, DocumentType} = regOfficeDelaysData;
-
+        const {TrackingNumber, Year, DocumentType, TrackingType} = regOfficeDelaysData;
+  
         let newTracking = '';
-        switch (DocumentType) {
+        if (TrackingType === 'PR' || TrackingType === 'PO' || TrackingType === 'PX') {
+          newTracking = TrackingType;
+        } else {
+         return;
+        }
+  
+        // Use DocumentType first, fall back to TrackingType if DocumentType doesn't match
+     /*    switch (DocumentType) {
           case 'Purchase Request':
             newTracking = 'PR';
             break;
@@ -244,12 +237,12 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
             newTracking = 'PX';
             break;
           default:
-            // console.log('Unknown DocumentType:', DocumentType);
-            return;
-        }
-
-        const apiUrl = `${baseUrl}/prpopxDetails?Year=${Year}&TrackingNumber=${TrackingNumber}&TrackingType=${newTracking}`;
-
+            // Fallback to using TrackingType if DocumentType doesn't match
+         
+        } */
+  
+        const apiUrl = `${BASE_URL}/prpopxDetails?Year=${Year}&TrackingNumber=${TrackingNumber}&TrackingType=${newTracking}`;
+  
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
@@ -257,7 +250,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
             'Content-Type': 'application/json',
           },
         });
-
+  
         if (response.ok) {
           const data = await response.json();
           setPRPOPXDetails(data);
@@ -273,7 +266,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
     }
   };
 
-  const fetchPaymentBreakdown = async (trackingType) => {
+  const fetchPaymentBreakdown = async () => {
     try {
       setPaymentBreakdownLoading(true);
       const storedToken = await AsyncStorage.getItem('token');
@@ -284,16 +277,15 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
         regOfficeDelaysData &&
         regOfficeDelaysData.TrackingNumber &&
         regOfficeDelaysData.Year &&
-        regOfficeDelaysData.DocumentType &&
-        trackingType
+        (regOfficeDelaysData.DocumentType || regOfficeDelaysData.TrackingType)
       ) {
-        if (regOfficeDelaysData.DocumentType !== 'Payment') {
+       /*  if (regOfficeDelaysData.DocumentType !== 'Payment') {
           return;
-        }
+        } */
   
-        const {TrackingNumber, Year} = regOfficeDelaysData;
-  
-        const apiUrl = `${baseUrl}/paymentBreakdown?Year=${Year}&TrackingType=${trackingType}&TrackingNumber=${TrackingNumber}`;
+        const {TrackingNumber, Year, TrackingType} = regOfficeDelaysData;
+
+        const apiUrl = `${BASE_URL}/paymentBreakdown?Year=${Year}&TrackingType=${TrackingType}&TrackingNumber=${TrackingNumber}`;
   
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -307,44 +299,38 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
           const data = await response.json();
           setPaymentBreakdown(data);
         } else {
-          throw new Error(`Failed to fetch data. Status: ${response.status}`);
+          throw new Error(`Failed to fetchPaymentBreakdown. Status: ${response.status}`);
         }
       }
     } catch (error) {
-      console.error('Error in fetchPaymentBreakdown:', error);
+      setPaymentBreakdown(null);
+      //console.error('Error in fetchPaymentBreakdown:', error);
       setError(error.message);
     } finally {
       setPaymentBreakdownLoading(false);
     }
   };
   
-/*   useEffect(() => {
-    if (genInformationData && genInformationData.TrackingType) {
-      fetchPaymentBreakdown(genInformationData.TrackingType);
-    }
-  }, [genInformationData]); */
-
- /*  const fetchPaymentHistory = async (trackingType) => {
+  const fetchPaymentHistory = async () => {
     try {
       setPaymentHistoryLoading(true);
       const storedToken = await AsyncStorage.getItem('token');
       setToken(storedToken);
+
+      if(regOfficeDelaysData === null){
+        return;
+      }
   
       if (
         selectedItemIndex !== null &&
         regOfficeDelaysData &&
         regOfficeDelaysData.TrackingNumber &&
-        regOfficeDelaysData.Year &&
-        regOfficeDelaysData.DocumentType
+        regOfficeDelaysData.Year
       ) {
-        if (regOfficeDelaysData.DocumentType !== 'Purchase Order') {
-          return;
-        }
+        const {TrackingNumber, Year} = regOfficeDelaysData;
   
-        const { TrackingNumber, Year } = regOfficeDelaysData;
-  
-        const apiUrl = `${baseUrl}/paymentHistory?Year=${Year}&TrackingType=${trackingType}&TrackingNumber=${TrackingNumber}`;
-  
+        const apiUrl = `${BASE_URL}/paymentHistory?Year=${Year}&TrackingNumber=${TrackingNumber}`;
+
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
@@ -357,86 +343,20 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
           const data = await response.json();
           setPaymentHistory(data);
         } else {
-          throw new Error(`Failed to fetch data. Status: ${response.status}`);
+          //throw new Error(`Failed to paymenthistory. Status: ${response.status}`);
+          setPaymentHistory(null);
+
         }
       }
     } catch (error) {
-      console.error('Error in paymenthistory:', error);
+      setPaymentHistoryLoading(false);
+      setPaymentHistory(null);
+      //console.error('Error in paymenthistory:', error);
       setError(error.message);
     } finally {
       setPaymentHistoryLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (genInformationData && genInformationData.TrackingType) {
-      fetchPaymentBreakdown(genInformationData.TrackingType);
-    }
-  }, [genInformationData]); */
-  
-  useEffect(() => {
-    if (genInformationData && genInformationData.TrackingType) {
-      fetchPaymentBreakdown(genInformationData.TrackingType);
-    }
-  }, [genInformationData]);
-  
-  const fetchPaymentHistory = async (trackingType) => {
-    try {
-      setPaymentHistoryLoading(true);
-      const storedToken = await AsyncStorage.getItem('token');
-      setToken(storedToken);
-  
-      if (
-        selectedItemIndex !== null &&
-        regOfficeDelaysData &&
-        regOfficeDelaysData.TrackingNumber &&
-        regOfficeDelaysData.Year &&
-        regOfficeDelaysData.DocumentType &&
-        trackingType
-      ) {
-        if (regOfficeDelaysData.DocumentType !== 'Purchase Order') {
-          return;
-        }
-  
-        const { TrackingNumber, Year } = regOfficeDelaysData;
-  
-        const apiUrl = `${baseUrl}/paymentHistory?Year=${Year}&TrackingType=${trackingType}&TrackingNumber=${TrackingNumber}`;
-
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${storedToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-  
-        if (response.ok) {
-          const data = await response.json();
-          
-
-          // Skip if data is null or 0
-          if (!data || data.length === 0) {
-            return;
-          }
-  
-          setPaymentHistory(data);
-        } else {
-          const errorText = await response.text();
-          console.error(`Failed to fetch data. Status: ${response.status}, Response: ${errorText}`);
-          throw new Error(`Failed to fetch data. Status: ${response.status}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error in paymenthistory:', error);
-      setError(error.message);
-    } finally {
-      setPaymentHistoryLoading(false);
-    }
-  };
-  
-  
-  
-
 
   const fetchComputationBreakdown = async () => {
     try {
@@ -449,15 +369,15 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
         regOfficeDelaysData &&
         regOfficeDelaysData.TrackingNumber &&
         regOfficeDelaysData.Year &&
-        regOfficeDelaysData.DocumentType
+        (regOfficeDelaysData.DocumentType || regOfficeDelaysData.TrackingType)
       ) {
-        if (regOfficeDelaysData.DocumentType !== 'Payment') {
+        /* if (regOfficeDelaysData.DocumentType !== 'Payment') {
           return;
-        }
+        } */
   
         const { TrackingNumber, Year } = regOfficeDelaysData;
   
-        const apiUrl = `${baseUrl}/computationBreakdown?Year=${Year}&TrackingNumber=${TrackingNumber}`;
+        const apiUrl = `${BASE_URL}/computationBreakdown?Year=${Year}&TrackingNumber=${TrackingNumber}`;
   
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -481,7 +401,13 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
       setComputationBreakdownLoading(false);
     }
   };
-  
+
+
+  useEffect(() => {
+    if (genInformationData && genInformationData.TrackingType) {
+      fetchPaymentBreakdown(genInformationData.TrackingType);
+    }
+  }, [genInformationData]);
 
   return {
     genInformationData,
@@ -500,6 +426,7 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
     computationBreakdownLoading,
     salaryList,
     salaryListLoading,
+    fetchTransactionHistory,
     token,
     error,
   };

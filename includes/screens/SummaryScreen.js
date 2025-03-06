@@ -68,6 +68,26 @@ function insertCommas(value) {
   }
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
+
+const monthMap = {
+  1: "January",
+  2: "February",
+  3: "March",
+  4: "April",
+  5: "May",
+  6: "June",
+  7: "July",
+  8: "August",
+  9: "September",
+  10: "October",
+  11: "November",
+  12: "December"
+};
+
+const getMonthName = (PMonth) => {
+  return monthMap[PMonth] || PMonth; // Return month name or PMonth if not valid
+};
+
 const RegOfficeDelaysData = memo(
   ({item, index, onPressItem}) => {
     return (
@@ -160,6 +180,14 @@ const RegOfficeDelaysData = memo(
                       fontSize: 12,
                     }}>
                     {insertCommas(item.Amount)}
+                  </Text>
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontFamily: 'Oswald-Light',
+                      fontSize: 12,
+                    }}>
+                    {getMonthName(item.PMonth)}
                   </Text>
 
                   <View

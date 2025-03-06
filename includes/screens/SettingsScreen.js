@@ -2,168 +2,391 @@ import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
-  Switch,
   StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   Pressable,
-  StatusBar,
+  SafeAreaView,
+  ImageBackground,
+  Image,
+  Modal,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import RadialGradient from 'react-native-radial-gradient'; // Import RadialGradient library
-import {PermissionsAndroid, Platform} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import notifee, {EventType} from '@notifee/react-native';
+import DeviceInfo from 'react-native-device-info';
+import BASE_URL from '../../config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SettingsScreen = () => {
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const navigation = useNavigation();
+const version = DeviceInfo.getVersion();
 
-  const toggleNotifications = () => {
-    setNotificationsEnabled(previousState => !previousState);
-    // Handle enabling/disabling notifications
+const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [progressModalVisible, setProgressModalVisible] = useState(false);
+
+  const handleProfile = async () => {
+    if (navigation) {
+      navigation.navigate('Profile');
+    }
   };
 
+  const handleNotifications = async () => {
+    if (navigation) {
+      navigation.navigate('Notifications');
+    }
+  };
 
-/* useEffect((
-)) */
+  const handleContactUs = async () => {
+    if (navigation) {
+      navigation.navigate('ContactUs');
+    }
+  };
 
-/* 
+  const logout = async () => {
+    setModalVisible(false); // Close confirmation modal
+    setProgressModalVisible(true); // Show progress modal
 
+    try {
+      const storedToken = await AsyncStorage.getItem('token');
 
-/*   if (notificationsEnabled) {
-    // Notifications are enabled, perform actions accordingly
-    console.log('Notifications are enabled.');
-  } else {
-    // Notifications are disabled, perform actions accordingly
-    console.log('Notifications are disabled.');
-  }
- */
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${storedToken}`,
+        },
+        body: JSON.stringify({EmployeeNumber: employeeNumber}),
+      };
 
+      const response = await fetch(`${BASE_URL}/logoutApi`, requestOptions);
 
-  const handleNotification = async () => {
-    await notifee.openNotificationSettings();
-  }
-
-  const checkNotificationPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_NOTIFICATIONS,
-          {
-            title: 'Notification Permission',
-            message: 'This app would like to send you notifications.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          },
+      if (!response.ok) {
+        throw new Error(
+          `Logout request failed with status: ${response.status}`,
         );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log('Notification permission granted');
-          return true;
-        } else {
-          console.log('Notification permission denied');
-          return false;
-        }
-      } catch (err) {
-        console.warn(err);
-        return false;
       }
-    } else {
-      // For iOS, notification permissions are handled differently
-      console.log('For iOS, notification permissions are handled differently');
-      return false;
+
+      await AsyncStorage.removeItem('token');
+      navigation.replace('Login'); 
+
+      setProgressModalVisible(false);
+    } catch (error) {
+      console.error('Error while logging out:', error);
+      Alert.alert('Error', 'Failed to log out. Please try again.');
+      setProgressModalVisible(false); 
     }
   };
 
   return (
     <>
-      <StatusBar backgroundColor="#171717" barStyle="white-content" />
-
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
         <View style={styles.container}>
-          <View
+          {/*   <ImageBackground
+          source={require('../../assets/images/docmobileBG.png')}
+          style={{flex: 1, paddingTop: 30}}> */}
+          {/* <View>
+            <Text>Settings</Text>
+          </View> */}
+          {/*  <View
             style={{
-              backgroundColor: 'transparent',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 10,
+              //backgroundColor: 'rgba(239, 239, 239, 1)',
+              backgroundColor: 'white',
+              margin: 20,
+              borderWidth: 1,
+              borderColor: 'silver',
+              borderRadius: 5,
             }}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <View style={{borderRadius: 100, overflow: 'hidden', margin: 5}}>
-                <Pressable
-                  style={({pressed}) => [
-                    pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                    {
-                      width: 40,
-                      backgroundColor: 'transparent',
-                      padding: 5,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    },
-                  ]}
-                  android_ripple={{color: 'gray'}}
-                  onPress={() => navigation.goBack()}>
-                  <Icon name="chevron-back-outline" size={26} color="white" />
-                </Pressable>
+            <Pressable
+              onPress={handleProfile} // Add onPress to handle navigation
+              style={({pressed}) => [
+                {
+                  flexDirection: 'row',
+                  paddingVertical: 10,
+                  paddingHorizontal: 15,
+                  alignItems: 'center',
+                  backgroundColor: pressed ? 'rgba(0,0,0,0.05)' : 'transparent',
+                  borderRadius: 10,
+                },
+              ]}
+              android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
+              <View style={{padding: 10}}>
+                <Image
+                  source={require('../../assets/images/doctracklogo.png')}
+                  style={{height: 50, width: 40}}
+                />
               </View>
-              <Text
+              <View style={{flex: 1}}>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={{
+                    color: '#333',
+                    textTransform: 'capitalize',
+                    fontFamily: 'Oswald-Regular',
+                    fontSize: 18,
+                    flexShrink: 1,
+                  }}>
+                  {fullName}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={{
+                    color: '#333',
+                    fontFamily: 'Oswald-Light',
+                    fontSize: 12,
+                    flexShrink: 1,
+                  }}>
+                  {officeName}
+                </Text>
+              </View>
+            </Pressable>
+          </View> */}
+
+          <View style={{flex: 1, backgroundColor: 'rgba(232, 232, 232, 1)'}}>
+            <View
+              style={{
+                backgroundColor: 'white',
+                margin: 10,
+                borderRadius: 10,
+              }}>
+              <Pressable
+                onPress={handleProfile}
+                style={({pressed}) => [
+                  {
+                    flexDirection: 'row',
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    alignItems: 'center',
+                    backgroundColor: pressed
+                      ? 'rgba(0,0,0,0.05)'
+                      : 'transparent',
+                    borderRadius: 10,
+                  },
+                ]}
+                android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
+                <Icon
+                  name="person-outline"
+                  size={24}
+                  padding={10}
+                  color="gray"
+                />
+                <Text
+                  style={{
+                    flex: 1,
+                    paddingStart: 10,
+                    color: '#252525',
+                    fontFamily: 'Inter_28pt-Regular',
+                    fontSize: 14,
+                  }}>
+                  Profile
+                </Text>
+                <Icon
+                  name="chevron-forward"
+                  size={20}
+                  padding={10}
+                  color="rgba(123, 123, 123, 1)"
+                />
+              </Pressable>
+              <Pressable
+                onPress={handleNotifications}
+                style={({pressed}) => [
+                  {
+                    flexDirection: 'row',
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    alignItems: 'center',
+                    backgroundColor: pressed
+                      ? 'rgba(0,0,0,0.05)'
+                      : 'transparent',
+                    borderRadius: 10,
+                  },
+                ]}
+                android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
+                <Icon
+                  name="notifications-outline"
+                  size={24}
+                  padding={10}
+                  color="gray"
+                />
+                <Text
+                  style={{
+                    flex: 1,
+                    paddingStart: 10,
+                    color: '#252525',
+                    fontFamily: 'Inter_28pt-Regular',
+                    fontSize: 14,
+                  }}>
+                  Notifications
+                </Text>
+                <Icon
+                  name="chevron-forward"
+                  size={20}
+                  padding={10}
+                  color="rgba(123, 123, 123, 1)"
+                />
+              </Pressable>
+
+              {/* Divider */}
+              {/*   <View
                 style={{
-                  padding: 10,
-                  fontSize: 24,
-                  fontFamily: 'Oswald-SemiBold',
-                  color: 'white',
-                }}>
-                Settings
+                  height: 1,
+                  backgroundColor: 'silver',
+                }}
+              />
+ */}
+              <Pressable
+                onPress={handleContactUs}
+                style={({pressed}) => [
+                  {
+                    flexDirection: 'row',
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    alignItems: 'center',
+                    backgroundColor: pressed
+                      ? 'rgba(0,0,0,0.05)'
+                      : 'transparent',
+                    borderRadius: 10,
+                  },
+                ]}
+                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
+                <Icon name="call-outline" size={24} padding={10} color="gray" />
+                <Text
+                  style={{
+                    flex: 1,
+                    paddingStart: 10,
+                    color: '#252525',
+                    fontFamily: 'Inter_28pt-Regular',
+                    fontSize: 14,
+                  }}>
+                  Contact Us
+                </Text>
+                <Icon
+                  name="chevron-forward"
+                  size={20}
+                  padding={10}
+                  color="rgba(123, 123, 123, 1)"
+                />
+              </Pressable>
+
+              {/* Divider */}
+              {/*  <View
+                style={{
+                  height: 1,
+                  backgroundColor: 'silver',
+                }}
+              /> */}
+
+              <Pressable
+                onPress={() => setModalVisible(true)}
+                style={({pressed}) => [
+                  {
+                    flexDirection: 'row',
+                    paddingVertical: 10,
+                    paddingHorizontal: 15,
+                    alignItems: 'center',
+                    backgroundColor: pressed
+                      ? 'rgba(0,0,0,0.05)'
+                      : 'transparent',
+                    borderRadius: 10,
+                  },
+                ]}
+                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
+                <View style={{}}>
+                  {/* <Image
+                    source={require('../../assets/images/logout.png')}
+                    style={{
+                      height: 20,
+                      width: 20,
+                      padding: 10,
+                      tintColor: 'rgba(123, 123, 123, 1)',
+                    }}
+                     name="log-out-outline"
+                  size={25}
+                  padding={10}
+                  color="rgba(123, 123, 123, 1)"
+                  /> */}
+                  <Icon
+                    name="exit-outline"
+                    size={24}
+                    padding={10}
+                    color={'rgb(253, 0, 0)'}
+                  />
+                </View>
+
+                <Text
+                  style={{
+                    flex: 1,
+                    paddingStart: 10,
+                    color: 'rgb(253, 0, 0)',
+                    fontFamily: 'Inter_28pt-Regular',
+                    fontSize: 14,
+                  }}>
+                  Log out
+                </Text>
+                {/*  <Icon
+                  name="chevron-forward"
+                  size={20}
+                  padding={10}
+                  color="rgba(123, 123, 123, 1)"
+                /> */}
+              </Pressable>
+            </View>
+
+            <View style={{alignSelf: 'center'}}>
+              <Text style={{fontFamily: 'Inter_28pt-Thin', fontSize: 16}}>
+                Version {version}{' '}
               </Text>
             </View>
           </View>
+          {/* </ImageBackground> */}
 
-          <View style={{paddingStart: 30}}>
-            <Text style={{color: 'silver'}}>Notifications</Text>
-          </View>
-
-          <TouchableOpacity onPress={handleNotification}>
-          <View
-            style={{
-              backgroundColor: '#444444',
-              marginHorizontal: 10,
-              borderRadius: 5,
-              marginTop: 10,
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingVertical: 10,
-              }}>
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Text
-                  style={{
-                    marginStart: 10,
-                    padding: 5,
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'left',
-                    fontFamily: 'Roboto-Medium',
-                  }}>
-                  All Notifications
+          {/* Logout Confirmation Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={modalVisible}
+            onRequestClose={() => setModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Confirm Logout</Text>
+                <Text style={styles.modalMessage}>
+                  Are you sure you want to log out?
                 </Text>
-              </View>
-              <Icon
-                name="chevron-forward-outline"
-                size={26}
-                color="silver"
-              />
-            </View>
-          </View>
-          </TouchableOpacity>
 
+                <View style={styles.modalActions}>
+                  {/* Cancel Button */}
+                  <TouchableOpacity
+                    style={[styles.button, styles.cancelButton]}
+                    onPress={() => setModalVisible(false)}>
+                    <Text style={styles.buttonText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  {/* Confirm Logout Button */}
+                  <TouchableOpacity
+                    style={[styles.button, styles.confirmButton]}
+                    onPress={logout}>
+                    <Text style={styles.buttonText}>Logout</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Progress Modal */}
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={progressModalVisible}
+            onRequestClose={() => {}}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <ActivityIndicator size="large" color="rgba(42, 125, 216, 1)" />
+                <Text style={styles.modalMessage}>Logging out...</Text>
+              </View>
+            </View>
+          </Modal>
         </View>
-      </ScrollView>
+      </SafeAreaView>
     </>
   );
 };
@@ -174,7 +397,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#171717',
   },
   header: {
     fontSize: 24,
@@ -201,6 +423,59 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    backgroundColor: '#ff3b3b',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    paddingVertical: 20,
+    paddingHorizontal: 50,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalMessage: {
+    marginTop: 10,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  button: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  cancelButton: {
+    backgroundColor: 'gray',
+  },
+  confirmButton: {
+    backgroundColor: 'red',
+  },
+  buttonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
 });

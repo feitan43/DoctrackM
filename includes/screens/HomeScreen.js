@@ -1,66 +1,95 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import BASE_URL from '../../config';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
+  useWindowDimensions,
+  TouchableWithoutFeedback,
+  Text,
   StatusBar,
+  Image,
   ImageBackground,
+  FlatList,
   Modal,
-  Platform,
-  Animated,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
+import {Dropdown} from 'react-native-element-dropdown';
 import notifee, {AuthorizationStatus} from '@notifee/react-native';
-import {HStack, Banner, Button} from '@react-native-material/core';
-
+import {HStack, Banner} from '@react-native-material/core';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DoctrackScreen from './DoctrackScreen';
-import ForumScreen from './ForumScreen';
-import Notifications from './NotificationManagerScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MyTransactionsScreen from './MyTransactionsScreen';
-import baseUrl from '../../config';
-import CustomDrawerContent from './CustomDrawer';
-import SummaryScreen from './SummaryScreen';
 import SafeAreaLoader from '../../loader/SafeAreaLoader';
 import SettingsScreen from './SettingsScreen';
-import GSOScreen from './GSOScreen';
-import SettingsAccordion from './SettingsAccordion';
-
+import {
+  TabView,
+  SceneMap,
+  TabBar,
+  TransitionPager,
+} from 'react-native-tab-view';
 import useOfficeDelays from '../api/useOfficeDelays';
 import useDelaysRegOffice from '../api/useDelaysRegOffice';
 import useMyTransactions from '../api/useMyTransactions';
 import useUserInfo from '../api/useUserInfo';
 import useRecentlyUpdated from '../api/useRecentlyUpdated';
-import {useIsFocused} from '@react-navigation/native';
-import {ListItem} from '@rneui/themed';
-import {Image} from 'react-native-ui-lib';
-import {BlurView} from '@react-native-community/blur';
-import useTransactionSummary from '../api/useTransactionSummary';
-import FastImage from 'react-native-fast-image';
-import {BackHandler, ToastAndroid} from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import ProjectCleansingScreen from './ProjectCleansingScreen';
 import useOthers from '../api/useOthers';
+import {useBackButtonHandler} from '../utils/useBackButtonHandler';
+import useTransactionSummary from '../api/useTransactionSummary';
+import SearchScreen from './SearchScreen';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+//import useInspection from '../api/useInspection';
+import useReceiving from '../api/useReceiving';
+import useTrackingSummary from '../api/useTrackingSummary';
+import useRegTrackingSummary from '../api/useRegTrackingSummary';
+import useMyAccountability from '../api/useMyAccountabilty';
+import useRequestInspection from '../api/useRequestInspection';
+import useOnSchedule from '../api/useOnSchedule';
+//import {SafeAreaView} from 'react-native-safe-area-context';
+import useRecentActivity from '../api/useRecentActivity';
+import {useEvaluationByStatus} from '../hooks/useEvaluationByStatus';
+import {
+  Menu,
+  Divider,
+  Provider as PaperProvider,
+  Dialog,
+  Portal,
+  RadioButton,
+  Button,
+} from 'react-native-paper';
+import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import { useEvaluatorSummary } from '../hooks/useEvaluatorSummary';
+import { useInspection } from '../hooks/useInspection';
 
 const Drawer = createDrawerNavigator();
+
+const Tab = createBottomTabNavigator();
+const currentYear = new Date().getFullYear();
 
 const HomeScreen = ({navigation}) => {
   const {officeDelaysData, officeDelaysLength, fetchOfficeDelays} =
     useOfficeDelays();
+  const {regOfficeDelaysLength, fetchDataRegOfficeDelays} =
+    useDelaysRegOffice();
   const {
-    regOfficeDelaysLength,
-    delaysLoading,
+    myTransactionsLength,
+    loading: myTransactionsLoading,
+    fetchMyPersonal,
+  } = useMyTransactions();
+  const {
+    officeCode,
+    fullName,
+    employeeNumber,
+    officeName,
+    privilege,
+    permission,
+    accountType,
     token,
-    error,
-    showErrorModal,
-    setShowErrorModal,
-    fetchDataRegOfficeDelays,
-  } = useDelaysRegOffice();
-  const {myTransactionsLength, fetchMyPersonal} = useMyTransactions();
-  const {officeCode, fullName, employeeNumber, officeName, privilege} = useUserInfo();
+  } = useUserInfo();
   const {
     recentlyUpdatedData,
     recentlyUpdatedLength,
@@ -70,7 +99,7 @@ const HomeScreen = ({navigation}) => {
   } = useRecentlyUpdated();
   const [loading, setLoading] = useState();
   const [showReminder, setShowReminder] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const {
     dataPR,
     dataPO,
@@ -90,109 +119,188 @@ const HomeScreen = ({navigation}) => {
     calculatePXPercentage,
     fetchTransactionSummary,
   } = useTransactionSummary(selectedYear);
-  const {othersVouchersData, othersOthersData, loadingOthers, refetchDataOthers} = useOthers(selectedYear);
-  const useBackButtonHandler = navigation => {
-  const [backPressedOnce, setBackPressedOnce] = useState(false);
+  const {
+    othersVouchersData,
+    othersOthersData,
+    loadingUseOthers,
+    refetchDataOthers,
+  } = useOthers(selectedYear);
+ /*  const {
+    forInspection,
+    inspected,
+    inspectionOnHold,
+    inspectionList,
+    inspectionListLoading,
+    error: inspectionListError,
+  } = useInspection(); */
+  const {
+    recentActivityData,
+    recentActivityError,
+    recentActivityLoading,
+    fetchRecentActivity,
+  } = useRecentActivity();
+  const {
+    receivingCountData,
+    isLoading: loadingReceiving,
+    error: receivingError,
+    receivingCount,
+  } = useReceiving();
+  const {trackSumData, trackSumError, trackSumLoading, refetchTrackSum} =
+    useTrackingSummary(selectedYear);
+  const {
+    regTrackSumData,
+    regTrackSumError,
+    regTrackSumLoading,
+    refetchRegTrackSum,
+  } = useRegTrackingSummary(selectedYear);
+  const {accountabilityData, error, fetchMyAccountability} =
+    useMyAccountability();
+  const {
+    requestsLength,
+    loading: requestsLoading,
+    fetchRequests,
+  } = useRequestInspection();
+  const {dataLength: OnScheduleLength} = useOnSchedule();
+  const {data: onEvalData} = useEvaluationByStatus(
+    selectedYear,
+    'On Evaluation - Accounting',
+  );
+  const {data: evaluatedData} = useEvaluationByStatus(
+    selectedYear,
+    'Evaluated - Accounting',
+  );
+  const {data: evalPendingData} = useEvaluationByStatus(
+    selectedYear,
+    'Pending at CAO',
+  );
+  const {data: evalPendingReleased} = useEvaluationByStatus(
+    selectedYear,
+    'Pending Released - CAO',
+  );
+  const {data: evaluatorSummary} = useEvaluatorSummary(selectedYear);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Start fetching data concurrently
-        await Promise.all([
-          fetchOfficeDelays(),
-          fetchDataRegOfficeDelays(),
-          fetchMyPersonal(),
-          fetchTransactionSummary(),
-          refetchDataOthers
-        ]);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        // Once all data is fetched, set loading to false
-        setLoading(false);
-      }
-    }
+  const { data: inspection, isLoading: inspectionLoading, isError: inspectionError } = useInspection();
 
-    fetchData();
-  }, []);
+  const forInspection = Array.isArray(inspection)
+  ? inspection.filter(item => item?.Status?.toLowerCase() === 'for inspection').length
+  : 0;
 
-    useFocusEffect(
-      React.useCallback(() => {
-        const onBackPress = () => {
-          if (navigation.isFocused()) {
-            if (backPressedOnce) {
-              BackHandler.exitApp();
-            } else {
-              setBackPressedOnce(true);
-              ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
 
-              setTimeout(() => {
-                setBackPressedOnce(false);
-              }, 2000);
-            }
-            return true;
-          }
-          return false;
-        };
+  const inspected = Array.isArray(inspection) 
+  ? inspection.filter(
+      item => item.DateInspected !== null && 
+              item.DateInspected !== '' &&
+              item?.Status?.toLowerCase() !== 'for inspection' && 
+              item?.Status?.toLowerCase() !== 'inspection on hold'
+    ).length 
+  : 0;  
 
-        BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
-        return () =>
-          BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-      }, [backPressedOnce]),
-    );
-  };
+  const inspectionOnHold = Array.isArray(inspection)
+  ? inspection.filter(item => item?.Status?.toLowerCase() === 'inspection on hold').length
+  : 0;
+
+
+  const years = Array.from(
+    {length: Math.max(0, currentYear - 2023 + 1)},
+    (_, index) => ({
+      label: `${currentYear - index}`,
+      value: currentYear - index,
+    }),
+  );
+
+  const [visible, setVisible] = useState(false);
+  const openMenu = useCallback(() => setVisible(true), []);
+  const closeMenu = useCallback(() => setVisible(false), []);
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [progressModalVisible, setProgressModalVisible] = useState(false);
+
+  const onEvalDataCount = onEvalData?.length || 0;
+
+  const evaluatedDataCount = evaluatedData?.length || 0;
+  const evalPendingDataCount = evalPendingData?.length || 0;
+  const evalPendingReleasedCount = evalPendingReleased?.length || 0;
+
+  const bottomSheetRef = useRef(null);
   useBackButtonHandler(navigation);
 
   useEffect(() => {
     async function checkNotificationPermission() {
       const settings = await notifee.getNotificationSettings();
-      if (settings.authorizationStatus === AuthorizationStatus.AUTHORIZED) {
-      } else if (settings.authorizationStatus === AuthorizationStatus.DENIED) {
+      if (settings.authorizationStatus === AuthorizationStatus.DENIED) {
         setShowReminder(true);
       }
     }
-
     checkNotificationPermission();
   }, []);
 
+  const openSelectYear = useCallback(() => {
+    closeMenu();
+    bottomSheetRef.current?.present();
+  }, []);
+
+  const handleYearSelect = year => {
+    setLoading(true); // Show loading indicator
+    setSelectedYear(year);
+    bottomSheetRef.current?.dismiss();
+  
+    setTimeout(() => {
+      setLoading(false); // Hide loading indicator after fetching data
+    }, 1500); // Adjust timing as needed
+  
+    console.log('Selected Year:', year);
+  };
+  
   const handleNotification = async () => {
     await notifee.openNotificationSettings();
     setShowReminder(false);
   };
 
-  useEffect(() => {
-    const checkToken = async () => {
-      setLoading(true);
-      try {
-        const storedToken = await AsyncStorage.getItem('token');
-        if (!storedToken) {
-          navigation.replace('Login');
-        }
-      } catch (error) {
-        console.error('Error checking token:', error);
-      } finally {
-        setLoading(false);
+  const checkToken = async () => {
+    setLoading(true);
+    try {
+      const storedToken = await AsyncStorage.getItem('token');
+      if (!storedToken) {
+        navigation.replace('Login');
       }
-    };
-
-    checkToken();
-  }, []);
-
-  const handleNotifications = async () => {
-    if (navigation) {
-      navigation.navigate('Notifications');
+    } catch (error) {
+      console.error('Error checking token:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleForum = async () => {
-    if (navigation) {
-      navigation.navigate('Forum');
-    }
-  };
+  const logout = async () => {
+    setModalVisible(false);
+    setProgressModalVisible(true);
+    try {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({EmployeeNumber: employeeNumber}),
+      };
 
-  const MyTransactionsScreenComponent = () => {
-    return <MyTransactionsScreen />;
+      const response = await fetch(`${BASE_URL}/logoutApi`, requestOptions);
+
+      if (!response.ok) {
+        throw new Error(
+          `Logout request failed with status: ${response.status}`,
+        );
+      }
+
+      await AsyncStorage.removeItem('token');
+      navigation.replace('Login');
+
+      setProgressModalVisible(false);
+    } catch (error) {
+      console.error('Error while logging out:', error);
+      Alert.alert('Error', 'Failed to log out. Please try again.');
+      setProgressModalVisible(false);
+    }
   };
 
   const DoctrackScreenComponent = ({}) => {
@@ -206,9 +314,13 @@ const HomeScreen = ({navigation}) => {
         recentlyUpdatedLength={recentlyUpdatedLength}
         recentlyUpdatedData={recentlyUpdatedData}
         updatedNowData={updatedNowData}
+        fullName={fullName}
+        employeeNumber={employeeNumber}
         officeCode={officeCode}
         officeName={officeName}
         privilege={privilege}
+        permission={permission}
+        accountType={accountType}
         liveUpdatedNowData={liveUpdatedNowData}
         updatedDateTime={updatedDateTime}
         dataPR={dataPR}
@@ -223,357 +335,302 @@ const HomeScreen = ({navigation}) => {
         fetchDataRegOfficeDelays={fetchDataRegOfficeDelays}
         fetchOfficeDelays={fetchOfficeDelays}
         fetchMyPersonal={fetchMyPersonal}
+        myTransactionsLoading={myTransactionsLoading}
         fetchTransactionSummary={fetchTransactionSummary}
         othersVouchersData={othersVouchersData}
         othersOthersData={othersOthersData}
-        loadingOthers={loadingOthers}
+        loadingUseOthers={loadingUseOthers}
         refetchDataOthers={refetchDataOthers}
-        setDataPR = {setDataPR}
-        setPRPercentage = {setPRPercentage}
-        calculatePRPercentage = {calculatePRPercentage}
-        setDataPO = {setDataPO}
-        setPOPercentage = {setPOPercentage}
-        calculatePOPercentage = {calculatePOPercentage}
-        setDataPX = {setDataPX}
-        setPXPercentage = {setPXPercentage}
-        calculatePXPercentage = {calculatePXPercentage}
+        setDataPR={setDataPR}
+        setPRPercentage={setPRPercentage}
+        calculatePRPercentage={calculatePRPercentage}
+        setDataPO={setDataPO}
+        setPOPercentage={setPOPercentage}
+        calculatePOPercentage={calculatePOPercentage}
+        setDataPX={setDataPX}
+        setPXPercentage={setPXPercentage}
+        calculatePXPercentage={calculatePXPercentage}
+        forInspection={forInspection}
+        inspected={inspected}
+        inspectionOnHold={inspectionOnHold}
+        //inspectionList={inspectionList}
+        inspectionLoading={inspectionLoading}
+        inspectionError={inspectionError}
+        recentActivityData={recentActivityData}
+        recentActivityError={recentActivityError}
+        recentActivityLoading={recentActivityLoading}
+        fetchRecentActivity={fetchRecentActivity}
+        receivingCount={receivingCount}
+        receivingCountData={receivingCountData}
+        loadingReceiving={loadingReceiving}
+        receivingError={receivingError}
+        trackSumData={trackSumData}
+        trackSumError={trackSumError}
+        trackSumLoading={trackSumLoading}
+        refetchTrackSum={refetchTrackSum}
+        regTrackSumData={regTrackSumData}
+        regTrackSumError={regTrackSumError}
+        regTrackSumLoading={regTrackSumLoading}
+        refetchRegTrackSum={refetchRegTrackSum}
+        accountabilityData={accountabilityData}
+        fetchMyAccountability={fetchMyAccountability}
+        requestsLength={requestsLength}
+        requestsLoading={requestsLoading}
+        fetchRequests={fetchRequests}
+        OnScheduleLength={OnScheduleLength}
+        onEvalDataCount={onEvalDataCount}
+        evaluatedDataCount={evaluatedDataCount}
+        evalPendingDataCount={evalPendingDataCount}
+        evalPendingReleasedCount={evalPendingReleasedCount}
+        evaluatorSummary={evaluatorSummary}
       />
     );
   };
 
-  const ProjectCleansingComponent = ({navigation}) => {
-    return <ProjectCleansingScreen />;
-  };
-
-  const NotificationScreenComponent = ({navigation}) => {
-    return <Notifications />;
-  };
-
-  const SettingsScreenComponent = ({navigation}) => {
-    return <SettingsScreen />;
-  };
-
-  const SummaryScreenComponent = ({}) => {
-    return <SummaryScreen />;
-  };
-
-  const ForumScreenComponent = ({navigation}) => {
-    return <ForumScreen />;
-  };
-  const GSOScreenComponent = ({navigation}) => {
-    return <GSOScreen />;
-  };
-
-  <View>
-    {/* Your component content */}
-    <Modal visible={showErrorModal} animationType="slide" transparent={true}>
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <View style={{backgroundColor: 'white', padding: 20, borderRadius: 10}}>
-          <Text>Network Request Failed</Text>
-          <TouchableOpacity
-            title="Close"
-            onPress={() => setShowErrorModal(false)}
-          />
-        </View>
-      </View>
-    </Modal>
-  </View>;
-
-  const CustomHeader = ({title, navigation}) => {
-    if (title === 'Settings' || title === 'GSO') {
-      return null;
-    }
+  const SettingsScreenComponent = ({}) => {
     return (
-      <>
-        <View style={{flex: 1, flexDirection: 'column'}}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 20,
-              marginTop: 10,
-              height: 100,
-              width: '100%',
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
-              {/* <Image
-              source={require('../../assets/images/doctracklogo.png')}
-              style={{
-                width: 38,
-                height: 48,
-                marginRight: 5, // Add some space between the image and text
-              }}
-            /> */}
-              <View style={{gap: -6}}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-ExtraLight',
-                    fontSize: 14,
-                    color: 'silver',
-                  }}>
-                  Maayong Adlaw!
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Medium',
-                    fontSize: 16,
-                  }}>
-                  {fullName}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    opacity: 0.6,
-                    letterSpacing: 1,
-                  }}>
-                  {officeName}
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
-              {/* Notification Icon */}
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                {/* <TouchableOpacity onPress={handleForum} style={{marginEnd: 10}}>
-                  <Icon
-                    name="chatbox-ellipses-outline"
-                    size={25}
-                    color="white"
-                  />
-                </TouchableOpacity> */}
-                {/*  <View
-              style={{
-                position: 'absolute',
-                top: -5,
-                right: -2,
-                backgroundColor: 'red',
-                borderRadius: 10,
-                width: 16,
-                height: 16,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              <Text style={{color: 'white', fontSize: 12}}>0</Text>
-            </View> */}
-              </View>
-
-              {/* Drawer Icon */}
-              <TouchableOpacity
-                style={{
-                  width: 30,
-                  height: 30,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={() => navigation.openDrawer()}>
-                <Icon name="menu" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Text below the header */}
-        </View>
-      </>
+      <SettingsScreen
+        navigation={navigation}
+        officeCode={officeCode}
+        officeName={officeName}
+        privilege={privilege}
+        fullName={fullName}
+        employeeNumber={employeeNumber}
+      />
     );
   };
 
-  if (loading) {
-    return <SafeAreaLoader />;
-  }
+  useEffect(() => {
+    checkToken();
+  }, []);
 
+  const layout = useWindowDimensions();
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    {key: 'doctrack', title: 'Home', icon: 'home-outline'},
+    {key: 'search', title: 'Search', icon: 'search-outline'},
+    {key: 'settings', title: 'More', icon: 'menu-outline'},
+  ]);
+
+  const renderScene = SceneMap({
+    doctrack: DoctrackScreenComponent,
+    search: SearchScreen,
+    settings: SettingsScreenComponent,
+  });
+
+  /* if (loading) {
+    return <SafeAreaLoader />;
+  } */
 
   return (
-    <SafeAreaLoader>
-      {insets => (
-          <View style={[styles.container]}>
-            {/*   <StatusBar
-              barStyle="light-content"
-              backgroundColor={'transparent'}
-              translucent
-            /> */}
-            <View style={{backgroundColor: 'red'}}>
-              {showReminder && Platform.Version < 30 && (
-                <Banner
-                  style={styles.bannerContainer}
-                  text="You haven't enabled notifications. Enable them for timely updates."
-                  buttons={
-                    <HStack spacing={2}>
-                      <Button
-                        key="fix-it"
-                        variant="contained"
-                        title="Enable Notifications"
-                        onPress={() => handleNotification()}
-                        titleStyle={{fontSize: 12}}
-                        style={{backgroundColor: '#1a508c'}}
-                      />
-                      <Button
-                        key="learn-more"
-                        variant="text"
-                        onPress={() => setShowReminder(false)}
-                        title="Dismiss"
-                        titleStyle={{fontSize: 12, color: '#1a508c'}}
-                      />
-                    </HStack>
-                  }
+    <SafeAreaView style={[styles.container]}>
+      <BottomSheetModalProvider>
+        <PaperProvider>
+          <SafeAreaLoader>
+            {() => (
+              <>
+                <StatusBar
+                  barStyle="light-content"
+                  backgroundColor="orange"
+                  translucent={true}
                 />
-              )}
-            </View>
+                <ImageBackground
+                  source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
+                  style={styles.header}>
+                  <Image
+                    source={require('../../assets/images/docmobilelogo2.png')}
+                    style={{
+                      width: 120,
+                      height: 30,
+                      margin: 5,
+                      marginStart: 10,
+                      tintColor: '#fff',
+                    }}
+                  />
+                  {/*  {accountType === '1' ||
+              (accountType === '4' && ( */}
+                  {/*  <View>
+                  <YearDropdown
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
+                  />
+                </View> */}
+                  {/*  ))} */}
 
-            <Drawer.Navigator
-              initialRouteName="Home"
-              drawerContent={props => <CustomDrawerContent {...props} />}
-              screenOptions={{
-                drawerActiveBackgroundColor: 'rgba(53, 108, 200, 1)',
-                //drawerHideStatusBarOnOpen: false,
-                //drawerHideStatusBarOnOpen: 'true',
-                drawerStatusBarAnimation: 'fade',
-                drawerInactiveTintColor:'black',
-                drawerActiveTintColor: 'white', // Color for active item
-                drawerType: 'front',
-                drawerStyle: styles.drawer,
-                header: ({navigation, route}) => (
-                  <CustomHeader title={route.name} navigation={navigation} />
-                ),
-                detachPreviousScreen: true,
-              }}>
-              <Drawer.Screen
-                name="Doctrack"
-                component={DoctrackScreenComponent}
-                options={({color}) => ({
-                  drawerIcon: ({color,focused}) => (
-                    <Icon
-                      name="home-outline"
-                      color={focused ? 'white' : '#252525'}
-                      size={24}
+                  <Menu
+                    visible={visible}
+                    onDismiss={closeMenu}
+                    statusBarHeight={80}
+                    anchor={
+                      <Pressable
+                        onPress={openMenu}
+                        style={styles.settingsButton}>
+                        <Icon name="settings-outline" size={24} color="white" />
+                      </Pressable>
+                    }>
+                    {/* <View style={styles.pointer} /> */}
+                    <Menu.Item
+                      onPress={() => openSelectYear()}
+                      title="Change Year"
                     />
-                  ),
-                  drawerLabel: ({focused}) => (
-                    <Text
-                      style={{
-                        color: focused ? 'white' : '#252525', // Change color based on focus
-                        fontSize: 14,
-                        fontFamily: 'Oswald-Regular',
-                      }}>
-                      Home
-                    </Text>
-                  ),
-                  unmountOnBlur: true,
-                })}
-              />
-              {/* <Drawer.Screen
-                name="Project Cleansing"
-                component={ProjectCleansingComponent}
-                options={({color, focused}) => ({
-                  drawerIcon: ({color}) => (
-                    <Image
-                      source={require('../../assets/images/brooms.png')}
-                      style={{
-                        width: 26,
-                        height: 30,
-                        tintColor: focused ? 'white' : '#252525', // Change color based on focus
-                      }}
+                    <Divider />
+                    <Menu.Item
+                      onPress={() => setModalVisible(true)}
+                      title="Logout"
                     />
-                  ),
-                  drawerLabel: ({focused}) => (
-                    <Text
-                      style={{
-                        color: focused ? 'white' : '#252525', // Change color based on focus
-                        fontSize: 14,
-                        fontFamily: 'Oswald-Regular',
-                      }}>
-                      Project Cleansing
-                    </Text>
-                  ),
-                  unmountOnBlur: true,
-                })}
-              /> */}
+                  </Menu>
 
-              {employeeNumber === '391091' && (
-                <Drawer.Screen
-                  name="GSO"
-                  component={GSOScreenComponent}
-                  options={{
-                    drawerIcon: ({color}) => (
-                      <Icon name="cog-outline" color={color} size={24} />
-                    ),
-                    drawerLabel: () => (
-                      <Text
-                        style={{
-                          color: '#252525',
-                          fontSize: 14,
-                          //lineHeight: 15,
-                          fontFamily: 'Oswald-Regular',
-                        }}>
-                        GSO
-                      </Text>
-                    ),
-                    unmountOnBlur: true,
-                  }}
-                />
-              )}
-              {employeeNumber === '391091' && (
-                <Drawer.Screen
-                  name="NotificationsManager"
-                  component={NotificationScreenComponent}
-                  options={{
-                    drawerIcon: ({color}) => (
-                      <Icon
-                        name="notifications-sharp"
-                        color={color}
-                        size={24}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Confirm Logout</Text>
+                        <Text style={styles.modalMessage}>
+                          Are you sure you want to log out?
+                        </Text>
+
+                        <View style={styles.modalActions}>
+                          {/* Cancel Button */}
+                          <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
+                            onPress={() => setModalVisible(false)}>
+                            <Text style={styles.buttonText}>Cancel</Text>
+                          </TouchableOpacity>
+
+                          {/* Confirm Logout Button */}
+                          <TouchableOpacity
+                            style={[styles.button, styles.confirmButton]}
+                            onPress={logout}>
+                            <Text style={styles.buttonText}>Logout</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  </Modal>
+
+                  {/* Progress Modal */}
+                  <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={progressModalVisible}
+                    onRequestClose={() => {}}>
+                    <View style={styles.modalOverlay}>
+                      <View style={styles.modalContainer}>
+                        <ActivityIndicator
+                          size="large"
+                          color="rgba(42, 125, 216, 1)"
+                        />
+                        <Text style={styles.modalMessage}>Logging out...</Text>
+                      </View>
+                    </View>
+                  </Modal>
+
+                  <BottomSheetModal
+                    ref={bottomSheetRef}
+                    index={0}
+                    snapPoints={['40%', '60%']} // Allows it to expand if needed
+                    backgroundStyle={styles.bottomSheet}
+                    handleIndicatorStyle={styles.handleIndicator}>
+                    <View style={styles.bottomSheetContent}>
+                      <Text style={styles.title}>Select Year</Text>
+
+                      <FlatList
+                        data={years}
+                        keyExtractor={item => item.value.toString()}
+                        contentContainerStyle={styles.scrollableList} // Makes it scrollable
+                        showsVerticalScrollIndicator={false} // Hides the scrollbar
+                        renderItem={({item}) => (
+                          <Pressable
+                            style={styles.yearItem}
+                            onPress={() => handleYearSelect(item.value)}>
+                            <Text
+                              style={[
+                                styles.yearText,
+                                selectedYear === item.value &&
+                                  styles.selectedYear,
+                              ]}>
+                              {item.label}
+                            </Text>
+                          </Pressable>
+                        )}
                       />
-                    ),
-                    drawerLabel: () => (
-                      <Text
-                        style={{
-                          color: '#252525',
-                          fontSize: 14,
-                          //lineHeight: 15,
-                          fontFamily: 'Oswald-Regular',
-                        }}>
-                        Notifications
-                      </Text>
-                    ),
-                    unmountOnBlur: true,
-                  }}
+                    </View>
+                  </BottomSheetModal>
+                </ImageBackground>
+                {showReminder /*  || Platform.Version < 30 */ && (
+                  <Banner
+                    style={styles.bannerContainer}
+                    text="You haven't enabled notifications. Enable them for timely updates."
+                    buttons={
+                      <HStack spacing={2}>
+                        <Button
+                          key="fix-it"
+                          variant="contained"
+                          title="Enable Notifications"
+                          onPress={handleNotification}
+                          titleStyle={{fontSize: 12}}
+                          style={{backgroundColor: '#1a508c'}}
+                        />
+                        <Button
+                          key="learn-more"
+                          variant="text"
+                          onPress={() => setShowReminder(false)}
+                          title="Dismiss"
+                          titleStyle={{fontSize: 12, color: '#1a508c'}}
+                        />
+                      </HStack>
+                    }
+                  />
+                )}
+                <TabView
+                  navigationState={{index, routes}}
+                  renderScene={renderScene}
+                  onIndexChange={setIndex}
+                  initialLayout={{width: layout.width}}
+                  tabBarPosition="bottom"
+                  transitionStyle="scroll"
+                  style={{backgroundColor: 'pink'}}
+                  renderTabBar={props => (
+                    <ImageBackground
+                      source={require('../../assets/images/CirclesBG2.png')}
+                      style={styles.tabBarBackground}>
+                      <TabBar
+                        {...props}
+                        renderIcon={({route, focused}) => (
+                          <Icon
+                            name={route.icon}
+                            size={focused ? 22 : 20}
+                            color={focused ? 'white' : 'white'}
+                            suppressHighlighting={true}
+                          />
+                        )}
+                        style={styles.tabBar}
+                        indicatorStyle={[styles.indicator, {top: 0}]}
+                        labelStyle={styles.tabLabel}
+                        getLabelText={({route}) => route.title}
+                        android_ripple={false}
+                        pressColor="transparent"
+                      />
+                    </ImageBackground>
+                  )}
+                  pager={props => <TransitionPager {...props} />}
                 />
-              )}
-
-              {/* <Drawer.Screen
-        name="Settings"
-        component={SettingsAccordion}
-        options={{
-          drawerLabel: () => (
-            <Text
-              style={{
-                color: 'white',
-                letterSpacing: 1,
-                fontSize: 14,
-                fontFamily: 'Oswald-Regular',
-                marginStart: 20,
-              }}>
-              Settings
-            </Text>
-          ),
-          unmountOnBlur: true,
-        }}
-      /> */}
-            </Drawer.Navigator>
-          </View>
-      )}
-    </SafeAreaLoader>
+                {loading && (
+                  <View style={styles.loadingContainer}>
+                    <Text style={{color: 'white'}}>
+                      Changing year to {selectedYear}...
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+          </SafeAreaLoader>
+        </PaperProvider>
+      </BottomSheetModalProvider>
+    </SafeAreaView>
   );
 };
 
@@ -581,31 +638,207 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  backg: {
+  bannerContainer: {
+    paddingTop: 30,
+    backgroundColor: 'white',
+  },
+  scene: {
     flex: 1,
   },
-  screenContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
+  tabBarContainer: {
+    width: '100%',
+    height: 50,
+    position: 'relative',
   },
-  text: {
+  tabBarBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    resizeMode: 'cover',
+  },
+  tabBar: {
+    backgroundColor: 'transparent',
+    height: 50,
+    zIndex: 1,
+  },
+  indicator: {
+    backgroundColor: '#007aff',
+    height: 3,
+    borderRadius: 2,
+    alignSelf: 'center',
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: 'white',
+    textTransform: 'capitalize',
+    marginBottom: 4,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: 'red',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  header: {
+    paddingTop:35,
+    height: 80,
+    backgroundColor: '#1a508c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    elevation: 4, // Shadow effect
+  },
+  menuButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  settingsButton: {
+    marginEnd: 5,
+    paddingHorizontal: 5,
+    //backgroundColor:'red',
+    width: 50,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
+    padding: 10,
+  },
+  backgroundImage: {
+    flex: 1, // Make it fill the entire screen
+    width: '100%',
+    height: '100%',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Optional: semi-transparent background
+    borderRadius: 5,
+  },
+  pointer: {
+    position: 'absolute',
+    top: -10, // Position it above the menu
+    right: 10,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'white', // Match menu background
+  },
+  bottomSheet: {
+    //backgroundColor: 'rgba(255, 255, 255, 0.95)', // Soft white background
+    backgroundColor: 'white',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: -2},
+  },
+  handleIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#ccc',
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+  bottomSheetContent: {flex: 1, padding: 20, alignItems: 'center'},
+
+  // Title Styling
+  title: {fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15},
+
+  // Year Item Styling
+  yearItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    width: '100%',
+    alignItems: 'center',
+  },
+  yearText: {fontSize: 20, fontWeight: 'bold', color: '#333'},
+  selectedYear: {
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  logoutButton: {
+    backgroundColor: '#ff3b3b',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    paddingVertical: 20,
+    paddingHorizontal: 50,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
   },
-  bannerContainer: {
-    backgroundColor: 'white', 
+  modalMessage: {
+    marginTop: 10,
+    fontSize: 16,
+    textAlign: 'center',
   },
-  drawer: {
-    //backgroundColor: 'rgba(255, 255, 255, 0.8 )', // Semi-transparent background
-    //borderRightColor: '#fff',
-    width: '60%',
-    //backdropFilter: 'blur(10px)', // Blur effect (requires proper CSS support)
-    shadowColor: 'red',
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: {width: 0, height: 2},
-    //elevation: 5,
+  modalActions: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  button: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  cancelButton: {
+    backgroundColor: 'gray',
+  },
+  confirmButton: {
+    backgroundColor: 'red',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 

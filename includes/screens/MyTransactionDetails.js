@@ -5,483 +5,289 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  TouchableOpacity,
+  Modal,
   ImageBackground,
-  StatusBar,
+  SafeAreaView
 } from 'react-native';
-//import {ScrollView} from 'react-native-gesture-handler';
-import {useTheme, DataTable} from 'react-native-paper';
-import RadialGradient from 'react-native-radial-gradient';
+import {DataTable} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {Divider} from '@rneui/themed';
+//import {SafeAreaView} from 'react-native-safe-area-context';
+import {insertCommas} from '../utils/insertComma';
+import useTransactionHistory from '../api/useTransactionHistory';
+import Timeline from 'react-native-timeline-flatlist';
 
 const MyTransactionDetails = ({route, navigation}) => {
-  //const theme = useTheme();
-  const [selectedItem, setSelectedItem] = useState(route.params.selectedItem);
+  const {selectedItem} = route.params;
   const [showMore, setShowMore] = useState(false);
-  const [transactionHistory, setTransactionHistory] = useState();
-  const [isLoading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
-
-  function insertCommas(value) {
-    if (value === null) {
-      return '';
-    }
-    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
-
-  //FETCHING TRANSACTION HISTORY
-  useEffect(() => {
-    const fetchTransactionHistory = async () => {
-      try {
-        setLoading(true);
-        const storedToken = await AsyncStorage.getItem('token');
-        setToken(storedToken);
-
-        const apiUrl = `${baseUrl}/transactionHistory?TrackingNumber=${selectedItem.TrackingNumber}&Year=${selectedItem.Year}`;
-
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${storedToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setTransactionHistory(data);
-        } else {
-          throw new Error(`Failed to fetch data. Status: ${response.status}`);
-        }
-      } catch (error) {
-        console.error('Error in TransactionHistory:', error);
-        //setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactionHistory();
-  }, [selectedItem]);
-
-  const data = [
-    ['01/04/2024', 'Pending', '80%'],
-    ['02/04/2024', 'Completed', '100%'],
-    ['03/04/2024', 'In Progress', '60%'],
-    ['04/04/2024', 'Pending', '90%'],
-  ];
-
-  // Headers for the table
-  const headers = ['Date', 'Status', 'Completion'];
-
-  useEffect(() => {
-    // Update selected item when route params change
-    setSelectedItem(route.params.selectedItem);
-  }, [route.params.selectedItem]);
-
-  // Calculate the width of the index column based on the maximum length of the index values
-  const getIndexColumnWidth = () => {
-    const maxIndexLength = data.length.toString().length;
-    // Adjust this multiplier according to your font size and style
-    return maxIndexLength * 10; // You may adjust the multiplier based on your requirements
-  };
+  const [showHistory, setShowHistory] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const {transactionsHistory} = useTransactionHistory(selectedItem);
+  const timelineData = transactionsHistory.map(item => ({
+    time: item.DateModified,
+    title: item.Status,
+    description: `Completion: ${item.Completion}`,
+  }));
 
   function removeHtmlTags(text) {
-    // Regular expression to match closing </b> tags
+    if (text === null || text === undefined) {
+      return '';
+    }
+
     const boldEndRegex = /<\/b>/g;
-    // Replace closing </b> tags with a newline character followed by the tag
-    const newText = text.replace(boldEndRegex, '\n$&');
-    // Regular expression to match all other HTML tags
+    const newText = text.replace(boldEndRegex, '</b>\n');
     const htmlRegex = /<[^>]*>/g;
-    // Replace remaining HTML tags with a space
     return newText.replace(htmlRegex, ' ');
   }
+  const renderContent = () => {
+    return (
+      <ScrollView contentContainerStyle={{}}>
+        {/*         <Text style={styles.claimantText}>{selectedItem.Claimant}</Text>
+         */}
+        <View style={styles.detailRow}>
+          {/* <Text style={[styles.labelText, {color: 'white'}]}>Status</Text> */}
+          <TouchableOpacity
+            style={[
+              styles.statusButton,
+              selectedItem.Status === 'Pending' && styles.pendingStatus,
+            ]}
+            //onPress={() => setModalVisible(true)
+          >
+            <Text
+              style={[
+                styles.statusText,
+                {
+                  color: 'white',
+                  fontSize: 18,
+                  textShadowColor: 'rgba(90, 89, 89, 0.84)',
+                  textShadowOffset: {width: 1, height: 1},
+                  textShadowRadius: 2,
+                },
+              ]}>
+              {selectedItem.TrackingType} - {selectedItem.Status}
+            </Text>
+            <Text style={[styles.dateText, {color: 'white'}]}>
+              {selectedItem.DateModified}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-  
+        <View style={{marginHorizontal: 10}}>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>TN</Text>
+            <Text style={styles.value}>{selectedItem.TrackingNumber}</Text>
+          </View>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Claimant</Text>
+            <Text style={styles.value}>{selectedItem.Claimant}</Text>
+          </View>
+          {/*  <View style={styles.textRow}>
+            <Text style={styles.label}>Office</Text>
+            <Text style={styles.value}>{selectedItem.OfficeName}</Text>
+          </View> */}
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Document</Text>
+            <Text style={styles.value}>{selectedItem.DocumentType}</Text>
+          </View>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Period</Text>
+            <Text style={styles.value}>{selectedItem.PeriodMonth}</Text>
+          </View>
+          {/* <View style={styles.textRow}>
+            <Text style={styles.label}>ClaimType </Text>
+            <Text style={styles.value}>{selectedItem.ClaimType}</Text>
+          </View> */}
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Fund</Text>
+            <Text style={styles.value}>{selectedItem.Fund}</Text>
+          </View>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Amount</Text>
+            <Text style={styles.value}>
+              ₱{insertCommas(selectedItem.Amount)}
+            </Text>
+          </View>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Net Amount</Text>
+            <Text style={styles.value}>
+              ₱{insertCommas(selectedItem.NetAmount)}
+            </Text>
+          </View>
 
-  const renderContent = () => {};
-
-  return (
-    <ImageBackground
-      source={require('../../assets/images/docmobileBG.png')}
-      style={{flex: 1}}>
-      {/* <StatusBar
-        backgroundColor={'rgba(20, 16, 25, 0.2)'}
-        barStyle={'light-content'}
-      /> */}
-      <View style={styles.container}>
-        <SafeAreaView style={{flex: 1}}>
           <View
             style={{
-              //backgroundColor: 'rgba(20, 16, 25, 0.2)',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 10,
-              position: 'relative',
-            }}>
-            <View
-              style={{
-                position: 'absolute',
-                left: 10,
-                borderRadius: 999,
-                overflow: 'hidden',
-              }}>
-              <Pressable
-                style={({pressed}) => [
-                  pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                  {
-                    backgroundColor: 'transparent',
-                    padding: 10,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  },
-                ]}
-                android_ripple={{color: 'gray'}}
-                onPress={() => navigation.goBack()}>
-                <Icon name="chevron-back-outline" size={26} color="white" />
-              </Pressable>
-            </View>
-            <View style={{alignItems: 'center', rowGap: -5}}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 20,
-                  fontFamily: 'Oswald-Medium',
-                  lineHeight: 22,
-                }}>
-                {selectedItem.TrackingNumber}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontFamily: 'Oswald-Regular',
-                  color: '#FFFFFF',
-                }}>
-                Tracking Number
+              height: 1,
+              backgroundColor: 'silver',
+              marginVertical: 10,
+              marginHorizontal: 20,
+            }}></View>
+
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Encoded By</Text>
+            <Text style={styles.value}>{selectedItem.Encoder}</Text>
+          </View>
+
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Date Encoded</Text>
+            <Text style={styles.value}>{selectedItem.DateEncoded}</Text>
+          </View>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Date Updated</Text>
+            <Text style={styles.value}>{selectedItem.DateModified}</Text>
+          </View>
+        </View>
+        {/* <View style={styles.amountRow}>
+          <View>
+            <Text style={styles.labelText}>Document</Text>
+            <Text style={styles.valueText}>{selectedItem.DocumentType}</Text>
+          </View>
+
+          <View>
+            <Text style={styles.labelText}>Month</Text>
+            <Text style={styles.valueText}>{selectedItem.PeriodMonth}</Text>
+          </View>
+        </View> */}
+
+        {/*   <View style={styles.amountRow}>
+          <View>
+            <Text style={styles.labelText}>Amount</Text>
+            <Text style={styles.valueText}>
+              ₱ {insertCommas(selectedItem.Amount)}
+            </Text>
+          </View>
+
+          <View>
+            <Text style={styles.labelText}>Net Amount</Text>
+            <Text style={styles.valueText}>
+              ₱ {insertCommas(selectedItem.NetAmount)}
+            </Text>
+          </View>
+        </View> */}
+
+        {selectedItem.Remarks && (
+          <View style={styles.remarksContainer}>
+            <Text style={styles.remarksTitle}>Pending Notes</Text>
+            <View style={styles.remarksBox}>
+              <Text style={styles.remarksText}>
+                {removeHtmlTags(selectedItem.Remarks)}
               </Text>
             </View>
           </View>
-          <ScrollView>
-            <View style={styles.detailsContainer}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  padding: 10,
-                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                {/* <Icon
-                  name={'information-circle-outline'}
-                  size={28}
-                  color={'rgba(132, 218, 92, 1)'}
-                /> */}
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'center',
-                  }}>
-                  GENERAL INFORMATION
-                </Text>
-              </View>
-              <View style={{paddingTop: 10}}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>STATUS</Text>
-                  <Text style={styles.labelValue}>{selectedItem.Status}</Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>CLAIMANT</Text>
-                  <Text style={styles.labelValue}>{selectedItem.Claimant}</Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>DOCUMENT</Text>
-                  <Text style={styles.labelValue}>
-                    {selectedItem.DocumentType}
-                  </Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>ADV</Text>
-                  <Text style={styles.labelValue}>
-                    {selectedItem.ADV1 === '0' ? '' : selectedItem.ADV1}
-                  </Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>FUND</Text>
-                  <Text style={styles.labelValue}>{selectedItem.Fund}</Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>AMOUNT</Text>
-                  <Text style={styles.labelValue}>
-                    {insertCommas(selectedItem.Amount)}
-                  </Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>NET</Text>
-                  <Text style={[styles.labelValue, /* {color: '#F93232'} */]}>
-                    {insertCommas(selectedItem.NetAmount)}
-                  </Text>
-                </View>
-                <Divider
-                  width={1.9}
-                  color={'rgba(217, 217, 217, 0.1)'}
-                  borderStyle={'dashed'}
-                  marginHorizontal={20}
-                  marginBottom={5}
-                />
-                <View style={styles.detailItem}>
-                  <Text style={styles.label}>EVALUATOR</Text>
-                  <Text style={styles.labelValue}>{''}</Text>
-                </View>
-              </View>
-              <Divider
-                width={1.9}
-                color={'rgba(217, 217, 217, 0.1)'}
-                borderStyle={'dashed'}
-                marginHorizontal={20}
-                marginBottom={5}
-              />
+        )}
+        <View>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => setShowHistory(!showHistory)}>
+            <Text style={styles.historyButtonText}>
+              {showHistory ? 'Hide History' : 'Show History'}
+            </Text>
+          </TouchableOpacity>
 
-              <View style={{width: 100, alignSelf: 'flex-end', opacity: 0.8}}>
-                <Pressable
-                  style={({pressed}) => [
-                    styles.showMore,
-                    pressed && {backgroundColor: 'gray'},
-                  ]}
-                  android_ripple={{color: 'rgba(255, 255, 255, 0.2)'}}
-                  onPress={() => setShowMore(!showMore)}>
-                  <Text style={styles.showMoreText}>
-                    {showMore ? 'Hide' : 'See More'}
-                  </Text>
-                  <Icon
-                    name={showMore ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color="white"
-                  />
-                </Pressable>
-              </View>
+          {showHistory && (
+            <DataTable style={styles.transactionTable}>
+              <DataTable.Header>
+                <DataTable.Title>Date</DataTable.Title>
+                <DataTable.Title>Status</DataTable.Title>
+                <DataTable.Title numeric>Completion</DataTable.Title>
+              </DataTable.Header>
 
-              {showMore && (
-                <View>
-                  <View>
-                    {selectedItem.Remarks !== null && (
-                      <View>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            paddingStart: 10,
-                            paddingBottom: 5,
-                          }}>
-                          <Icon
-                            name={'alert-circle-outline'}
-                            size={22}
-                            color={'orange'}
-                          />
-                          <Text
-                            style={{
-                              fontFamily: 'Oswald-Regular',
-                              color: 'white',
-                              paddingStart: 5,
-                            }}>
-                            Note
-                          </Text>
-                        </View>
-                        <View
-                          style={{
-                            borderWidth: 1,
-                            padding: 5,
-                            marginBottom: 10,
-                            marginHorizontal: 10,
-                            borderColor: 'silver',
-                          }}>
-                          <Text
-                            style={{
-                              fontFamily: 'Oswald-Regular',
-                              color: 'white',
-                            }}>
-                            {removeHtmlTags(selectedItem.Remarks)}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-
-                  <View>
-                    {transactionHistory && transactionHistory.length > 0 ? (
-                      <DataTable
-                        style={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                          alignSelf: 'center',
-                        }}>
-                        <View
-                          style={{
-                            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                            flexDirection: 'row',
-                            //borderTopWidth: 1,
-                            //borderTopColor: '#ccc',
-                            paddingVertical: 5,
-                          }}>
-                          <View style={{flex: 1}}></View>
-                          <View style={{flex: 3, marginEnd: 15}}>
-                            <Text
-                              style={{
-                                fontFamily: 'Oswald-ExtraLight',
-                                color: 'white',
-                                fontSize: 12,
-                              }}>
-                              DATE
-                            </Text>
-                          </View>
-                          <View style={{flex: 5}}>
-                            <Text
-                              style={{
-                                fontFamily: 'Oswald-ExtraLight',
-                                color: 'white',
-                                fontSize: 12,
-                              }}>
-                              STATUS
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 10}}>
-                            <Text
-                              style={{
-                                fontFamily: 'Oswald-ExtraLight',
-                                color: 'white',
-                                fontSize: 12,
-                                textAlign: 'right', // align text to the right for numeric
-                              }}>
-                              COMPLETION
-                            </Text>
-                          </View>
-                        </View>
-
-                        {transactionHistory.map((item, index) => (
-                        <View
-                          key={index}
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: 10,
-                            alignItems:'center',
-                            //paddingTop: 10,
-                            //paddingBottom: 10,
-                            backgroundColor:
-                              index % 2 === 0
-                                ? 'rgba(0, 0, 0, 0.1)'
-                                : 'rgba(0, 0, 0, 0.2)', // Alternating background color
-                          }}>
-                          <View style={{flex: 1,}}>
-                            <Text
-                              style={{
-                                textAlign: 'center',
-                                fontSize: 12,
-                                color: 'silver',
-                                fontFamily: 'Oswald-ExtraLight',
-                              }}>
-                              {index + 1}
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 15}}>
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontFamily: 'Oswald-ExtraLight',
-                                color: 'silver',
-                              }}>
-                              {item.DateModified}
-                            </Text>
-                          </View>
-                          <View style={{flex: 5}}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                fontFamily: 'Oswald-Regular',
-                                color: 'white',
-                              }}>
-                              {item.Status}
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 10}}>
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontFamily: 'Oswald-ExtraLight',
-                                textAlign: 'right',
-                                color: 'silver',
-                              }}>
-                              {(item.Completion)}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                      </DataTable>
-                    ) : (
-                      <Text style={{color:' white', fontFamily: 'Oswald-Regular'}}>No Transaction History available</Text>
-                    )}
-                  </View>
-                </View>
+              {transactionsHistory.length > 0 ? (
+                transactionsHistory.map((item, index) => {
+                  const isLastItem = index === transactionsHistory.length - 1;
+                  return (
+                    <DataTable.Row
+                      key={index}
+                      style={isLastItem ? styles.highlightedRow : null}>
+                      <DataTable.Cell style={styles.dataCell}>
+                        <Text style={[styles.dataText, {fontSize: 10}]}>
+                          {item.DateModified}
+                        </Text>
+                      </DataTable.Cell>
+                      <DataTable.Cell style={styles.dataCell}>
+                        <Text style={styles.dataText}>{item.Status}</Text>
+                      </DataTable.Cell>
+                      <DataTable.Cell style={styles.dataCell} numeric>
+                        <Text style={styles.dataText}>{item.Completion}</Text>
+                      </DataTable.Cell>
+                    </DataTable.Row>
+                  );
+                })
+              ) : (
+                <DataTable.Row>
+                  <DataTable.Cell
+                    style={{justifyContent: 'center'}}
+                    colspan={3}>
+                    <Text style={styles.noTransactionsText}>
+                      No Transaction History available
+                    </Text>
+                  </DataTable.Cell>
+                </DataTable.Row>
               )}
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </View>
-    </ImageBackground>
+            </DataTable>
+          )}
+        </View>
+
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.closeButton}>
+              <Icon name="close-outline" size={24} color="black" />
+            </TouchableOpacity>
+            <Timeline data={timelineData} />
+          </View>
+        </Modal>
+      </ScrollView>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
+        style={styles.bgHeader}>
+        <View style={styles.header}>
+          <Pressable
+            style={({pressed}) => [
+              pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
+              styles.backButton,
+            ]}
+            android_ripple={{
+              color: '#F6F6F6',
+              borderless: true,
+              radius: 24,
+            }}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+
+          <Text style={styles.title}></Text>
+        </View>
+      </ImageBackground>
+
+      {renderContent()}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F9F9F9',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   backButton: {
     width: 40,
@@ -489,57 +295,185 @@ const styles = StyleSheet.create({
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    },
+  claimantText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#444',
+    flex: 1,
+    textAlign: 'center',
   },
-  headerText: {
-    color: 'white',
+  labelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  valueText: {
     fontSize: 16,
-    fontFamily: 'Abel-Regular',
-    lineHeight: 22,
+    fontWeight: '500',
+    color: '#333',
   },
-  detailsContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    margin: 10,
+  statusButton: {
+    backgroundColor: '#3DD1FC',
+    paddingVertical: 10,
+    //borderRadius: 8,
+    marginBottom: 10,
+    paddingHorizontal: 20,
   },
-  detailItem: {
+  pendingStatus: {
+    backgroundColor: '#FFEB3B',
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#3B3B3B',
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#777',
+  },
+  amountRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    paddingBottom: 10,
-    paddingStart: 20,
+    justifyContent: 'space-between',
+    marginVertical: 15,
+  },
+  remarksContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#F8F9FA', // Light gray background
+    borderRadius: 8,
+    //borderWidth: 1,
+    borderColor: '#D1D5DB', // Light border color
+  },
+  remarksTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#374151', // Dark gray text
+    marginBottom: 5,
+  },
+  remarksBox: {
+    backgroundColor: '#FFFFFF', // White box for remarks
+    padding: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'orange',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    //elevation: 1,
+  },
+  remarksText: {
+    fontSize: 14,
+    color: '#4B5563', // Gray text
+    lineHeight: 20,
+  },
+  transactionTable: {
+    backgroundColor: '#fff',
+    // marginTop: 15,
+    borderRadius: 10,
+    overflow: 'hidden',
+    elevation: 2,
+    marginBottom: 20,
+  },
+  noTransactionsText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  closeButton: {
+    paddingVertical: 10,
+  },
+  detailRow: {
+    marginVertical: 0,
+  },
+  bgHeader: {
+    paddingTop:30,
+    height: 80,
+    backgroundColor: '#1a508c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    elevation: 4, // Shadow effect
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    //backgroundColor: '#fff',
+    paddingBottom: 5,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    //elevation: 2,
+  },
+  title: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    //padding: 10,
+  },
+  textRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 5,
   },
   label: {
-    width: 70,
-    paddingStart: 15,
-    color: 'silver',
-    fontSize: 11,
-    fontFamily: 'Oswald-ExtraLight',
-  },
-  labelValue: {
-    flex: 1,
-    color: 'white',
+    //backgroundColor:'red',
+    width: '25%',
     fontSize: 15,
-    fontFamily: 'Oswald-Regular',
-    textTransform: 'uppercase',
+    fontFamily: 'Inter_28pt-Light',
+    color: 'gray',
+    textAlign: 'right',
+    letterSpacing: -0.5,
   },
-  showMore: {
-    backgroundColor: '#252525',
-    flexDirection: 'row',
-    justifyContent: 'center',
+  value: {
+    //backgroundColor:'blue',
+    width: '70%',
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    marginStart: 15,
+    //letterSpacing: -1,
+  },
+  dataCell: {
+    fontSize: 12,
+    fontWeight: '500', // Change this value to your desired font size
+    color: '#333', // You can also change the color if needed
+    alignContent: 'flex-start',
+  },
+  dataText: {
+    fontSize: 12,
+    fontWeight: '500', // Adjust font size as needed
+    color: '#333', // Dark gray for readability
+    textAlign: 'justify',
+  },
+  highlightedRow: {
+    backgroundColor: 'orange', // Light gray background for highlight
+    borderRadius: 5, // Optional rounded corners
+  },
+  historyButton: {
+    //backgroundColor: '#007bff',
+    padding: 10,
+    paddingEnd: 20,
+    borderRadius: 5,
     alignItems: 'center',
-    elevation: 5,
-    paddingVertical: 5,
-    margin: 10,
+    alignSelf: 'flex-end',
+    //marginBottom: 10,
   },
-  showMoreText: {
-    color: 'white',
-    fontSize: 14,
-    fontFamily: 'Abel-Regular',
+  historyButtonText: {
+    color: 'orange',
   },
-  headerRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderColor: 'black',
-    paddingVertical: 5,
+  highlightedRow: {
+    backgroundColor: 'orange',
+    borderRadius: 5,
   },
 });
-
 export default MyTransactionDetails;

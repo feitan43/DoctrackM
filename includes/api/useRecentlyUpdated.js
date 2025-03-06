@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import baseUrl from '../../config';
 import useUserInfo from './useUserInfo';
 import io from 'socket.io-client';
+import BASE_URL from '../../config';
 
 const useRecentlyUpdated = () => {
   const [recentlyUpdatedData, setRecentlyUpdatedData] = useState(null);
   const [recentlyUpdatedLength, setRecentlyUpdatedLength] = useState(null);
   const [token, setToken] = useState(null);
   const [error, setError] = useState(null);
-  const { officeCode } = useUserInfo();
+  const { officeCode, permission, privilege } = useUserInfo();
   const [updatedNowData, setUpdatedNowData] = useState(null);
   const [updatedDateTime, setUpdatedDateTime] = useState(null);
   const [recentLoading, setRecentLoading] = useState(false);
@@ -21,13 +21,15 @@ const useRecentlyUpdated = () => {
   }, []);
 
   const fetchRecentlyUpdatedData = useCallback(async () => {
+    if (permission === '10' || permission === '11') return; // Skip fetch for permission 10 or 11
+
     try {
       setRecentLoading(true);
 
       if (!token || !officeCode) return;
 
       const response = await fetch(
-        `${baseUrl}/recentlyUpdated?OfficeCode=${officeCode}`,
+        `${BASE_URL}/recentlyUpdated?OfficeCode=${officeCode}`,
         {
           method: 'GET',
           headers: {
@@ -51,7 +53,7 @@ const useRecentlyUpdated = () => {
     } finally {
       setRecentLoading(false);
     }
-  }, [token, officeCode]);
+  }, [token, officeCode, permission]);
 
   useEffect(() => {
     fetchToken();
@@ -59,17 +61,19 @@ const useRecentlyUpdated = () => {
 
   useEffect(() => {
     fetchRecentlyUpdatedData();
-  }, [token, officeCode, fetchRecentlyUpdatedData]);
+  }, [token, officeCode, permission, fetchRecentlyUpdatedData]);
 
   useEffect(() => {
     const fetchUpdatedNow = async () => {
+      if (permission === '10' || permission === '11') return; // Skip fetch for permission 10 or 11
+
       try {
         setRecentLoading(true);
 
         if (!token || !officeCode) return;
 
         const response = await fetch(
-          `${baseUrl}/updatedNow?OfficeCode=${officeCode}`,
+          `${BASE_URL}/updatedNow?OfficeCode=${officeCode}`,
           {
             method: 'GET',
             headers: {
@@ -88,41 +92,33 @@ const useRecentlyUpdated = () => {
         }
       } catch (error) {
         setError(error.message);
-        console.error('Error during data fetching UpdatedNow:', error.message);
       } finally {
         setRecentLoading(false);
       }
     };
 
     fetchUpdatedNow();
-  }, [token, officeCode]);
+  }, [token, officeCode, permission]);
 
   useEffect(() => {
-    if (!officeCode) return;
-  
-    // Initialize the socket connection
+    if (!officeCode || permission === '10' || permission === '11') return; // Skip socket connection for permission 10 or 11
+
     socketRef.current = io('http://122.2.27.45:3308', {
       query: { officeCode },
     });
-  
-    // Handle socket connection
-    socketRef.current.on('connect', () => {
-     /*  console.log('Connected to socket server'); */
-    });
-  
-    // Handle updatedNowData event
- socketRef.current.on('updatedNowData', (data) => {
-      // Check if the officeCode in the data matches the client's officeCode
+
+    socketRef.current.on('connect', () => {});
+
+    socketRef.current.on('updatedNowData', (data) => {
       if (data.officeCode === officeCode) {
         console.log('OC', data.officeCode);
         console.log('frmUpdate', data.Count);
         console.log(data);
 
-        // Extract the Count value correctly
         const countValue = data.Count && data.Count[0] && data.Count[0].Count;
         const dateValue = data.Count && data.Count[0] && data.Count[0].LatestDateModified;
         setUpdatedNowData(countValue);
-        setUpdatedDateTime(dateValue)
+        setUpdatedDateTime(dateValue);
 
         const now = new Date();
         const formattedDate = now.toLocaleDateString('en-CA'); // "2024-05-21"
@@ -130,29 +126,20 @@ const useRecentlyUpdated = () => {
           hour: '2-digit',
           minute: '2-digit',
           hour12: true,
-        }); // "12:38 PM"
-  
+        });
         const currentDateTime = `${formattedDate} ${formattedTime}`;
-  
         console.log('Date and Time:', currentDateTime);
-
-        /* setUpdatedDateTime(updatedDateTime) */
       }
     });
 
+    socketRef.current.on('disconnect', () => {});
 
-    // Handle socket disconnection
-    socketRef.current.on('disconnect', () => {
-     /*  console.log('Disconnected from socket server'); */
-    });
-
-    // Cleanup on component unmount
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
     };
-  }, [officeCode]);
+  }, [officeCode, permission]);
 
   return {
     recentlyUpdatedData,

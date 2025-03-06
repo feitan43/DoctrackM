@@ -35,12 +35,12 @@ const SafeAreaLoader = ({
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000, // Adjust duration as needed
+        duration: 1000,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
-        duration: 1000, // Adjust duration as needed
+        duration: 1000,
         useNativeDriver: true,
       }),
     ]).start();
@@ -51,32 +51,11 @@ const SafeAreaLoader = ({
       <View style={styles.overlay} />
 
       <View style={styles.loadingContainer}>
-        {/*  {isLoading && (
-          <LottieView
-            source={require('../assets/images/loadings.json')} // Update with your Lottie animation path
-            autoPlay
-            style={styles.lottieAnimation}
-          />
-        )} */}
         <Image
           source={require('../assets/images/doctracklogo.png')}
           style={[styles.logo]}
         />
-
-        {/*    <Text
-        style={{
-          fontSize: 40,
-    color: 'white',
-    fontFamily: 'Oswald-SemiBold',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: {width: -1, height: 1},
-    textShadowRadius: 10,
-        }}>
-        DocMobile<Text style={{color: 'orange', fontSize: 25}}> v1</Text>
-      </Text> */}
       </View>
-
-      {/* Render children when loading is complete */}
       {!isLoading && children(insets)}
     </View>
   );
@@ -86,10 +65,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
-
   },
-  overlay: {
-  },
+  overlay: {},
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
