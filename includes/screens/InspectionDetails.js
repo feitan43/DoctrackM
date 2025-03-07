@@ -33,6 +33,7 @@ import useGetImage from '../api/useGetImage';
 import {insertCommas} from '../utils/insertComma';
 import {Shimmer} from '../utils/useShimmer';
 import {useQueryClient} from '@tanstack/react-query';
+import DatePicker from 'react-native-date-picker';
 
 export const RenderInspection = memo(
   ({
@@ -734,6 +735,7 @@ export const Footer = ({
   refreshData,
   closeBottomSheet,
   queryClient,
+  setInvoiceBottomSheetVisible,
 }) => {
   const selectedItems = checkedItems.filter(item => item).length;
   const totalItems = Array.isArray(dataItems.poRecord)
@@ -852,6 +854,13 @@ export const Footer = ({
     if (selectedItems !== totalItems) {
       setMessage('Please check all items before tagging Inspected.');
       setErrorModalVisible(true);
+      return;
+    }
+
+    // Check if voucherStatus is "Inspection on Hold"
+    if (voucherStatus.toLowerCase() === 'inspection on hold') {
+      setInvoiceBottomSheetVisible(true);
+      closeBottomSheet();
       return;
     }
 
@@ -1018,23 +1027,30 @@ export const Footer = ({
       <View style={styles.footerButtons}>
         {voucherStatus === 'Inspected' ||
         voucherStatus.toLowerCase() === 'inspection on hold' ? (
-          <TouchableOpacity
-            onPress={handleRevert}
-            style={{
-              backgroundColor: '#ECAD0D',
-              padding: 10,
-              borderRadius: 5,
-              marginLeft: 10,
-            }}>
-            <Text
+          <>
+            <TouchableOpacity
+              onPress={handleInspectItems}
+              style={styles.inspectedButton}>
+              <Text style={styles.inspectedButtonText}>Inspected</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleRevert}
               style={{
-                color: '#FFFFFF',
-                fontWeight: 'bold',
-                textAlign: 'center',
+                backgroundColor: '#ECAD0D',
+                padding: 10,
+                borderRadius: 5,
+                marginLeft: 10,
               }}>
-              Revert
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                }}>
+                Revert
+              </Text>
+            </TouchableOpacity>
+          </>
         ) : voucherStatus === 'For Inspection' ||
           voucherStatus === 'Pending Released - CAO' ? (
           // Show On Hold and Inspected buttons if status is 'For Inspection'
@@ -1118,6 +1134,78 @@ export const Footer = ({
   );
 };
 
+const InvoiceBottomSheet = ({visible, onClose, onSubmit}) => {
+  const [invoice, setInvoice] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [open, setOpen] = useState(false);
+
+  const handleClose = () => {
+    setInvoice('');
+    setDate(new Date());
+    onClose(); // Close the bottom sheet
+  };
+
+  if (!visible) return null; // Prevent rendering if not visible
+
+
+  return (
+    <BottomSheet index={0} snapPoints={['50%']} onClose={onClose}>
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Enter Invoice</Text>
+      <TextInput
+        style={{
+          borderWidth: 1,
+          borderColor: '#ccc',
+          padding: 10,
+          marginTop: 10,
+          borderRadius: 5,
+        }}
+        placeholder="Invoice Number"
+        value={invoice}
+        onChangeText={setInvoice}
+      />
+  
+      {/* Date Picker Button */}
+      <TouchableOpacity
+        style={{
+          borderWidth: 1,
+          borderColor: '#ccc',
+          padding: 10,
+          marginTop: 10,
+          borderRadius: 5,
+          alignItems: 'center',
+        }}
+        onPress={() => setOpen(true)}
+      >
+        <Text>{date.toDateString()}</Text>
+      </TouchableOpacity>
+  
+      <DatePicker
+        modal
+        open={open}
+        date={date}
+        mode="date"
+        onConfirm={(selectedDate) => {
+          setOpen(false);
+          setDate(selectedDate);
+        }}
+        onCancel={() => setOpen(false)}
+      />
+  
+      <View style={{ marginTop: 10 }}>
+        <Button title="Submit" onPress={() => onSubmit(invoice, date)} />
+      </View>
+  
+      {/* Close Button */}
+      <View style={{ marginTop: 10 }}>
+          <Button title="Close" onPress={handleClose} />
+        </View>
+    </View>
+  </BottomSheet>
+  
+  );
+};
+
 const InspectionDetails = ({route, navigation}) => {
   const {item} = route.params;
 
@@ -1163,6 +1251,10 @@ const InspectionDetails = ({route, navigation}) => {
 
   const {uploadInspector, uploading, removing, setRemoving, removeThisUpload} =
     useFileUpload();
+
+  const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] =
+    useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
 
   useEffect(() => {
     fetchInspectionDetails(selectedYear, item.TrackingPartner);
@@ -1405,6 +1497,16 @@ const InspectionDetails = ({route, navigation}) => {
         </View>
       </View>
 
+      <InvoiceBottomSheet
+        visible={invoiceBottomSheetVisible}
+        onClose={() => setInvoiceBottomSheetVisible(false)}
+        onSubmit={invoice => {
+          setInvoiceNumber(invoice);
+          setInvoiceBottomSheetVisible(false);
+          proceedWithInspection(invoice); // Pass invoice number to proceed with inspection
+        }}
+      />
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -1534,6 +1636,7 @@ const InspectionDetails = ({route, navigation}) => {
             search={search}
             closeBottomSheet={closeBottomSheet}
             refreshData={refreshData} // Pass refresh function to Footer
+            setInvoiceBottomSheetVisible={setInvoiceBottomSheetVisible}
             queryClient={queryClient}
           />
         </BottomSheet>
@@ -1751,9 +1854,9 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
     marginBottom: 20,
-    borderWidth:1,
-    borderColor:'silver', 
-    borderRadius:5
+    borderWidth: 1,
+    borderColor: 'silver',
+    borderRadius: 5,
   },
   textContainer: {
     borderWidth: 1,
