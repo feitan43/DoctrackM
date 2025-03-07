@@ -1,9 +1,7 @@
 # OSX
-#
 .DS_Store
 
 # Xcode
-#
 build/
 *.pbxuser
 !default.pbxuser
@@ -23,10 +21,9 @@ DerivedData
 ios/.xcode.env.local
 
 # Android/IntelliJ
-#
 build/
-.idea
-.gradle
+.idea/
+.gradle/
 local.properties
 *.iml
 *.hprof
@@ -34,19 +31,13 @@ local.properties
 *.keystore
 !debug.keystore
 
-# node.js
-#
+# Node.js
 node_modules/
 npm-debug.log
+yarn-debug.log
 yarn-error.log
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
-
+# Fastlane
 **/fastlane/report.xml
 **/fastlane/Preview.html
 **/fastlane/screenshots
@@ -59,11 +50,49 @@ yarn-error.log
 /ios/Pods/
 /vendor/bundle/
 
-# Temporary files created by Metro to check the health of the file watcher
+# Metro health check (React Native)
 .metro-health-check*
 
-# testing
-/coverage
+# Testing
+/coverage/
 
-# Ignore Gradle build output directory
-build
+# Gradle build output directory
+build/
+
+# Temporary files
+.temp/
+.cache/
+
+# Logs and debug files
+*.log
+debug.log
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment files (DO NOT COMMIT SECRETS)
+.env
+.env.local
+.env.production
+.env.development
+
+# Firebase and Google Cloud Service credentials (Sensitive files)
+nodejs/*.json
+google-services.json
+android/app/google-services.json
+ios/GoogleService-Info.plist
+
+# Expo (React Native)
+.expo/
+.expo-shared/
+
+# VSCode settings (optional, if you use VSCode)
+.vscode/
+
+# Git merge conflict files
+*.orig
+
+# Lock files (optional, for package managers)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
