@@ -81,6 +81,7 @@ nodejs/*.json
 google-services.json
 android/app/google-services.json
 ios/GoogleService-Info.plist
+nodejs/doctracknotif-firebase-adminsdk-*.json
 
 # Expo (React Native)
 .expo/
