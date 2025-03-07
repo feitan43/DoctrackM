@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 5,
-    backgroundColor: '#F8F8F8',
+    //backgroundColor: '#F8F8F8',
     borderRadius: 999,
   },
   headerTitle: {
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   },
   bgHeader: {
     paddingTop: 35,
-    height: 85,
+    height: 80,
     backgroundColor: '#1a508c',
     flexDirection: 'row',
     alignItems: 'center',
@@ -644,11 +644,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    textAlign: 'center',
   },
   backButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    //backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
   },
   clearButton: {

@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     flex: 0.7,
   },
   bgHeader: {
-    paddingTop: 35,
+    paddingTop:30,
     height: 80,
     backgroundColor: '#1a508c',
     flexDirection: 'row',

@@ -10,10 +10,10 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
-  StatusBar,
-  ImageBackground
+  ImageBackground,
+  SafeAreaView
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+//import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {Dropdown} from 'react-native-element-dropdown';
@@ -293,8 +293,6 @@ const OnScheduleScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
       <ImageBackground
                 source={require('../../../assets/images/CirclesBG.png')} // Change this to your background image
                 style={styles.bgHeader}>
@@ -827,7 +825,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   bgHeader: {
-    height: 60,
+    paddingTop: 35,
+    height: 85,
     backgroundColor: '#1a508c',
     flexDirection: 'row',
     alignItems: 'center',
