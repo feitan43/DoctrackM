@@ -19,24 +19,24 @@ import NetInfo from '@react-native-community/netinfo';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import FlashMessage from 'react-native-flash-message';
-import { HotUpdater, useHotUpdaterStore } from "@hot-updater/react-native";
+import { HotUpdater, useHotUpdaterStore, addListener   } from "@hot-updater/react-native";
 import UpdateFallback from './includes/utils/UpdateFallback';
 
-LogBox.ignoreLogs([
-  'new NativeEventEmitter()` was called with a non-null argument without the required `addListener` method.',
-  'new NativeEventEmitter()` was called with a non-null argument without the required `removeListeners` method.',
-]);
 
 const queryClient = new QueryClient();
 
+
 const App = () => {
   const [isConnected, setIsConnected] = useState(true);
-
+  useEffect(() => {
+    LogBox.ignoreLogs(['new NativeEventEmitter() was called']);
+  }, []);
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
     return () => unsubscribe();
+    
   }, []);
 
   const openWifiSettings = () => {
@@ -61,6 +61,7 @@ const App = () => {
       }
     });
   };
+
 
   return (
     <QueryClientProvider client={queryClient}>

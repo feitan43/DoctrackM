@@ -17,7 +17,7 @@ const UpdateFallback = ({ progress = 0, status }) => {
     if (status === 'UPDATED') {
       setTimeout(() => {
         HotUpdater.reload();
-      }, 10000);
+      }, 2000);
     }
   }, [status]);
 
