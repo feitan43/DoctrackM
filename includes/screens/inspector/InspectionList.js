@@ -1,31 +1,23 @@
 import React from 'react';
-import {View, Text, Pressable, StyleSheet} from 'react-native';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
-export const InspectionList = ({item, index, onPressItem}) => {
+export const InspectionList = ({ item, index, onPressItem }) => {
   return (
-    <View
-      style={styles.pressable}
-      android_ripple={{color: '#F0F4F7', borderless: false}}
-      accessibilityLabel={`Inspection item ${index + 1}`}>
+    <View style={styles.pressable} accessibilityLabel={`Inspection item ${index + 1}`}>
       <View style={styles.container}>
         <View style={styles.indexContainer}>
           <Text style={styles.index}>{index + 1}</Text>
         </View>
 
         <View style={styles.infoContainer}>
-          <View
-            style={{
-              borderBottomWidth: 1 /* borderBottomColor:'silver' */,
-              paddingVertical: 5,
-            }}>
+          <View style={styles.officeContainer}>
             <Text style={styles.officeName}>{item.OfficeName}</Text>
           </View>
 
-          <View style={{marginTop: 10}}>
+          <View style={{ marginTop: verticalScale(10) }}>
             <View style={styles.textRow}>
-              <Text style={styles.label}>Category </Text>
-
+              <Text style={styles.label}>Category</Text>
               <Text style={styles.value}>
                 {item.CategoryCode}
                 {'\n'}
@@ -34,48 +26,45 @@ export const InspectionList = ({item, index, onPressItem}) => {
             </View>
 
             <View style={styles.textRow}>
-              <Text style={styles.label}>Year </Text>
+              <Text style={styles.label}>Year</Text>
               <Text style={styles.value}>{item.Year}</Text>
             </View>
+
             <View style={styles.textRow}>
-              <Text style={styles.label}>Payment TN </Text>
+              <Text style={styles.label}>Payment TN</Text>
               <Text style={styles.value}>{item.TrackingNumber}</Text>
             </View>
 
             <View style={styles.textRow}>
-              <Text style={styles.label}>PO TN </Text>
+              <Text style={styles.label}>PO TN</Text>
               <Text style={styles.value}>{item.TrackingPartner}</Text>
             </View>
+
             <View style={styles.textRow}>
-              <Text style={styles.label}>Delivery Date </Text>
+              <Text style={styles.label}>Delivery Date</Text>
               <Text style={styles.value}>{item.DeliveryDate}</Text>
             </View>
 
             <View style={styles.textRow}>
-              <Text style={styles.label}>Address </Text>
+              <Text style={styles.label}>Address</Text>
               <Text style={styles.value}>{item.Address || ''}</Text>
             </View>
 
             <View style={styles.textRow}>
-              <Text style={styles.label}>Contact </Text>
+              <Text style={styles.label}>Contact</Text>
               <Text style={styles.value}>{item.ContactPerson || ''}</Text>
             </View>
+
             <View style={styles.textRow}>
-              <Text style={styles.label}>{/* Contact */} </Text>
+              <Text style={styles.label}> </Text>
               <Text style={styles.value}>{item.ContactNumber || ''}</Text>
             </View>
+
             <Pressable
-              style={{
-                alignSelf: 'flex-end',
-                padding: 10,
-                borderRadius: 6, // Ensures ripple stays within bounds
-              }}
+              style={styles.pressableButton}
               onPress={() => onPressItem(item)}
-              android_ripple={{color: '#ccc', borderless: false}} // Ripple effect for Android
-            >
-              <Text style={{color: 'orange', }}>
-                See Inspection
-              </Text>
+              android_ripple={{ color: '#ccc', borderless: false }}>
+              <Text style={styles.buttonText}>See Inspection</Text>
             </Pressable>
           </View>
         </View>
@@ -87,42 +76,43 @@ export const InspectionList = ({item, index, onPressItem}) => {
 const styles = StyleSheet.create({
   pressable: {
     backgroundColor: '#fff',
-    borderRadius: 8, // Increased for smoother edges
-    padding: 10, // More padding for better spacing
-    marginVertical: 10, // Replaces marginTop & marginBottom
+    borderRadius: scale(8),
+    padding: scale(10),
+    marginVertical: verticalScale(10),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15, // Slightly stronger for better visibility
-    shadowRadius: 4,
-    elevation: 5, // Lower elevation to match shadow
-    borderWidth: 1, // Optional: Thin border for refinement
-    borderColor: 'rgba(0, 0, 0, 0.1)', // Light border for subtle separation
+    shadowOffset: { width: 0, height: verticalScale(2) },
+    shadowOpacity: 0.15,
+    shadowRadius: scale(4),
+    elevation: scale(5),
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
-
   container: {
     flexDirection: 'row',
     borderBottomColor: '#ccc',
   },
   indexContainer: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(4),
     alignItems: 'center',
   },
   index: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     textAlign: 'right',
     fontFamily: 'Inter_28pt-SemiBold',
     color: '#007bff',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)', // Shadow color with opacity
-    textShadowOffset: {width: 0, height: 1}, // Shadow position
-    textShadowRadius: 2, // Blur effect
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: verticalScale(1) },
+    textShadowRadius: scale(2),
   },
-
+  officeContainer: {
+    borderBottomWidth: 1,
+    paddingVertical: verticalScale(5),
+  },
   officeName: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontFamily: 'Inter_28pt-Medium',
     color: '#252525',
-    //backgroundColor:'rgba(194, 215, 247, 0.29)'
   },
   infoContainer: {
     flex: 1,
@@ -130,29 +120,31 @@ const styles = StyleSheet.create({
   textRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 2,
+    paddingVertical: verticalScale(2),
   },
   label: {
-    //backgroundColor:'red',
     width: '30%',
-    fontSize: 14,
+    fontSize: moderateScale(14),
     fontFamily: 'Inter_28pt-Light',
     textAlign: 'right',
     color: 'gray',
   },
   value: {
-    //backgroundColor:'blue',
     width: '65%',
-    fontSize: 14,
+    fontSize: moderateScale(14),
     fontFamily: 'Inter_28pt-SemiBold',
     color: 'black',
-    marginStart: 10,
+    marginStart: scale(10),
   },
-  separator: {
-    width: 3,
-    height: 3,
-    borderRadius: 3,
-    backgroundColor: '#ccc',
-    marginHorizontal: 5,
+  pressableButton: {
+    alignSelf: 'flex-end',
+    padding: scale(10),
+    borderRadius: scale(6),
+  },
+  buttonText: {
+    color: 'orange',
+    fontSize: moderateScale(14),
   },
 });
+
+export default InspectionList;
