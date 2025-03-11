@@ -1,7 +1,6 @@
 import apiClient from './apiClient';
 
 export const evaluatorEvaluate = async ({ Year, TrackingNumber, EmployeeNumber, Status }) => {
-  console.log("from evaluteEvaluator",Year, TrackingNumber, EmployeeNumber, Status	)
 
   const {data} = await apiClient.get(
     `/evaluatorEvaluate?Year=${Year}&TrackingNumber=${TrackingNumber}&EmployeeNumber=${EmployeeNumber}&Status=${Status}`,
@@ -10,7 +9,6 @@ export const evaluatorEvaluate = async ({ Year, TrackingNumber, EmployeeNumber, 
 };
 
 export const evaluatorRevert = async ({ Year, TrackingNumber, EmployeeNumber, Status }) => {
-  console.log("from evaluteRevert",Year, TrackingNumber, EmployeeNumber, Status	)
 
   const {data} = await apiClient.get(
     `/evaluatorRevert?Year=${Year}&TrackingNumber=${TrackingNumber}&EmployeeNumber=${EmployeeNumber}&Status=${Status}`,

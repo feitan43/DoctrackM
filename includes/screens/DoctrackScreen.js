@@ -2385,7 +2385,6 @@ const DoctrackScreen = ({
       )}
 
       <View style={{marginBottom: 10}}>
-        {/*Personal*/}
         <View
           style={{
             padding: 10,

@@ -22,7 +22,6 @@ module.exports = (api) => {
   return {
     presets: ['module:@react-native/babel-preset'],
     plugins: [
-      'react-native-reanimated/plugin', // Ensure this is last in the plugins array
       [
         'module:react-native-dotenv',
         {
@@ -37,8 +36,10 @@ module.exports = (api) => {
       ],
       ['react-native-worklets-core/plugin'],
       'hot-updater/babel-plugin',
+      'react-native-reanimated/plugin', // ✅ Now placed at the end
     ],
   };
 };
+
 
 

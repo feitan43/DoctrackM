@@ -1134,17 +1134,19 @@ export const Footer = ({
   );
 };
 
-const InvoiceBottomSheet = ({visible,setCheckedItems, onClose, onSubmit}) => {
+const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
   const [invoice, setInvoice] = useState('');
-  const [date, setDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
   const [openDate, setOpenDate] = useState(false);
   const [openTime, setOpenTime] = useState(false);
 
   const handleClose = () => {
     setInvoice('');
-    setDate(new Date());
+    setSelectedDate(null);
+    setSelectedTime(null);
     onClose();
-    setCheckedItems([])
+    setCheckedItems([]);
   };
 
   if (!visible) return null;
@@ -1159,82 +1161,139 @@ const InvoiceBottomSheet = ({visible,setCheckedItems, onClose, onSubmit}) => {
           <View style={[style, {backgroundColor: 'rgba(0,0,0,0.5)'}]} />
         </TouchableWithoutFeedback>
       )}>
-      <View style={{paddingHorizontal: 10}}>
+      <View style={{paddingHorizontal: 20}}>
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <Text style={{flex: 1, fontSize: 18, fontWeight: 'bold'}}>
+          <Text style={{flex: 1, fontSize: 20, fontWeight: 'bold'}}>
             Enter Invoice
           </Text>
-          <Icon name="close" size={24} color="#000" onPress={handleClose} />
+          <View style={{padding: 5}}>
+            <Icon name="close" size={24} color="#000" onPress={handleClose} />
+          </View>
         </View>
 
-        <TextInput
+        {/* <View
           style={{
-            borderWidth: 1,
-            borderColor: '#ccc',
-            padding: 10,
-            marginTop: 10,
-            borderRadius: 5,
-          }}
-          placeholder="Invoice Number"
-          inputMode='numeric'
-          value={invoice}
-          onChangeText={setInvoice}
-        />
-      <View style={{flexDirection:'row', gap:10}}>
-        <TouchableOpacity
-          style={{
-            borderWidth: 1,
-            borderColor: '#ccc',
-            padding: 10,
-            marginTop: 10,
-            borderRadius: 5,
+            flexDirection: 'row',
             alignItems: 'center',
-          }}
-          onPress={() => setOpenDate(true)}>
-          <Text>{date.toDateString()}</Text>
-        </TouchableOpacity>
-
-        <DatePicker
-          modal
-          open={openDate}
-          date={date}
-          mode="date"
-          onConfirm={selectedDate => {
-            setOpenDate(false);
-            setDate(selectedDate);
-          }}
-          onCancel={() => setOpenDate(false)}
-        />
-
-        <TouchableOpacity
-          style={{
-            borderWidth: 1,
-            borderColor: '#ccc',
+            //backgroundColor: '#f8f8f8',
+            backgroundColor: '#e0f2ff', // Light blue background
             padding: 10,
-            marginTop: 10,
             borderRadius: 5,
-            alignItems: 'center',
             marginTop: 10,
-          }}
-          onPress={() => setOpenTime(true)}>
-          <Text>{date.toLocaleTimeString()}</Text>
-        </TouchableOpacity>
+            borderWidth: 1,
+            borderColor: 'rgb(181, 213, 255)',
+            marginBottom: 10,
+          }}>
+          <Icon
+            name="information-circle-outline"
+            size={20}
+            color="gray"
+            style={{marginRight: 5}}
+          />
+          <Text style={{color: 'gray', fontSize: 12}}>
+            You can skip if no invoice available yet.
+          </Text>
+        </View> */}
 
-        <DatePicker
-          modal
-          open={openTime}
-          date={date}
-          mode="time"
-          onConfirm={selectedTime => {
-            setOpenTime(false);
-            setDate(selectedTime);
-          }}
-          onCancel={() => setOpenTime(false)}
-        />
-</View>
-        <View style={{marginTop: 10}}>
-          <Button title="Submit" onPress={() => onSubmit(invoice, date)} />
+        <View style={{gap: -10}}>
+          <Text style={{color: 'rgb(102, 102, 102)', marginBottom:10}}>Invoice Number</Text>
+          <TextInput
+            style={{
+              borderWidth: 1,
+              borderColor: '#ccc',
+              padding: 10,
+              marginTop: 10,
+              borderRadius: 5,
+              alignItems: 'center',
+            }}
+            placeholder="Enter Invoice Number"
+            inputMode="numeric"
+            value={invoice}
+            onChangeText={setInvoice}
+          />
         </View>
+
+        <View style={{flexDirection: 'row', marginTop: 10}}>
+          <View style={{flex: 1, marginRight: 10}}>
+            <Text style={{color: 'rgb(102, 102, 102)'}}>Invoice Date</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginTop: 10,
+                borderRadius: 5,
+                alignItems: 'center',
+              }}
+              onPress={() => setOpenDate(true)}>
+              <Text>
+                {selectedDate
+                  ? selectedDate.toISOString().split('T')[0]
+                  : 'YYYY-MM-DD'}
+              </Text>
+            </TouchableOpacity>
+            <DatePicker
+              modal
+              open={openDate}
+              date={selectedDate || new Date()}
+              mode="date"
+              onConfirm={date => {
+                setOpenDate(false);
+                setSelectedDate(date);
+              }}
+              onCancel={() => setOpenDate(false)}
+            />
+          </View>
+
+          <View style={{flex: 1}}>
+            <Text style={{color: 'rgb(102, 102, 102)'}}>Invoice Time</Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 10,
+                marginTop: 10,
+                borderRadius: 5,
+                alignItems: 'center',
+              }}
+              onPress={() => setOpenTime(true)}>
+              <Text>
+                {selectedTime
+                  ? selectedTime.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
+                    })
+                  : 'HH:MM AM/PM'}
+              </Text>
+            </TouchableOpacity>
+            <DatePicker
+              modal
+              open={openTime}
+              date={selectedTime || new Date()}
+              mode="time"
+              onConfirm={time => {
+                setOpenTime(false);
+                setSelectedTime(time);
+              }}
+              onCancel={() => setOpenTime(false)}
+            />
+          </View>
+        </View>
+
+        <Pressable
+          style={({pressed}) => ({
+            backgroundColor: pressed ? '#005ecb' : '#007aff', // Darker when pressed
+            padding: 12,
+            borderRadius: 5,
+            alignItems: 'center',
+            marginTop: 10,
+          })}
+          onPress={() => onSubmit(invoice, selectedDate, selectedTime)}>
+          <Text style={{color: 'white', fontSize: 16, fontWeight: 'bold'}}>
+            Submit
+          </Text>
+        </Pressable>
       </View>
     </BottomSheet>
   );
