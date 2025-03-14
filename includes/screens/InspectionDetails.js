@@ -34,6 +34,7 @@ import {insertCommas} from '../utils/insertComma';
 import {Shimmer} from '../utils/useShimmer';
 import {useQueryClient} from '@tanstack/react-query';
 import DatePicker from 'react-native-date-picker';
+import {useAddSchedule} from '../hooks/useInspection';
 
 export const RenderInspection = memo(
   ({
@@ -49,6 +50,7 @@ export const RenderInspection = memo(
     removeThisUpload,
     fetchInspectorImage,
     setImagePath,
+    routeItem,
   }) => {
     const handleCheck = index => {
       const updatedCheckedItems = [...checkedItems];
@@ -56,7 +58,6 @@ export const RenderInspection = memo(
       setCheckedItems(updatedCheckedItems);
     };
 
-    //const [imagePath, setImagePath] = useState([]);
     const [isEditMode, setIsEditMode] = useState(false);
     const [images, setImages] = useState(inspectorImages || []);
     const [expanded, setExpanded] = useState(false);
@@ -103,25 +104,6 @@ export const RenderInspection = memo(
     const fetchData = async () => {
       setFetchTimestamp(Date.now());
     };
-
-    // const renderInspectorImage = (uri, index) => (
-    //   <TouchableOpacity
-    //     key={`${index}-${fetchTimestamp}`}
-    //     onPress={() => openImageModal(uri)}>
-    //     <FastImage
-    //       source={{uri, priority: FastImage.priority.high, cache: 'web'}}
-    //       style={{
-    //         width: 160,
-    //         height: 150,
-    //         borderColor: '#ccc',
-    //         borderWidth: 2,
-    //         borderRadius: 8,
-    //         marginBottom: 10,
-    //       }}
-    //       resizeMode={FastImage.resizeMode.cover}
-    //     />
-    //   </TouchableOpacity>
-    // );
 
     const [isModalVisible, setModalVisible] = useState(false);
     const [selectedImageUri, setSelectedImageUri] = useState(null);
@@ -402,21 +384,59 @@ export const RenderInspection = memo(
                       </Text>
                     </View>
 
-                    <View style={{flexDirection: 'row', paddingVertical: 2}}>
+                    {/*   <View style={{flexDirection: 'row', paddingVertical: 2}}>
                       <Text style={styles.indexLabel}>12</Text>
                       <Text style={styles.label}>Date</Text>
                       <Text style={[styles.value, {flex: 3}]}>
                         {deliveryItem.DeliveryDate || ''}
                       </Text>
-                    </View>
-
-                    {/* <View style={{flexDirection: 'row', paddingVertical: 2}}>
-                      <Text style={styles.indexLabel}>13</Text>
-                      <Text style={styles.label}>Inspection Date</Text>
-                      <Text style={[styles.value, {flex: 3}]}>
-                        {item.DateOfInspection || ''}
-                      </Text>
                     </View> */}
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'flex-start',
+                        paddingVertical: 2,
+                      }}>
+                      <Text style={styles.indexLabel}>12</Text>
+                      <Text style={styles.label}> Date</Text>
+                      <View>
+                        {routeItem.DeliveryDatesHistory
+                          ? routeItem.DeliveryDatesHistory.split(', ').map(
+                              (date, index, arr) => (
+                                <View
+                                  key={index}
+                                  style={{
+                                    flexDirection: 'row',
+                                    marginBottom: 5,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      backgroundColor:
+                                        index === arr.length - 1
+                                          ? 'rgb(94, 165, 245)'
+                                          : 'silver',
+                                      paddingHorizontal: 5,
+                                      color: 'white',
+                                    }}>
+                                    {index + 1}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      marginStart: 10,
+                                      fontSize: 14,
+                                      width: '55%',
+                                      fontFamily: 'Inter_28pt-SemiBold',
+                                      color: 'black',
+                                    }}>
+                                    {date}
+                                  </Text>
+                                </View>
+                              ),
+                            )
+                          : null}
+                      </View>
+                    </View>
                   </View>
                 ))
               ) : (
@@ -734,110 +754,15 @@ export const Footer = ({
   setLoading,
   refreshData,
   closeBottomSheet,
+  openBottomSheet,
   queryClient,
   setInvoiceBottomSheetVisible,
+  setAddScheduleBottomSheetVisible,
 }) => {
   const selectedItems = checkedItems.filter(item => item).length;
   const totalItems = Array.isArray(dataItems.poRecord)
     ? dataItems.poRecord.length
     : 0;
-
-  /*  const handleInspectItems = async () => {
-    if (!Array.isArray(checkedItems)) {
-      setMessage('No items found to inspect.');
-      setErrorModalVisible(true);
-      return;
-    }
-
-    const totalItems = Array.isArray(dataItems.poRecord)
-      ? dataItems.poRecord.length
-      : 0;
-
-    const selectedItems = checkedItems.filter(item => item).length;
-
-    if (selectedItems !== totalItems) {
-      setMessage('Please check all items before tagging Inspected.');
-      setErrorModalVisible(true);
-      return;
-    }
-
-    if(voucherStatus === 'Pending Released - CAO'){
-      const inspectionStatus = 'Pending Released - CAO';
-    }else{
-      const inspectionStatus = 'Inspected';
-    }    setLoading(true);
-
-    const result = await inspectItems(
-      selectedYear,
-      data.TrackingNumber,
-      inspectionStatus,
-      remarks,
-    );
-
-    setLoading(false);
-
-    // Handle the result of the inspection
-    if (result.success) {
-      setMessage(result.message);
-      setSuccessModalVisible(true);
-      refreshData();
-      closeBottomSheet();
-
-      // Reset checkedItems to an array of false values after success
-      setCheckedItems(Array(totalItems).fill(false));
-    } else {
-      setMessage(`Error: ${result.message}`);
-      setErrorModalVisible(true);
-    }
-  }; */
-
-  /*   const handleInspectItems = async () => {
-    if (!Array.isArray(checkedItems)) {
-      setMessage('No items found to inspect.');
-      setErrorModalVisible(true);
-      return;
-    }
-
-    const totalItems = Array.isArray(dataItems.poRecord)
-      ? dataItems.poRecord.length
-      : 0;
-
-    const selectedItems = checkedItems.filter(item => item).length;
-
-    if (selectedItems !== totalItems) {
-      setMessage('Please check all items before tagging Inspected.');
-      setErrorModalVisible(true);
-      return;
-    }
-
-    let inspectionStatus = 'Inspected';
-    if (voucherStatus === 'Pending Released - CAO') {
-      inspectionStatus = 'Pending Released - CAO';
-    }
-
-    setLoading(true);
-
-    const result = await inspectItems(
-      selectedYear,
-      data.TrackingNumber,
-      inspectionStatus,
-      remarks,
-    );
-
-    setLoading(false);
-
-    if (result.success) {
-      setMessage(result.message);
-      setSuccessModalVisible(true);
-      refreshData();
-      closeBottomSheet();
-
-      setCheckedItems(Array(totalItems).fill(false));
-    } else {
-      setMessage(`${result.message}`);
-      setErrorModalVisible(true);
-    }
-  };*/
 
   const handleInspectItems = async () => {
     if (!Array.isArray(checkedItems) || checkedItems.length === 0) {
@@ -1010,6 +935,11 @@ export const Footer = ({
     }
   };
 
+  const handleAddSchedule = () => {
+    setAddScheduleBottomSheetVisible(true);
+    closeBottomSheet();
+  };
+
   const voucherStatus =
     dataItems && dataItems.vouchers && dataItems.vouchers.length > 0
       ? dataItems.vouchers[0].Status
@@ -1025,14 +955,50 @@ export const Footer = ({
         <Text>out of {totalItems}</Text>
       </View>
       <View style={styles.footerButtons}>
-        {voucherStatus === 'Inspected' ||
-        voucherStatus.toLowerCase() === 'inspection on hold' ? (
+        {voucherStatus === 'For Inspection' && (
+          <>
+            <TouchableOpacity
+              onPress={handleOnHold}
+              style={styles.onHoldButton}>
+              <Text style={styles.onHoldButtonText}>On Hold</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleInspectItems}
+              style={styles.inspectedButton}>
+              <Text style={styles.inspectedButtonText}>Inspected</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {voucherStatus === 'Inspected' && (
+          <TouchableOpacity
+            onPress={handleRevert}
+            style={{
+              backgroundColor: '#ECAD0D',
+              padding: 10,
+              borderRadius: 5,
+              marginLeft: 10,
+            }}>
+            <Text
+              style={{
+                color: '#FFFFFF',
+                fontWeight: 'bold',
+                textAlign: 'center',
+              }}>
+              Revert
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {voucherStatus.toLowerCase() === 'inspection on hold' && (
           <>
             <TouchableOpacity
               onPress={handleInspectItems}
               style={styles.inspectedButton}>
               <Text style={styles.inspectedButtonText}>Inspected</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               onPress={handleRevert}
               style={{
@@ -1050,24 +1016,26 @@ export const Footer = ({
                 Revert
               </Text>
             </TouchableOpacity>
-          </>
-        ) : voucherStatus === 'For Inspection' ||
-          voucherStatus === 'Pending Released - CAO' ? (
-          // Show On Hold and Inspected buttons if status is 'For Inspection'
-          <>
-            <TouchableOpacity
-              onPress={handleOnHold}
-              style={styles.onHoldButton}>
-              <Text style={styles.onHoldButtonText}>On hold</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={handleInspectItems}
-              style={styles.inspectedButton}>
-              <Text style={styles.inspectedButtonText}>Inspected</Text>
+              onPress={handleAddSchedule}
+              style={{
+                backgroundColor: '#007BFF',
+                padding: 10,
+                borderRadius: 5,
+                marginLeft: 10,
+              }}>
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                }}>
+                Add Schedule
+              </Text>
             </TouchableOpacity>
           </>
-        ) : null}
+        )}
       </View>
 
       {/* Remarks Modal */}
@@ -1196,7 +1164,9 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
         </View> */}
 
         <View style={{gap: -10}}>
-          <Text style={{color: 'rgb(102, 102, 102)', marginBottom:10}}>Invoice Number</Text>
+          <Text style={{color: 'rgb(102, 102, 102)', marginBottom: 10}}>
+            Invoice Number
+          </Text>
           <TextInput
             style={{
               borderWidth: 1,
@@ -1207,6 +1177,7 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
               alignItems: 'center',
             }}
             placeholder="Enter Invoice Number"
+            placeholderTextColor={'#ccc'}
             inputMode="numeric"
             value={invoice}
             onChangeText={setInvoice}
@@ -1226,7 +1197,7 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
                 alignItems: 'center',
               }}
               onPress={() => setOpenDate(true)}>
-              <Text>
+              <Text style={{color: selectedDate ? 'black' : '#ccc'}}>
                 {selectedDate
                   ? selectedDate.toISOString().split('T')[0]
                   : 'YYYY-MM-DD'}
@@ -1257,7 +1228,7 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
                 alignItems: 'center',
               }}
               onPress={() => setOpenTime(true)}>
-              <Text>
+              <Text style={{color: selectedTime ? 'black' : '#ccc'}}>
                 {selectedTime
                   ? selectedTime.toLocaleTimeString('en-US', {
                       hour: '2-digit',
@@ -1299,14 +1270,211 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
   );
 };
 
+const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
+  console.log(isAdding)
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [openDate, setOpenDate] = useState(false);
+  const [openTime, setOpenTime] = useState(false);
+  const [dateError, setDateError] = useState(false);
+  const [timeError, setTimeError] = useState(false);
+
+  const handleClose = () => {
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setDateError(false);
+    setTimeError(false);
+    onClose();
+  };
+
+  const formatDateTime = () => {
+    if (!selectedDate || !selectedTime) return null;
+
+    const combinedDateTime = new Date(selectedDate);
+    combinedDateTime.setHours(
+      selectedTime.getHours(),
+      selectedTime.getMinutes(),
+    );
+
+    const year = combinedDateTime.getFullYear();
+    const month = String(combinedDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(combinedDateTime.getDate()).padStart(2, '0');
+
+    let hours = combinedDateTime.getHours();
+    const minutes = String(combinedDateTime.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+
+    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
+  };
+
+  if (!visible) return null;
+
+  return (
+    <BottomSheet
+      index={0}
+      snapPoints={['50%']}
+      onClose={onClose}
+      backdropComponent={({style}) => (
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={[style, {backgroundColor: 'rgba(0,0,0,0.5)'}]} />
+        </TouchableWithoutFeedback>
+      )}>
+      <View style={{paddingHorizontal: 20, paddingVertical: 10}}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 10,
+          }}>
+          <Text style={{flex: 1, fontSize: 20, fontWeight: 'bold'}}>
+            Add Schedule
+          </Text>
+          <TouchableOpacity onPress={handleClose}>
+            <Icon name="close" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{flexDirection: 'row', marginTop: 15}}>
+          {/* Date Picker */}
+          <View style={{flex: 1, marginRight: 10}}>
+            <Text style={{color: 'rgb(102, 102, 102)', marginBottom: 5}}>
+              Date
+            </Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: dateError ? 'red' : '#ccc',
+                padding: 10,
+                borderRadius: 5,
+              }}
+              onPress={() => setOpenDate(true)}>
+              <Text>
+                {selectedDate
+                  ? selectedDate.toISOString().split('T')[0]
+                  : 'YYYY-MM-DD'}
+              </Text>
+            </TouchableOpacity>
+            {dateError && (
+              <Text style={{color: 'red', fontSize: 12, marginTop: 5}}>
+                Please select a date
+              </Text>
+            )}
+            <DatePicker
+              modal
+              open={openDate}
+              date={selectedDate || new Date()}
+              mode="date"
+              onConfirm={date => {
+                setOpenDate(false);
+                setSelectedDate(date);
+                setDateError(false);
+              }}
+              onCancel={() => setOpenDate(false)}
+            />
+          </View>
+
+          {/* Time Picker */}
+          <View style={{flex: 1}}>
+            <Text style={{color: 'rgb(102, 102, 102)', marginBottom: 5}}>
+              Time
+            </Text>
+            <TouchableOpacity
+              style={{
+                borderWidth: 1,
+                borderColor: timeError ? 'red' : '#ccc',
+                padding: 10,
+                borderRadius: 5,
+              }}
+              onPress={() => setOpenTime(true)}>
+              <Text>
+                {selectedTime
+                  ? selectedTime.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
+                    })
+                  : 'HH:MM AM/PM'}
+              </Text>
+            </TouchableOpacity>
+            {timeError && (
+              <Text style={{color: 'red', fontSize: 12, marginTop: 5}}>
+                Please select a time
+              </Text>
+            )}
+            <DatePicker
+              modal
+              open={openTime}
+              date={selectedTime || new Date()}
+              mode="time"
+              onConfirm={time => {
+                setOpenTime(false);
+
+                const tempDate = new Date();
+                tempDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
+                setSelectedTime(tempDate);
+
+                setTimeError(false);
+              }}
+              onCancel={() => setOpenTime(false)}
+            />
+          </View>
+        </View>
+
+        <Pressable
+          style={({pressed}) => ({
+            backgroundColor: pressed || isAdding ? '#005ecb' : '#007aff',
+            padding: 12,
+            borderRadius: 5,
+            alignItems: 'center',
+            marginTop: 20,
+            flexDirection: 'row',
+            justifyContent: 'center',
+          })}
+          onPress={() => {
+            if (isAdding) return; // Prevent multiple submissions
+
+            let hasError = false;
+            if (!selectedDate) {
+              setDateError(true);
+              hasError = true;
+            }
+            if (!selectedTime) {
+              setTimeError(true);
+              hasError = true;
+            }
+            if (!hasError) {
+              const formattedDateTime = formatDateTime();
+              onSubmit(formattedDateTime);
+            }
+          }}
+          disabled={isAdding} // Disable button while loading
+        >
+          {isAdding ? (
+            <>
+              <ActivityIndicator
+                size="small"
+                color="#fff"
+                style={{marginRight: 8}}
+              />
+              <Text style={{color: 'white', fontSize: 16, fontWeight: 'bold'}}>
+                Submitting...
+              </Text>
+            </>
+          ) : (
+            <Text style={{color: 'white', fontSize: 16, fontWeight: 'bold'}}>
+              Submit
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </BottomSheet>
+  );
+};
+
 const InspectionDetails = ({route, navigation}) => {
   const {item} = route.params;
-
-  /*   useEffect(() => {
-    if (imagePath.length > 0) {
-      bottomSheetRef.current?.snapToIndex(1);
-    }
-  }, [imagePath]); */
+  const {mutate: addSchedule, isLoading: isAdding} = useAddSchedule();
 
   const [search, setSearch] = useState('');
   const [selectedYear, setSelectedYear] = useState(item.Year);
@@ -1347,6 +1515,8 @@ const InspectionDetails = ({route, navigation}) => {
 
   const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] =
     useState(false);
+  const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] =
+    useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
 
   useEffect(() => {
@@ -1361,6 +1531,12 @@ const InspectionDetails = ({route, navigation}) => {
   const closeBottomSheet = () => {
     if (bottomSheetRef.current) {
       bottomSheetRef.current.close();
+    }
+  };
+
+  const openBottomSheet = () => {
+    if (bottomSheetRef.current) {
+      bottomSheetRef.current.expand(); // or .snapToIndex(0) if using snapPoints
     }
   };
 
@@ -1492,6 +1668,27 @@ const InspectionDetails = ({route, navigation}) => {
     }
   };
 
+  const handleScheduleSubmit = date => {
+    if (!date) {
+      console.error('Error: No date provided for scheduling.');
+      return;
+    }
+
+    console.log('Scheduling Date:', date);
+
+    addSchedule(
+      {date},
+      {
+        onSuccess: () => {
+          console.log('Schedule successfully added.');
+        },
+        onError: error => {
+          console.error('Error adding schedule:', error);
+        },
+      },
+    );
+  };
+
   return (
     <>
       <View style={styles.container}>
@@ -1567,6 +1764,7 @@ const InspectionDetails = ({route, navigation}) => {
                   setRemoving={setRemoving}
                   fetchInspectorImage={fetchInspectorImage}
                   setImagePath={setImagePath}
+                  routeItem={route.params.item}
                 />
               )}
               keyExtractor={item => item?.TrackingNumber || item.id.toString()}
@@ -1597,8 +1795,16 @@ const InspectionDetails = ({route, navigation}) => {
         onSubmit={invoice => {
           setInvoiceNumber(invoice);
           setInvoiceBottomSheetVisible(false);
-          proceedWithInspection(invoice); // Pass invoice number to proceed with inspection
+          proceedWithInspection(invoice);
         }}
+      />
+
+      <AddSchedule
+        visible={addScheduleBottomSheetVisible}
+        setCheckedItems={setCheckedItems}
+        onClose={() => setAddScheduleBottomSheetVisible(false)}
+        onSubmit={handleScheduleSubmit}
+        isAdding={isAdding}
       />
 
       <Modal
@@ -1729,8 +1935,10 @@ const InspectionDetails = ({route, navigation}) => {
             fetchInspectionItems={fetchInspectionItems}
             search={search}
             closeBottomSheet={closeBottomSheet}
+            openBottomSheet={openBottomSheet}
             refreshData={refreshData} // Pass refresh function to Footer
             setInvoiceBottomSheetVisible={setInvoiceBottomSheetVisible}
+            setAddScheduleBottomSheetVisible={setAddScheduleBottomSheetVisible}
             queryClient={queryClient}
           />
         </BottomSheet>

@@ -41,7 +41,6 @@ const ForInspection = ({navigation}) => {
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
   //cons
-
   const offices = [
     {label: 'All Offices', value: null, key: 'all-offices'},
     ...Array.from(
@@ -77,7 +76,6 @@ const ForInspection = ({navigation}) => {
   const handleRefresh = () => {
     setRefreshing(true);
     console.log('refresh');
-    //refetch();
     queryClient.invalidateQueries({
       queryKey: ['inspection'],
     });

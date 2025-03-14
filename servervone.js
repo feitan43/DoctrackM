@@ -39,8 +39,8 @@ admin.initializeApp({
 //const ServerIp = "http://192.168.203.13";
 //const ServerIp = "http://192.168.254.111";
 
-//const ServerIp = "http://192.168.254.134";
-const ServerIp = "http://192.168.8.24";
+const ServerIp = "http://192.168.254.134";
+//const ServerIp = "http://192.168.8.24";
 
 
 //const ServerIp = "http://192.168.100.217";
@@ -1741,12 +1741,6 @@ app.get('/transactionUpdate', async (req, res) => {
   }
 });
 
-
-
-
-
-
-
 app.get('/read', async (req, res) => {
   const {OfficeCode} = req.query;
   try {
@@ -1945,7 +1939,7 @@ app.get('/getInspectionItems', async (req, res) => {
 app.get('/inspectItems', async (req, res) => {
   const { year, employeeNumber, trackingNumber, accountType, status , remarks} = req.query; 
 
-  //console.log(year, employeeNumber, trackingNumber, accountType, status, remarks);
+  console.log(year, employeeNumber, trackingNumber, accountType, status, remarks);
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?saitama=1&year=${year}&empnum=${employeeNumber}&tn=${trackingNumber}&accountType=${accountType}&status=${status}&remarks=${encodeURIComponent(remarks)}`;
