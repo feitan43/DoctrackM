@@ -14,6 +14,7 @@ const useUserInfo = () => {
   const [privilege, setPrivilege] = useState(null)
   const [accountType, setAccountType] = useState(null);
   const [permission, setPermission] = useState(null);
+  const [caoReceiver, setCaoReceiver] = useState(null);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -33,6 +34,7 @@ const useUserInfo = () => {
         setPrivilege(decodedResult.data[0].Privilege);
         setAccountType(decodedResult.data[0].AccountType);
         setPermission(decodedResult.data[0].Permission);
+        setCaoReceiver(decodedResult.data[0].CAORECEIVER);
       } catch (error) {
         console.error('Error fetching user info:', error);
         setError(error.message);
@@ -60,6 +62,7 @@ const useUserInfo = () => {
     privilege,
     accountType,
     permission,
+    caoReceiver,
     token,
     error,
   };
