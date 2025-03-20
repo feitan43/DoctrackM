@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,6 +14,7 @@ import {
   Button,
   Image,
   TextInput,
+  ImageBackground,
 } from 'react-native';
 import {
   Camera,
@@ -24,16 +25,17 @@ import {
   useFrameProcessor,
   useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useGetQRData from '../../api/useGetQRData';
-import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import useUserInfo from '../../api/useUserInfo';
-import {insertCommas} from '../../utils/insertComma';
+import { insertCommas } from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
+import { IconButton } from 'react-native-paper';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const squareSize = 250;
 
 const QRManual = () => {
@@ -52,14 +54,14 @@ const QRManual = () => {
 
   const [inputParams, setInputParams] = useState('');
 
-  const {qrData, setQRData, qrLoading, qrError, fetchQRData} = useGetQRData();
-  const {fetchDataSearchReceiver, setSearchTNData, loading, searchTNData} =
+  const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+  const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
-  const {officeCode, privilege, permission, accountType, employeeNumber} =
+  const { officeCode, privilege, permission, accountType, employeeNumber, caoReceiver } =
     useUserInfo();
 
-  const {autoReceive, revertReceived, isLoading} = useReceiving();
+  const { autoReceive, revertReceived, isLoading } = useReceiving();
 
   const bottomSheetRef = useRef(null);
 
@@ -73,6 +75,7 @@ const QRManual = () => {
     status,
     inputParams,
   ) => {
+
     try {
       const response = await autoReceive(
         year,
@@ -94,8 +97,7 @@ const QRManual = () => {
         setModalVisible(true);
         setModalType(true);
       } else if (response?.status === 'error') {
-        //console.warn('Receive failed:', response);
-        // Alert.alert('Error', 'The receive operation failed: ' + (response?.message || 'Unknown error'));
+        console.warn('Receive failed:', response);
         setModalMessage(response?.message || 'Unknown error');
         setModalType(false);
         setModalVisible(true);
@@ -118,6 +120,7 @@ const QRManual = () => {
       setModalVisible(true);
     }
   };
+
 
   const handleRevert = async (
     year,
@@ -156,36 +159,40 @@ const QRManual = () => {
     }
   };
 
-  const renderItem = ({item}) => {
+  // --------- Render Item QR Manual
+
+  const renderItem = ({ item }) => {
     const showReceivedButton = (() => {
-      if (item.TrackingType === 'PO') {
-        if (officeCode === '1071') {
-          if (privilege === '9' && item.Status === 'Supplier Conformed') {
-            return true;
-          }
-        }
+      const isPO = item.TrackingType === 'PO';
+      const isPY = item.TrackingType === 'PY';
+      const isPX = item.TrackingType === 'PX';
+
+      const validStatuses = [
+        'CBO Received',
+        'CBO Released',
+        'Voucher Received - Inspection',
+        'Voucher Received - Inventory',
+        'Pending Released - CAO'
+      ];
+
+      if (isPO && item.Status === 'Supplier Conformed') {
+        return true;
       }
-      if (item.TrackingType === 'PY') {
-        if (officeCode === '1071' && privilege === '9') {
-          if (
-            /* item.Status === 'Encoded' || */ item.Status ===
-            'Admin Operation Received'
-          ) {
-            if (item.OBRType === '1') {
-              return true;
-            }
-          }
-        }
+
+      if (
+        isPY &&
+        item.Status === 'Admin Operation Received' &&
+        item.OBRType === '1'
+      ) {
+        return true;
       }
-      if (item.TrackingType === 'PX') {
-        if (officeCode === '1031') {
-          if (
-            (privilege === '8' || privilege === '5') &&
-            item.Status === 'Check Preparation - CTO'
-          ) {
-            return true;
-          }
-        }
+
+      if (isPX && item.Status === 'Check Preparation - CTO') {
+        return true;
+      }
+
+      if (validStatuses.includes(item.Status)) {
+        return true;
       }
 
       return false;
@@ -254,7 +261,7 @@ const QRManual = () => {
 
         <View style={styles.textRow}>
           <Text style={styles.label}>Document Type:</Text>
-          <Text style={styles.value}>{item.DocumentType}</Text>
+          <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail' >{item.DocumentType}</Text>
         </View>
 
         <View style={styles.textRow}>
@@ -272,7 +279,7 @@ const QRManual = () => {
           <Text style={styles.value}>{item.OBRType}</Text>
         </View> */}
 
-        <View style={{flexDirection: 'column'}}>
+        <View style={{ flexDirection: 'column' }}>
           {showReceivedButton && (
             <>
               {item.Status === 'Supplier Conformed' && (
@@ -332,7 +339,7 @@ const QRManual = () => {
                   margin: 5,
                   borderRadius: 4,
                   shadowColor: '#000', // Shadow color for iOS
-                  shadowOffset: {width: 0, height: 2}, // Offset for iOS
+                  shadowOffset: { width: 0, height: 2 }, // Offset for iOS
                   shadowOpacity: 0.25, // Opacity for iOS shadow
                   shadowRadius: 3.84, // Blur radius for iOS
                   elevation: 5, // Shadow for Android
@@ -483,15 +490,12 @@ const QRManual = () => {
   }, []);
 
   const handleShowDetails = async (trackingNumber, year) => {
-
     const data = await fetchDataSearchReceiver(trackingNumber, year);
-
-    console.log("dataa", data);
 
     if (data.results.length > 0) {
       const resultTrackingNumber =
         trackingNumber.substring(4, 5) === '-' ||
-        trackingNumber.substring(0, 3) === 'PR-'
+          trackingNumber.substring(0, 3) === 'PR-'
           ? trackingNumber
           : data.results[0].TrackingNumber;
 
@@ -508,7 +512,7 @@ const QRManual = () => {
   };
 
   const format = useCameraFormat(cameraDevice, [
-    {videoResolution: {width: 1280, height: 720}},
+    { videoResolution: { width: 1280, height: 720 } },
   ]);
 
   const decryptScannedCode = scannedCode => {
@@ -574,6 +578,7 @@ const QRManual = () => {
 
         const data = await fetchQRData(year, trackingNumber);
 
+
         if (!data?.length) {
           // Handle invalid QR code
           setCameraIsActive(false); // Deactivate the camera
@@ -614,17 +619,17 @@ const QRManual = () => {
           alignItems: 'center',
           backgroundColor: '#fff',
           paddingBottom: 5,
-          shadowColor: '#000',
-          shadowOffset: {width: 0, height: 2},
-          shadowOpacity: 0.2,
-          shadowRadius: 3,
+          // shadowColor: '#000',
+          // shadowOffset: { width: 0, height: 2 },
+          // shadowOpacity: 0.2,
+          // shadowRadius: 3,
           zIndex: 1,
           width: '100%',
           //elevation: 3,
         }}>
         <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
+          style={({ pressed }) => [
+            pressed && { backgroundColor: 'rgba(0, 0, 0, 0.1)' },
             {
               flexDirection: 'row',
               alignItems: 'center',
@@ -674,7 +679,7 @@ const QRManual = () => {
             format={format}
             isActive={cameraIsActive}
             videoStabilization={true}
-            cameraOptions={{focusDepth: 0.5, exposureCompensation: 0.5}}
+            cameraOptions={{ focusDepth: 0.5, exposureCompensation: 0.5 }}
             onError={e => console.log(e)}
           />
         )}
@@ -770,62 +775,73 @@ const QRManual = () => {
           index={0}
           snapPoints={snapPoints}
           onChange={handleSheetChange}
-          style={{backgroundColor: 'transparent'}}>
+        >
+
           <View style={styles.bottomSheetContent}>
-            <View
-              style={{
-                flexDirection: 'row',
-                paddingHorizontal: 10,
-                paddingVertical: 10,
-                // borderBottomWidth: 1,
-                // borderBottomColor: '#ddd',
-              }}>
+            <ImageBackground style={{ flex: 1 }} source={require('../../../assets/images/docmobileBG.png')}>
               <View
                 style={{
-                  flex: 1, // Take available space
                   flexDirection: 'row',
-                  justifyContent: 'flex-end', // Align to the right
-                  alignItems: 'center',
+                  paddingHorizontal: 10,
+                  paddingVertical: 10,
+                  // borderBottomWidth: 1,
+                  // borderBottomColor: '#ddd',
                 }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    bottomSheetRef.current?.close(); // Close BottomSheet
-                    setCameraIsActive(true); // Activate the camera
-                  }}
+                <View
                   style={{
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    padding: 5,
-                    borderColor: 'gray',
+                    flex: 1, // Take available space
                     flexDirection: 'row',
-                    alignItems: 'center', // Ensure icon and text are aligned
+                    justifyContent: 'flex-end', // Align to the right
+                    alignItems: 'center',
                   }}>
-                  <Text
+                  <TouchableOpacity
+                    onPress={() => {
+                      bottomSheetRef.current?.close();
+                      setCameraIsActive(true);
+                    }}
                     style={{
-                      fontSize: 13,
-                      fontFamily: 'Inter_28pt-Bold',
-                      color: '#252525',
-                    }}>
-                    Scan
-                  </Text>
-                  <Icon
-                    name="return-up-back-outline"
-                    size={20}
-                    color={'#252525'}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
+                      padding: 5,
+                      borderColor: 'gray',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Icon
+                      name="backspace-outline"
+                      size={22}
+                      // color={'#252525'}
+                      color={'#fff'}
+                      style={{ marginRight: 2 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontFamily: 'Inter_28pt-Bold',
+                        // color: '#252525',
+                        color: '#fff',
+                      }}
+                    >
+                      Close
+                    </Text>
+                  </TouchableOpacity>
 
-            <View style={{flex: 1, paddingHorizontal: 10, paddingTop: 10}}>
-              <BottomSheetFlatList // Use regular FlatList here
-                data={qrData}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-                contentContainerStyle={styles.bottomSheetList}
-              />
-            </View>
+
+                </View>
+              </View>
+
+              <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 10 }}>
+                <BottomSheetFlatList // Use regular FlatList here
+                  data={qrData}
+                  renderItem={renderItem}
+                  keyExtractor={(item, index) => index.toString()}
+                  contentContainerStyle={styles.bottomSheetList}
+                />
+              </View>
+
+            </ImageBackground>
+
           </View>
+
         </BottomSheet>
       )}
     </View>
@@ -854,7 +870,7 @@ const styles = StyleSheet.create({
     elevation: 1,
     // iOS shadow
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
     zIndex: 1,
@@ -873,8 +889,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 10,
-    elevation: 1,
-    width: '100%',
+    elevation: 0,
+    justifyContent: 'center'
+    // width: '100%',
   },
   itemText: {
     width: '40%',
@@ -903,6 +920,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_28pt-Regular',
     textAlign: 'right',
     color: 'silver',
+
   },
   value: {
     fontSize: 14,
@@ -1005,8 +1023,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
-  animationContainer: {alignItems: 'center', marginTop: 10},
-  lottie: {width: 50, height: 50},
+  animationContainer: { alignItems: 'center', marginTop: 10 },
+  lottie: { width: 50, height: 50 },
   loadingContainer: {
     zIndex: 1,
     //flex: 1,
@@ -1022,7 +1040,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: 'white',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,

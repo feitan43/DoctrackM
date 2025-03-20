@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect, useCallback} from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -21,19 +21,19 @@ import {
   useFrameProcessor,
   useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useGetQRData from '../../api/useGetQRData';
-import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import useUserInfo from '../../api/useUserInfo';
-import {insertCommas} from '../../utils/insertComma';
+import { insertCommas } from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
-import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import LottieView from 'lottie-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const squareSize = 250;
 
 const QRAuto = () => {
@@ -44,17 +44,17 @@ const QRAuto = () => {
   const cameraRef = useRef(null);
   const [scannedCodes, setScannedCodes] = useState([]);
 
-  const {qrData, setQRData, qrLoading, qrError, fetchQRData} = useGetQRData();
-  const {fetchDataSearchReceiver, setSearchTNData, loading, searchTNData} =
+  const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+  const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
-  const {autoReceive, receivingData,isLoading} = useReceiving();
+  const { autoReceive, receivingData, isLoading } = useReceiving();
 
-  const {officeCode, privilege, accountType, employeeNumber} = useUserInfo();
+  const { officeCode, privilege, accountType, employeeNumber } = useUserInfo();
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['25%', '50%', '75%'];
+  const snapPoints = ['30%', '50%', '75%'];
 
   const [showCheck, setShowCheck] = useState(true);
 
@@ -96,10 +96,72 @@ const QRAuto = () => {
     }
   }; */
 
-  const renderItem = ({item}) => {
+  // --------- Use Memo Render Item ---------- //
+
+  // const renderItem = useMemo(() => ({ item }) => (
+  //   <View style={styles.itemContainer}>
+  //     <View style={{ flexDirection: 'row' }}>
+  //       {showCheck && receivingData && (
+  //         <>
+  //           {receivingData.status === 'success' && (
+  //             <Icon
+  //               name="checkmark-circle-outline"
+  //               size={60}
+  //               color="green"
+  //               style={{ alignSelf: 'center' }}
+  //             />
+  //           )}
+  //           {receivingData.status === 'error' && item.Status !== 'Admin Received' && (
+  //             <Icon
+  //               name="close-circle-outline"
+  //               size={60}
+  //               color="red"
+  //               style={{ alignSelf: 'center' }}
+  //             />
+  //           )}
+  //           {receivingData.status === 'error' && item.Status === 'Admin Received' && (
+  //             <Icon
+  //               name="checkmark-done-circle-outline"
+  //               size={60}
+  //               color="green"
+  //               style={{ alignSelf: 'center' }}
+  //             />
+  //           )}
+  //         </>
+  //       )}
+
+  //       <View>
+  //         {[
+  //           { label: 'Year:', value: item.Year },
+  //           { label: 'Tracking Number:', value: item.TrackingNumber },
+  //           { label: 'Status:', value: item.Status },
+  //         ].map(({ label, value }, index) => (
+  //           <View style={styles.textRow} key={index}>
+  //             <Text style={styles.label}>{label}</Text>
+  //             <Text style={styles.value}>{value}</Text>
+  //           </View>
+  //         ))}
+  //       </View>
+  //     </View>
+
+  //     <View style={{ flex: 1, alignItems: 'center', alignSelf: 'flex-end', paddingTop: 10 }}>
+  //       <TouchableOpacity
+  //         style={{ backgroundColor: 'transparent', borderRadius: 4, flexDirection: 'row', paddingTop: 10 }}
+  //         onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}
+  //       >
+  //         <Text style={{ color: '#007bff', textAlign: 'right', fontSize: 14 }}>
+  //           Show More
+  //         </Text>
+  //         <Icon name="chevron-forward" size={20} color={'blue'} />
+  //       </TouchableOpacity>
+  //     </View>
+  //   </View>
+  // ), [showCheck, receivingData]);
+
+  const renderItem = ({ item }) => {
     return (
       <View style={styles.itemContainer}>
-        <View style={{flexDirection: 'row'}}>
+        <View style={{ flexDirection: 'row' }}>
           {showCheck && receivingData && (
             <>
               {receivingData.status === 'success' && (
@@ -107,7 +169,7 @@ const QRAuto = () => {
                   name="checkmark-circle-outline"
                   size={60}
                   color="green"
-                  style={{alignSelf: 'center'}}
+                  style={{ alignSelf: 'center' }}
                 />
               )}
               {receivingData.status === 'error' &&
@@ -116,7 +178,7 @@ const QRAuto = () => {
                     name="close-circle-outline"
                     size={60}
                     color="red"
-                    style={{alignSelf: 'center'}}
+                    style={{ alignSelf: 'center' }}
                   />
                 )}
               {receivingData.status === 'error' &&
@@ -125,7 +187,7 @@ const QRAuto = () => {
                     name="checkmark-done-circle-outline"
                     size={60}
                     color="green"
-                    style={{alignSelf: 'center'}}
+                    style={{ alignSelf: 'center' }}
                   />
                 )}
             </>
@@ -181,7 +243,7 @@ const QRAuto = () => {
     );
   };
 
-  const handleSheetChange = useCallback(index => {}, []);
+  const handleSheetChange = useCallback(index => { }, []);
 
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
@@ -189,7 +251,7 @@ const QRAuto = () => {
     if (data.results.length > 0) {
       const resultTrackingNumber =
         trackingNumber.substring(4, 5) === '-' ||
-        trackingNumber.substring(0, 3) === 'PR-'
+          trackingNumber.substring(0, 3) === 'PR-'
           ? trackingNumber
           : data.results[0].TrackingNumber;
 
@@ -206,7 +268,7 @@ const QRAuto = () => {
   };
 
   const format = useCameraFormat(cameraDevice, [
-    {videoResolution: {width: 1280, height: 720}},
+    { videoResolution: { width: 1280, height: 720 } },
   ]);
 
   const decryptScannedCode = scannedCode => {
@@ -245,8 +307,11 @@ const QRAuto = () => {
 
       try {
         const result = decryptScannedCode(scannedCode);
+        // const [year, pr, ...trackingParts] = result.split('-');
+        // const trackingNumber = `${pr}-${trackingParts.join('-')}`;
         const [year, ...trackingParts] = result.split('-');
         const trackingNumber = trackingParts.join('-');
+
 
         const isValidYear =
           /^\d{4}$/.test(year) &&
@@ -264,22 +329,36 @@ const QRAuto = () => {
         const data = await fetchQRData(year, trackingNumber);
 
         if (!Array.isArray(data) || data.length === 0) {
-          /*   console.error(
-            'No data received or data is not in the expected format',
-          ); */
           ToastAndroid.show(
             'No data received or data is not in the expected format.',
             ToastAndroid.SHORT,
           );
-
           return;
         }
 
         const qrData = data[0];
-        //year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, employeeNumber
+        const status = qrData.Status || '';
+
+        const validStatuses = [
+          'CBO Received',
+          'CBO Released',
+          'Voucher Received - Inspection',
+          'Voucher Received - Inventory',
+          'Pending Released - CAO',
+          'For Inspection'
+        ];
+
+        if (!validStatuses.includes(status)) {
+          ToastAndroid.show(
+            `Document is not eligible for scanning. (${status})`,
+            ToastAndroid.SHORT
+          );
+          return;
+        }
+
+
         const trackingType = qrData.TrackingType || '';
         const documentType = qrData.DocumentType || '';
-        const status = qrData.Status || '';
 
         const data2 = await autoReceive(
           year,
@@ -299,15 +378,15 @@ const QRAuto = () => {
 
             const data = await fetchQRData(year, trackingNumber);
 
-            /*  if (
-              data &&
-              data.length > 0 &&
-              data[0].Status === 'Admin Received'
-            ) {
-              ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
-              return;
-            } */
-
+            //  if (
+            //   data &&
+            //   data.length > 0 &&
+            //   data[0].Status === 'Admin Received'
+            // ) {
+            //   ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
+            //   return;
+            // }
+            // console.log('Data: ' ,data)
             /*   console.log(data.Status);
         
             if (data3.Status === 'Admin Received') {
@@ -366,12 +445,12 @@ const QRAuto = () => {
           <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Auto Receiving</Text>
-        <View style={{paddingHorizontal: 10, marginVertical: 10}}></View>
+        <View style={{ paddingHorizontal: 10, marginVertical: 10 }}></View>
       </View>
 
       <View style={styles.cameraPreview}>
-        <View style={{zIndex: 1, top: -300}}>
-          <Text style={{color: 'gray', fontWeight: 'bold', fontSize: 20}}>
+        <View style={{ zIndex: 1, top: -300 }}>
+          <Text style={{ color: 'gray', fontWeight: 'bold', fontSize: 20 }}>
             Scan QR
           </Text>
         </View>
@@ -391,7 +470,7 @@ const QRAuto = () => {
             format={format}
             isActive={true}
             videoStabilization={true}
-            cameraOptions={{focusDepth: 0.5, exposureCompensation: 0.5}}
+            cameraOptions={{ focusDepth: 0.5, exposureCompensation: 0.5 }}
             onError={e => console.log(e)}
           />
         )}
@@ -419,7 +498,7 @@ const QRAuto = () => {
           index={0}
           snapPoints={snapPoints}
           onChange={handleSheetChange}
-          style={{backgroundColor: 'transparent'}}>
+          style={{ backgroundColor: 'transparent' }}>
           <View style={styles.bottomSheetContent}>
             {/*  <Text style={styles.bottomSheetTitle}>Scanned Codes</Text> */}
             {/*     <View style={{paddingVertical: 10, paddingStart: 20}}>
@@ -432,7 +511,7 @@ const QRAuto = () => {
                   Received
                 </Text>
               </View> */}
-            <View style={{flex: 1, paddingHorizontal: 10, paddingTop: 10}}>
+            <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 10 }}>
               <BottomSheetFlatList // Use regular FlatList here
                 data={qrData}
                 renderItem={renderItem}
@@ -469,7 +548,7 @@ const styles = StyleSheet.create({
     elevation: 1,
     // iOS shadow
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
     zIndex: 1,
@@ -621,8 +700,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
-  animationContainer: {alignItems: 'center', marginTop: 10},
-  lottie: {width: 50, height: 50},
+  animationContainer: { alignItems: 'center', marginTop: 10 },
+  lottie: { width: 50, height: 50 },
   loadingContainer: {
     zIndex: 1,
     //flex: 1,
@@ -637,7 +716,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: 'white',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
