@@ -43,10 +43,10 @@ export const InspectionList = ({item, index, onPressItem}) => {
             </View>
 
             
-            <View style={styles.textRow}>
+            {/* <View style={styles.textRow}>
               <Text style={styles.label}>Date</Text>
               <Text style={styles.value}>{item.DeliveryDate}</Text>
-            </View>
+            </View> */}
 
             <View style={styles.textRow}>
               <Text style={styles.label}>Delivery</Text>

@@ -1,4 +1,11 @@
-import React, {useState, memo, useRef, useEffect} from 'react';
+import React, {
+  useState,
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from 'react';
 import {
   View,
   Text,
@@ -19,13 +26,17 @@ import {
   PermissionsAndroid,
   SafeAreaView,
   ImageBackground,
+  Keyboard,
+  TouchableOpacity,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {CheckBox} from '@rneui/themed';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+//import {TouchableOpacity} from 'react-native-gesture-handler';
 import useInspection from '../api/useInspection';
 import BottomSheet from '@gorhom/bottom-sheet';
+import {BottomSheetScrollView} from '@gorhom/bottom-sheet';
+
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import useFileUpload from '../api/useFileUpload';
 import {request, PERMISSIONS} from 'react-native-permissions';
@@ -34,12 +45,27 @@ import {insertCommas} from '../utils/insertComma';
 import {Shimmer} from '../utils/useShimmer';
 import {useQueryClient} from '@tanstack/react-query';
 import DatePicker from 'react-native-date-picker';
-import {useAddSchedule} from '../hooks/useInspection';
+import {
+  useAddSchedule,
+  useInspectionDetails,
+  useInspectionItems,
+  useInspectItems,
+  useInspectorImages,
+  useUploadInspector,
+  useRemoveInspectorImage,
+} from '../hooks/useInspection';
+import {BlurView} from '@react-native-community/blur';
+import moment from 'moment';
+import {scale, verticalScale, moderateScale} from 'react-native-size-matters';
+import {showMessage} from 'react-native-flash-message';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 export const RenderInspection = memo(
   ({
     item,
     inspectorImages,
+    inspectorImagesLoading,
+    inspectorImagesError,
     selectedYear,
     dataItems,
     checkedItems,
@@ -47,10 +73,10 @@ export const RenderInspection = memo(
     setShowUploading,
     removing,
     setRemoving,
-    removeThisUpload,
+    removeInspectorImage,
     fetchInspectorImage,
     setImagePath,
-    routeItem,
+    queryClient,
   }) => {
     const handleCheck = index => {
       const updatedCheckedItems = [...checkedItems];
@@ -66,31 +92,58 @@ export const RenderInspection = memo(
       setIsEditMode(!isEditMode);
     };
 
-    const removeImage = async uri => {
-      try {
-        setRemoving(true);
+    const removeImage = uri => {
+      removeInspectorImage(uri, {
+        onSuccess: async results => {
+          const year = dataItems?.vouchers?.[0]?.Year;
+          const pxTN = dataItems?.vouchers?.[0]?.TrackingNumber;
+          console.log('Remove successful:', results);
 
-        const results = await removeThisUpload(uri);
+          if (results.success) {
+            showMessage({
+              message: 'Image removed successfully!',
+              type: 'success',
+              icon: 'success',
+              floating: true,
+              duration: 3000,
+            });
 
-        if (results.success) {
-          await FastImage.clearMemoryCache();
-          await FastImage.clearDiskCache();
+            setImagePath(prev => prev.filter(item => item.uri !== uri));
 
-          fetchInspectorImage();
-          setImagePath([]);
-          fetchData();
-        } else {
-          console.log(
-            'Image removal failed:',
-            results.message || 'Unknown error',
-          );
-        }
-      } catch (error) {
-        console.error('Error during image removal:', error.message || error);
-      } finally {
-        setRemoving(false);
-      }
+            await FastImage.clearMemoryCache();
+            await FastImage.clearDiskCache();
+
+            queryClient.setQueryData(
+              ['inspectorImages', year, pxTN],
+              oldData => {
+                return oldData?.filter(item => item.uri !== uri) || [];
+              },
+            );
+
+            setTimeout(() => {
+              fetchData();
+              queryClient.invalidateQueries(['inspectorImages', year, pxTN]);
+            }, 300);
+          } else {
+            console.log(
+              'Image removal failed:',
+              results.message || 'Unknown error',
+            );
+          }
+        },
+        onError: error => {
+          console.error('Remove failed:', error.message || error);
+          showMessage({
+            message: 'Image removal failed!',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
+        },
+      });
     };
+
     const handleUploadBottomSheet = () => {
       setShowUploading(prev => !prev);
     };
@@ -155,7 +208,7 @@ export const RenderInspection = memo(
           <TouchableOpacity
             style={{
               position: 'absolute',
-              top: -140,
+              top: 10,
               right: 10,
               backgroundColor: 'red',
               borderRadius: 15,
@@ -401,8 +454,8 @@ export const RenderInspection = memo(
                       <Text style={styles.indexLabel}>12</Text>
                       <Text style={styles.label}> Date</Text>
                       <View>
-                        {routeItem.DeliveryDatesHistory
-                          ? routeItem.DeliveryDatesHistory.split(', ').map(
+                        {deliveryItem.DeliveryDatesHistory
+                          ? deliveryItem.DeliveryDatesHistory.split(', ').map(
                               (date, index, arr) => (
                                 <View
                                   key={index}
@@ -423,11 +476,11 @@ export const RenderInspection = memo(
                                   </Text>
                                   <Text
                                     style={{
-                                      marginStart: 10,
-                                      fontSize: 14,
-                                      width: '55%',
+                                      width: '60%',
+                                      fontSize: moderateScale(12),
                                       fontFamily: 'Inter_28pt-SemiBold',
-                                      color: 'black',
+                                      color: '#2C3E50',
+                                      marginStart: scale(10),
                                     }}>
                                     {date}
                                   </Text>
@@ -486,11 +539,16 @@ export const RenderInspection = memo(
                   <View
                     style={{
                       flex: 1,
-                      backgroundColor: checkedItems[index]
+                      /* backgroundColor: checkedItems[index]
                         ? '#C5E6FE'
-                        : 'rgba(0,0,0,0.02)', // Change color if checked
+                        : 'rgba(0,0,0,0.02)', // Change color if checked */
+                      borderWidth: checkedItems[index] ? 3 : 1,
+                      borderColor: checkedItems[index]
+                        ? 'rgb(23, 162, 255)'
+                        : '#ffffff',
                       //marginTop: 10,
                       paddingVertical: 10,
+                      borderRadius: 3,
                     }}>
                     <View
                       style={{
@@ -705,6 +763,7 @@ export const RenderInspection = memo(
               onPress={handleUploadBottomSheet}>
               <Text style={{fontSize: 40, color: '#ccc'}}>+</Text>
             </TouchableOpacity>
+
             {inspectorImages &&
               inspectorImages.length > 0 &&
               inspectorImages.map((uri, index) =>
@@ -741,6 +800,7 @@ export const RenderInspection = memo(
 );
 
 export const Footer = ({
+  item,
   inspectItems,
   data,
   checkedItems,
@@ -758,6 +818,8 @@ export const Footer = ({
   queryClient,
   setInvoiceBottomSheetVisible,
   setAddScheduleBottomSheetVisible,
+  setRemarksBottomSheetVisible,
+  isInspecting,
 }) => {
   const selectedItems = checkedItems.filter(item => item).length;
   const totalItems = Array.isArray(dataItems.poRecord)
@@ -766,91 +828,190 @@ export const Footer = ({
 
   const handleInspectItems = async () => {
     if (!Array.isArray(checkedItems) || checkedItems.length === 0) {
-      setMessage('No items found to inspect.');
-      setErrorModalVisible(true);
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'No items found to inspect.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
       return;
     }
 
     const totalItems = Array.isArray(dataItems?.poRecord)
       ? dataItems.poRecord.length
       : 0;
-    const selectedItems = checkedItems.filter(item => item).length;
+    const selectedItems = checkedItems.filter(Boolean).length;
+    const trackingNumber = dataItems.vouchers[0]?.TrackingNumber;
 
     if (selectedItems !== totalItems) {
-      setMessage('Please check all items before tagging Inspected.');
-      setErrorModalVisible(true);
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'Please check all items before tagging Inspected.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
       return;
     }
 
-    // Check if voucherStatus is "Inspection on Hold"
     if (voucherStatus.toLowerCase() === 'inspection on hold') {
       setInvoiceBottomSheetVisible(true);
       closeBottomSheet();
       return;
     }
 
-    let inspectionStatus = 'Inspected';
-    if (voucherStatus === 'Pending Released - CAO') {
-      inspectionStatus = 'Pending Released - CAO';
+    if (voucherStatus.toLowerCase() !== 'for inspection') {
+      showMessage({
+        message: 'Inspection Failed',
+        description: `Status should be 'For Inspection'. Current status: '${voucherStatus}'`,
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
     }
 
-    setLoading(true);
+    let inspectionStatus = 'Inspected';
+    const deliveryId = item?.Id;
 
     try {
-      const result = await inspectItems(
-        selectedYear,
-        data?.TrackingNumber || '',
+      const result = await inspectItems({
+        year: selectedYear,
+        deliveryId,
+        trackingNumber: trackingNumber,
         inspectionStatus,
-        remarks,
-      );
+      });
 
-      setLoading(false);
+      console.log('Inspection Response:', result);
 
-      if (result.success) {
-        setMessage(result.message);
-        setSuccessModalVisible(true);
-
-        queryClient.invalidateQueries({queryKey: ['inspection']});
+      if (result.status === 'success') {
+        showMessage({
+          message: 'Inspection Successful',
+          description: result.message,
+          type: 'success',
+          icon: 'success',
+          backgroundColor: '#2E7D32',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
 
         refreshData();
         closeBottomSheet();
-
         setCheckedItems(Array(totalItems).fill(false));
       } else {
-        setMessage(`${result.message}`);
-        setErrorModalVisible(true);
+        showMessage({
+          message: 'Inspection Failed',
+          description: result.message || 'Something went wrong.',
+          type: 'danger',
+          icon: 'danger',
+          backgroundColor: '#D32F2F',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
       }
     } catch (error) {
-      setLoading(false);
-      console.error('Inspection Error:', error);
-      setMessage('An error occurred while inspecting items.');
-      setErrorModalVisible(true);
+      console.error('Inspection Error:', error.message || error);
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'An error occurred while inspecting items.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
     }
   };
 
-  const [remarksModalVisible, setRemarksModalVisible] = useState(false);
-  const [remarks, setRemarks] = useState('');
-
-  /* const handleOnHold = async () => {
-    const inspectionStatus = 'OnHold';
-    setModalVisible(true);
-    setLoading(true);
-
-    const result = await inspectItems(
-      selectedYear,
-      data.TrackingNumber,
-      inspectionStatus,
-    );
-    setModalVisible(false);
-
-    if (result.success) {
-      setMessage('Inspection on hold Successfully!');
-      setSuccessModalVisible(true);
-      fetchInspectionItems(selectedYear, search);
-    } else {
-      console.error('Error:', result.error);
+  const handleRevert = async () => {
+    const selectedItems = checkedItems.filter(Boolean).length;
+    const trackingNumber = dataItems.vouchers[0]?.TrackingNumber;
+    if (selectedItems !== totalItems) {
+      showMessage({
+        message: 'Revert Failed',
+        description: 'Please check all items before reverting.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
     }
-  }; */
+
+    const inspectionStatus = 'Revert';
+    const deliveryId = item?.Id;
+
+    try {
+      const result = await inspectItems({
+        year: selectedYear,
+        deliveryId,
+        trackingNumber: trackingNumber,
+        inspectionStatus,
+      });
+
+      console.log('Revert Response:', result);
+
+      if (result.status === 'success') {
+        showMessage({
+          message: 'Revert Successful',
+          description: result.message,
+          type: 'success',
+          icon: 'success',
+          backgroundColor: '#2E7D32',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+
+        queryClient.invalidateQueries({queryKey: ['inspection']});
+        refreshData();
+        closeBottomSheet();
+      } else {
+        showMessage({
+          message: 'Revert Failed',
+          description: result.message || 'Something went wrong.',
+          type: 'danger',
+          icon: 'danger',
+          backgroundColor: '#D32F2F',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Revert Error:', error.message || error);
+      showMessage({
+        message: 'Revert Failed',
+        description: 'An error occurred while reverting items.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleAddSchedule = () => {
+    setAddScheduleBottomSheetVisible(true);
+    closeBottomSheet();
+  };
 
   const handleOnHold = () => {
     if (!checkedItems.every(item => item)) {
@@ -859,84 +1020,7 @@ export const Footer = ({
       return;
     }
 
-    setRemarksModalVisible(true);
-  };
-
-  const submitRemarks = async () => {
-    if (!remarks) {
-      Platform.OS === 'android'
-        ? ToastAndroid.show('Please fill in the remarks.', ToastAndroid.SHORT)
-        : Alert.alert('Validation', 'Please fill in the remarks.');
-      return;
-    }
-
-    const inspectionStatus = 'OnHold';
-    setLoading(true);
-
-    try {
-      const result = await inspectItems(
-        selectedYear,
-        data?.TrackingNumber || '',
-        inspectionStatus,
-        remarks,
-      );
-
-      if (result.success) {
-        setMessage(result.message);
-        setSuccessModalVisible(true);
-
-        queryClient.invalidateQueries({queryKey: ['inspection']});
-
-        refreshData();
-        closeBottomSheet();
-        setRemarksModalVisible(false);
-      } else {
-        setMessage(`Error: ${result.message}`);
-        setErrorModalVisible(true);
-        refreshData();
-        setRemarksModalVisible(false);
-      }
-    } catch (error) {
-      console.error('Error submitting remarks:', error);
-      setMessage('An error occurred while submitting remarks.');
-      setErrorModalVisible(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRevert = async () => {
-    const selectedItems = checkedItems.filter(item => item).length;
-
-    if (selectedItems !== totalItems) {
-      setMessage('Please check all items before Reverting.');
-      setErrorModalVisible(true);
-      return;
-    }
-    const inspectionStatus = 'Revert';
-    setLoading(true);
-
-    const result = await inspectItems(
-      selectedYear,
-      data.TrackingNumber,
-      inspectionStatus,
-    );
-    setLoading(false);
-
-    if (result.success) {
-      setMessage(result.message);
-      setSuccessModalVisible(true);
-      queryClient.invalidateQueries({queryKey: ['inspection']});
-      refreshData();
-      closeBottomSheet();
-    } else {
-      setMessage(`Error: ${result.message}`);
-      setErrorModalVisible(true);
-    }
-  };
-
-  const handleAddSchedule = () => {
-    setAddScheduleBottomSheetVisible(true);
+    setRemarksBottomSheetVisible(true);
     closeBottomSheet();
   };
 
@@ -949,10 +1033,16 @@ export const Footer = ({
     <View style={styles.footerContainer}>
       <View style={styles.footerContent}>
         <Text style={{paddingRight: 5}}>Selected Items:</Text>
-        <Text style={{fontWeight: 'bold', color: '#224E83', paddingRight: 5}}>
+        <Text
+          style={{
+            fontWeight: 'bold',
+            color: '#224E83',
+            paddingRight: 5,
+            fontSize: 16,
+          }}>
           {selectedItems}
         </Text>
-        <Text>out of {totalItems}</Text>
+        <Text>/{totalItems}</Text>
       </View>
       <View style={styles.footerButtons}>
         {voucherStatus === 'For Inspection' && (
@@ -960,12 +1050,25 @@ export const Footer = ({
             <TouchableOpacity
               onPress={handleOnHold}
               style={styles.onHoldButton}>
+              <Icon
+                name="hand-left-outline"
+                size={20}
+                color="white"
+                style={{marginRight: 5}}
+              />
               <Text style={styles.onHoldButtonText}>On Hold</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleInspectItems}
+              disabled={isInspecting}
               style={styles.inspectedButton}>
+              <Icon
+                name="checkmark-done-outline" // Icon for Inspected
+                size={20}
+                color="white"
+                style={{marginRight: 5}}
+              />
               <Text style={styles.inspectedButtonText}>Inspected</Text>
             </TouchableOpacity>
           </>
@@ -979,14 +1082,15 @@ export const Footer = ({
               padding: 10,
               borderRadius: 5,
               marginLeft: 10,
-            }}>
+            }}
+            disabled={isInspecting}>
             <Text
               style={{
                 color: '#FFFFFF',
                 fontWeight: 'bold',
                 textAlign: 'center',
               }}>
-              Revert
+              {isInspecting ? 'Reverting...' : 'Revert'}
             </Text>
           </TouchableOpacity>
         )}
@@ -995,11 +1099,18 @@ export const Footer = ({
           <>
             <TouchableOpacity
               onPress={handleInspectItems}
+              disabled={isInspecting}
               style={styles.inspectedButton}>
+              <Icon
+                name="checkmark-done-outline" // Icon for Inspected
+                size={20}
+                color="white"
+                style={{marginRight: 5}}
+              />
               <Text style={styles.inspectedButtonText}>Inspected</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={handleRevert}
               style={{
                 backgroundColor: '#ECAD0D',
@@ -1016,103 +1127,200 @@ export const Footer = ({
                 Revert
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
+ */}
+            <Pressable
               onPress={handleAddSchedule}
-              style={{
-                backgroundColor: '#007BFF',
+              style={({pressed}) => ({
+                backgroundColor: pressed ? '#E0E0E0' : '#F5F5F5', // Darken on press
                 padding: 10,
                 borderRadius: 5,
                 marginLeft: 10,
-              }}>
+                flexDirection: 'row',
+                elevation: 2,
+                alignItems: 'center',
+                transition: 'background-color 0.2s ease-in-out', // Smooth color transition
+              })}>
+              <Icon
+                name="add-circle-outline"
+                size={20}
+                color="black"
+                style={{marginRight: 5}}
+              />
               <Text
                 style={{
-                  color: '#FFFFFF',
+                  color: '#252525',
                   fontWeight: 'bold',
                   textAlign: 'center',
                 }}>
                 Add Schedule
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </>
         )}
       </View>
+    </View>
+  );
+};
 
-      {/* Remarks Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={remarksModalVisible}
-        onRequestClose={() => {
-          setModalVisible(!remarksModalVisible);
+const RemarksBottomSheet = ({
+  visible,
+  onClose,
+  remarks,
+  setRemarks,
+  selectedRemark,
+  setSelectedRemark,
+  submitRemarks,
+}) => {
+  const remarkOptions = [
+    'Incomplete Delivery',
+    'Incorrect Quantity',
+    'Wrong Items Delivered',
+    'Other',
+  ];
+
+  const handleRemarkSelect = remark => {
+    setSelectedRemark(remark);
+    setRemarks(remark !== 'Other' ? remark : '');
+  };
+
+  const handleClose = () => {
+    setSelectedRemark('');
+    setRemarks('');
+    onClose();
+  };
+
+  if (!visible) return null;
+
+  return (
+    <BottomSheet
+      index={0}
+      snapPoints={['60%']}
+      enablePanDownToClose={true}
+      onChange={index => {
+        if (index === -1) {
+          onClose();
+        }
+      }}
+      backdropComponent={({style}) => (
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={[style, {backgroundColor: 'rgba(0,0,0,0.5)'}]} />
+        </TouchableWithoutFeedback>
+      )}>
+      <View
+        style={{
+          flex: 1,
+          padding: 16,
+          backgroundColor: '#f8f9fa',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
         }}>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '600',
+            marginBottom: 12,
+            color: '#333',
+          }}>
+          Select a remark for On Hold:
+        </Text>
+
         <View
           style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            paddingVertical: 5,
+            gap: 10,
           }}>
-          <View
-            style={{
-              width: '80%',
-              padding: 20,
-              backgroundColor: 'white',
-              borderRadius: 10,
-              elevation: 5,
-            }}>
-            <Text>Please enter remarks:</Text>
-            <TextInput
+          {remarkOptions.map((item, index) => (
+            <TouchableOpacity
+              key={item + index}
               style={{
-                borderWidth: 1,
-                borderColor: 'gray',
-                padding: 10,
-                marginBottom: 20,
-                borderRadius: 5,
-                height: 150,
-                width: '100%',
+                paddingVertical: 10,
+                backgroundColor:
+                  selectedRemark === item ? '#007AFF' : '#E5E7EB',
+                borderRadius: 10,
+                alignItems: 'center',
               }}
-              placeholder="Enter your remarks"
-              value={remarks}
-              onChangeText={setRemarks}
-            />
-            <View
-              style={{
-                rowGap: 5,
-                flexDirection: 'column',
-                justifyContent: 'center',
-              }}>
-              <Button
-                title="Submit"
-                onPress={submitRemarks}
-                style={{flex: 1}}
-              />
-
-              <Button
-                title="Cancel"
-                onPress={() => setRemarksModalVisible(false)}
-                color="gray"
-                style={{flex: 1}}
-              />
-            </View>
-          </View>
+              onPress={() => handleRemarkSelect(item)}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '500',
+                  paddingHorizontal: 10,
+                  color: selectedRemark === item ? 'white' : '#333',
+                }}>
+                {item}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </Modal>
-    </View>
+
+        {selectedRemark === 'Other' && (
+          <TextInput
+            style={{
+              backgroundColor: '#fff',
+              padding: 12,
+              borderRadius: 10,
+              height: '30%',
+              width: '100%',
+              textAlignVertical: 'top',
+              fontSize: 14,
+              color: '#333',
+              marginTop: 10,
+              marginBottom: 10,
+              elevation: 2,
+            }}
+            placeholder="Enter your remarks"
+            placeholderTextColor="#A0A0A0"
+            value={remarks}
+            onChangeText={setRemarks}
+            multiline
+          />
+        )}
+
+        <View style={{flex: 1}} />
+
+        <View style={{flexDirection: 'column', justifyContent: 'flex-end'}}>
+          <TouchableOpacity
+            onPress={submitRemarks}
+            style={{
+              backgroundColor: '#007AFF',
+              borderRadius: 10,
+              alignItems: 'center',
+              paddingVertical: 12,
+              marginBottom: 5,
+            }}>
+            <Text style={{color: 'white', fontWeight: '600', fontSize: 14}}>
+              Submit
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              backgroundColor: '#E5E7EB',
+              borderRadius: 10,
+              alignItems: 'center',
+              paddingVertical: 12,
+            }}>
+            <Text style={{color: '#333', fontWeight: '600', fontSize: 14}}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </BottomSheet>
   );
 };
 
 const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
   const [invoice, setInvoice] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(null);
   const [openDate, setOpenDate] = useState(false);
-  const [openTime, setOpenTime] = useState(false);
 
   const handleClose = () => {
     setInvoice('');
     setSelectedDate(null);
-    setSelectedTime(null);
     onClose();
     setCheckedItems([]);
   };
@@ -1139,30 +1347,6 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
           </View>
         </View>
 
-        {/* <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            //backgroundColor: '#f8f8f8',
-            backgroundColor: '#e0f2ff', // Light blue background
-            padding: 10,
-            borderRadius: 5,
-            marginTop: 10,
-            borderWidth: 1,
-            borderColor: 'rgb(181, 213, 255)',
-            marginBottom: 10,
-          }}>
-          <Icon
-            name="information-circle-outline"
-            size={20}
-            color="gray"
-            style={{marginRight: 5}}
-          />
-          <Text style={{color: 'gray', fontSize: 12}}>
-            You can skip if no invoice available yet.
-          </Text>
-        </View> */}
-
         <View style={{gap: -10}}>
           <Text style={{color: 'rgb(102, 102, 102)', marginBottom: 10}}>
             Invoice Number
@@ -1184,83 +1368,54 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
           />
         </View>
 
-        <View style={{flexDirection: 'row', marginTop: 10}}>
-          <View style={{flex: 1, marginRight: 10}}>
-            <Text style={{color: 'rgb(102, 102, 102)'}}>Invoice Date</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginTop: 10,
-                borderRadius: 5,
-                alignItems: 'center',
-              }}
-              onPress={() => setOpenDate(true)}>
-              <Text style={{color: selectedDate ? 'black' : '#ccc'}}>
-                {selectedDate
-                  ? selectedDate.toISOString().split('T')[0]
-                  : 'YYYY-MM-DD'}
-              </Text>
-            </TouchableOpacity>
-            <DatePicker
-              modal
-              open={openDate}
-              date={selectedDate || new Date()}
-              mode="date"
-              onConfirm={date => {
-                setOpenDate(false);
-                setSelectedDate(date);
-              }}
-              onCancel={() => setOpenDate(false)}
-            />
-          </View>
-
-          <View style={{flex: 1}}>
-            <Text style={{color: 'rgb(102, 102, 102)'}}>Invoice Time</Text>
-            <TouchableOpacity
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 10,
-                marginTop: 10,
-                borderRadius: 5,
-                alignItems: 'center',
-              }}
-              onPress={() => setOpenTime(true)}>
-              <Text style={{color: selectedTime ? 'black' : '#ccc'}}>
-                {selectedTime
-                  ? selectedTime.toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true,
-                    })
-                  : 'HH:MM AM/PM'}
-              </Text>
-            </TouchableOpacity>
-            <DatePicker
-              modal
-              open={openTime}
-              date={selectedTime || new Date()}
-              mode="time"
-              onConfirm={time => {
-                setOpenTime(false);
-                setSelectedTime(time);
-              }}
-              onCancel={() => setOpenTime(false)}
-            />
-          </View>
+        <View style={{marginTop: 10}}>
+          <Text style={{color: 'rgb(102, 102, 102)'}}>Invoice Date</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#ccc',
+              padding: 10,
+              marginTop: 10,
+              borderRadius: 5,
+              alignItems: 'center',
+            }}
+            onPress={() => setOpenDate(true)}>
+            <Text style={{color: selectedDate ? 'black' : '#ccc'}}>
+              {selectedDate
+                ? selectedDate.toISOString().split('T')[0]
+                : 'YYYY-MM-DD'}
+            </Text>
+          </TouchableOpacity>
+          <DatePicker
+            modal
+            open={openDate}
+            date={selectedDate || new Date()}
+            mode="date"
+            onConfirm={date => {
+              setOpenDate(false);
+              setSelectedDate(date);
+            }}
+            onCancel={() => setOpenDate(false)}
+          />
         </View>
 
         <Pressable
           style={({pressed}) => ({
-            backgroundColor: pressed ? '#005ecb' : '#007aff', // Darker when pressed
+            backgroundColor: pressed ? '#005ecb' : '#007aff',
             padding: 12,
             borderRadius: 5,
             alignItems: 'center',
             marginTop: 10,
+            opacity: invoice && selectedDate ? 1 : 0.5,
           })}
-          onPress={() => onSubmit(invoice, selectedDate, selectedTime)}>
+          onPress={() => {
+            if (!invoice || !selectedDate) {
+              Alert.alert('Error', 'Please enter Invoice Number and Date');
+              return;
+            }
+            onSubmit(invoice, selectedDate);
+          }}
+          disabled={!invoice || !selectedDate}>
           <Text style={{color: 'white', fontSize: 16, fontWeight: 'bold'}}>
             Submit
           </Text>
@@ -1270,8 +1425,7 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
   );
 };
 
-const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
-  console.log(isAdding)
+const AddSchedule = ({item, visible, onClose, onSubmit, isAdding}) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [openDate, setOpenDate] = useState(false);
@@ -1334,9 +1488,14 @@ const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
             <Icon name="close" size={24} color="#000" />
           </TouchableOpacity>
         </View>
+        <Text style={{fontSize: 10}}>
+          last delivery{'  '}
+          <Text style={{fontSize: 12, paddingStart: 10}}>
+            {item.DeliveryDate}
+          </Text>
+        </Text>
 
         <View style={{flexDirection: 'row', marginTop: 15}}>
-          {/* Date Picker */}
           <View style={{flex: 1, marginRight: 10}}>
             <Text style={{color: 'rgb(102, 102, 102)', marginBottom: 5}}>
               Date
@@ -1420,7 +1579,6 @@ const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
             />
           </View>
         </View>
-
         <Pressable
           style={({pressed}) => ({
             backgroundColor: pressed || isAdding ? '#005ecb' : '#007aff',
@@ -1432,7 +1590,7 @@ const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
             justifyContent: 'center',
           })}
           onPress={() => {
-            if (isAdding) return; // Prevent multiple submissions
+            if (isAdding) return;
 
             let hasError = false;
             if (!selectedDate) {
@@ -1443,13 +1601,46 @@ const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
               setTimeError(true);
               hasError = true;
             }
+            if (!item.Id) {
+              Alert.alert('Error', 'Delivery ID is required');
+              hasError = true;
+            }
+
             if (!hasError) {
               const formattedDateTime = formatDateTime();
-              onSubmit(formattedDateTime);
+
+              const selectedDateTime = new Date(selectedDate);
+              selectedDateTime.setHours(
+                selectedTime.getHours(),
+                selectedTime.getMinutes(),
+              );
+
+              const deliveryDateTime = moment(
+                item.DeliveryDate,
+                'YYYY-MM-DD hh:mm A',
+              ).toDate();
+
+              if (isNaN(deliveryDateTime)) {
+                console.error(
+                  'Invalid Date Conversion for item.DeliveryDate:',
+                  item.DeliveryDate,
+                );
+                Alert.alert('Error', 'Invalid delivery date format');
+                return;
+              }
+
+              if (selectedDateTime < deliveryDateTime) {
+                Alert.alert(
+                  'Invalid Date',
+                  'Scheduled date and time must not be before the delivery date.',
+                );
+                return;
+              }
+
+              onSubmit({date: formattedDateTime, deliveryId: item.Id});
             }
           }}
-          disabled={isAdding} // Disable button while loading
-        >
+          disabled={isAdding}>
           {isAdding ? (
             <>
               <ActivityIndicator
@@ -1474,7 +1665,6 @@ const AddSchedule = ({visible, onClose, onSubmit, isAdding}) => {
 
 const InspectionDetails = ({route, navigation}) => {
   const {item} = route.params;
-  const {mutate: addSchedule, isLoading: isAdding} = useAddSchedule();
 
   const [search, setSearch] = useState('');
   const [selectedYear, setSelectedYear] = useState(item.Year);
@@ -1492,40 +1682,65 @@ const InspectionDetails = ({route, navigation}) => {
 
   const [imagePath, setImagePath] = useState([]);
 
-  const {inspectorImages, fetchInspectorImage} = useGetImage(
+  /* const {inspectorImages, fetchInspectorImage} = useGetImage(
     selectedYear,
     item.TrackingNumber,
-  );
+  ); */
+
   const {
-    data,
-    dataItems,
-    loading,
-    setLoading,
-    error,
-    inspectError,
-    fetchInspectionDetails,
-    fetchInspectionItems,
-    inspectItems,
-  } = useInspection();
+    data: inspectorImages,
+    isLoading: inspectorImagesLoading,
+    error: inspectorImagesError,
+  } = useInspectorImages(selectedYear, item.TrackingNumber);
+  const {
+    data: data,
+    isLoading: DetailsLoading,
+    error: DetailsError,
+  } = useInspectionDetails(selectedYear, item.TrackingPartner);
+  const {
+    data: dataItems,
+    isLoading: ItemsLoading,
+    error: ItemsError,
+  } = useInspectionItems(selectedYear, item.TrackingPartner);
+  const {mutate: addSchedule, isPending: isAdding} = useAddSchedule();
+  const {mutateAsync: inspectItems, isPending: isInspecting} =
+    useInspectItems();
 
   const queryClient = useQueryClient();
 
-  const {uploadInspector, uploading, removing, setRemoving, removeThisUpload} =
-    useFileUpload();
+  /* const {uploadInspector, uploading, removing, setRemoving, removeThisUpload} =
+    useFileUpload(); */
+
+  const {
+    mutate: uploadInspector,
+    isPending: uploading,
+    isLoading,
+  } = useUploadInspector();
+  const {
+    mutate: removeInspectorImage,
+    isPending: removing,
+    isLoading: removingImage,
+  } = useRemoveInspectorImage();
 
   const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] =
     useState(false);
   const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] =
     useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [remarksBottomSheetVisible, setRemarksBottomSheetVisible] =
+    useState(false);
+  const [selectedRemark, setSelectedRemark] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchInspectionDetails(selectedYear, item.TrackingPartner);
-    fetchInspectionItems(selectedYear, item.TrackingPartner);
-  }, []);
-
-  const refreshData = () => {
-    fetchInspectionItems(selectedYear, item.TrackingPartner);
+  const refreshData = async () => {
+    await queryClient.invalidateQueries({
+      predicate: query =>
+        query.queryKey[0] === 'inspectionDetails' ||
+        (query.queryKey[0] === 'inspectionItems' &&
+          query.queryKey[1] === selectedYear &&
+          query.queryKey[2] === item.TrackingPartner),
+    });
   };
 
   const closeBottomSheet = () => {
@@ -1616,7 +1831,7 @@ const InspectionDetails = ({route, navigation}) => {
     setImagePath(newImagePath);
   };
 
-  const handleUpload = async () => {
+  const handleUploadOld = async () => {
     const year = dataItems?.vouchers?.[0]?.Year;
     const pxTN = dataItems?.vouchers?.[0]?.TrackingNumber;
 
@@ -1668,26 +1883,259 @@ const InspectionDetails = ({route, navigation}) => {
     }
   };
 
-  const handleScheduleSubmit = date => {
-    if (!date) {
-      console.error('Error: No date provided for scheduling.');
+  const handleUpload = () => {
+    const year = dataItems?.vouchers?.[0]?.Year;
+    const pxTN = dataItems?.vouchers?.[0]?.TrackingNumber;
+
+    if (!imagePath || imagePath.length === 0) {
+      showMessage({
+        message: 'No image selected for upload.',
+        type: 'warning',
+        icon: 'warning',
+      });
       return;
     }
 
-    console.log('Scheduling Date:', date);
-
-    addSchedule(
-      {date},
+    uploadInspector(
+      {imagePath, year, pxTN},
       {
         onSuccess: () => {
-          console.log('Schedule successfully added.');
+          showMessage({
+            message: 'Upload successful!',
+            type: 'success',
+            icon: 'success',
+            floating: true,
+            duration: 3000,
+          });
+
+          queryClient.invalidateQueries(['inspectorImages', year, pxTN]);
+
+          setImagePath([]);
+
+          setShowUploading(false);
+          bottomSheetRef.current?.close();
+
         },
         onError: error => {
-          console.error('Error adding schedule:', error);
+          showMessage({
+            message: 'Upload failed!',
+            description: error.message || 'Something went wrong',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
         },
       },
     );
   };
+
+  const handleInvoiceSubmit = (invoice, date) => {
+    setInvoiceNumber(invoice);
+    setInvoiceBottomSheetVisible(false);
+
+    const formattedDate = date ? date.toISOString().split('T')[0] : 'No date';
+
+    console.log('Invoice:', invoice);
+    console.log('Date:', formattedDate);
+  };
+
+  const handleScheduleSubmit = ({date, deliveryId}) => {
+    if (!date || !deliveryId) {
+        console.error('Error: Date and Delivery ID are required.');
+        showMessage({
+            message: 'Error: Date and Delivery ID are required.',
+            type: 'danger',
+        });
+        return;
+    }
+
+    addSchedule(
+        {date, deliveryId},
+        {
+            onSuccess: () => {
+                showMessage({
+                    message: 'Schedule successfully added!',
+                    type: 'success',
+                    icon: 'success',
+                    backgroundColor: '#2E7D32',
+                    color: '#FFFFFF',
+                    floating: true,
+                    duration: 3000,
+                });
+
+                refreshData();
+                setAddScheduleBottomSheetVisible(false);
+
+                if (typeof closeBottomSheet === 'function') {
+                    closeBottomSheet();
+                }
+            },
+            onError: error => {
+                console.error('Error adding schedule:', error);
+                showMessage({
+                    message: 'Error adding schedule!',
+                    description: error.message || 'Something went wrong.',
+                    type: 'danger',
+                });
+            },
+        }
+    );
+  };
+
+
+  /*  const submitRemarks = async () => {
+    if (!remarks) {
+      Platform.OS === 'android'
+        ? ToastAndroid.show('Please fill in the remarks.', ToastAndroid.SHORT)
+        : Alert.alert('Validation', 'Please fill in the remarks.');
+      return;
+    }
+
+    const inspectionStatus = 'OnHold';
+    setLoading(true);
+
+    try {
+      const result = await inspectItems(
+        selectedYear,
+        data?.TrackingNumber || '',
+        inspectionStatus,
+        remarks,
+      );
+
+      if (result.success) {
+        setMessage(result.message);
+        setSuccessModalVisible(true);
+
+        queryClient.invalidateQueries({queryKey: ['inspection']});
+
+        refreshData();
+        closeBottomSheet();
+      } else {
+        setMessage(`Error: ${result.message}`);
+        setErrorModalVisible(true);
+        refreshData();
+      }
+    } catch (error) {
+      console.error('Error submitting remarks:', error);
+      setMessage('An error occurred while submitting remarks.');
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  }; */
+
+  const sanitizeInput = input => {
+    if (!input || typeof input !== 'string') return ''; // Handle null, undefined, or non-string values
+    const sanitized = input.replace(/<\/?[^>]+(>|$)/g, '').trim(); // Remove HTML tags and trim spaces
+
+    if (sanitized !== input.trim()) {
+      ToastAndroid.show(
+        'Invalid input detected. HTML tags are not allowed.',
+        ToastAndroid.SHORT,
+      );
+    }
+
+    return sanitized;
+  };
+
+  const submitRemarks = async () => {
+    if (!selectedRemark) {
+      ToastAndroid.show(
+        'Please select a remark before submitting.',
+        ToastAndroid.SHORT,
+      );
+      return;
+    }
+
+    if (selectedRemark === 'Other' && !remarks.trim()) {
+      ToastAndroid.show(
+        'Please enter remarks for "Other".',
+        ToastAndroid.SHORT,
+      );
+      return;
+    }
+
+    const sanitizedRemarks = sanitizeInput(remarks);
+
+    let inspectionStatus = 'OnHold';
+    const deliveryId = item?.Id;
+    const trackingNumber = dataItems?.vouchers?.[0]?.TrackingNumber;
+    const totalItems = Array.isArray(dataItems?.poRecord)
+      ? dataItems.poRecord.length
+      : 0;
+
+    try {
+      const result = await inspectItems({
+        year: selectedYear,
+        deliveryId,
+        trackingNumber: trackingNumber,
+        inspectionStatus,
+        remarks: sanitizedRemarks,
+      });
+
+      if (result.status === 'success') {
+        showMessage({
+          message: 'Inspection On Hold Successful',
+          description: result.message,
+          type: 'success',
+          icon: 'success',
+          backgroundColor: '#2E7D32',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+
+        refreshData();
+        closeBottomSheet();
+        setCheckedItems(Array(totalItems).fill(false));
+      } else {
+        showMessage({
+          message: 'Inspection On Hold Failed',
+          description: result.message || 'Something went wrong.',
+          type: 'danger',
+          icon: 'danger',
+          backgroundColor: '#D32F2F',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Inspection Error:', error.message || error);
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'An error occurred while inspecting items.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+    }
+
+    setSelectedRemark('');
+    setRemarks('');
+    setRemarksBottomSheetVisible(false);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshData(); 
+    setRefreshing(false);
+  };
+
+  /*  const handleOnHold = () => {
+    if (!checkedItems.every(item => item)) {
+      setMessage('Please check all items before tagging Inspection on hold.');
+      setErrorModalVisible(true);
+      return;
+    }
+
+    setRemarksBottomSheetVisible(true);
+    closeBottomSheet();
+  }; */
 
   return (
     <>
@@ -1710,7 +2158,7 @@ const InspectionDetails = ({route, navigation}) => {
         </ImageBackground>
 
         <View style={{paddingHorizontal: 10}}>
-          {loading ? (
+          {DetailsLoading || ItemsLoading ? (
             <View
               style={[
                 {
@@ -1725,7 +2173,7 @@ const InspectionDetails = ({route, navigation}) => {
                 <Shimmer key={index} />
               ))}
             </View>
-          ) : error ? (
+          ) : DetailsError || ItemsError ? (
             <Text style={styles.errorText}>
               Error fetching data: {error.message}
             </Text>
@@ -1736,6 +2184,7 @@ const InspectionDetails = ({route, navigation}) => {
                 )
             ).length > 0 ? (
             <FlatList
+              showsVerticalScrollIndicator={false}
               initialNumToRender={10}
               windowSize={5}
               data={
@@ -1758,16 +2207,21 @@ const InspectionDetails = ({route, navigation}) => {
                   setShowUploading={setShowUploading}
                   refreshKey={refreshKey}
                   inspectorImages={inspectorImages}
+                  inspectorImagesLoading={inspectorImagesLoading}
+                  inspectorImagesError={inspectorImagesError}
                   selectedYear={selectedYear}
-                  removeThisUpload={removeThisUpload}
-                  removing={removing}
-                  setRemoving={setRemoving}
-                  fetchInspectorImage={fetchInspectorImage}
+                  removeInspectorImage={removeInspectorImage}
+                  //removing={removing}
+                  //setRemoving={setRemoving}
+                  //fetchInspectorImage={fetchInspectorImage}
                   setImagePath={setImagePath}
                   routeItem={route.params.item}
+                  queryClient={queryClient}
                 />
               )}
               keyExtractor={item => item?.TrackingNumber || item.id.toString()}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
             />
           ) : (
             <View
@@ -1788,23 +2242,77 @@ const InspectionDetails = ({route, navigation}) => {
         </View>
       </View>
 
+      {/*  {!isInspecting && (
+  <View
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 100,
+    }}>
+    <BlurView
+      style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+      }}
+      blurType="light"
+      blurAmount={5}
+    />
+
+    <View
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+      }}>
+      <ActivityIndicator size="large" color="#ffffff" />
+    </View>
+  </View>
+)} */}
+
+      <Spinner
+        visible={isInspecting}
+        textContent={'Inspecting...'}
+        textStyle={{
+          color: '#fff',
+          fontSize: 16,
+          fontWeight: 'bold',
+        }}
+        overlayColor="rgba(0, 0, 0, 0.5)" // Dark translucent background
+        animation="fade"
+        color="#ffffff" // White spinner
+      />
+
       <InvoiceBottomSheet
         visible={invoiceBottomSheetVisible}
         setCheckedItems={setCheckedItems}
         onClose={() => setInvoiceBottomSheetVisible(false)}
-        onSubmit={invoice => {
-          setInvoiceNumber(invoice);
-          setInvoiceBottomSheetVisible(false);
-          proceedWithInspection(invoice);
-        }}
+        onSubmit={handleInvoiceSubmit}
       />
 
       <AddSchedule
+        item={item}
         visible={addScheduleBottomSheetVisible}
         setCheckedItems={setCheckedItems}
         onClose={() => setAddScheduleBottomSheetVisible(false)}
-        onSubmit={handleScheduleSubmit}
+        onSubmit={data => handleScheduleSubmit(data, addSchedule)}
         isAdding={isAdding}
+      />
+
+      <RemarksBottomSheet
+        visible={remarksBottomSheetVisible}
+        onClose={() => setRemarksBottomSheetVisible(false)}
+        remarks={remarks}
+        setRemarks={setRemarks}
+        selectedRemark={selectedRemark} // ✅ Ensure selectedRemark is passed
+        setSelectedRemark={setSelectedRemark} // ✅ Ensure setSelectedRemark is passed
+        submitRemarks={submitRemarks}
       />
 
       <Modal
@@ -1905,6 +2413,19 @@ const InspectionDetails = ({route, navigation}) => {
           index={checkedItems.some(item => item) ? 0 : -1} // Show only when checked items exist
           snapPoints={['15%', '20%']}
           //enablePanDownToClose
+          handleComponent={null} // Remove the top notch
+          style={{
+            backgroundColor: '#fff', // Ensure visibility of shadow
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: -3}, // Adjust for shadow on top edge
+            shadowOpacity: 0.2,
+            shadowRadius: 5,
+            elevation: 1, // Android shadow
+            borderWidth: 1,
+            borderColor: '#ccc',
+          }}
           enableOverdrag={false} // Disable overscroll
           animationConfig={{
             duration: 300, // Duration of the animation
@@ -1919,6 +2440,7 @@ const InspectionDetails = ({route, navigation}) => {
           </TouchableOpacity>
           </View> */}
           <Footer
+            item={item}
             inspectItems={inspectItems}
             data={data}
             checkedItems={checkedItems}
@@ -1927,18 +2449,14 @@ const InspectionDetails = ({route, navigation}) => {
             selectedYear={selectedYear}
             setModalVisible={setModalVisible}
             setMessage={setMessage}
-            setSuccessModalVisible={setSuccessModalVisible}
-            setErrorModalVisible={setErrorModalVisible}
-            inspectError={inspectError}
-            setLoading={setLoading}
-            fetchInspectionDetails={fetchInspectionDetails}
-            fetchInspectionItems={fetchInspectionItems}
             search={search}
             closeBottomSheet={closeBottomSheet}
             openBottomSheet={openBottomSheet}
             refreshData={refreshData} // Pass refresh function to Footer
             setInvoiceBottomSheetVisible={setInvoiceBottomSheetVisible}
             setAddScheduleBottomSheetVisible={setAddScheduleBottomSheetVisible}
+            setRemarksBottomSheetVisible={setRemarksBottomSheetVisible}
+            isInspecting={isInspecting}
             queryClient={queryClient}
           />
         </BottomSheet>
@@ -1957,158 +2475,164 @@ const InspectionDetails = ({route, navigation}) => {
           }}>
           <BottomSheet
             ref={bottomSheetRef}
-            snapPoints={imagePath.length > 0 ? ['80%', '90%'] : ['25%', '50%']}>
+            snapPoints={imagePath.length > 0 ? ['80%'] : ['25%', '50%']}
+            style={{flex: 1, paddingHorizontal: 10}}>
             <View
               style={{
                 flexDirection: 'row',
-                justifyContent: 'space-evenly',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 paddingTop: 10,
-                //gap:10
+                gap: 10,
               }}>
+              {/* Take Photo Button */}
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#007AFF',
-                  padding: 10,
+                  backgroundColor: '#D6D6D6', // Dirtier white
+                  paddingVertical: 10,
                   borderRadius: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 onPress={handleTakePhoto}>
                 <Icon
                   name="camera"
                   size={20}
-                  color="#FFFFFF"
+                  color="#222"
                   style={{marginRight: 5}}
                 />
-                <Text style={{color: '#FFFFFF'}}>Take Photo</Text>
+                <Text style={{color: '#222', fontSize: 14, fontWeight: '500'}}>
+                  Take Photo
+                </Text>
               </TouchableOpacity>
 
+              {/* Browse Image Button */}
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#007AFF',
-                  padding: 10,
+                  backgroundColor: '#D6D6D6', // Dirtier white
+                  paddingVertical: 10,
                   borderRadius: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 onPress={handleImageUpload}>
                 <Icon
                   name="cloud-upload"
                   size={20}
-                  color="#FFFFFF"
+                  color="#222"
                   style={{marginRight: 5}}
                 />
-                <Text style={{color: '#FFFFFF'}}>Browse Image</Text>
+                <Text style={{color: '#222', fontSize: 14, fontWeight: '500'}}>
+                  Browse Image
+                </Text>
               </TouchableOpacity>
 
+              {/* Close Button */}
               <TouchableOpacity
                 onPress={() => {
                   setShowUploading(false);
                   bottomSheetRef.current?.close();
                 }}
                 style={{
-                  alignSelf: 'flex-end',
                   padding: 10,
+                  borderRadius: 50,
+                  backgroundColor: '#F5F5F5', // Dirtier white
+                  justifyContent: 'center',
+                  alignItems: 'center',
                 }}>
-                <Icon
-                  name="close"
-                  size={25}
-                  color="#ccc"
-                  style={
-                    {
-                      /* marginEnd: 10 */
-                    }
-                  }
-                />
+                <Icon name="close" size={22} color="#222" />
               </TouchableOpacity>
             </View>
+
             <View style={{padding: 5, paddingStart: 20}}>
               <Text style={{fontSize: 8, color: 'gray'}}>
                 Please upload an image in JPG or PNG format.
               </Text>
             </View>
 
-            {Array.isArray(imagePath) && imagePath.length > 0 && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                  paddingVertical: 5,
-                }}>
-                {imagePath.map((image, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      width: '48%',
-                      marginBottom: 10,
-                      position: 'relative',
-                    }}>
-                    <Image
-                      source={{uri: image.uri}}
-                      style={{
-                        width: '100%',
-                        height: 150,
-                        alignSelf: 'flex-start',
-                        backgroundColor: 'white',
-                        borderColor: 'white',
-                        borderWidth: 10,
-                        shadowColor: '#000',
-                        shadowOffset: {width: 0, height: 2},
-                        shadowOpacity: 0.25,
-                        shadowRadius: 3.5,
-                        borderRadius: 5,
-                      }}
-                      resizeMode="cover"
-                    />
-
-                    <TouchableOpacity
-                      onPress={() => handleDeleteImage(index)}
-                      style={{
-                        position: 'absolute',
-                        top: -130,
-                        right: 15,
-                        backgroundColor: 'rgba(228, 50, 93, 1)',
-                        borderRadius: 15,
-                        padding: 10,
-                        paddingVertical: 5,
-                        zIndex: 2,
-                      }}>
-                      <Text style={{color: 'white', fontSize: 14}}>X</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            <View
-              style={{
-                width: '60%',
-                alignSelf: 'center',
-                bottom: 120,
-                position: 'absolute',
-              }}>
-              <Button
-                title={uploading ? 'Uploading...' : 'Upload'}
-                style={{padding: 20}}
-                onPress={handleUpload}
-                disabled={imagePath.length === 0}
-                //color={imagePath.length === 0 ? '#A9A9A9' : '#007AFF'}
-              />
-              {uploading && (
-                <ActivityIndicator
+            <BottomSheetScrollView contentContainerStyle={{paddingBottom: 20}}>
+              {Array.isArray(imagePath) && imagePath.length > 0 && (
+                <View
                   style={{
-                    position: 'absolute',
-                    right: 20,
-                    top: '50%',
-                    transform: [{translateY: -10}],
-                  }}
-                  color="white"
-                />
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    paddingVertical: 5,
+                  }}>
+                  {imagePath.map((image, index) => (
+                    <View
+                      key={index}
+                      style={{
+                        width: '48%',
+                        marginBottom: 10,
+                        position: 'relative',
+                        borderWidth: 1,
+                        borderColor: '#ccc',
+                      }}>
+                      <Image
+                        source={{uri: image.uri}}
+                        style={{
+                          width: '100%',
+                          height: 150,
+                          alignSelf: 'flex-start',
+                          backgroundColor: 'white',
+                          borderColor: 'white',
+                          borderWidth: 10,
+                          shadowColor: '#000',
+                          shadowOffset: {width: 0, height: 2},
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.5,
+                          borderRadius: 5,
+                        }}
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        onPress={() => handleDeleteImage(index)}
+                        style={{
+                          position: 'absolute',
+                          top: 20,
+                          right: 15,
+                          backgroundColor: 'rgba(228, 50, 93, 1)',
+                          borderRadius: 15,
+                          padding: 10,
+                          paddingVertical: 5,
+                          zIndex: 2,
+                        }}>
+                        <Text style={{color: 'white', fontSize: 14}}>X</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
               )}
+            </BottomSheetScrollView>
+
+            {/* Upload Button at Bottom */}
+            <View style={{justifyContent: 'flex-end', padding: 20, borderTopColor:'silver', borderTopWidth:1, paddingTop:10}}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor:
+                    imagePath.length === 0 ? '#A9A9A9' : '#007AFF',
+                  //padding: 15,
+                  paddingVertical: 10,
+                  borderRadius: 5,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                }}
+                onPress={handleUpload}
+                disabled={imagePath.length === 0}>
+                <Text
+                  style={{color: '#FFFFFF', fontSize: 14, fontWeight: '500'}}>
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </Text>
+                {uploading && (
+                  <ActivityIndicator style={{marginLeft: 10}} color="white" />
+                )}
+              </TouchableOpacity>
             </View>
           </BottomSheet>
         </View>
@@ -2156,8 +2680,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'silver',
+    //borderWidth: 1,
+    //borderColor: 'silver',
     borderRadius: 5,
   },
   textContainer: {
@@ -2193,7 +2717,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     width: '60%',
     fontFamily: 'Inter_28pt-SemiBold',
-    color: 'black',
+    //color: 'black',
+    color: '#2C3E50',
     marginBottom: 5,
     marginStart: 10,
   },
@@ -2210,28 +2735,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 10,
+    alignItems: 'baseline',
   },
   footerButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
   onHoldButton: {
+    flexDirection: 'row',
     borderWidth: 1,
+    backgroundColor: '#F35454',
     borderColor: '#F35454',
     padding: 10,
     alignItems: 'center',
     borderRadius: 5,
   },
   onHoldButtonText: {
-    color: '#F35454',
+    color: '#fff',
     textAlign: 'center',
     fontWeight: 'bold',
   },
   inspectedButton: {
-    backgroundColor: '#007BFF',
+    /*    backgroundColor: '#007BFF',
     padding: 10,
     alignItems: 'center',
     borderRadius: 5,
+ */
+    flexDirection: 'row',
+    //borderWidth: 1,
+    backgroundColor: '#007BFF',
+    //borderColor: '#007BFF',
+    padding: 10,
+    alignItems: 'center',
+    borderRadius: 5,
+    elevation: 2,
   },
   inspectedButtonText: {
     color: '#FFFFFF',

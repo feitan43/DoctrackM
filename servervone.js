@@ -1105,7 +1105,7 @@ app.post('/sendNotifInspector', async (req, res) => {
 
 
 const latestVersion = {
-  version: '2.3',
+  version: '2.4',
   updateUrl: 'https://www.davaocityportal.com/gm8/DocMobile.apk' // URL where the update can be downloaded
 };
 console.log(latestVersion.version);
@@ -1912,7 +1912,7 @@ app.get('/searchPayroll', async (req, res) => {
 app.get('/getInspectionItems', async (req, res) => {
   const { year, trackingNumber,  accountType } = req.query; 
 
-  //console.log(year, trackingNumber,  accountType);
+  console.log(year, trackingNumber,  accountType);
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?conan=1&year=${year}&tn=${trackingNumber}&accountType=${accountType}`;
@@ -1937,16 +1937,17 @@ app.get('/getInspectionItems', async (req, res) => {
 });
 
 app.get('/inspectItems', async (req, res) => {
-  const { year, employeeNumber, trackingNumber, accountType, status , remarks} = req.query; 
+  const { year, employeeNumber, deliveryId, trackingNumber, status , invNumber, invDate, remarks} = req.query; 
 
-  console.log(year, employeeNumber, trackingNumber, accountType, status, remarks);
+  console.log("server",year, employeeNumber, deliveryId, trackingNumber, status, remarks);
 
   try {
-    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?saitama=1&year=${year}&empnum=${employeeNumber}&tn=${trackingNumber}&accountType=${accountType}&status=${status}&remarks=${encodeURIComponent(remarks)}`;
+    //const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?saitama=1&year=${year}&empnum=${employeeNumber}&tn=${trackingNumber}&status=${status}&remarks=${encodeURIComponent(remarks)}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?inspectItems=1&year=${year}&empnum=${employeeNumber}&deliveryId=${deliveryId}&tn=${trackingNumber}&status=${status}&invNumber=${invNumber}&invDate=${invDate}&remarks=${encodeURIComponent(remarks)}`;
 
     const apiResponse = await fetch(apiUrl);
 
-    //console.log(apiUrl);
+    console.log(apiUrl);
 
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
@@ -2039,7 +2040,7 @@ app.get('/getRecentActivity', async (req, res) => {
     //console.log(data);
 
   } catch (error) {
-    console.error('Error fetching data in getInspectList:', error.message);
+    console.error('Error fetching data in get Recent Activity:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
@@ -2066,7 +2067,7 @@ app.get('/getQRData', async (req, res) => {
     //console.log(data);
 
   } catch (error) {
-    console.error('Error fetching data in getInspectList:', error.message);
+    console.error('Error fetching data in get QR data:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
@@ -2112,7 +2113,7 @@ app.get('/receiverReverted', async (req, res) => {
     res.json(data);
 
   } catch (error) {
-    console.error('Error fetching data in getInspectList:', error.message);
+    console.error('Error fetching data in receiver reverted:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
@@ -2134,7 +2135,7 @@ app.get('/receivingCount', async (req, res) => {
     res.json(data);
 
   } catch (error) {
-    console.error('Error fetching data in getInspectList:', error.message);
+    console.error('Error fetching data in receivingCount:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
@@ -2508,8 +2509,6 @@ app.get('/getEvaluatorMonthlyDetails', async (req, res) => {
 app.get('/getInspection', async (req, res) => {
   const { EmployeeNumber } = req.query;
 
-  //console.log(Year, EmployeeNumber, Status);
-
   if (!EmployeeNumber) {
     return res.status(400).json({ error: 'EmployeeNumber is required' });
   }
@@ -2520,13 +2519,42 @@ app.get('/getInspection', async (req, res) => {
 
     res.json(data);
 
-    // Broadcast the update to all connected clients
-    //io.emit('evaluationUpdated', data);
   } catch (error) {
     console.error('Error fetching inspection data:', error.message);
     res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
   }
 });
+
+app.get('/addSchedule', async (req, res) => {
+  const { deliveryId, date } = req.query;
+
+  console.log(deliveryId,date);
+
+  if (!deliveryId || !date) {
+    return res.status(400).json({ error: 'deliveryId and date are required' });
+  }
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?addSchedule=1&deliveryId=${deliveryId}&date=${encodeURIComponent(date)}`;
+    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error adding schedule:', error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
 
 
 app.get('/projectCleansing', async (req, res) => {

@@ -31,8 +31,8 @@ import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {DataTable, Card} from 'react-native-paper';
 import {Calendar} from 'react-native-calendars';
 import {useQueryClient} from '@tanstack/react-query';
-
 //import { SafeAreaView } from 'react-native-safe-area-context';
+import { useInspectorImages } from '../hooks/useInspection';
 
 const currentYear = new Date().getFullYear();
 
@@ -69,7 +69,46 @@ const RecentActivity = ({
     navigation.navigate('InspectionDetails', {item});
   };
 
-  const InspectionImage = ({item}) => {
+
+  const InspectionImage = ({ item }) => {
+    const { data: inspectorImages, isLoading, error } = useInspectorImages(
+      item?.year,
+      item?.trackingNumber
+    );
+  
+    if (isLoading) {
+      return (
+        <View style={{ backgroundColor: 'transparent' }}>
+          <ActivityIndicator size="small" color="white" style={{ width: 60, height: 60 }} />
+        </View>
+      );
+    }
+  
+    if (error) {
+      return (
+        <Image
+          source={require('../../assets/images/noImage.jpg')}
+          style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
+        />
+      );
+    }
+  
+    const imageUri = inspectorImages?.length > 0 ? inspectorImages[0] : null;
+  
+    return (
+      <FastImage
+        source={
+          imageUri
+            ? { uri: imageUri, priority: FastImage.priority.high, cache: 'web' }
+            : require('../../assets/images/noImage.jpg')
+        }
+        style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
+        resizeMode={FastImage.resizeMode.cover}
+      />
+    );
+  };
+
+/*   const InspectionImage = ({item}) => {
     const {inspectorImages, loading, error, fetchInspectorImage} = useGetImage(
       item?.Year,
       item?.TrackingNumber,
@@ -102,21 +141,10 @@ const RecentActivity = ({
             borderColor: 'silver',
           }}
         />
-        //   <FastImage
-        //   source={{ uri, priority: FastImage.priority.high, cache: 'web' }}
-        //   style={{
-        //     width: 60,
-        //     height: 60,
-        //     borderWidth: 1,
-        //     borderColor: "silver",
-        //   }}
-        //   resizeMode={FastImage.resizeMode.cover}
-        // />
       );
     }
 
     const imageUri = inspectorImages.length > 0 ? inspectorImages[0] : null;
-    //console.log(inspectorImages);
 
     return (
       <FastImage
@@ -134,7 +162,7 @@ const RecentActivity = ({
         resizeMode={FastImage.resizeMode.cover}
       />
     );
-  };
+  }; */
 
   return (
     <View
@@ -888,6 +916,7 @@ const DoctrackScreen = ({
       // Invalidate and refetch the 'inspection' query
       queryClient.invalidateQueries({
         queryKey: ['inspection'],
+        
       });
     } catch (error) {
       console.error('Error refreshing data:', error);
