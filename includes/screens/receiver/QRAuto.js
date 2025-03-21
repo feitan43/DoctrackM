@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  ImageBackground,
 } from 'react-native';
 import {
   Camera,
@@ -40,11 +41,13 @@ const QRAuto = () => {
   const navigation = useNavigation();
   //const cameraPermission = useCameraPermission();
   const cameraDevice = useCameraDevice('back');
+  const [cameraIsActive, setCameraIsActive] = useState(true);
   const isCameraReady = cameraDevice?.isAvailable;
   const cameraRef = useRef(null);
   const [scannedCodes, setScannedCodes] = useState([]);
 
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
@@ -54,7 +57,7 @@ const QRAuto = () => {
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['30%', '50%', '75%'];
+  const snapPoints = ['45%', '70%', '80%'];
 
   const [showCheck, setShowCheck] = useState(true);
 
@@ -200,8 +203,18 @@ const QRAuto = () => {
             </View>
 
             <View style={styles.textRow}>
+              <Text style={styles.label}>Tracking Type:</Text>
+              <Text style={styles.value}>{item.TrackingType}</Text>
+            </View>
+
+            <View style={styles.textRow}>
               <Text style={styles.label}>Tracking Number:</Text>
               <Text style={styles.value}>{item.TrackingNumber}</Text>
+            </View>
+
+            <View style={styles.textRow}>
+              <Text style={styles.label}>Document Type:</Text>
+              <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail' >{item.DocumentType}</Text>
             </View>
             <View style={styles.textRow}>
               <Text style={styles.label}>Status:</Text>
@@ -307,8 +320,6 @@ const QRAuto = () => {
 
       try {
         const result = decryptScannedCode(scannedCode);
-        // const [year, pr, ...trackingParts] = result.split('-');
-        // const trackingNumber = `${pr}-${trackingParts.join('-')}`;
         const [year, ...trackingParts] = result.split('-');
         const trackingNumber = trackingParts.join('-');
 
@@ -345,7 +356,6 @@ const QRAuto = () => {
           'Voucher Received - Inspection',
           'Voucher Received - Inventory',
           'Pending Released - CAO',
-          'For Inspection'
         ];
 
         if (!validStatuses.includes(status)) {
@@ -417,10 +427,8 @@ const QRAuto = () => {
         }
 
         setScannedCodes(prev => [...prev, result]);
-        // Handle successful scan and data retrieval (optional: navigate to success screen)
+        setCameraIsActive(false);
       } catch (error) {
-        // console.error('Error processing scanned code or fetching data:', error);
-
         if (error.message === 'Invalid scanned code') {
           ToastAndroid.show(
             'Invalid QR code. Please try again.',
@@ -449,11 +457,11 @@ const QRAuto = () => {
       </View>
 
       <View style={styles.cameraPreview}>
-        <View style={{ zIndex: 1, top: -300 }}>
+        {/* <View style={{ zIndex: 1, top: -300 }}>
           <Text style={{ color: 'gray', fontWeight: 'bold', fontSize: 20 }}>
             Scan QR
           </Text>
-        </View>
+        </View> */}
 
         {qrLoading ? (
           <View style={styles.loadingContainer}>
@@ -468,7 +476,7 @@ const QRAuto = () => {
             codeScanner={codeScanner}
             device={cameraDevice}
             format={format}
-            isActive={true}
+            isActive={cameraIsActive}
             videoStabilization={true}
             cameraOptions={{ focusDepth: 0.5, exposureCompensation: 0.5 }}
             onError={e => console.log(e)}
@@ -497,28 +505,57 @@ const QRAuto = () => {
           ref={bottomSheetRef}
           index={0}
           snapPoints={snapPoints}
-          onChange={handleSheetChange}
-          style={{ backgroundColor: 'transparent' }}>
+          onChange={handleSheetChange}>
           <View style={styles.bottomSheetContent}>
-            {/*  <Text style={styles.bottomSheetTitle}>Scanned Codes</Text> */}
-            {/*     <View style={{paddingVertical: 10, paddingStart: 20}}>
-                <Text
+            <ImageBackground style={{ flex: 1 }} source={require('../../../assets/images/docmobileBG.png')}>
+
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                paddingHorizontal: 10,
+                paddingVertical: 10,
+              }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    bottomSheetRef.current?.close();
+                    setCameraIsActive(true);
+                  }}
                   style={{
-                    fontFamily: 'Oswald-Regular',
-                    fontSize: 18,
-                    color: 'black',
+                    padding: 5,
+                    borderColor: 'gray',
+                    flexDirection: 'row',
+                    alignItems: 'center',
                   }}>
-                  Received
-                </Text>
-              </View> */}
-            <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 10 }}>
-              <BottomSheetFlatList // Use regular FlatList here
-                data={qrData}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-                contentContainerStyle={styles.bottomSheetList}
-              />
-            </View>
+                  <Icon
+                    name="backspace-outline"
+                    size={22}
+                    color={'#fff'}
+                    style={{ marginRight: 2 }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontFamily: 'Inter_28pt-Bold',
+                      color: '#fff',
+                    }}
+                  >
+                    Close
+                  </Text>
+                </TouchableOpacity>
+
+              </View>
+
+              <View style={{ flex: 1, paddingHorizontal: 10, }}>
+                <BottomSheetFlatList
+                  data={qrData}
+                  renderItem={renderItem}
+                  keyExtractor={(item, index) => index.toString()}
+                  contentContainerStyle={styles.bottomSheetList}
+                />
+              </View>
+
+            </ImageBackground>
           </View>
         </BottomSheet>
       )}
@@ -566,11 +603,10 @@ const styles = StyleSheet.create({
   itemContainer: {
     backgroundColor: '#fff',
     padding: 16,
-    //marginVertical: 8,
     borderRadius: 10,
-    elevation: 1,
-    //borderStartWidth:10,
-    //borderStartColor:'red'
+    elevation: 0,
+    justifyContent: 'center'
+    // width: '100%',
   },
   itemText: {
     width: '40%',
@@ -596,7 +632,7 @@ const styles = StyleSheet.create({
   label: {
     width: '50%',
     fontSize: 13,
-    fontFamily: 'Oswald-Light',
+    fontFamily: 'Inter_28pt-Regular',
     textAlign: 'right',
     color: 'gray',
   },
@@ -707,9 +743,11 @@ const styles = StyleSheet.create({
     //flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    // backgroundColor: 'rgba(0, 0, 0, 0.8)',
+
   },
   loadingIndicator: {
+    top: -150,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -719,7 +757,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 0,
   },
 });
 

@@ -11,7 +11,6 @@ import {
   Pressable,
   ActivityIndicator,
   Modal,
-  Button,
   Image,
   TextInput,
   ImageBackground,
@@ -33,7 +32,7 @@ import useUserInfo from '../../api/useUserInfo';
 import { insertCommas } from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
-import { IconButton } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250;
@@ -65,7 +64,7 @@ const QRManual = () => {
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['50%', '70%', '80%'];
+  const snapPoints = ['45%', '70%', '80%'];
 
   const handleReceived = async (
     year,
@@ -325,30 +324,18 @@ const QRManual = () => {
                 </View>
               )}
               {/* Received Button */}
-              <TouchableOpacity
-                /*  value={
-                      inputParams === '' || inputParams === null
-                        ? item.OBR_Number
-                        : inputParams
-                    }  */
+              <Button
+                mode="contained"
+                loading={isLoading}
+                disabled={isLoading}
                 style={{
-                  flex: 1,
                   marginTop: 20,
-                  backgroundColor: isLoading ? '#ccc' : '#007bff',
-                  padding: 10,
-                  margin: 5,
-                  borderRadius: 4,
-                  shadowColor: '#000', // Shadow color for iOS
-                  shadowOffset: { width: 0, height: 2 }, // Offset for iOS
-                  shadowOpacity: 0.25, // Opacity for iOS shadow
-                  shadowRadius: 3.84, // Blur radius for iOS
-                  elevation: 5, // Shadow for Android
+                  borderRadius: 8,
+                  elevation: 1,
+                  backgroundColor: "#007bff"
                 }}
+
                 onPress={() => {
-                  /*  if (item.TrackingType === 'PY') {
-      if (officeCode === '1071' && privilege === '9') {
-      }
-    } */
                   if (item.TrackingType === 'PO') {
                     if (officeCode === '1071' && privilege === '9') {
                       if (item.Status === 'Supplier Conformed') {
@@ -356,34 +343,28 @@ const QRManual = () => {
                           if (inputParams === '') {
                             Alert.alert(
                               'OBR Number Required',
-                              'Please enter a valid OBR number.',
+                              'Please enter a valid OBR number.'
                             );
-                            return; // Exit early if no OBR_Number or inputParams
+                            return;
                           }
                         }
                       }
                     }
                   }
 
-                  // Call handleReceived if all conditions pass
                   handleReceived(
                     item.Year,
                     item.TrackingNumber,
                     item.TrackingType,
                     item.DocumentType,
                     item.Status,
-                    inputParams,
+                    inputParams
                   );
                 }}
-                disabled={isLoading}>
-                <View>
-                  {isLoading ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.buttonText}>Received</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
+              >
+                Received
+              </Button>
+
               {/* if (item.Status === 'Admin Operation Received') {
           if (inputParams === '') {
             Alert.alert(
@@ -454,31 +435,24 @@ const QRManual = () => {
 
         <View
           style={{
-            flex: 1,
-            alignItems: 'center',
             alignSelf: 'flex-end',
             paddingTop: 10,
           }}>
           <TouchableOpacity
             style={{
-              //marginTop: 20,
-              backgroundColor: 'transparent',
-              borderRadius: 4,
               flexDirection: 'row',
               paddingTop: 10,
             }}
             onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
-            <View>
-              <Text
-                style={{
-                  color: '#007bff',
-                  textAlign: 'right',
-                  fontSize: 14,
-                }}>
-                Show More
-              </Text>
-            </View>
-            <Icon name="chevron-forward" size={20} color={'blue'} />
+            <Text
+              style={{
+                color: '#007bff',
+                fontSize: 14,
+              }}>
+              Show More
+            </Text>
+
+            <Icon name="chevron-forward" size={18} color={'#007bff'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -779,20 +753,13 @@ const QRManual = () => {
 
           <View style={styles.bottomSheetContent}>
             <ImageBackground style={{ flex: 1 }} source={require('../../../assets/images/docmobileBG.png')}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  paddingHorizontal: 10,
-                  paddingVertical: 10,
-                  // borderBottomWidth: 1,
-                  // borderBottomColor: '#ddd',
-                }}>
                 <View
                   style={{
-                    flex: 1, // Take available space
                     flexDirection: 'row',
-                    justifyContent: 'flex-end', // Align to the right
+                    justifyContent: 'flex-end', 
                     alignItems: 'center',
+                    paddingHorizontal: 10,
+                    paddingVertical: 10,
                   }}>
                   <TouchableOpacity
                     onPress={() => {
@@ -827,9 +794,8 @@ const QRManual = () => {
 
 
                 </View>
-              </View>
-
-              <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 10 }}>
+                
+              <View style={{ flex: 1, paddingHorizontal: 10,  }}>
                 <BottomSheetFlatList // Use regular FlatList here
                   data={qrData}
                   renderItem={renderItem}
@@ -915,18 +881,18 @@ const styles = StyleSheet.create({
     width: '65%',
   },
   label: {
-    width: '55%',
+    width: '70%',
     fontSize: 13,
     fontFamily: 'Inter_28pt-Regular',
     textAlign: 'right',
-    color: 'silver',
+    color: 'gray',
 
   },
   value: {
     fontSize: 14,
     fontFamily: 'Inter_28pt-Regular',
     width: '100%',
-    color: '#252525',
+    color: 'black',
     marginStart: 10,
   },
   cameraPreview: {
@@ -1030,7 +996,7 @@ const styles = StyleSheet.create({
     //flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    // backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   loadingIndicator: {
     top: -150,
