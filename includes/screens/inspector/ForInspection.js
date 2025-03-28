@@ -40,7 +40,7 @@ const ForInspection = ({navigation}) => {
   const queryClient = useQueryClient();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
-  //cons
+  console.log("datainv",data)
   const offices = [
     {label: 'All Offices', value: null, key: 'all-offices'},
     ...Array.from(
@@ -62,7 +62,7 @@ const ForInspection = ({navigation}) => {
     ...Array.from(
       new Set(
         (Array.isArray(data) ? data : [])
-        .filter(item => item?.Status?.toLowerCase() === 'for inspection')
+          .filter(item => item?.Status?.toLowerCase() === 'for inspection')
           .map(item => item.Year)
           .filter(name => name !== undefined && name !== null),
       ),
@@ -82,37 +82,36 @@ const ForInspection = ({navigation}) => {
     setTimeout(() => setRefreshing(false), 1500);
   };
 
-  const filteredInspectionListData = Array.isArray(data) 
-  ? data.filter(item => {
-      const searchTerm = searchQuery?.toLowerCase() || '';
+  const filteredInspectionListData = Array.isArray(data)
+    ? data.filter(item => {
+        const searchTerm = searchQuery?.toLowerCase() || '';
 
-      const {
-        OfficeName = '',
-        TrackingNumber = '',
-        CategoryName = '',
-        Year,
-      } = item;
+        const {
+          OfficeName = '',
+          TrackingNumber = '',
+          CategoryName = '',
+          Year,
+        } = item;
 
-      if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-        return false;
-      }
+        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+          return false;
+        }
 
-      if (selectedYear && Year !== selectedYear) {
-        return false;
-      }
+        if (selectedYear && Year !== selectedYear) {
+          return false;
+        }
 
-      if (
-        !OfficeName.toLowerCase().includes(searchTerm) &&
-        !TrackingNumber.toLowerCase().includes(searchTerm) &&
-        !CategoryName.toLowerCase().includes(searchTerm)
-      ) {
-        return false;
-      }
+        if (
+          !OfficeName.toLowerCase().includes(searchTerm) &&
+          !TrackingNumber.toLowerCase().includes(searchTerm) &&
+          !CategoryName.toLowerCase().includes(searchTerm)
+        ) {
+          return false;
+        }
 
-      return true;
-    })
-  : []; 
-
+        return true;
+      })
+    : [];
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -160,6 +159,11 @@ const ForInspection = ({navigation}) => {
       setRefreshing(false);
     }
   }; */
+
+  const toggleSearchBar = () => {
+    setShowSearch(!showSearch);
+    setSearchQuery('');
+  };
 
   const filteredInspectionList = filteredInspectionListData?.filter(
     item => item?.Status?.toLowerCase() === 'for inspection',
@@ -213,27 +217,28 @@ const ForInspection = ({navigation}) => {
         {filteredInspectionList?.length === 0 ? (
           <View
             style={{
-              flex: 1,
-              top: 80,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
             }}>
             <Image
               source={require('../../../assets/images/noresultsstate.png')}
               style={{
-                width: '60%',
-                height: '25%',
-                alignSelf: 'center',
+                width: 200,
+                height: 200,
+                resizeMode: 'contain',
+                marginBottom: 10,
               }}
             />
             <Text
               style={{
-                fontFamily: 'Oswald-Light',
                 alignSelf: 'center',
                 color: 'gray',
-                fontSize: 16,
+                fontSize: 14,
                 textAlign: 'center',
-                padding: 5,
+                paddingHorizontal: 10,
               }}>
-              NO RESULTS FOUND
+              No Result Found
             </Text>
           </View>
         ) : (
@@ -252,7 +257,7 @@ const ForInspection = ({navigation}) => {
               </View>
             )}
             onRefresh={handleRefresh}
-            refreshing={isFetching} // Show refreshing state when refetching
+            refreshing={isFetching}
             initialNumToRender={10}
             windowSize={5}
             //contentContainerStyle={{paddingVertical: 10}}
@@ -264,20 +269,20 @@ const ForInspection = ({navigation}) => {
 
   if (isFetching && !data) {
     return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <BlurView
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-        }}
-        blurType="light"
-        blurAmount={5}
-      />
-      <ActivityIndicator size="large" color="#0000ff" />
-    </View>
-  );
-}
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <BlurView
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+          blurType="light"
+          blurAmount={5}
+        />
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
   return (
     <Provider>
       <SafeAreaView style={styles.container}>
@@ -285,35 +290,43 @@ const ForInspection = ({navigation}) => {
           source={require('../../../assets/images/CirclesBG.png')}
           style={styles.bgHeader}>
           <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back" size={24} color="#fff" />
-            </Pressable>
-            <Text style={styles.title}>For Inspection</Text>
-            <View
-              style={{width: 40, alignItems: 'flex-end', marginEnd: 10}}></View>
+            {showSearch ? (
+              <>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  onPress={toggleSearchBar}
+                  style={styles.searchIcon}>
+                  <Icon name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>For Inspection</Text>
+                <TouchableOpacity
+                  onPress={toggleSearchBar}
+                  style={styles.searchIcon}>
+                  <Icon name="search" size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleFiltersPress}
+                  style={styles.searchIcon}>
+                  <Icon name="ellipsis-vertical" size={20} color="#fff" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
-          <Pressable
-            style={({pressed}) => ({
-              flexDirection: 'row',
-              alignSelf: 'center',
-              marginHorizontal: 20,
-              padding: 5,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 20,
-              backgroundColor: showSearch ? '#007bff' : 'transparent',
-            })}
-            onPress={() => setShowSearch(!showSearch)}>
-            <Icon
-              name="search"
-              size={20}
-              color={showSearch ? '#fff' : '#fff'}
-              style={{alignSelf: 'center'}}
-            />
-          </Pressable>
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -348,7 +361,7 @@ const ForInspection = ({navigation}) => {
           </Menu>
         </ImageBackground>
 
-        {showSearch && (
+        {/*  {showSearch && (
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <Icon
@@ -380,7 +393,7 @@ const ForInspection = ({navigation}) => {
               )}
             </View>
           </View>
-        )}
+        )} */}
 
         <View style={{height: '100%'}}>{renderInspection()}</View>
 
@@ -467,6 +480,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
+  bgHeader: {
+    paddingTop: 35,
+    height: 80,
+    backgroundColor: '#1a508c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#fff',
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    height: 40,
+    flex: 1,
+    fontSize: 14,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginStart: 10,
+    marginRight: 20,
+    paddingStart: 20,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+
   menuItemTitle: {
     color: 'black',
   },
@@ -484,14 +540,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingLeft: 10,
   },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    height: 40,
-    flex: 1,
-    fontSize: 14,
-  },
+
   headerContainer: {
     //backgroundColor: 'white',
     //paddingHorizontal: 10,
@@ -516,16 +565,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButton: {
-    padding: 5,
-    backgroundColor: '#F8F8F8',
+    padding: 10,
     borderRadius: 999,
   },
-  headerTitle: {
-    color: '#ffffff',
-    fontFamily: 'Inter_28pt-Bold',
-    fontSize: 16,
-    marginStart: 10,
-  },
+
   headerRight: {
     flexDirection: 'row',
     //alignItems: 'center',
@@ -625,31 +668,6 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     fontSize: 16,
-  },
-  bgHeader: {
-    paddingTop: 35,
-    height: 80,
-    backgroundColor: '#1a508c',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  backButton: {
-    padding: 8,
-    //backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
   },
   clearButton: {
     padding: 5,

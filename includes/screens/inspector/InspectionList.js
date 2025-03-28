@@ -3,109 +3,164 @@ import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {scale, verticalScale, moderateScale} from 'react-native-size-matters';
 
 export const InspectionList = ({item, index, onPressItem}) => {
+  const deliveryDates = item.DeliveryDatesHistory
+    ? item.DeliveryDatesHistory.split(',')
+    : [];
+  const lastIndex = deliveryDates.length - 1;
+
   return (
-    <View
-      style={styles.card}
-      accessibilityLabel={`Inspection item ${index + 1}`}>
-      <View style={styles.container}>
-        <View style={styles.indexContainer}>
-          <Text style={styles.index}>{index + 1}</Text>
+    <View style={styles.card}>
+      <View
+        style={{
+          flexDirection: 'row',
+          //backgroundColor: 'rgba(230, 234, 245, 1)',
+          alignItems: 'center',
+          borderRadius: 5,
+        }}>
+        <View
+          style={{
+            width: 35,
+            height: 35,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 10,
+            backgroundColor: 'rgba(230, 234, 245, 1)',
+          }}>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: 'rgb(7, 84, 252)',
+              textAlign: 'center',
+            }}>
+            {index + 1}
+          </Text>
         </View>
 
-        <View style={styles.infoContainer}>
-          <View style={styles.officeContainer}>
-            <Text style={styles.officeName}>{item.OfficeName}</Text>
-          </View>
-
-          <View style={styles.detailsContainer}>
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Category</Text>
-              <Text style={styles.value}>
-                {item.CategoryCode}
-                {'\n'}
-                {item.CategoryName}
-              </Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Year</Text>
-              <Text style={styles.value}>{item.Year}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Payment TN</Text>
-              <Text style={styles.value}>{item.TrackingNumber}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>PO TN</Text>
-              <Text style={styles.value}>{item.TrackingPartner}</Text>
-            </View>
-
-            
-            {/* <View style={styles.textRow}>
-              <Text style={styles.label}>Date</Text>
-              <Text style={styles.value}>{item.DeliveryDate}</Text>
-            </View> */}
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Delivery</Text>
-              <View>
-                {item.DeliveryDatesHistory ? (
-                  item.DeliveryDatesHistory.split(', ').map(
-                    (date, idx, arr) => (
-                      <View key={idx} style={styles.deliveryDateRow}>
-                        <Text
-                          style={[
-                            styles.deliveryIndex,
-                            {
-                              backgroundColor:
-                                idx === arr.length - 1 ? '#5FA8D3' : '#BDC3C7',
-                            },
-                          ]}>
-                          {idx + 1}
-                        </Text>
-                        <Text style={styles.value}>{date}</Text>
-                      </View>
-                    ),
-                  )
-                ) : (
-                  <Text style={styles.value}>N/A</Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Address</Text>
-              <Text style={styles.value}>{item.Address || 'N/A'}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Contact</Text>
-              <Text style={styles.value}>{item.ContactPerson || 'N/A'}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}> </Text>
-              <Text style={styles.value}>{item.ContactNumber || 'N/A'}</Text>
-            </View>
-
-            <Pressable
-              style={styles.button}
-              onPress={() => onPressItem(item)}
-              android_ripple={{color: '#ddd', borderless: false}}>
-              <Text style={styles.buttonText}>See Inspection</Text>
-            </Pressable>
-          </View>
+        <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+          <Text style={{flex: 0.15, fontSize: 14, color: '#555'}}>{''}</Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
+            {item.Year}{' '}
+            <Text
+              style={{
+                fontSize: 16,
+                textAlign: 'center',
+                color: 'rgb(80, 161, 247)',
+              }}>
+              |
+            </Text>{' '}
+            {item.TrackingNumber}
+          </Text>
         </View>
       </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.detailsContainer}>
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Office</Text>
+          <Text style={styles.value}>{item.OfficeName}</Text>
+        </View>
+        {/*  <View style={styles.textRow}>
+          <Text style={styles.label}>Year</Text>
+          <Text style={styles.value}>{item.Year}</Text>
+        </View> */}
+
+        {/*     <View style={styles.textRow}>
+          <Text style={styles.label}>
+             {item.TrackingNumber?.startsWith('PR-') ? 'TN' : 'Payment TN'}
+            TN
+          </Text>
+          <Text style={styles.value}>{item.TrackingNumber}</Text>
+        </View> */}
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Category</Text>
+          <Text style={styles.value}>
+            {item.CategoryCode} - {item.CategoryName}
+          </Text>
+        </View>
+
+          <View
+                style={{
+                  alignSelf: 'center',
+                  height: 1,
+                  backgroundColor: '#ddd',
+                  width: '80%',
+                  marginVertical: 5,
+                  borderRadius: 10,
+                }}
+              />
+
+        <Text
+              style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: '#0754FC',
+                marginBottom: 5,
+              }}>
+              Delivery
+            </Text>
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Address</Text>
+          <Text style={styles.value}>{item.Address || 'N/A'}</Text>
+        </View>
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Contact</Text>
+          <Text style={styles.value}>{item.ContactPerson || 'N/A'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.textRow}>
+          <Text style={styles.label}>Date</Text>
+          <View style={styles.deliveryContainer}>
+            {deliveryDates.length > 0 ? (
+              deliveryDates.map((date, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.deliveryIndexContainer,
+                    idx === lastIndex
+                      ? styles.latestDelivery
+                      : styles.previousDelivery,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.deliveryIndex,
+                      idx === lastIndex ? styles.latestDeliveryIndex : {},
+                    ]}>
+                    {idx + 1}
+                  </Text>
+                  <Text style={styles.deliveryDate}>{date.trim()}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.value}>N/A</Text>
+            )}
+          </View>
+        </View>
+
+      <Pressable
+        style={({pressed}) => [styles.button, pressed && styles.buttonPressed]}
+        android_ripple={{color: '#B9B9B9', borderless: false}}
+        onPress={() => onPressItem(item)}>
+        <Text style={styles.buttonText}>See Inspection</Text>
+      </Pressable>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#ffffff',
     borderRadius: scale(10),
     padding: scale(12),
     marginVertical: verticalScale(8),
@@ -116,36 +171,36 @@ const styles = StyleSheet.create({
     elevation: scale(4),
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    marginHorizontal: 10,
   },
   container: {
     flexDirection: 'row',
-  },
-  indexContainer: {
-    paddingHorizontal: scale(12),
-    paddingVertical: verticalScale(6),
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   index: {
+    width: 35,
+    height: 35,
+    textAlign: 'center',
     fontSize: moderateScale(18),
-    textAlign: 'right',
     fontFamily: 'Inter_28pt-SemiBold',
-    color: '#3498DB',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: {width: 0, height: verticalScale(1)},
-    textShadowRadius: scale(3),
-  },
-  officeContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDE2E5',
-    paddingVertical: verticalScale(6),
+    color: 'rgb(7, 84, 252)',
+    backgroundColor: 'rgba(230, 234, 245, 1)',
+    paddingHorizontal: scale(6),
+    paddingVertical: verticalScale(2),
+    borderRadius: scale(4),
   },
   officeName: {
-    fontSize: moderateScale(16),
+    fontSize: moderateScale(15),
     fontFamily: 'Inter_28pt-Medium',
-    color: '#333',
+    color: '#2C3E50',
+    flex: 1, // Take the remaining space
+    //marginLeft: scale(8),
   },
-  infoContainer: {
-    flex: 1,
+  divider: {
+    borderBottomWidth: 1,
+    borderColor: '#BDC3C7',
+    marginVertical: verticalScale(6),
   },
   detailsContainer: {
     marginTop: verticalScale(8),
@@ -156,46 +211,71 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(2),
   },
   label: {
-    width: '30%',
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(13),
     fontFamily: 'Inter_28pt-Light',
-    textAlign: 'right',
-    color: '#6C757D',
+    color: '#1A508C',
+    width: '25%',
+    marginTop: verticalScale(2),
   },
   value: {
-    width: '65%',
+    fontSize: moderateScale(13),
+    fontFamily: 'Inter_28pt-SemiBold',
+    color: '#2C3E50',
+    flex: 1,
+  },
+  deliveryContainer: {
+    flex: 1,
+  },
+  deliveryIndexContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: verticalScale(2),
+  },
+  deliveryIndex: {
+    //backgroundColor: '#D6EAF8',
+    paddingHorizontal: scale(6),
+    paddingVertical: verticalScale(2),
+    borderRadius: scale(4),
+    marginRight: scale(6),
     fontSize: moderateScale(14),
     fontFamily: 'Inter_28pt-SemiBold',
     color: '#2C3E50',
-    marginStart: scale(10),
   },
-  deliveryDateRow: {
-    flexDirection: 'row',
-    marginBottom: 5,
-    alignItems: 'center',
-  },
-  deliveryIndex: {
-    marginStart: 10,
-    paddingHorizontal: 10,
-    color: 'white',
-    borderRadius: scale(4),
-    //marginRight: scale(8),
+  deliveryDate: {
     fontSize: moderateScale(14),
-    textAlign: 'center',
-    fontWeight: '600',
+    fontFamily: 'Inter_28pt-SemiBold',
+    color: '#2C3E50',
+  },
+  // Latest Delivery Styles
+  latestDelivery: {
+    backgroundColor: '#EAF2F8', // Light blueish background for latest delivery container
+    borderRadius: scale(4),
+    padding: verticalScale(2),
+  },
+  latestDeliveryIndex: {
+    backgroundColor: '#5DADE2', // Blueish background for latest index
+    color: '#FFF', // White text for better contrast
+  },
+  previousDelivery: {
+    backgroundColor: '#E5E7EB', // Light gray for previous deliveries
+    borderRadius: scale(4),
+    padding: verticalScale(2),
   },
   button: {
     alignSelf: 'flex-end',
-    padding: scale(10),
-    borderRadius: scale(6),
-    //backgroundColor: '#F39C12',
     marginTop: verticalScale(10),
+    borderRadius: scale(4),
+    padding: verticalScale(2),
+    paddingVertical: verticalScale(6),
+    shadowColor: '#000',
   },
   buttonText: {
     color: '#F39C12',
     fontSize: moderateScale(14),
     fontWeight: '600',
-    textAlign: 'center',
+  },
+  buttonPressed: {
+    opacity: 0.7, // Slight transparency effect for iOS
   },
 });
 

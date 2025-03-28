@@ -42,23 +42,18 @@ import {useBackButtonHandler} from '../utils/useBackButtonHandler';
 import useTransactionSummary from '../api/useTransactionSummary';
 import SearchScreen from './SearchScreen';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-//import useInspection from '../api/useInspection';
 import useReceiving from '../api/useReceiving';
 import useTrackingSummary from '../api/useTrackingSummary';
 import useRegTrackingSummary from '../api/useRegTrackingSummary';
 import useMyAccountability from '../api/useMyAccountabilty';
 import useRequestInspection from '../api/useRequestInspection';
 import useOnSchedule from '../api/useOnSchedule';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import useRecentActivity from '../api/useRecentActivity';
 import {useEvaluationByStatus} from '../hooks/useEvaluationByStatus';
 import {
   Menu,
   Divider,
   Provider as PaperProvider,
-  Dialog,
-  Portal,
-  RadioButton,
   Button,
 } from 'react-native-paper';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
@@ -125,14 +120,6 @@ const HomeScreen = ({navigation}) => {
     loadingUseOthers,
     refetchDataOthers,
   } = useOthers(selectedYear);
- /*  const {
-    forInspection,
-    inspected,
-    inspectionOnHold,
-    inspectionList,
-    inspectionListLoading,
-    error: inspectionListError,
-  } = useInspection(); */
   const {
     recentActivityData,
     recentActivityError,
@@ -145,46 +132,24 @@ const HomeScreen = ({navigation}) => {
     error: receivingError,
     receivingCount,
   } = useReceiving();
-  const {trackSumData, trackSumError, trackSumLoading, refetchTrackSum} =
-    useTrackingSummary(selectedYear);
-  const {
-    regTrackSumData,
-    regTrackSumError,
-    regTrackSumLoading,
-    refetchRegTrackSum,
-  } = useRegTrackingSummary(selectedYear);
-  const {accountabilityData, error, fetchMyAccountability} =
-    useMyAccountability();
-  const {
-    requestsLength,
-    loading: requestsLoading,
-    fetchRequests,
-  } = useRequestInspection();
-  const {dataLength: OnScheduleLength} = useOnSchedule();
-  const {data: onEvalData} = useEvaluationByStatus(
-    selectedYear,
-    'On Evaluation - Accounting',
-  );
-  const {data: evaluatedData} = useEvaluationByStatus(
-    selectedYear,
-    'Evaluated - Accounting',
-  );
-  const {data: evalPendingData} = useEvaluationByStatus(
-    selectedYear,
-    'Pending at CAO',
-  );
-  const {data: evalPendingReleased} = useEvaluationByStatus(
-    selectedYear,
-    'Pending Released - CAO',
-  );
-  const {data: evaluatorSummary} = useEvaluatorSummary(selectedYear);
+  const {trackSumData, trackSumError, trackSumLoading, refetchTrackSum} = useTrackingSummary(selectedYear);
+  const {regTrackSumData,regTrackSumError,regTrackSumLoading,refetchRegTrackSum,} = useRegTrackingSummary(selectedYear);
+  const {accountabilityData, error, fetchMyAccountability} = useMyAccountability();
+  const {requestsLength,loading: requestsLoading,fetchRequests} = useRequestInspection();
 
+
+
+  const {dataLength: OnScheduleLength} = useOnSchedule();
+  const {data: onEvalData} = useEvaluationByStatus(selectedYear,'On Evaluation - Accounting',);
+  const {data: evaluatedData} = useEvaluationByStatus(selectedYear,'Evaluated - Accounting',);
+  const {data: evalPendingData} = useEvaluationByStatus(selectedYear,'Pending at CAO',);
+  const {data: evalPendingReleased} = useEvaluationByStatus(selectedYear,'Pending Released - CAO',);
+  const {data: evaluatorSummary} = useEvaluatorSummary(selectedYear);
   const { data: inspection, isLoading: inspectionLoading, isError: inspectionError } = useInspection();
 
   const forInspection = Array.isArray(inspection)
   ? inspection.filter(item => item?.Status?.toLowerCase() === 'for inspection').length
   : 0;
-
 
   const inspected = Array.isArray(inspection) 
   ? inspection.filter(
@@ -195,11 +160,9 @@ const HomeScreen = ({navigation}) => {
     ).length 
   : 0;  
 
-
   const inspectionOnHold = Array.isArray(inspection)
   ? inspection.filter(item => item?.Status?.toLowerCase() === 'inspection on hold').length
   : 0;
-
 
   const years = Array.from(
     {length: Math.max(0, currentYear - 2023 + 1)},
@@ -241,13 +204,13 @@ const HomeScreen = ({navigation}) => {
   }, []);
 
   const handleYearSelect = year => {
-    setLoading(true); // Show loading indicator
+    setLoading(true);
     setSelectedYear(year);
     bottomSheetRef.current?.dismiss();
   
     setTimeout(() => {
-      setLoading(false); // Hide loading indicator after fetching data
-    }, 1500); // Adjust timing as needed
+      setLoading(false); 
+    }, 1500); 
   
     console.log('Selected Year:', year);
   };

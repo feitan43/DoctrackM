@@ -19,22 +19,19 @@ import {
   FlatList,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import {StackActions} from '@react-navigation/native';
 import {useNavigation} from '@react-navigation/native';
-import OfficeDelaysScreen from './OfficeDelaysScreen';
-import {Dropdown} from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/Ionicons';
-import ProjectCleansingScreen from './ProjectCleansingScreen';
 import {Image} from 'react-native-ui-lib';
-import useGetImage from '../api/useGetImage';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {DataTable, Card} from 'react-native-paper';
-import {Calendar} from 'react-native-calendars';
 import {useQueryClient} from '@tanstack/react-query';
-//import { SafeAreaView } from 'react-native-safe-area-context';
-import { useInspectorImages } from '../hooks/useInspection';
-
-const currentYear = new Date().getFullYear();
+import {
+  useInspectorImages,
+  useInspection,
+} from '../hooks/useInspection';
+import {
+  useRequestInspection,
+  useOnSchedule,
+} from '../hooks/useInspectionScheduler';
 
 const RecentActivity = ({
   recentActivityData,
@@ -45,8 +42,26 @@ const RecentActivity = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const filteredData =
+    recentActivityData && recentActivityData.length > 0
+      ? recentActivityData.filter(
+          item =>
+            item.Status.toLowerCase() === 'inspected' ||
+            item.Status.toLowerCase() === 'inspection on hold' ||
+            item.DateInspected !== null,
+        )
+      : [];
+
+  const paginatedData =
+    filteredData.length > 0
+      ? filteredData.slice(
+          (currentPage - 1) * itemsPerPage,
+          currentPage * itemsPerPage,
+        )
+      : [];
+
   const nextPage = () => {
-    if (currentPage * itemsPerPage < recentActivityData.length) {
+    if (currentPage * itemsPerPage < filteredData.length) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -57,68 +72,18 @@ const RecentActivity = ({
     }
   };
 
-  const paginatedData =
-    recentActivityData && recentActivityData.length > 0
-      ? recentActivityData.slice(
-          (currentPage - 1) * itemsPerPage,
-          currentPage * itemsPerPage,
-        )
-      : [];
-
   const onPressItem = item => {
     navigation.navigate('InspectionDetails', {item});
   };
 
+  const InspectionImage = ({item}) => {
+    const {
+      data: inspectorImages,
+      loading: isLoading,
+      error: error,
+    } = useInspectorImages(item?.Year, item?.TrackingNumber);
 
-  const InspectionImage = ({ item }) => {
-    const { data: inspectorImages, isLoading, error } = useInspectorImages(
-      item?.year,
-      item?.trackingNumber
-    );
-  
     if (isLoading) {
-      return (
-        <View style={{ backgroundColor: 'transparent' }}>
-          <ActivityIndicator size="small" color="white" style={{ width: 60, height: 60 }} />
-        </View>
-      );
-    }
-  
-    if (error) {
-      return (
-        <Image
-          source={require('../../assets/images/noImage.jpg')}
-          style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
-        />
-      );
-    }
-  
-    const imageUri = inspectorImages?.length > 0 ? inspectorImages[0] : null;
-  
-    return (
-      <FastImage
-        source={
-          imageUri
-            ? { uri: imageUri, priority: FastImage.priority.high, cache: 'web' }
-            : require('../../assets/images/noImage.jpg')
-        }
-        style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
-        resizeMode={FastImage.resizeMode.cover}
-      />
-    );
-  };
-
-/*   const InspectionImage = ({item}) => {
-    const {inspectorImages, loading, error, fetchInspectorImage} = useGetImage(
-      item?.Year,
-      item?.TrackingNumber,
-    );
-
-    useEffect(() => {
-      fetchInspectorImage();
-    }, [item?.Year, item?.TrackingNumber]);
-
-    if (loading) {
       return (
         <View style={{backgroundColor: 'transparent'}}>
           <ActivityIndicator
@@ -134,17 +99,12 @@ const RecentActivity = ({
       return (
         <Image
           source={require('../../assets/images/noImage.jpg')}
-          style={{
-            width: 60,
-            height: 60,
-            borderWidth: 1,
-            borderColor: 'silver',
-          }}
+          style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
         />
       );
     }
 
-    const imageUri = inspectorImages.length > 0 ? inspectorImages[0] : null;
+    const imageUri = inspectorImages?.length > 0 ? inspectorImages[0] : null;
 
     return (
       <FastImage
@@ -153,16 +113,11 @@ const RecentActivity = ({
             ? {uri: imageUri, priority: FastImage.priority.high, cache: 'web'}
             : require('../../assets/images/noImage.jpg')
         }
-        style={{
-          width: 60,
-          height: 60,
-          borderWidth: 1,
-          borderColor: 'silver',
-        }}
+        style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
         resizeMode={FastImage.resizeMode.cover}
       />
     );
-  }; */
+  };
 
   return (
     <View
@@ -171,15 +126,7 @@ const RecentActivity = ({
         marginHorizontal: 10,
         backgroundColor: 'white',
         borderRadius: 5,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
         elevation: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: 'silver',
-        borderRightWidth: 1,
-        borderRightColor: 'silver',
       }}>
       <View
         style={{
@@ -202,12 +149,7 @@ const RecentActivity = ({
             }}>
             Recent Activity
           </Text>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity onPress={prevPage} disabled={currentPage === 1}>
               <Icon
                 name="chevron-back"
@@ -220,23 +162,15 @@ const RecentActivity = ({
                 marginHorizontal: 20,
                 fontSize: 14,
                 color: 'gray',
-              }}>
-              {`${currentPage}`}
-            </Text>
+              }}>{`${currentPage}`}</Text>
             <TouchableOpacity
               onPress={nextPage}
-              disabled={
-                !recentActivityData ||
-                recentActivityData.length === 0 ||
-                currentPage * itemsPerPage >= recentActivityData.length
-              }>
+              disabled={currentPage * itemsPerPage >= filteredData.length}>
               <Icon
                 name="chevron-forward"
                 size={24}
                 color={
-                  !recentActivityData ||
-                  recentActivityData.length === 0 ||
-                  currentPage * itemsPerPage >= recentActivityData.length
+                  currentPage * itemsPerPage >= filteredData.length
                     ? '#eee'
                     : 'black'
                 }
@@ -247,144 +181,54 @@ const RecentActivity = ({
       </View>
 
       {recentActivityLoading ? (
-        <View
-          style={{
-            marginTop: 10,
-            marginHorizontal: 10,
-            marginBottom: 5,
-            shadowColor: '#000',
-            shadowOffset: {width: 0, height: 2},
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            backgroundColor: 'rgba(0,0,0, 0.05)',
-            padding: 10,
-          }}>
-          <ActivityIndicator size="large" color="white" />
-        </View>
+        <ActivityIndicator
+          size="large"
+          color="gray"
+          style={{marginVertical: 10}}
+        />
       ) : recentActivityError ? (
-        <View
-          style={{
-            marginTop: 10,
-            marginHorizontal: 10,
-            marginBottom: 5,
-            shadowColor: '#000',
-            shadowOffset: {width: 0, height: 2},
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            backgroundColor: 'rgba(255, 0, 0, 0.1)', // Red background for error
-            padding: 10,
-          }}>
-          <Text
-            style={{
-              color: 'white',
-              fontFamily: 'Inter_18pt-Regular',
-              fontSize: 14,
-              textAlign: 'center',
-            }}>
-            Something went wrong. Please try again.
-          </Text>
-        </View>
+        <Text style={{color: 'red', textAlign: 'center', marginVertical: 10}}>
+          Something went wrong. Please try again.
+        </Text>
       ) : (
-        <View
-          style={{
-            marginBottom: 5,
-            shadowColor: '#000',
-            shadowOffset: {width: 0, height: 2},
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            backgroundColor: 'rgba(255, 255, 255, 0.96)',
-            marginHorizontal: 5,
-          }}>
-          {!recentActivityData || recentActivityData.length === 0 ? (
-            <View
-              style={{
-                alignItems: 'center',
-                padding: 10,
-                backgroundColor: 'rgb(243, 243, 243)',
-                marginHorizontal: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_18pt-Regular',
-                  color: 'silver',
-                  fontSize: 12,
-                }}>
-                No results found
-              </Text>
-            </View>
+        <View style={{marginBottom: 5}}>
+          {filteredData.length === 0 ? (
+            <Text style={{textAlign: 'center', color: 'gray', padding: 10}}>
+              No results found
+            </Text>
           ) : (
             paginatedData.map((item, index) => (
-              <Pressable
-                key={index}
-                onPress={() => onPressItem(item)}
-                style={({pressed}) => [
-                  {
-                    shadowColor: '#000',
-                    shadowOffset: {width: 0, height: 2},
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    backgroundColor: pressed
-                      ? 'rgba(255, 255, 255, 0.1)'
-                      : 'rgba(192, 192, 192, 0.05)',
-                  },
-                ]}
-                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-                <View
-                  style={{flexDirection: 'row', marginVertical: 10, gap: -5}}>
-                  <View
-                    style={{
-                      width: '30%',
-                      alignSelf: 'center',
-                      justifyContent: 'center',
-                      paddingHorizontal: 10,
-                    }}>
+              <Pressable key={index} onPress={() => onPressItem(item)}>
+                <View style={{flexDirection: 'row', marginVertical: 10}}>
+                  <View style={{width: '30%', alignItems: 'center'}}>
                     <InspectionImage item={item} />
                   </View>
-
-                  <View style={{gap: 0, width: '70%'}}>
+                  <View style={{width: '70%'}}>
                     <Text
                       style={{
                         fontFamily: 'Inter_28pt-SemiBold',
                         fontSize: 12,
                         color: '#252525',
-                        width: '90%',
                       }}
-                      numberOfLines={1}
-                      ellipsizeMode="tail">
+                      numberOfLines={1}>
                       {item.OfficeName}
                     </Text>
-
                     <Text
                       style={{
                         fontFamily: 'Inter_28pt-Regular',
                         fontSize: 12,
                         color: '#252525',
                       }}>
-                      {item.CategoryCode}
-                      {' - '}
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          fontSize: 10,
-                          color: '#252525',
-                        }}>
-                        {item.CategoryName}
-                      </Text>
+                      {item.CategoryCode} -{' '}
+                      <Text style={{fontSize: 10}}>{item.CategoryName}</Text>
                     </Text>
                     <Text
                       style={{
                         fontFamily: 'Inter_28pt-Regular',
                         fontSize: 12,
-                        color: 'white',
+                        color: '#252525',
                       }}>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          fontSize: 12,
-                          color: '#252525',
-                        }}>
-                        {item.TrackingNumber}
-                      </Text>
+                      {item.TrackingNumber}
                     </Text>
                   </View>
                 </View>
@@ -440,11 +284,6 @@ const DoctrackScreen = ({
   forInspection,
   inspected,
   inspectionOnHold,
-  inspectionLoading,
-  inspectionError,
-  recentActivityData,
-  recentActivityError,
-  recentActivityLoading,
   fetchRecentActivity,
   receivingCount,
   receivingCountData,
@@ -476,129 +315,15 @@ const DoctrackScreen = ({
   const [isModalVisible, setModalVisible] = React.useState(false);
   const queryClient = useQueryClient();
 
-  const [selectedDate, setSelectedDate] = useState('');
+  const {data: requestInspectionData} = useRequestInspection();
+  const {data: onScheduleData} = useOnSchedule();
+  const {
+    data: recentActivityData,
+    error: recentActivityError,
+    loading: recentActivityLoading,
+  } = useInspection();
 
   const navigation = useNavigation();
-
-  const YearDropdown = ({selectedYear, setSelectedYear}) => {
-    const years = Array.from(
-      {length: Math.max(0, currentYear - 2023 + 1)},
-      (_, index) => ({
-        label: `${currentYear - index}`,
-        value: currentYear - index,
-      }),
-    );
-
-    return (
-      <View
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          borderWidth: 1,
-          borderColor: 'silver',
-          borderRadius: 5,
-        }}>
-        <Dropdown
-          style={[styles.dropdown, {elevation: 10}]}
-          data={years}
-          labelField="label"
-          valueField="value"
-          placeholder={`${selectedYear}`}
-          selectedTextStyle={{color: '#252525'}}
-          placeholderStyle={{color: '#252525'}}
-          iconStyle={{tintColor: '#252525'}}
-          value={selectedYear}
-          onChange={item => {
-            setSelectedYear(item.value);
-          }}
-        />
-      </View>
-    );
-  };
-
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-    '',
-    //'Total',
-  ];
-  const data = [
-    [8, 10, 3, 21],
-    [13, 8, 9, 30],
-    [50, 23, 26, 99],
-    [45, 24, 23, 92],
-    [43, 24, 24, 91],
-    [77, 57, 26, 160],
-    [55, 27, 39, 121],
-    [210, 166, 32, 408],
-    [113, 85, 42, 240],
-    [82, 49, 47, 178],
-    [696, 473, 271, 1440],
-  ];
-
-  const transactions = {
-    '2025-02-20': [
-      {
-        id: '1',
-        title: 'Transaction 1',
-        description: 'Detail for transaction 1',
-      },
-      {
-        id: '2',
-        title: 'Transaction 2',
-        description: 'Detail for transaction 2',
-      },
-    ],
-    '2025-02-21': [
-      {
-        id: '3',
-        title: 'Transaction 3',
-        description: 'Detail for transaction 3',
-      },
-    ],
-    // add more dates & transactions as needed
-  };
-
-  const onDayPress = day => {
-    setSelectedDate(day.dateString);
-  };
-
-  const renderTransaction = ({item}) => (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.transactionTitle}>{item.title}</Text>
-        <Text style={styles.transactionDesc}>{item.description}</Text>
-      </Card.Content>
-    </Card>
-  );
-
-  const transactionsForSelectedDate = transactions[selectedDate] || [];
-
-  /* const tableData = [
-    { month: 'Jan', onEvaluation: '', evaluated: '', pending: '', total: '' },
-    { month: 'Feb', onEvaluation: 8, evaluated: 10, pending: 3, total: 21 },
-    { month: 'Mar', onEvaluation: '', evaluated: '', pending: '', total: '' },
-    { month: 'Apr', onEvaluation: 13, evaluated: 8, pending: 9, total: 30 },
-    { month: 'May', onEvaluation: 50, evaluated: 23, pending: 26, total: 99 },
-    { month: 'Jun', onEvaluation: 45, evaluated: 24, pending: 23, total: 92 },
-    { month: 'Jul', onEvaluation: 43, evaluated: 24, pending: 24, total: 91 },
-    { month: 'Aug', onEvaluation: 77, evaluated: 57, pending: 26, total: 160 },
-    { month: 'Sep', onEvaluation: 55, evaluated: 27, pending: 39, total: 121 },
-    { month: 'Oct', onEvaluation: 210, evaluated: 166, pending: 32, total: 408 },
-    { month: 'Nov', onEvaluation: 113, evaluated: 85, pending: 42, total: 240 },
-    { month: 'Dec', onEvaluation: 82, evaluated: 49, pending: 47, total: 178 },
-    { month: 'Total', onEvaluation: 696, evaluated: 473, pending: 271, total: 1440 }
-  ]; */
 
   const getSumOfDocumentTypeCount = data => {
     if (!data || !Array.isArray(data)) {
@@ -667,8 +392,7 @@ const DoctrackScreen = ({
   const totalDocumentTypeCount = getSumOfDocumentTypeCount(othersVouchersData);
   const checkReleasedOthersCount = getTotalCheckReleasedCount(othersOthersData);
   const caoReleasedOthersCount = getTotalCAOReleasedCount(othersOthersData);
-  const totalDocumentTypeOthersCount =
-    getSumOfDocumentTypeCount(othersOthersData);
+  const totalDocumentTypeOthersCount = getSumOfDocumentTypeCount(othersOthersData);
   const percentage = getPercentage(checkReleasedCount, totalDocumentTypeCount);
   const percentageOthers = getPercentageOthers(
     checkReleasedOthersCount,
@@ -676,9 +400,6 @@ const DoctrackScreen = ({
     totalDocumentTypeOthersCount,
   );
   const [visibleStatusCounts, setVisibleStatusCounts] = useState({});
-  const [visibleOthersStatusCounts, setVisibleOthersStatusCounts] = useState(
-    {},
-  );
   const [visibleDocuments, setVisibleDocuments] = useState(false);
   const [visibleDocumentsOthers, setVisibleDocumentsOthers] = useState(false);
 
@@ -904,7 +625,7 @@ const DoctrackScreen = ({
   const onRefreshInspector = useCallback(async () => {
     setRefreshing(true);
     setModalVisible(true);
-  
+
     try {
       await Promise.all([
         fetchMyPersonal(),
@@ -912,12 +633,11 @@ const DoctrackScreen = ({
         fetchRecentActivity(),
         fetchRequests(),
       ]);
-  
-      // Invalidate and refetch the 'inspection' query
-      queryClient.invalidateQueries({
-        queryKey: ['inspection'],
-        
-      });
+
+      queryClient.invalidateQueries({queryKey: ['inspection']});
+      queryClient.invalidateQueries({queryKey: ['inspectionRequest']});
+      queryClient.invalidateQueries({queryKey: ['onSchedule']});
+      //queryClient.invalidateQueries({queryKey: ['inspectionRecentActivity']});
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -927,7 +647,6 @@ const DoctrackScreen = ({
       }, 3000);
     }
   }, []);
-  
 
   const selectedOnRefresh = useCallback(() => {
     if (permission === '10' || permission === '48') {
@@ -936,49 +655,6 @@ const DoctrackScreen = ({
       return onRefresh();
     }
   }, [permission, onRefresh, onRefreshInspector]);
-
-  const handleSummary = async () => {
-    if (navigation) {
-      navigation.dispatch(
-        StackActions.push('Summary', {
-          /* Optional parameters here */
-        }),
-      );
-      // Or you can use
-      // navigation.navigate('Summary', { /* Optional parameters here */ });
-    }
-  };
-
-  const handleMyTransactions = async () => {
-    if (navigation) {
-      navigation.navigate('MyTransactions');
-    }
-  };
-
-  const handleMyAccountability = async () => {
-    if (navigation) {
-      navigation.navigate('MyAccountability');
-    }
-  };
-
-  const handleSender = async () => {
-    if (navigation) {
-      navigation.navigate('Sender');
-    }
-  };
-
-  const handleOfficeDelays = async () => {
-    if (navigation) {
-      navigation.navigate('OfficeDelays');
-      return <OfficeDelaysScreen />;
-    }
-  };
-
-  const handleRecentUpdated = async () => {
-    if (navigation) {
-      navigation.navigate('RecentUpdated');
-    }
-  };
 
   const handlePRStatus = useCallback(() => {
     setShowPRStatus(prevState => !prevState);
@@ -991,11 +667,6 @@ const DoctrackScreen = ({
   const handlePXStatus = useCallback(() => {
     setShowPXStatus(prevState => !prevState);
   }, []);
-
-  const handleInspection = async () => {
-    navigation.navigate('ProjectCleansing');
-    return <ProjectCleansingScreen />;
-  };
 
   const slideAnimPR = useRef(new Animated.Value(-100)).current;
   const slideAnimPO = useRef(new Animated.Value(-100)).current;
@@ -1211,126 +882,136 @@ const DoctrackScreen = ({
 
         {/*TRANSACTION COUNTER*/}
         <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            marginHorizontal: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: {width: 0, height: 2},
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver',
-          }}>
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Bold',
-                color: '#252525',
-                fontSize: 15,
-                paddingHorizontal: 10,
-              }}>
-              Transaction Counter
-            </Text>
-          </View>
+  style={{
+    padding: 10,
+    marginTop: 10,
+    marginHorizontal: 10,
+    backgroundColor: 'white',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'silver',
+    borderRightWidth: 1,
+    borderRightColor: 'silver',
+  }}>
+  <View
+    style={{
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    }}>
+    <Text
+      style={{
+        fontFamily: 'Inter_28pt-Bold',
+        color: '#252525',
+        fontSize: 15,
+        paddingHorizontal: 10,
+      }}>
+      Transaction Counter
+    </Text>
+  </View>
 
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              gap: 10,
-              paddingHorizontal: 10,
-              marginTop: 5,
-              paddingTop: 10,
-            }}>
-            {[
-              {
-                label: 'Delays',
-                count: `${officeDelaysLength ? officeDelaysLength : 0}`,
-                screen: 'OfficeDelays',
-                condition: accountType === '1',
-              },
-              {
-                label: 'Updated',
-                count: `${updatedNowData ? updatedNowData : 0}`,
-                screen: 'RecentUpdated',
-              },
-              {
-                label: 'RegDelays',
-                count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
-                screen: 'Summary',
-                condition:
-                  accountType > '1' &&
-                  [
-                    '8751',
-                    '1031',
-                    'BAAC',
-                    'BACN',
-                    '1071',
-                    '1081',
-                    '1061',
-                    '1091',
-                  ].includes(officeCode),
-              },
-            ].map((item, index, arr) => {
-              if (item.condition === false) {
-                return null;
-              }
+  <View
+    style={{
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      gap: 10,
+      paddingHorizontal: 10,
+      marginTop: 5,
+      paddingTop: 10,
+    }}>
+    {[
+      {
+        label: 'Delays',
+        count: `${officeDelaysLength ? officeDelaysLength : 0}`,
+        screen: 'OfficeDelays',
+        condition: accountType === '1',
+      },
+      {
+        label: 'Updated',
+        count: `${updatedNowData ? updatedNowData : 0}`,
+        screen: 'RecentUpdated',
+      },
+      {
+        label: 'Attachments',
+        icon: 'document-attach',
+        screen: 'Attachments',
+      },
+      {
+        label: 'RegDelays',
+        count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
+        screen: 'Summary',
+        condition:
+          accountType > '1' &&
+          [
+            '8751',
+            '1031',
+            'BAAC',
+            'BACN',
+            '1071',
+            '1081',
+            '1061',
+            '1091',
+          ].includes(officeCode),
+      },
+    ].map((item, index, arr) => {
+      if (item.condition === false) {
+        return null;
+      }
 
-              return (
-                <Pressable
-                  key={index}
-                  onPress={() => navigation.navigate(item.screen, item.params)}
-                  style={({pressed}) => [
-                    {
-                      width: arr.length === 3 ? '32%' : '32%',
-                      alignItems: 'center',
-                      paddingVertical: 10,
-                      marginBottom: 10,
-                      borderRadius: 5,
-                      elevation: 1,
-                      backgroundColor: pressed ? '#007bff' : '#ffffff',
-                      borderBottomWidth: 2,
-                      borderBottomColor: 'silver',
-                      borderRightWidth: 2,
-                      borderRightColor: 'silver',
-                    },
-                  ]}
-                  android_ripple={{}}>
-                  {({pressed}) => (
-                    <>
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : 'black',
-                          fontFamily: 'Inter_28pt-Bold',
-                          fontSize: 26,
-                        }}>
-                        {item.count || 0}
-                      </Text>
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#252525',
-                          fontFamily: 'Inter_28pt-Regular',
-                          fontSize: 10,
-                        }}>
-                        {item.label}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+      return (
+        <Pressable
+          key={index}
+          onPress={() => navigation.navigate(item.screen, item.params)}
+          style={({ pressed }) => [
+            {
+              width: arr.length === 3 ? '32%' : '32%',
+              alignItems: 'center',
+              paddingVertical: 10,
+              marginBottom: 10,
+              borderRadius: 5,
+              elevation: 1,
+              backgroundColor: pressed ? '#007bff' : '#ffffff',
+              borderBottomWidth: 2,
+              borderBottomColor: 'silver',
+              borderRightWidth: 2,
+              borderRightColor: 'silver',
+            },
+          ]}
+          android_ripple={{}}>
+          {({ pressed }) => (
+            <>
+              {item.icon ? (
+                <Icon name={item.icon} size={26} color={pressed ? 'white' : 'black'} style={{marginVertical:5}} />
+              ) : (
+                <Text
+                  style={{
+                    color: pressed ? 'white' : 'black',
+                    fontFamily: 'Inter_28pt-Bold',
+                    fontSize: 26,
+                  }}>
+                  {item.count || 0}
+                </Text>
+              )}
+              <Text
+                style={{
+                  color: pressed ? 'white' : '#252525',
+                  fontFamily: 'Inter_28pt-Regular',
+                  fontSize: 10,
+                }}>
+                {item.label}
+              </Text>
+            </>
+          )}
+        </Pressable>
+      );
+    })}
+  </View>
+</View>
+
 
         <View style={{marginBottom: 10}}>
           {/*Personal*/}
@@ -1449,7 +1130,6 @@ const DoctrackScreen = ({
           </View>
         </View>
 
-        {/*PROCUREMENT PROGRESS*/}
         {accountType === '1' ? (
           <View
             style={{
@@ -2356,12 +2036,12 @@ const DoctrackScreen = ({
                   {
                     label: 'Request',
                     screen: 'RequestScreen',
-                    length: `${requestsLength}`,
+                    length: `${requestInspectionData?.length ?? 0}`,
                   },
                   {
                     label: 'On Schedule',
                     screen: 'OnScheduleScreen',
-                    length: `${OnScheduleLength}`,
+                    length: `${onScheduleData?.length ?? 0}`,
                   },
                 ].map((item, index, arr) => (
                   <Pressable
@@ -3706,7 +3386,6 @@ const DoctrackScreen = ({
                     if (item.screen) {
                       navigation.navigate(item.screen);
                     } else {
-                      console.log(`${item.label} card pressed`);
                     }
                   }}>
                   <Text
@@ -3805,14 +3484,13 @@ const DoctrackScreen = ({
                     justifyContent: 'center',
                     //rowGap: 5,
                     marginBottom: 10 /* 
-          marginRight: (index + 1) % 3 === 0 ? 0 : '5%', */, // No right margin for the last item in a row
+                    marginRight: (index + 1) % 3 === 0 ? 0 : '5%', */, // No right margin for the last item in a row
                   }}
                   android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
                   onPress={() => {
                     if (item.screen) {
                       navigation.navigate(item.screen);
                     } else {
-                      console.log(`${item.label} card pressed`);
                     }
                   }}>
                   <Text

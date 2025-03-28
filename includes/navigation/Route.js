@@ -102,6 +102,7 @@ import EvalPendingReleasedScreen from '../screens/evaluator/EvalPendingReleasedS
 import EvalDaily from '../screens/evaluator/EvalDaily';
 import EvalMonthly from '../screens/evaluator/EvalMonthly';
 import EvalAnnual from '../screens/evaluator/EvalAnnual';
+import AttachmentsScreen from '../screens/AttachmentsScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -501,6 +502,8 @@ export function Route() {
         <Stack.Screen name='EvalDaily' component={EvalDaily}/>
         <Stack.Screen name='EvalMonthly' component={EvalMonthly} />
         <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
+
+        <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
 
         <Stack.Screen
           name="ProjectCleansing"

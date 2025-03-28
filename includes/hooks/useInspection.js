@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchInspection,fetchInspectionDetails, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage } from '../api/inspectionApi.js';
+import { fetchInspection,fetchInspectionDetails, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage, fetchInspectionPRDetails, fetchInspectionRecentActivity  } from '../api/inspectionApi.js';
 import useUserInfo from '../api/useUserInfo.js';
 
 export const useInspection = () => {
@@ -14,16 +14,15 @@ export const useInspection = () => {
   });
 };
 
-export const useInspectionDetails = (year, trackingNumber, accountType, officeCode) => {
+export const useInspectionDetails = (year, trackingNumber) => {
   const { employeeNumber } = useUserInfo();
-
   return useQuery({
-    queryKey: ['inspectionDetails', employeeNumber, year, trackingNumber, accountType, officeCode], 
+    queryKey: ['inspectionDetails', employeeNumber, year, trackingNumber], 
     queryFn: async () => {
       if (!employeeNumber) throw new Error('Employee Number is required');
       if (!trackingNumber) throw new Error('Tracking Number is required');
       
-      return await fetchInspectionDetails(year, trackingNumber, accountType, officeCode);
+      return await fetchInspectionDetails(year, trackingNumber);
     },
     enabled: !!employeeNumber && !!trackingNumber, 
     staleTime: 5 * 60 * 1000, 
@@ -35,7 +34,6 @@ export const useInspectionItems = (year, trackingNumber) => {
   return useQuery({
     queryKey: ["inspectionItems", year, trackingNumber],
     queryFn: async () => {
-      console.log("Fetching inspection items for:", { year, trackingNumber }); // ✅ Log when refetching
       if (!trackingNumber) throw new Error("Tracking Number is required");
 
       return await fetchInspectionItems(year, trackingNumber);
@@ -59,7 +57,6 @@ export const useInspectItems = () => {
       return await inspectItems(year, employeeNumber,deliveryId, trackingNumber, inspectionStatus, invNumber, invDate, remarks);
     },
     onSuccess: () => {
-      console.log("Inspection updated successfully");
       queryClient.invalidateQueries(['inspection']); // Ensure inspections are refetched
     },
     onError: (error) => {
@@ -81,7 +78,6 @@ export const useAddSchedule = () => {
       return await addSchedule(date, deliveryId);
     },
     onSuccess: () => {
-      console.log("Mutation success");
       queryClient.invalidateQueries(['inspection']);
     },
     onError: (error) => {
@@ -92,7 +88,6 @@ export const useAddSchedule = () => {
 };
 
 export const useInspectorImages = (year, trackingNumber) => {
-
   return useQuery({
     queryKey: ['inspectorImages', year, trackingNumber],
     queryFn: async () => {
@@ -113,7 +108,6 @@ export const useUploadInspector = (onSuccess, onError) => {
     mutationFn: uploadInspector,
     retry: 2,
     onSuccess: (data) => {
-      console.log('Upload successful:', data);
       if (onSuccess) onSuccess(data);
     },
     onError: (error) => {
@@ -129,12 +123,37 @@ export const useRemoveInspectorImage = (onSuccess, onError) => {
     mutationFn: removeInspectorImage,
     retry: 2,
     onSuccess: (data) => {
-      console.log('Image removal successful:', data);
       if (onSuccess) onSuccess(data);
     },
     onError: (error) => {
       console.error('Image removal failed:', error.message);
       if (onError) onError(error);
     },
+  });
+};
+
+export const useInspectionPRDetails = (year, trackingNumber) => {
+  return useQuery({
+    queryKey: ["inspectionPRDetails", year, trackingNumber],
+    queryFn: async () => {
+      if (!trackingNumber) throw new Error("Tracking Number is required");
+
+      return await fetchInspectionPRDetails(year, trackingNumber);
+    },
+    enabled: !!trackingNumber, 
+    staleTime: 5 * 60 * 1000, 
+    retry: 2, 
+  });
+};
+
+export const useInspectionRecentActivity = () => {
+  const { employeeNumber } = useUserInfo();
+
+  return useQuery({
+    queryKey: employeeNumber ? ['inspectionRecentActivity', employeeNumber] : ['inspectionRecentActivity'],
+    queryFn: () => (employeeNumber ? fetchInspectionRecentActivity(employeeNumber) : Promise.resolve([])),
+    enabled: Boolean(employeeNumber),
+    staleTime: 5 * 60 * 1000, 
+    retry: 2, 
   });
 };

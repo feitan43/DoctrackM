@@ -9,11 +9,11 @@ export const fetchInspection = async (employeeNumber) => {
   return data;
 };
 
-export const fetchInspectionDetails = async (year, trackingNumber, accountType, officeCode) => {
+export const fetchInspectionDetails = async (year, trackingNumber) => {
   if (!trackingNumber) throw new Error('Tracking number is required');
 
   const { data } = await apiClient.get(
-    `/genInformation?Year=${year}&TrackingNumber=${trackingNumber}&accountType=${accountType}&officeCode=${officeCode}`,
+    `/genInformation?Year=${year}&TrackingNumber=${trackingNumber}`,
   );
   return data;
 };
@@ -77,7 +77,7 @@ export const fetchInspectorImage = async (year, trackingNumber) => {
     const { data } = await apiClient.get(
       `/getInspectorImage?year=${year}&trackingNumber=${trackingNumber}`
     );
-    console.log("d",data);
+
     if (data.success) {
       const image_URL = `http://192.168.254.134/`;
       // const image_URL = `https://www.davaocityportal.com/`;
@@ -172,6 +172,40 @@ export const removeInspectorImage = async (imageUri) => {
     throw err;
   }
 };
+
+export const fetchInspectionPRDetails= async (year, trackingNumber) => {
+  try {
+    if (!trackingNumber) throw new Error("Tracking number is required");
+
+    const { data } = await apiClient.get(
+      `/getInspectionPRDetails?year=${year}&trackingNumber=${trackingNumber}`
+    );
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching fetchInspectionPRDetails:", error.message);
+    throw error;
+  }
+};
+
+export const fetchInspectionRecentActivity = async (employeeNumber) => {
+  if (!employeeNumber) {
+    throw new Error('Employee Number is required');
+  }
+
+  try {
+    const { data } = await apiClient.get(`/getRecentActivity?employeeNumber=${employeeNumber}`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching recent activity:', error);
+    throw error;
+  }
+};
+
+
+
+
+
 
 
 

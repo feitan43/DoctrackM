@@ -68,13 +68,13 @@ const Inspected = ({navigation}) => {
     ...Array.from(
       new Set(
         (Array.isArray(data) ? data : [])
-        .filter(
-          item =>
-            item.DateInspected !== null &&
-            item.DateInspected !== '' &&
-            item?.Status?.toLowerCase() !== 'for inspection' &&
-            item?.Status?.toLowerCase() !== 'inspection on hold',
-        )
+          .filter(
+            item =>
+              item.DateInspected !== null &&
+              item.DateInspected !== '' &&
+              item?.Status?.toLowerCase() !== 'for inspection' &&
+              item?.Status?.toLowerCase() !== 'inspection on hold',
+          )
           .map(item => item.Year)
           .filter(name => name !== undefined && name !== null),
       ),
@@ -94,36 +94,36 @@ const Inspected = ({navigation}) => {
     setTimeout(() => setRefreshing(false), 1500);
   };
 
-  const filteredInspectionListData = Array.isArray(data) 
-  ? data.filter(item => {
-      const searchTerm = searchQuery?.toLowerCase() || '';
+  const filteredInspectionListData = Array.isArray(data)
+    ? data.filter(item => {
+        const searchTerm = searchQuery?.toLowerCase() || '';
 
-      const {
-        OfficeName = '',
-        TrackingNumber = '',
-        CategoryName = '',
-        Year,
-      } = item;
+        const {
+          OfficeName = '',
+          TrackingNumber = '',
+          CategoryName = '',
+          Year,
+        } = item;
 
-      if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-        return false;
-      }
+        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+          return false;
+        }
 
-      if (selectedYear && Year !== selectedYear) {
-        return false;
-      }
+        if (selectedYear && Year !== selectedYear) {
+          return false;
+        }
 
-      if (
-        !OfficeName.toLowerCase().includes(searchTerm) &&
-        !TrackingNumber.toLowerCase().includes(searchTerm) &&
-        !CategoryName.toLowerCase().includes(searchTerm)
-      ) {
-        return false;
-      }
+        if (
+          !OfficeName.toLowerCase().includes(searchTerm) &&
+          !TrackingNumber.toLowerCase().includes(searchTerm) &&
+          !CategoryName.toLowerCase().includes(searchTerm)
+        ) {
+          return false;
+        }
 
-      return true;
-    })
-  : []; 
+        return true;
+      })
+    : [];
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -157,17 +157,6 @@ const Inspected = ({navigation}) => {
     yearBottomSheetRef.current?.expand();
   };
 
-  /* const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await inspectionList();
-    } catch (error) {
-      console.error('Error fetching inspection items:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }; */
-
   const filteredInspectionList = filteredInspectionListData?.filter(
     item =>
       item.DateInspected !== null &&
@@ -175,16 +164,10 @@ const Inspected = ({navigation}) => {
       item?.Status?.toLowerCase() !== 'for inspection' &&
       item?.Status?.toLowerCase() !== 'inspection on hold',
   );
-
-  /*   const filteredInspectionList = filteredInspectionListData.filter(
-    item =>
-      item.DateInspected !== null &&
-      item.Status !== 'For Inspection' &&
-      item.Status !== 'Inspection on hold' &&
-      item.Status !== 'Inspection On Hold' &&
-      item.TrackingPartner !== null &&
-      item.TrackingPartner !== '',
-  ); */
+  const toggleSearchBar = () => {
+    setShowSearch(!showSearch);
+    setSearchQuery('');
+  };
 
   const renderInspection = () => {
     if (isLoading) {
@@ -232,27 +215,28 @@ const Inspected = ({navigation}) => {
         {filteredInspectionList?.length === 0 ? (
           <View
             style={{
-              flex: 1,
-              top: 80,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
             }}>
             <Image
               source={require('../../../assets/images/noresultsstate.png')}
               style={{
-                width: '60%',
-                height: '25%',
-                alignSelf: 'center',
+                width: 200,
+                height: 200,
+                resizeMode: 'contain',
+                marginBottom: 10,
               }}
             />
             <Text
               style={{
-                fontFamily: 'Oswald-Light',
                 alignSelf: 'center',
                 color: 'gray',
-                fontSize: 16,
+                fontSize: 14,
                 textAlign: 'center',
-                padding: 5,
+                paddingHorizontal: 10,
               }}>
-              NO RESULTS FOUND
+              No Result Found
             </Text>
           </View>
         ) : (
@@ -305,35 +289,42 @@ const Inspected = ({navigation}) => {
           source={require('../../../assets/images/CirclesBG.png')}
           style={styles.bgHeader}>
           <View style={styles.header}>
-            <Pressable
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back" size={24} color="#fff" />
-            </Pressable>
-            <Text style={styles.title}>Inspected</Text>
-            <View
-              style={{width: 40, alignItems: 'flex-end', marginEnd: 10}}></View>
+            {showSearch ? (
+              <>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  onPress={toggleSearchBar}
+                  style={styles.searchIcon}>
+                  <Icon name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Inspected</Text>
+                <TouchableOpacity
+                  onPress={toggleSearchBar}
+                  style={styles.searchIcon}>
+                  <Icon name="search" size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleFiltersPress}
+                  style={styles.searchIcon}>
+                  <Icon name="ellipsis-vertical" size={20} color="#fff" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
-
-          <Pressable
-            style={({pressed}) => ({
-              flexDirection: 'row',
-              alignSelf: 'center',
-              marginHorizontal: 20,
-              padding: 5,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 20,
-              backgroundColor: showSearch ? '#007bff' : 'transparent',
-            })}
-            onPress={() => setShowSearch(!showSearch)}>
-            <Icon
-              name="search"
-              size={20}
-              color={showSearch ? '#fff' : '#fff'}
-              style={{alignSelf: 'center'}}
-            />
-          </Pressable>
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -367,40 +358,6 @@ const Inspected = ({navigation}) => {
             />
           </Menu>
         </ImageBackground>
-
-        {showSearch && (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Icon
-                name="search"
-                size={20}
-                color="#888"
-                style={styles.searchIcon}
-              />
-              <TextInput
-                placeholder="Search Office, Payment TN"
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.searchInput}
-                placeholderTextColor="gray"
-                autoCapitalize="characters"
-                autoFocus={true}
-                autoCorrect={false}
-                autoCompleteType="off"
-                textContentType="none"
-                keyboardType="default"
-                spellCheck={false}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
-                  style={styles.clearButton}>
-                  <Icon name="close" size={20} color="black" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
 
         <View style={{height: '100%'}}>{renderInspection()}</View>
 
@@ -483,6 +440,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
+  bgHeader: {
+    paddingTop: 35,
+    height: 80,
+    backgroundColor: '#1a508c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#fff',
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    height: 40,
+    flex: 1,
+    fontSize: 14,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginStart: 10,
+    marginRight: 20,
+    paddingStart: 20,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
   menuItemTitle: {
     color: 'black',
   },
@@ -499,62 +498,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingLeft: 10,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    height: 40,
-    flex: 1,
-    fontSize: 14,
-  },
-  headerContainer: {
-    //backgroundColor: 'white',
-    //paddingHorizontal: 10,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    justifyContent: 'space-between',
-    //elevation: 3,
-    //borderBottomWidth: 1,
-    //borderBottomColor: 'rgb(224, 224, 224)',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    //justifyContent: 'space-between',
-    //alignItems: 'center',
-  },
-  headerLeft: {
-    paddingTop: 10,
-    paddingBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    padding: 5,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 999,
-  },
-  headerTitle: {
-    color: '#ffffff',
-    fontFamily: 'Inter_28pt-Bold',
-    fontSize: 16,
-    marginStart: 10,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    //alignItems: 'center',
-    //justifyContent: 'space-between',
-    //columnGap: 20,
-  },
-  searchToggle: {
-    backgroundColor: '#F8F8F8',
-    padding: 5,
-    borderRadius: 10,
-  },
-  searchActive: {
-    backgroundColor: '#F0F4F7',
   },
   filtersButton: {
     padding: 5,
@@ -641,32 +584,6 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     fontSize: 16,
-  },
-  bgHeader: {
-    paddingTop: 35,
-    height: 80,
-    backgroundColor: '#1a508c',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    //textAlign: 'center',
-  },
-  backButton: {
-    padding: 8,
-    //backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
   },
   clearButton: {
     padding: 5,

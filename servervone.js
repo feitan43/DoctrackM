@@ -1388,7 +1388,7 @@ app.get('/genInformation', async (req, res) => {
 
     const apiResponse = await fetch(apiUrl);
 
-    //console.log(apiUrl);
+    console.log(apiUrl);
 
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
@@ -1936,10 +1936,33 @@ app.get('/getInspectionItems', async (req, res) => {
   } 
 });
 
+app.get('/getInspectionPRDetails', async (req, res) => {
+  const { year, trackingNumber } = req.query; 
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?inspectionPRDetails=1&year=${year}&tn=${trackingNumber}`;
+
+    const apiResponse = await fetch(apiUrl);
+
+    //console.log(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    
+    res.json(data);
+    //console.log(data);
+
+  } catch (error) {
+    console.error('Error fetching data in getInspectionPRDetails:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+});
+
 app.get('/inspectItems', async (req, res) => {
   const { year, employeeNumber, deliveryId, trackingNumber, status , invNumber, invDate, remarks} = req.query; 
-
-  console.log("server",year, employeeNumber, deliveryId, trackingNumber, status, remarks);
 
   try {
     //const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?saitama=1&year=${year}&empnum=${employeeNumber}&tn=${trackingNumber}&status=${status}&remarks=${encodeURIComponent(remarks)}`;
@@ -2021,15 +2044,15 @@ app.get('/getInspectionList', async (req, res) => {
 app.get('/getRecentActivity', async (req, res) => {
   const { employeeNumber } = req.query; 
 
-  //console.log(employeeNumber);
+  if (!employeeNumber) {
+    return res.status(400).json({ error: 'Employee number is required' });
+  }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?loki=1&empnum=${employeeNumber}`;
-
+    
     const apiResponse = await fetch(apiUrl);
-
-    //console.log(apiUrl);
-
+    
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
@@ -2037,10 +2060,9 @@ app.get('/getRecentActivity', async (req, res) => {
     const data = await apiResponse.json();
     
     res.json(data);
-    //console.log(data);
 
   } catch (error) {
-    console.error('Error fetching data in get Recent Activity:', error.message);
+    console.error('Error fetching data in getRecentActivity:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
@@ -2268,9 +2290,7 @@ app.get('/regTrackingSummaryList', async (req, res) => {
   }
 });
 
-
 app.get('/requestForInspection', async (req, res) => {
-
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?requestForInspection=1`;
     const apiResponse = await axios.get(apiUrl);
@@ -2320,6 +2340,8 @@ app.get('/onSchedule', async (req, res) => {
 
 app.get('/assignInspector', async (req, res) => {
   const { id, inspectorEmp, inspectorName } = req.query;
+
+  console.log(id, inspectorEmp, inspectorName);
 
   if (!id || !inspectorEmp || !inspectorName) {
     return res.status(400).json({ error: 'requestId and inspectorId are required' });
@@ -2544,12 +2566,6 @@ app.get('/addSchedule', async (req, res) => {
     res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
   }
 });
-
-
-
-
-
-
 
 
 

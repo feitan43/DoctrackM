@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -11,46 +11,40 @@ import {
   ActivityIndicator,
   TextInput,
   ImageBackground,
-  SafeAreaView
+  SafeAreaView,
 } from 'react-native';
+import {Dropdown} from 'react-native-element-dropdown';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import useRequestInspection from '../../api/useRequestInspection';
-import useInspectors from '../../api/useInspectors';
-import useSendNotifInspector from '../../api/useSendNotifInspector';
+import {
+  useRequestInspection,
+  useInspectionInspectors,
+  useAssignInspector,
+} from '../../hooks/useInspectionScheduler';
+import {useQueryClient} from '@tanstack/react-query';
+import {showMessage} from 'react-native-flash-message';
 
 const RequestScreen = () => {
   const navigation = useNavigation();
-  const currentYear = '2024';
+  const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchBar, setShowSearchBar] = useState(false);
-
   const {
-    requests: requestData,
+    data: requestData,
     loading: requestLoading,
     error: requestError,
-    fetchRequests,
-  } = useRequestInspection(selectedYear);
+  } = useRequestInspection();
   const {
-    inspectors,
+    data: inspectors,
     loading: inspectorLoading,
     error: inspectorError,
-    assignInspector,
-  } = useInspectors();
-  const {
-    sendNotifInspector,
-    loading: sendNotifLoading,
-    error: sendNotifError,
-  } = useSendNotifInspector();
-
+  } = useInspectionInspectors();
+  const {mutateAsync: assignInspector} = useAssignInspector();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [itemTN, setItemTN] = useState(null);
-
   const [loading, setLoading] = useState(false);
-
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -59,13 +53,31 @@ const RequestScreen = () => {
     Inspector: '',
   });
   const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+
+  const years = Array.from({length: currentYear - 2024 + 1}, (_, i) => {
+    const year = (2024 + i).toString();
+    return {label: year, value: year};
+  });
+
+  const filteredData = requestData.filter(
+    item =>
+      item.Year.toString() === selectedYear &&
+      item.TrackingNumber.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const toggleSearchBar = () => {
+    setShowSearchBar(!showSearchBar);
+    setSearchQuery('');
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchRequests();
+      await queryClient.invalidateQueries(['inspectionRequest']); // Invalidates and refetches data
     } catch (error) {
-      console.error('Error fetching inspection items:', error);
+      console.error('Error refreshing inspection items:', error);
     } finally {
       setRefreshing(false);
     }
@@ -76,61 +88,6 @@ const RequestScreen = () => {
     setItemTN(trackingNumber);
     setModalVisible(true);
   };
-
-  /* const assignInspectorToRequest = async inspector => {
-    const tn = itemTN;
-    const requestId = selectedRequestId;
-    const {EmployeeNumber, Inspector} = inspector;
-
-    Alert.alert(
-      '',
-      `Assign ${Inspector} to TN ${tn}?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Yes',
-          onPress: async () => {
-            try {
-              const response = await assignInspector(
-                requestId,
-                EmployeeNumber,
-                Inspector,
-              );
-
-              //console.log('Response:', response);
-
-              if (response?.status === 'success') {
-                setSuccessModalVisible(true);
-                setModalMessage(
-                  response.message || 'Inspector assigned successfully!',
-                );
-                setModalInspector({EmployeeNumber, Inspector});
-              } else if (response?.status === 'error') {
-                console.error('Error response:', response);
-                throw new Error(
-                  response?.message || 'Failed to assign inspector.',
-                );
-              } else {
-                console.error('Unexpected response status:', response);
-                throw new Error('Failed to assign inspector, unknown status.');
-              }
-            } catch (err) {
-              console.error('Error:', err);
-              setErrorModalVisible(true);
-              setModalMessage(err.message || 'An unexpected error occurred.');
-            } finally {
-              fetchRequests();
-            }
-          },
-        },
-      ],
-      {cancelable: false},
-    );
-  };
-   */
 
   const assignInspectorToRequest = async inspector => {
     const tn = itemTN;
@@ -148,38 +105,42 @@ const RequestScreen = () => {
         {
           text: 'Yes',
           onPress: async () => {
-            setLoading(true); // Show loading
+            setLoading(true);
             try {
-              const response = await assignInspector(
-                requestId,
-                EmployeeNumber,
-                Inspector,
-              );
+              const response = await assignInspector({
+                id: requestId,
+                inspectorEmp: EmployeeNumber,
+                inspectorName: Inspector,
+              });
 
-              if (response?.status === 'success') {
-                setSuccessModalVisible(true);
-                setModalMessage(
+              queryClient.invalidateQueries(['inspectionRequest']);
+
+              showMessage({
+                message: 'Success',
+                description:
                   response.message || 'Inspector assigned successfully!',
-                );
-                setModalInspector({EmployeeNumber, Inspector});
-              } else if (response?.status === 'error') {
-                console.error('Error response:', response);
-                throw new Error(
-                  response?.message || 'Failed to assign inspector.',
-                );
-              } else {
-                console.error('Unexpected response status:', response);
-                throw new Error('Failed to assign inspector, unknown status.');
-              }
+                type: 'success',
+                icon: 'success',
+                duration: 3000,
+                floating: true,
+                duration: 3000,
+              });
 
-              await sendNotifInspector(itemTN, EmployeeNumber);
+              setModalVisible(false);
+
+              // await sendNotifInspector(itemTN, EmployeeNumber);
             } catch (err) {
               console.error('Error:', err);
-              setErrorModalVisible(true);
-              setModalMessage(err.message || 'An unexpected error occurred.');
+              showMessage({
+                message: 'Error',
+                description: err.message || 'Failed to assign inspector.',
+                type: 'danger',
+                icon: 'danger',
+                floating: true,
+                duration: 3000,
+              });
             } finally {
-              setLoading(false); // Hide loading
-              fetchRequests();
+              setLoading(false);
             }
           },
         },
@@ -187,13 +148,25 @@ const RequestScreen = () => {
       {cancelable: false},
     );
   };
-
+  
   const renderItem = ({item, index}) => (
-    <View style={styles.card}>
+    <View
+      style={{
+        backgroundColor: '#ffffff',
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 8,
+        marginHorizontal: 5,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        shadowOffset: {width: 0, height: 2},
+      }}>
       <View
         style={{
           flexDirection: 'row',
-          backgroundColor: 'rgba(230, 234, 245, 1)',
+          //backgroundColor: 'rgba(230, 234, 245, 1)',
           alignItems: 'center',
           borderRadius: 5,
         }}>
@@ -203,11 +176,13 @@ const RequestScreen = () => {
             height: 35,
             justifyContent: 'center',
             alignItems: 'center',
+            borderRadius: 10,
+            backgroundColor: 'rgba(230, 234, 245, 1)',
           }}>
           <Text
             style={{
               fontSize: 18,
-              fontFamily: 'Inter_28pt-Bold',
+              fontWeight: 'bold',
               color: 'rgb(7, 84, 252)',
               textAlign: 'center',
             }}>
@@ -215,14 +190,15 @@ const RequestScreen = () => {
           </Text>
         </View>
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            //backgroundColor:'red'
-          }}>
-          <Text style={[styles.label, {flex: 0.2}]}>{'TN '} </Text>
-          <Text style={[styles.value, {flex: 0.7, fontSize: 16}]}>
+        <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+          <Text style={{flex: 0.2, fontSize: 14, color: '#555'}}>{''}</Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
             {item.Year}{' '}
             <Text
               style={{
@@ -237,57 +213,106 @@ const RequestScreen = () => {
         </View>
       </View>
 
+      <View
+        style={{
+          alignSelf: 'center',
+          height: 1,
+          backgroundColor: '#ddd',
+          width: '100%',
+          marginVertical: 5,
+          borderRadius: 10,
+        }}
+      />
+
       <View style={{paddingVertical: 10}}>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Office</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.OfficeName}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Category</Text>
-          <View style={{flex: 0.7}}>
-            <Text style={[styles.value]}>{item.CategoryCode}</Text>
-            <Text style={[styles.value]}>{item.CategoryName}</Text>
+        {[
+          {label: 'Office', value: item.OfficeName},
+          {
+            label: 'Category',
+            value: `${item.CategoryCode}\n${item.CategoryName}`,
+          },
+        ].map(({label, value}, idx) => (
+          <View
+            key={idx}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              marginVertical: 4,
+            }}>
+            <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>
+              {label}
+            </Text>
+            <Text
+              style={{
+                flex: 0.7,
+                fontSize: 14,
+                fontWeight: 'bold',
+                color: '#333',
+              }}>
+              {value}
+            </Text>
           </View>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Delivery Date</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.DeliveryDate}</Text>
-        </View>
-
-        <View
-          style={{
-            alignSelf: 'center',
-            padding: 1,
-            marginVertical: 10,
-            backgroundColor: 'rgb(247, 247, 247)',
-            borderRadius: 10,
-            width: '80%',
-          }}></View>
-
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Address</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.Address}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Contact</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.ContactPerson}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>{/* Contact # */}</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.ContactNumber}</Text>
-        </View>
+        ))}
       </View>
-      {/* <View style={styles.row}>
-        <Text style={[styles.label, {flex: 0.3}]}>Supplier</Text>
-        <Text style={[styles.value, {flex: 0.7}]}>{item.Claimant}</Text>
-      </View> */}
+
+      <View
+        style={{
+          alignSelf: 'center',
+          height: 1,
+          backgroundColor: '#ddd',
+          width: '100%',
+          marginVertical: 5,
+          borderRadius: 10,
+        }}
+      />
+
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#0754FC',
+          marginBottom: 5,
+        }}>
+        Delivery
+      </Text>
+      {[
+        {label: 'Date', value: item.DeliveryDate},
+        {label: 'Address', value: item.Address},
+        {label: 'Contact', value: item.ContactPerson},
+        {label: '', value: item.ContactNumber},
+      ].map(({label, value}, idx) => (
+        <View
+          key={idx}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginVertical: 4,
+          }}>
+          <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>{label}</Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
+            {value}
+          </Text>
+        </View>
+      ))}
 
       <TouchableOpacity
-        style={styles.assignButton}
+        style={{
+          backgroundColor: '#007bff',
+          paddingVertical: 10,
+          borderRadius: 8,
+          alignItems: 'center',
+          marginTop: 12,
+        }}
         onPress={() => handleAssignInspector(item.Id, item.TrackingNumber)}>
-        <Text style={styles.buttonText}>Assign</Text>
+        <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold'}}>
+          Assign
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -295,280 +320,79 @@ const RequestScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-          source={require('../../../assets/images/CirclesBG.png')} // Change this to your background image
-          style={styles.bgHeader}>
-          <View style={styles.header}>
-            <Pressable
-              style={({pressed}) => [
-                pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                styles.backButton,
-              ]}
-              android_ripple={{
-                color: '#F6F6F6',
-                borderless: true,
-                radius: 24,
-              }}
-              onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back" size={24} color="#fff" />
-            </Pressable>
-
-            <Text style={styles.title}>Requests</Text>
-
-            <Pressable
-              style={({pressed}) => ({
-                flexDirection: 'row',
-                alignSelf: 'center',
-                marginHorizontal: 20,
-                padding: 5,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 20,
-                backgroundColor: showSearchBar ? '#007bff' : 'transparent',
-              })}
-              onPress={() => setShowSearchBar(!showSearchBar)}>
-              <Icon
-                name="search"
-                size={20}
-                color={showSearchBar ? '#fff' : '#fff'}
-                style={{alignSelf: 'center'}}
+        source={require('../../../assets/images/CirclesBG.png')}
+        style={styles.bgHeader}>
+        <View style={styles.header}>
+          {showSearchBar ? (
+            <>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
               />
-            </Pressable>
-          </View>
-        </ImageBackground>
-
-      {/* Search Bar */}
-      {showSearchBar && (
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Icon
-              name="search"
-              size={20}
-              color="#888"
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by Inspector, Office, or TN"
-              value={searchQuery}
-              onChangeText={text => setSearchQuery(text)}
-              autoCapitalize="characters"
-              //placeholderTextColor="silver"
-              autoFocus={true}
-              autoCorrect={false}
-              autoCompleteType="off"
-              textContentType="none"
-              keyboardType="default"
-              spellCheck={false}
-            />
-          </View>
+              <TouchableOpacity
+                onPress={toggleSearchBar}
+                style={styles.searchIcon}>
+                <Icon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}>
+                <Icon name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Request</Text>
+              <TouchableOpacity
+                onPress={toggleSearchBar}
+                style={styles.searchIcon}>
+                <Icon name="search" size={24} color="#fff" />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
-      )}
-      
-      <View style={{alignSelf: 'flex-end'}}>
-        <Text style={{marginHorizontal: 10, paddingEnd: 10, paddingTop: 10}}>
-          {requestData.length} results
-        </Text>
-      </View>
+      </ImageBackground>
 
+      <View style={styles.dropdownContainer}>
+        <Dropdown
+          data={years}
+          labelField="label"
+          valueField="value"
+          value={selectedYear}
+          onChange={item => setSelectedYear(item.value)}
+          style={[styles.dropdown, {width: selectedYear.length * 12 + 40}]} // Adjust width dynamically
+          placeholder={selectedYear}
+        />
+      </View>
       {requestLoading ? (
         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
           <ActivityIndicator size="large" color="rgb(80, 161, 247)" />
         </View>
-      ) : (
+      ) : filteredData.length > 0 ? (
         <FlatList
-          data={requestData}
+          data={filteredData}
           renderItem={renderItem}
-          keyExtractor={item =>
-            `${item.Id}-${item.Year}-${item.TrackingNumber}`
-          }
+          keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.listContainer}
           onRefresh={handleRefresh}
           refreshing={refreshing}
           initialNumToRender={10}
           windowSize={5}
         />
+      ) : (
+        <Text
+          style={{
+            fontSize: 16,
+            color: 'gray',
+            textAlign: 'center',
+            marginTop: 20,
+          }}>
+          No Results
+        </Text>
       )}
-
-      {/* Loading Overlay */}
-      <Modal visible={loading} transparent={true} animationType="fade">
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-          <View
-            style={{
-              backgroundColor: 'white',
-              width: '80%',
-              height: '10%',
-              borderRadius: 5,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row',
-            }}>
-            <Text style={{marginTop: 10, color: '#252525', fontSize: 16}}>
-              Assigning...
-            </Text>
-            <ActivityIndicator size="large" color="blue" />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Success Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={successModalVisible}
-        onRequestClose={() => setSuccessModalVisible(false)}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          }}>
-          <View
-            style={{
-              width: '85%',
-              backgroundColor: 'white',
-              paddingVertical: 30,
-              paddingHorizontal: 20,
-              borderRadius: 12,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 4},
-              shadowOpacity: 0.2,
-              shadowRadius: 5,
-              elevation: 5,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Icon
-              name="checkmark-circle"
-              size={60}
-              color="#28a745"
-              style={{marginBottom: 20}}
-            />
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: '#333',
-                marginBottom: 12,
-                textAlign: 'center',
-              }}>
-              Success
-            </Text>
-            {/*    <Text
-            style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: '#333',
-              marginBottom: 12,
-              textAlign: 'center',
-            }}>
-            {modalMessage}
-          </Text> */}
-            <Text
-              style={{
-                fontSize: 14,
-                color: '#555',
-                marginBottom: 25,
-                textAlign: 'center',
-              }}>
-              <Text style={{fontWeight: 'bold'}}>Inspector: </Text>
-              {modalInspector.EmployeeNumber} - {modalInspector.Inspector}
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#28a745',
-                paddingVertical: 12,
-                paddingHorizontal: 25,
-                borderRadius: 5,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onPress={() => {
-                setModalVisible(false);
-                setSuccessModalVisible(false);
-              }}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                }}>
-                OK
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Error Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={errorModalVisible}
-        onRequestClose={() => setErrorModalVisible(false)}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          }}>
-          <View
-            style={{
-              width: '85%',
-              backgroundColor: 'white',
-              paddingVertical: 30,
-              paddingHorizontal: 20,
-              borderRadius: 12,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 4},
-              shadowOpacity: 0.2,
-              shadowRadius: 5,
-              elevation: 5,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Icon
-              name="close-circle"
-              size={60}
-              color="#dc3545"
-              style={{marginBottom: 20}}
-            />
-            <Text style={{fontSize: 20, fontWeight: 'bold', marginBottom: 10}}>
-              Error
-            </Text>
-            <Text style={{fontSize: 16, marginBottom: 20}}>{modalMessage}</Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#dc3545',
-                paddingVertical: 12,
-                paddingHorizontal: 25,
-                borderRadius: 5,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onPress={() => {
-                setModalVisible(false);
-                setErrorModalVisible(false);
-              }}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                }}>
-                OK
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         animationType="fade"
@@ -588,7 +412,9 @@ const RequestScreen = () => {
             </View>
             <FlatList
               data={inspectors}
-              keyExtractor={item => item.Id}
+              keyExtractor={(item, index) =>
+                item?.TrackingNumber || index.toString()
+              }
               renderItem={({item, index}) => (
                 <TouchableOpacity
                   style={styles.inspectorItem}
@@ -615,6 +441,51 @@ const RequestScreen = () => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={searchModalVisible} transparent animationType="slide">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              width: '90%',
+              backgroundColor: '#fff',
+              padding: 20,
+              borderRadius: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <TextInput
+              style={{
+                flex: 1,
+                fontSize: 16,
+                padding: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: '#ccc',
+                paddingStart: 10,
+              }}
+              placeholder="Search Tracking Number..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+            />
+            <TouchableOpacity
+              onPress={() => setSearchModalVisible(false)}
+              style={{
+                marginLeft: 10,
+                backgroundColor: '#f44336',
+                padding: 8,
+                borderRadius: 5,
+              }}>
+              <Icon name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -623,6 +494,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  bgHeader: {
+    paddingTop: 35,
+    height: 80,
+    backgroundColor: '#1a508c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    elevation: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    justifyContent: 'space-between',
+  },
+  searchInput: {
+    height: 40,
+    flex: 1,
+    fontSize: 14,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginStart: 10,
+    marginRight: 20,
+    paddingStart: 20,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  backButton: {
+    padding: 10,
+    borderRadius: 999,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#fff',
   },
   listContainer: {
     padding: 16,
@@ -643,7 +557,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'silver',
   },
   row: {
-    flexDirection: 'row', // Align label and value horizontally
+    flexDirection: 'row',
     marginBottom: 5,
   },
   label: {
@@ -651,43 +565,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_28pt-ExtraLight',
     color: 'gray',
     textAlign: 'right',
-    flex: 0.3, // Label takes 30% width,
+    flex: 0.3,
   },
   value: {
     paddingStart: 10,
-    //fontFamily:'Inter_28pt-Medium',
     fontSize: 14,
     fontFamily: 'Inter_28pt-Regular',
     color: 'black',
-    flex: 0.7, // Value takes 70% width
+    flex: 0.7,
   },
- /*  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingBottom: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-  }, */
-  backButton: {
-    padding: 5,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 999,
-  },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#252525',
-    //padding: 10,
-  },
+
   searchContainer: {
     backgroundColor: 'white',
     paddingHorizontal: 16,
-    paddingTop:10,
+    paddingTop: 10,
     paddingBottom: 10,
   },
   searchBar: {
@@ -696,18 +587,8 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
-    paddingLeft: 10,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    height: 40,
-    flex: 1,
-    fontSize: 14,
   },
   assignButton: {
-    marginTop: 5,
     backgroundColor: 'rgb(80, 161, 247)',
     padding: 10,
     borderRadius: 5,
@@ -747,40 +628,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
     width: '100%',
-
-    //alignItems: 'center',
   },
   inspectorName: {
     fontSize: 16,
     color: '#333',
-  },
-  bgHeader: {
-    paddingTop: 35,
-    height: 85,
-    backgroundColor: '#1a508c',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    elevation: 4, // Shadow effect
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    //backgroundColor: '#fff',
-    paddingBottom: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    //elevation: 2,
   },
   title: {
     flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    //padding: 10,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  dropdownContainer: {
+    marginTop: 10,
+    marginStart: 20,
+  },
+  dropdown: {
+    height: 30,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
   },
 });
 

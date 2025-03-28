@@ -11,35 +11,40 @@ import {
   Modal,
   Alert,
   ImageBackground,
-  SafeAreaView
+  SafeAreaView,
 } from 'react-native';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {Dropdown} from 'react-native-element-dropdown';
-import useOnSchedule from '../../api/useOnSchedule';
-import useInspectors from '../../api/useInspectors';
 import useSendNotifInspector from '../../api/useSendNotifInspector';
+import {
+  useOnSchedule,
+  useInspectionInspectors,
+  useAssignInspector,
+} from '../../hooks/useInspectionScheduler';
+import {useQueryClient} from '@tanstack/react-query';
+import {showMessage} from 'react-native-flash-message';
 
 const OnScheduleScreen = () => {
+  const queryClient = useQueryClient();
+
   const navigation = useNavigation();
   const {
     data: scheduleData,
-    error,
+    error: scheduleError,
     loading: scheduleLoading,
-    fetchOnSchedule,
   } = useOnSchedule();
   const {
-    inspectors,
+    data: inspectors,
     loading: inspectorsLoading,
     error: inspectorsError,
-    assignInspector,
-  } = useInspectors();
+  } = useInspectionInspectors();
   const {
     sendNotifInspector,
     loading: sendNotifLoading,
     error: sendNotifError,
   } = useSendNotifInspector();
+  const {mutateAsync: assignInspector} = useAssignInspector();
 
   const [selectedInspector, setSelectedInspector] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,12 +65,17 @@ const OnScheduleScreen = () => {
   });
   const [refreshing, setRefreshing] = useState(false);
 
+  const toggleSearchBar = () => {
+    setShowSearchBar(!showSearchBar);
+    setSearchQuery('');
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchOnSchedule();
+      await queryClient.invalidateQueries(['onSchedule']); // Invalidate and refetch data
     } catch (error) {
-      console.error('Error fetching inspection items:', error);
+      console.error('Error refreshing onSchedule data:', error);
     } finally {
       setRefreshing(false);
     }
@@ -105,37 +115,53 @@ const OnScheduleScreen = () => {
         {
           text: 'Yes',
           onPress: async () => {
-            setLoading(true); // Show loading
+            setLoading(true);
             try {
-              const response = await assignInspector(
-                requestId,
-                EmployeeNumber,
-                Inspector,
-              );
+              const response = await assignInspector({
+                id: requestId,
+                inspectorEmp: EmployeeNumber,
+                inspectorName: Inspector,
+              });
 
-              if (response?.status === 'success') {
-                setSuccessModalVisible(true);
+              /* setSuccessModalVisible(true);
                 setModalMessage(
                   response.message || 'Inspector assigned successfully!',
                 );
-                setModalInspector({EmployeeNumber, Inspector});
-              } else if (response?.status === 'error') {
-                console.error('Error response:', response);
-                throw new Error(
-                  response?.message || 'Failed to assign inspector.',
-                );
-              } else {
-                console.error('Unexpected response status:', response);
-                throw new Error('Failed to assign inspector, unknown status.');
-              }
-              await sendNotifInspector(itemTN, EmployeeNumber);
+                setModalInspector({EmployeeNumber, Inspector}); */
+
+              queryClient.invalidateQueries(['inspectionRequest']);
+
+              // Show success message
+              showMessage({
+                message: 'Success',
+                description:
+                  response.message || 'Inspector assigned successfully!',
+                type: 'success',
+                icon: 'success',
+                duration: 3000,
+                floating: true,
+                duration: 3000,
+              });
+
+              setModalVisible(false);
+
+              // await sendNotifInspector(itemTN, EmployeeNumber);
             } catch (err) {
               console.error('Error:', err);
-              setErrorModalVisible(true);
-              setModalMessage(err.message || 'An unexpected error occurred.');
+              /*  setErrorModalVisible(true);
+                setModalMessage(err.message || 'An unexpected error occurred.'); */
+
+              // Show error message
+              showMessage({
+                message: 'Error',
+                description: err.message || 'Failed to assign inspector.',
+                type: 'danger',
+                icon: 'danger',
+                floating: true,
+                duration: 3000,
+              });
             } finally {
-              setLoading(false); // Hide loading
-              fetchOnSchedule();
+              setLoading(false);
             }
           },
         },
@@ -145,12 +171,25 @@ const OnScheduleScreen = () => {
   };
 
   const renderItem = ({item, index}) => (
-    <View style={styles.card}>
+    <View
+      style={{
+        backgroundColor: '#ffffff',
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 8,
+        marginHorizontal: 5,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        shadowOffset: {width: 0, height: 2},
+      }}>
+      {/* Header */}
       <View
         style={{
           flexDirection: 'row',
-          backgroundColor: 'rgba(230, 234, 245, 1)',
           alignItems: 'center',
+          padding: 10,
           borderRadius: 5,
         }}>
         <View
@@ -159,11 +198,13 @@ const OnScheduleScreen = () => {
             height: 35,
             justifyContent: 'center',
             alignItems: 'center',
+            borderRadius: 10,
+            backgroundColor: 'rgba(230, 234, 245, 1)',
           }}>
           <Text
             style={{
-              fontSize: 16,
-              fontFamily: 'Inter_28pt-Bold',
+              fontSize: 18,
+              fontWeight: 'bold',
               color: 'rgb(7, 84, 252)',
               textAlign: 'center',
             }}>
@@ -171,14 +212,15 @@ const OnScheduleScreen = () => {
           </Text>
         </View>
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            //backgroundColor:'red'
-          }}>
-          <Text style={[styles.label, {flex: 0.2}]}>{'TN '} </Text>
-          <Text style={[styles.value, {flex: 0.7, fontSize: 16}]}>
+        <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+          <Text style={{flex: 0.2, fontSize: 14, color: '#555'}}>{''}</Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
             {item.Year}{' '}
             <Text
               style={{
@@ -193,75 +235,154 @@ const OnScheduleScreen = () => {
         </View>
       </View>
 
-      <View style={{paddingVertical: 10}}>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Office</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.OfficeName}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Category</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>
-            {item.CategoryCode}
-            {'\n'}
-            {item.CategoryName}
+      <View
+        style={{
+          alignSelf: 'center',
+          height: 1,
+          backgroundColor: '#ddd',
+          width: '100%',
+          marginVertical: 5,
+          borderRadius: 10,
+        }}
+      />
+
+      {/* Inspection Details */}
+      <View style={{marginTop: 10}}>
+        <View style={{flexDirection: 'row', marginBottom: 5}}>
+          <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>Office</Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
+            {item.OfficeName}
           </Text>
         </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Inspector</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>
-            {/* <Text style={{color: 'gray', fontSize: 12}}>
-            {fixEncoding(item.InspectedBy)}
+
+        <View style={{flexDirection: 'row', marginBottom: 5}}>
+          <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>Category</Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
+            {item.CategoryCode} - {item.CategoryName}
           </Text>
-          {'\n'} */}
+        </View>
+
+        <View style={{flexDirection: 'row', marginBottom: 5}}>
+          <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>
+            Inspector
+          </Text>
+          <Text
+            style={{
+              flex: 0.7,
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: '#333',
+            }}>
             {fixEncoding(item.Inspector)}
           </Text>
         </View>
-
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Delivery Date</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.DeliveryDate}</Text>
-        </View>
-
-        {/*   <View style={styles.row}>
-        <Text style={[styles.label, {flex: 0.3}]}>Status</Text>
-        <Text style={[styles.value, {flex: 0.7}]}>{item.Status}</Text>
-      </View> */}
-        <View
-          style={{
-            alignSelf: 'center',
-            padding: 1,
-            marginVertical: 10,
-            backgroundColor: 'rgb(247, 247, 247)',
-            borderRadius: 10,
-            width: '80%',
-          }}></View>
-
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Address</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.Address}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Contact #</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.ContactNumber}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={[styles.label, {flex: 0.3}]}>Contact Person</Text>
-          <Text style={[styles.value, {flex: 0.7}]}>{item.ContactPerson}</Text>
-        </View>
       </View>
 
-      <View style={{flexDirection: 'row', alignSelf: 'center', gap: 10}}>
+      {/* Divider */}
+      <View
+        style={{
+          alignSelf: 'center',
+          height: 1,
+          width: '90%',
+          backgroundColor: '#ddd',
+          marginVertical: 10,
+        }}
+      />
+
+      {/* Delivery Information */}
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#0754FC',
+          marginBottom: 5,
+        }}>
+        Delivery
+      </Text>
+      {/* <View style={{ flexDirection: "row",gap: 10, marginBottom: 5 }}> */}
+
+      <View style={{flexDirection: 'row', marginBottom: 5}}>
+        <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>Date</Text>
+        <Text
+          style={{flex: 0.7, fontSize: 14, fontWeight: 'bold', color: '#333'}}>
+          {item.DeliveryDate}
+        </Text>
+      </View>
+
+      <View style={{flexDirection: 'row', marginBottom: 5}}>
+        <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>Address</Text>
+        <Text
+          style={{flex: 0.7, fontSize: 14, fontWeight: 'bold', color: '#333'}}>
+          {item.Address}
+        </Text>
+      </View>
+
+      <View style={{flexDirection: 'row', marginBottom: 5}}>
+        <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>Contact #</Text>
+        <Text
+          style={{flex: 0.7, fontSize: 14, fontWeight: 'bold', color: '#333'}}>
+          {item.ContactNumber}
+        </Text>
+      </View>
+
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>Person: </Text>
+        <Text
+          style={{flex: 0.7, fontSize: 14, fontWeight: 'bold', color: '#333'}}>
+          {item.ContactPerson}
+        </Text>
+      </View>
+      {/* </View>
+       */}
+
+      {/* Buttons */}
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 10,
+          marginTop: 15,
+        }}>
         <TouchableOpacity
-          style={styles.revertButton}
+          style={{
+            backgroundColor: '#ff8400',
+            padding: 10,
+            borderRadius: 5,
+            minWidth: 130,
+            alignItems: 'center',
+          }}
           onPress={() => handleAssignInspector(item.Id, item.TrackingNumber)}>
-          <Text style={styles.buttonText}>Change Inspector</Text>
+          <Text style={{color: '#fff', fontSize: 14, fontWeight: 'bold'}}>
+            Change Inspector
+          </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.detailsButton}
+          style={{
+            backgroundColor: '#007bff',
+            padding: 10,
+            borderRadius: 5,
+            minWidth: 130,
+            alignItems: 'center',
+          }}
           onPress={() =>
             navigation.navigate('InspectionDetails', {item, scheduleData})
           }>
-          <Text style={styles.buttonText}>View Details</Text>
+          <Text style={{color: '#fff', fontSize: 14, fontWeight: 'bold'}}>
+            View Details
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -294,74 +415,69 @@ const OnScheduleScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-                source={require('../../../assets/images/CirclesBG.png')} // Change this to your background image
-                style={styles.bgHeader}>
-                <View style={styles.header}>
-                  <Pressable
-                    style={({pressed}) => [
-                      pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                      styles.backButton,
-                    ]}
-                    android_ripple={{
-                      color: '#F6F6F6',
-                      borderless: true,
-                      radius: 24,
-                    }}
-                    onPress={() => navigation.goBack()}>
-                    <Icon name="arrow-back" size={24} color="#fff" />
-                  </Pressable>
-      
-                  <Text style={styles.title}>On Schedule</Text>
-      
-                  <Pressable
-                    style={({pressed}) => ({
-                      flexDirection: 'row',
-                      alignSelf: 'center',
-                      marginHorizontal: 20,
-                      padding: 5,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 20,
-                      backgroundColor: showSearchBar ? '#007bff' : 'transparent',
-                    })}
-                    onPress={() => setShowSearchBar(!showSearchBar)}>
-                    <Icon
-                      name="search"
-                      size={20}
-                      color={showSearchBar ? '#fff' : '#fff'}
-                      style={{alignSelf: 'center'}}
-                    />
-                  </Pressable>
-                </View>
-              </ImageBackground>
-      
-            {/* Search Bar */}
-            {showSearchBar && (
-              <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                  <Icon
-                    name="search"
-                    size={20}
-                    color="#888"
-                    style={styles.searchIcon}
-                  />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search by Inspector, Office, or TN"
-                    value={searchQuery}
-                    onChangeText={text => setSearchQuery(text)}
-                    autoCapitalize="characters"
-                    //placeholderTextColor="silver"
-                    autoFocus={true}
-                    autoCorrect={false}
-                    autoCompleteType="off"
-                    textContentType="none"
-                    keyboardType="default"
-                    spellCheck={false}
-                  />
-                </View>
-              </View>
-            )}
+        source={require('../../../assets/images/CirclesBG.png')} // Change this to your background image
+        style={styles.bgHeader}>
+        <View style={styles.header}>
+          {showSearchBar ? (
+            <>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              <TouchableOpacity
+                onPress={toggleSearchBar}
+                style={styles.searchIcon}>
+                <Icon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}>
+                <Icon name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>On Schedule</Text>
+              <TouchableOpacity
+                onPress={toggleSearchBar}
+                style={styles.searchIcon}>
+                <Icon name="search" size={24} color="#fff" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </ImageBackground>
+
+      {/* Search Bar */}
+      {/* {showSearchBar && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Icon
+              name="search"
+              size={20}
+              color="#888"
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by Inspector, Office, or TN"
+              value={searchQuery}
+              onChangeText={text => setSearchQuery(text)}
+              autoCapitalize="characters"
+              //placeholderTextColor="silver"
+              autoFocus={true}
+              autoCorrect={false}
+              autoCompleteType="off"
+              textContentType="none"
+              keyboardType="default"
+              spellCheck={false}
+            />
+          </View>
+        </View>
+      )} */}
 
       {/* Inspector Dropdown Filter */}
       <View style={styles.filterContainer}>
@@ -415,7 +531,7 @@ const OnScheduleScreen = () => {
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             justifyContent: 'center',
             alignItems: 'center',
           }}>
@@ -429,9 +545,7 @@ const OnScheduleScreen = () => {
               justifyContent: 'center',
               flexDirection: 'row',
             }}>
-            <Text style={{marginTop: 10, color: '#252525', fontSize: 16}}>
-              Assigning...
-            </Text>
+            <Text style={{color: '#252525', fontSize: 16}}>Assigning...</Text>
             <ActivityIndicator size="large" color="blue" />
           </View>
         </View>
@@ -481,16 +595,6 @@ const OnScheduleScreen = () => {
               }}>
               Success
             </Text>
-            {/*    <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: 12,
-                    textAlign: 'center',
-                  }}>
-                  {modalMessage}
-                </Text> */}
             <Text
               style={{
                 fontSize: 14,
@@ -645,33 +749,53 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-/*   header: {
+  bgHeader: {
+    paddingTop: 35,
+    height: 80,
+    backgroundColor: '#1a508c',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingBottom: 5,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    elevation: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 3,
-    elevation: 3,
-  }, */
+    justifyContent: 'space-between',
+  },
+  searchInput: {
+    height: 40,
+    flex: 1,
+    fontSize: 14,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginStart: 10,
+    marginRight: 20,
+    paddingStart: 20,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
   backButton: {
-    padding: 5,
-    backgroundColor: '#F8F8F8',
+    padding: 10,
     borderRadius: 999,
   },
-  title: {
+  headerTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#252525',
-    //padding: 10,
+    textAlign: 'center',
+    color: '#fff',
   },
   searchContainer: {
     backgroundColor: 'white',
     paddingHorizontal: 16,
-    paddingTop:10,
+    paddingTop: 10,
     paddingBottom: 10,
   },
   searchBar: {
@@ -681,14 +805,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingLeft: 10,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    height: 40,
-    flex: 1,
-    fontSize: 14,
   },
   filterContainer: {
     backgroundColor: 'white',
@@ -817,40 +933,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
     width: '100%',
-
-    //alignItems: 'center',
   },
   inspectorName: {
     fontSize: 16,
     color: '#333',
-  },
-  bgHeader: {
-    paddingTop: 35,
-    height: 85,
-    backgroundColor: '#1a508c',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    elevation: 4, // Shadow effect
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    //backgroundColor: '#fff',
-    paddingBottom: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    //elevation: 2,
-  },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    //padding: 10,
   },
 });
 
