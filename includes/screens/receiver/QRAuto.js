@@ -33,6 +33,7 @@ import useReceiving from '../../api/useReceiving';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import LottieView from 'lottie-react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Divider } from '@rneui/base';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250;
@@ -57,7 +58,7 @@ const QRAuto = () => {
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['45%', '70%', '80%'];
+  const snapPoints = ['46%', '70%', '80%'];
 
   const [showCheck, setShowCheck] = useState(true);
 
@@ -99,131 +100,216 @@ const QRAuto = () => {
     }
   }; */
 
-  // --------- Use Memo Render Item ---------- //
 
-  // const renderItem = useMemo(() => ({ item }) => (
-  //   <View style={styles.itemContainer}>
-  //     <View style={{ flexDirection: 'row' }}>
-  //       {showCheck && receivingData && (
-  //         <>
-  //           {receivingData.status === 'success' && (
-  //             <Icon
-  //               name="checkmark-circle-outline"
-  //               size={60}
-  //               color="green"
-  //               style={{ alignSelf: 'center' }}
-  //             />
-  //           )}
-  //           {receivingData.status === 'error' && item.Status !== 'Admin Received' && (
-  //             <Icon
-  //               name="close-circle-outline"
-  //               size={60}
-  //               color="red"
-  //               style={{ alignSelf: 'center' }}
-  //             />
-  //           )}
-  //           {receivingData.status === 'error' && item.Status === 'Admin Received' && (
-  //             <Icon
-  //               name="checkmark-done-circle-outline"
-  //               size={60}
-  //               color="green"
-  //               style={{ alignSelf: 'center' }}
-  //             />
-  //           )}
-  //         </>
-  //       )}
+  // const renderItem = ({ item }) => {
+  //   return (
+  //     <View>
+  //       <View style={{ flexDirection: 'row' }}>
+  //         {/* {showCheck && receivingData && (
+  //           <>
+  //             {receivingData.status === 'success' && (
+  //               <Icon
+  //                 name="checkmark-circle-outline"
+  //                 size={60}
+  //                 color="green"
+  //                 style={{ alignSelf: 'center' }}
+  //               />
+  //             )}
+  //             {receivingData.status === 'error' &&
+  //               item.Status !== 'Admin Received' && (
+  //                 <Icon
+  //                   name="close-circle-outline"
+  //                   size={60}
+  //                   color="red"
+  //                   style={{ alignSelf: 'center' }}
+  //                 />
+  //               )}
+  //             {receivingData.status === 'error' &&
+  //               item.Status === 'Admin Received' && (
+  //                 <Icon
+  //                   name="checkmark-done-circle-outline"
+  //                   size={60}
+  //                   color="green"
+  //                   style={{ alignSelf: 'center' }}
+  //                 />
+  //               )}
+  //           </>
+  //         )} */}
 
-  //       <View>
-  //         {[
-  //           { label: 'Year:', value: item.Year },
-  //           { label: 'Tracking Number:', value: item.TrackingNumber },
-  //           { label: 'Status:', value: item.Status },
-  //         ].map(({ label, value }, index) => (
-  //           <View style={styles.textRow} key={index}>
-  //             <Text style={styles.label}>{label}</Text>
-  //             <Text style={styles.value}>{value}</Text>
+  //         <View style={styles.itemContainer}>
+  //           <View style={styles.textRow}>
+  //             <Text style={styles.label}>Year:</Text>
+  //             <Text style={styles.value}>{item.Year}</Text>
   //           </View>
-  //         ))}
+  //           <Divider
+  //             width={1.9}
+  //             color={'rgba(217, 217, 217, 0.1)'}
+  //             borderStyle={'dashed'}
+  //             marginHorizontal={10}
+  //             marginBottom={5}
+  //             style={{ bottom: 5 }}
+  //           />
+  //           <View style={styles.textRow}>
+  //             <Text style={styles.label}>Tracking Type:</Text>
+  //             <Text style={styles.value}>{item.TrackingType}</Text>
+  //           </View>
+  //           <Divider
+  //             width={1.9}
+  //             color={'rgba(217, 217, 217, 0.1)'}
+  //             borderStyle={'dashed'}
+  //             marginHorizontal={10}
+  //             marginBottom={5}
+  //             style={{ bottom: 5 }}
+  //           />
+  //           <View style={styles.textRow}>
+  //             <Text style={styles.label}>Tracking Number:</Text>
+  //             <Text style={styles.value}>{item.TrackingNumber}</Text>
+  //           </View>
+  //           <Divider
+  //             width={1.9}
+  //             color={'rgba(217, 217, 217, 0.1)'}
+  //             borderStyle={'dashed'}
+  //             marginHorizontal={10}
+  //             marginBottom={5}
+  //             style={{ bottom: 5 }}
+  //           />
+  //           <View style={styles.textRow}>
+  //             <Text style={styles.label}>Document Type:</Text>
+  //             <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail' >{item.DocumentType}</Text>
+  //           </View>
+  //           <Divider
+  //             width={1.9}
+  //             color={'rgba(217, 217, 217, 0.1)'}
+  //             borderStyle={'dashed'}
+  //             marginHorizontal={10}
+  //             marginBottom={5}
+  //             style={{ bottom: 5 }}
+  //           />
+  //           <View style={styles.textRow}>
+  //             <Text style={styles.label}>Status:</Text>
+  //             <Text style={styles.value}>{item.Status}</Text>
+  //           </View>
+  //           <Divider
+  //             width={1.9}
+  //             color={'rgba(217, 217, 217, 0.1)'}
+  //             borderStyle={'dashed'}
+  //             marginHorizontal={10}
+  //             style={{ bottom: 5 }}
+  //           />
+  //         </View>
+  //       </View>
+
+  //       <View
+  //         style={{
+  //           flex: 1,
+  //           alignItems: 'center',
+  //           alignSelf: 'flex-end',
+  //           paddingTop: 10,
+  //         }}>
+  //         <TouchableOpacity
+  //           style={{
+  //             //marginTop: 20,
+  //             backgroundColor: 'transparent',
+  //             borderRadius: 4,
+  //             flexDirection: 'row',
+  //             paddingTop: 10,
+  //           }}
+  //           onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
+  //           <View>
+  //             <Text
+  //               style={{
+  //                 color: '#fff',
+  //                 textAlign: 'right',
+  //                 fontSize: 14,
+  //               }}>
+  //               Show More
+  //             </Text>
+  //           </View>
+  //           <Icon name="chevron-forward" size={20} color={'#fff'} />
+  //         </TouchableOpacity>
   //       </View>
   //     </View>
+  //   );
+  // };
 
-  //     <View style={{ flex: 1, alignItems: 'center', alignSelf: 'flex-end', paddingTop: 10 }}>
-  //       <TouchableOpacity
-  //         style={{ backgroundColor: 'transparent', borderRadius: 4, flexDirection: 'row', paddingTop: 10 }}
-  //         onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}
-  //       >
-  //         <Text style={{ color: '#007bff', textAlign: 'right', fontSize: 14 }}>
-  //           Show More
-  //         </Text>
-  //         <Icon name="chevron-forward" size={20} color={'blue'} />
-  //       </TouchableOpacity>
-  //     </View>
-  //   </View>
-  // ), [showCheck, receivingData]);
-
-  const renderItem = ({ item }) => {
-    return (
-      <View style={styles.itemContainer}>
+  const renderItem = useMemo(() => {
+    return ({ item }) => (
+      <View>
         <View style={{ flexDirection: 'row' }}>
-          {showCheck && receivingData && (
-            <>
-              {receivingData.status === 'success' && (
-                <Icon
-                  name="checkmark-circle-outline"
-                  size={60}
-                  color="green"
-                  style={{ alignSelf: 'center' }}
-                />
-              )}
-              {receivingData.status === 'error' &&
-                item.Status !== 'Admin Received' && (
-                  <Icon
-                    name="close-circle-outline"
-                    size={60}
-                    color="red"
-                    style={{ alignSelf: 'center' }}
-                  />
-                )}
-              {receivingData.status === 'error' &&
-                item.Status === 'Admin Received' && (
-                  <Icon
-                    name="checkmark-done-circle-outline"
-                    size={60}
-                    color="green"
-                    style={{ alignSelf: 'center' }}
-                  />
-                )}
-            </>
-          )}
-
-          <View>
+          <View style={styles.itemContainer}>
             <View style={styles.textRow}>
               <Text style={styles.label}>Year:</Text>
               <Text style={styles.value}>{item.Year}</Text>
             </View>
-
+            <Divider
+              width={1.9}
+              color={'rgba(217, 217, 217, 0.1)'}
+              borderStyle={'dashed'}
+              marginHorizontal={10}
+              marginBottom={5}
+              style={{ bottom: 5 }}
+            />
             <View style={styles.textRow}>
               <Text style={styles.label}>Tracking Type:</Text>
               <Text style={styles.value}>{item.TrackingType}</Text>
             </View>
-
+            <Divider
+              width={1.9}
+              color={'rgba(217, 217, 217, 0.1)'}
+              borderStyle={'dashed'}
+              marginHorizontal={10}
+              marginBottom={5}
+              style={{ bottom: 5 }}
+            />
             <View style={styles.textRow}>
               <Text style={styles.label}>Tracking Number:</Text>
               <Text style={styles.value}>{item.TrackingNumber}</Text>
             </View>
-
+            <Divider
+              width={1.9}
+              color={'rgba(217, 217, 217, 0.1)'}
+              borderStyle={'dashed'}
+              marginHorizontal={10}
+              marginBottom={5}
+              style={{ bottom: 5 }}
+            />
             <View style={styles.textRow}>
               <Text style={styles.label}>Document Type:</Text>
-              <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail' >{item.DocumentType}</Text>
+              <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail'>
+                {item.DocumentType}
+              </Text>
             </View>
+            <Divider
+              width={1.9}
+              color={'rgba(217, 217, 217, 0.1)'}
+              borderStyle={'dashed'}
+              marginHorizontal={10}
+              marginBottom={5}
+              style={{ bottom: 5 }}
+            />
             <View style={styles.textRow}>
               <Text style={styles.label}>Status:</Text>
               <Text style={styles.value}>{item.Status}</Text>
             </View>
-          </View>
-        </View>
-
-        <View
+            <Divider
+              width={1.9}
+              color={'rgba(217, 217, 217, 0.1)'}
+              borderStyle={'dashed'}
+              marginHorizontal={10}
+              style={{ bottom: 5 }}
+            />
+            <View style={styles.textRow}>
+              <Text style={styles.label}>Status:</Text>
+              <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
+            </View>
+            <Divider
+              width={1.9}
+              color={'rgba(217, 217, 217, 0.1)'}
+              borderStyle={'dashed'}
+              marginHorizontal={10}
+              style={{ bottom: 5 }}
+            />
+              <View
           style={{
             flex: 1,
             alignItems: 'center',
@@ -232,35 +318,39 @@ const QRAuto = () => {
           }}>
           <TouchableOpacity
             style={{
-              //marginTop: 20,
               backgroundColor: 'transparent',
               borderRadius: 4,
               flexDirection: 'row',
-              paddingTop: 10,
+              // paddingTop: 10,
             }}
             onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
             <View>
               <Text
                 style={{
-                  color: '#007bff',
+                  color: '#fff',
                   textAlign: 'right',
                   fontSize: 14,
                 }}>
                 Show More
               </Text>
             </View>
-            <Icon name="chevron-forward" size={20} color={'blue'} />
+            <Icon name="chevron-forward" size={20} color={'#fff'} />
           </TouchableOpacity>
         </View>
+          </View>
+
+        </View>
+
+      
       </View>
     );
-  };
+  }, []);
 
   const handleSheetChange = useCallback(index => { }, []);
 
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
-
+    console.log("Fetched Data:", data);
     if (data.results.length > 0) {
       const resultTrackingNumber =
         trackingNumber.substring(4, 5) === '-' ||
@@ -351,7 +441,7 @@ const QRAuto = () => {
         const status = qrData.Status || '';
 
         const validStatuses = [
-          'CBO Received',
+          // 'CBO Received',
           'CBO Released',
           'Voucher Received - Inspection',
           'Voucher Received - Inventory',
@@ -370,7 +460,7 @@ const QRAuto = () => {
         const trackingType = qrData.TrackingType || '';
         const documentType = qrData.DocumentType || '';
 
-        const data2 = await autoReceive(
+        const data2 = await autoReceive({
           year,
           trackingNumber,
           trackingType,
@@ -379,8 +469,8 @@ const QRAuto = () => {
           accountType,
           privilege,
           officeCode,
-          employeeNumber,
-        );
+          inputParams: '',
+        });
 
         try {
           if (data2 && data2.status === 'success') {
@@ -601,7 +691,7 @@ const styles = StyleSheet.create({
     //fontFamily:'Oswald-Regular'
   },
   itemContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     padding: 16,
     borderRadius: 10,
     elevation: 0,
@@ -627,20 +717,24 @@ const styles = StyleSheet.create({
   },
   textRow: {
     flexDirection: 'row',
-    width: '65%',
+    alignItems: 'baseline',
+    paddingBottom: 10,
+    // paddingStart: 10,
   },
   label: {
-    width: '50%',
-    fontSize: 13,
-    fontFamily: 'Inter_28pt-Regular',
-    textAlign: 'right',
-    color: 'gray',
+    width: '25%',
+    color: 'white',
+    paddingStart: 10,
+    color: 'white',
+    fontSize: 12,
+    fontFamily: 'Oswald-Light',
+    opacity: 0.6,
   },
   value: {
-    fontSize: 13,
+    width: '70%',
+    color: 'white',
+    fontSize: 14,
     fontFamily: 'Oswald-Regular',
-    width: '100%',
-    color: 'black',
     marginStart: 10,
   },
   cameraPreview: {

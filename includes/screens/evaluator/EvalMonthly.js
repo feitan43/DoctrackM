@@ -53,6 +53,7 @@ const EvalMonthly = ({navigation}) => {
     data: dataDetails,
     isLoading: isDetailsLoading,
     error: detailsError,
+    
   } = useEvaluatorMonthlyDetails(currentYear, selectedStatus, selectedMonth);
 
   const openSheet = () => bottomSheetRef.current?.present();

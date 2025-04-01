@@ -3,7 +3,7 @@ import {
   useNavigation,
   DarkTheme,
 } from '@react-navigation/native';
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
@@ -59,7 +59,7 @@ import {
   TransitionPresets,
   TransitionSpecs,
 } from '@react-navigation/stack';
-import {Easing} from 'react-native-reanimated';
+import { Easing } from 'react-native-reanimated';
 import SettingsScreen from '../screens/SettingsScreen';
 import BASE_URL from '../../config';
 
@@ -103,6 +103,8 @@ import EvalDaily from '../screens/evaluator/EvalDaily';
 import EvalMonthly from '../screens/evaluator/EvalMonthly';
 import EvalAnnual from '../screens/evaluator/EvalAnnual';
 
+import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
+
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
   const [loading, setLoading] = useState(true);
@@ -110,12 +112,12 @@ export function Route() {
   const [showReminder, setShowReminder] = useState(false);
 
   const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
-  const [updateUrl, setUpdateUrl] = useState(''); 
+  const [updateUrl, setUpdateUrl] = useState('');
 
-  const {delaysRegOfficeData, delaysLoading} = useDelaysPerOffice();
-  const {genInformationData} = useGenInformation();
+  const { delaysRegOfficeData, delaysLoading } = useDelaysPerOffice();
+  const { genInformationData } = useGenInformation();
 
-  const {userData, fullName, officeCode, permission} = useUserInfo();
+  const { userData, fullName, officeCode, permission } = useUserInfo();
 
   const [currentVersion, setCurrentVersion] = useState('');
   const [latestVersion, setLatestVersion] = useState('');
@@ -124,10 +126,10 @@ export function Route() {
   const Stack = createStackNavigator();
 
   useEffect(() => {
-    const init = async () => {};
+    const init = async () => { };
 
     init().finally(async () => {
-      await BootSplash.hide({fade: true});
+      await BootSplash.hide({ fade: true });
     });
   }, []);
 
@@ -166,7 +168,7 @@ export function Route() {
       const latestVersionFromServer = data.latestVersion;
       const url = latestVersionFromServer.updateUrl;
       setLatestVersion(latestVersionFromServer);
-  
+
       if (latestVersionFromServer.version !== currentVersion) {
         setUpdateUrl(url);
         setIsUpdateModalVisible(true);
@@ -175,7 +177,7 @@ export function Route() {
       console.error('Error fetching the latest version:', error);
     }
   };
-  
+
 
   const handleUpdate = async updateUrl => {
     const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
@@ -290,7 +292,7 @@ export function Route() {
 
   useEffect(() => {
     if (officeCode) {
-      return notifee.onForegroundEvent(async ({type, detail}) => {
+      return notifee.onForegroundEvent(async ({ type, detail }) => {
         switch (type) {
           case EventType.DISMISSED:
             // console.log('User dismissed notification', detail.notification);
@@ -401,7 +403,7 @@ export function Route() {
       // Delay navigation by 2 seconds
       setTimeout(() => {
         NavigationService.navigate('ForInspection');
-      }, 2000); 
+      }, 2000);
     } else {
       console.log('Unknown channelId:', channelId);
     }
@@ -415,7 +417,7 @@ export function Route() {
 
   return (
     <NavigationContainer ref={NavigationService.setTopLevelNavigator}>
-     {/*  <StatusBar
+      {/*  <StatusBar
         barStyle="light-content"
         backgroundColor={'transparent'}
         translucent
@@ -466,28 +468,28 @@ export function Route() {
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="StatusView" component={StatusView} />
         <Stack.Screen name="Others" component={OthersScreen} />
-        <Stack.Screen name="Search" component={SearchScreen}/>
-        <Stack.Screen name="Profile" component={ProfileScreen}/>
-        <Stack.Screen name="ContactUs" component={ContactUsScreen}/>
-        <Stack.Screen name="InspectionSearch" component={InspectionSearchScreen}/>
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="ContactUs" component={ContactUsScreen} />
+        <Stack.Screen name="InspectionSearch" component={InspectionSearchScreen} />
         <Stack.Screen name='Inspection' component={InspectionScreen} />
         <Stack.Screen name='InspectionDetails' component={InspectionDetails} />
-        <Stack.Screen name='ForInspection' component={ForInspection}/>
-        <Stack.Screen name='Inspected' component={Inspected}/>
-        <Stack.Screen name='InspectionOnHold' component={InspectionOnHold}/>
+        <Stack.Screen name='ForInspection' component={ForInspection} />
+        <Stack.Screen name='Inspected' component={Inspected} />
+        <Stack.Screen name='InspectionOnHold' component={InspectionOnHold} />
 
-        <Stack.Screen name='QRManual' component={QRManual}/>
-        <Stack.Screen name='QRAuto' component={QRAuto}/>
-        <Stack.Screen name='QRRevert' component={QRRevert}/>
+        <Stack.Screen name='QRManual' component={QRManual} />
+        <Stack.Screen name='QRAuto' component={QRAuto} />
+        <Stack.Screen name='QRRevert' component={QRRevert} />
 
-        <Stack.Screen name='Receiver' component={ReceiverScreen}/>
+        <Stack.Screen name='Receiver' component={ReceiverScreen} />
 
-        <Stack.Screen name='Sender' component={SendToReceive}/>
+        <Stack.Screen name='Sender' component={SendToReceive} />
 
-        <Stack.Screen name='MyAccountability' component={MyAccountabilityScreen}/>
-        <Stack.Screen name='MyAccountabilityDetails' component={MyAccountabilityDetails}/>
-        <Stack.Screen name='TrackingSummaryScreen' component={TrackingSummaryScreen}/>
-        <Stack.Screen name='RegTrackingSummaryScreen' component={RegTrackingSummaryScreen}/>
+        <Stack.Screen name='MyAccountability' component={MyAccountabilityScreen} />
+        <Stack.Screen name='MyAccountabilityDetails' component={MyAccountabilityDetails} />
+        <Stack.Screen name='TrackingSummaryScreen' component={TrackingSummaryScreen} />
+        <Stack.Screen name='RegTrackingSummaryScreen' component={RegTrackingSummaryScreen} />
 
         <Stack.Screen name='RequestScreen' component={RequestScreen} />
         <Stack.Screen name='OnScheduleScreen' component={OnScheduleScreen} />
@@ -498,7 +500,7 @@ export function Route() {
         <Stack.Screen name='Evaluated' component={EvaluatedScreen} />
         <Stack.Screen name='EvalPending' component={EvalPendingScreen} />
         <Stack.Screen name='EvalPendingReleased' component={EvalPendingReleasedScreen} />
-        <Stack.Screen name='EvalDaily' component={EvalDaily}/>
+        <Stack.Screen name='EvalDaily' component={EvalDaily} />
         <Stack.Screen name='EvalMonthly' component={EvalMonthly} />
         <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
 
@@ -517,7 +519,7 @@ export function Route() {
         <Stack.Screen name="WebView" component={WebViewScreen} />
         <Stack.Screen name="Camera" component={CameraComponent} />
 
-
+        <Stack.Screen name="MonthlyReceivedScreen" component={MonthlyReceivedScreen} />
 
       </Stack.Navigator>
       <Modal
@@ -531,9 +533,9 @@ export function Route() {
             <Text style={styles.modalTitle}>Update Available</Text>
             <View></View>
             <Image
-                 source={require('../../assets/images/updateavailable.png')}
-                 style={{height: 180, width: '80%', paddingBottom: 10}}
-                />
+              source={require('../../assets/images/updateavailable.png')}
+              style={{ height: 180, width: '80%', paddingBottom: 10 }}
+            />
             <Text style={styles.modalText}>
               A new version of the app is available. Please update to the latest version.
             </Text>
@@ -541,7 +543,7 @@ export function Route() {
               style={styles.updateButton}
               onPress={() => {
                 handleUpdate(updateUrl);
-                setIsUpdateModalVisible(false); 
+                setIsUpdateModalVisible(false);
               }}
             >
               <Text style={styles.updateButtonText}>Update Now</Text>
@@ -615,7 +617,7 @@ export function Route() {
 //       <Stack.Screen name="Settings" component={SettingsScreen} />
 //       <Stack.Screen name="ContactUs" component={ContactUsScreen} />
 //       {/* Add any other common screens */}
-      
+
 //     </Stack.Navigator>
 
 //     {/* Update Modal */}
@@ -713,13 +715,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 15,
-    alignSelf:'flex-start',
+    alignSelf: 'flex-start',
   },
   modalText: {
     fontSize: 12,
     marginBottom: 10,
     textAlign: 'center',
-    paddingVertical:10
+    paddingVertical: 10
   },
   updateButton: {
     backgroundColor: '#007bff',

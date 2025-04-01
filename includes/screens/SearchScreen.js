@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
+import React, {useState, useEffect, memo, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -18,10 +18,10 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Dropdown } from 'react-native-element-dropdown';
+import {Dropdown} from 'react-native-element-dropdown';
 
-import { Menu, Divider, IconButton, PaperProvider } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import {Menu, Divider, IconButton, PaperProvider} from 'react-native-paper';
+import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
 import useUserInfo from '../api/useUserInfo';
 
@@ -42,7 +42,7 @@ const years = ['2025', '2024', '2023'];
   }),
 ); */
 
-const RenderSearchList = memo(({ item, index, onPressItem }) => {
+const RenderSearchList = memo(({item, index, onPressItem}) => {
   // const modifiedDate = item.DateModified.split(' ')[0];
   // const isDateMatched = modifiedDate === formattedDate;
   // const dateTextColor = isDateMatched ? 'rgba(6, 70, 175, 1)' : 'gray';
@@ -66,7 +66,7 @@ const RenderSearchList = memo(({ item, index, onPressItem }) => {
           //borderColor: '#252525',
         }}>
         <TouchableOpacity onPress={() => onPressItem(index, item)}>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{flexDirection: 'row'}}>
             <View
               style={{
                 backgroundColor: 'rgba(134, 140, 163, 0.2)',
@@ -87,12 +87,12 @@ const RenderSearchList = memo(({ item, index, onPressItem }) => {
                 {index + 1}
               </Text>
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{flex: 1}}>
               <LinearGradient
                 colors={['rgba(0, 116, 255, 0.7)', 'rgba(0, 116, 255, 0.7)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 3, y: 0 }}
-                style={{ elevation: 1 }}>
+                start={{x: 0, y: 0}}
+                end={{x: 3, y: 0}}
+                style={{elevation: 1}}>
                 <Text
                   style={{
                     fontFamily: 'Oswald-Regular',
@@ -110,7 +110,7 @@ const RenderSearchList = memo(({ item, index, onPressItem }) => {
                   paddingBottom: 10,
                   paddingStart: 5,
                 }}>
-                <View style={{ rowGap: -5 }}>
+                <View style={{rowGap: -5}}>
                   <Text
                     style={{
                       /* color: item.Status.includes('Pending')
@@ -191,7 +191,7 @@ const RenderSearchList = memo(({ item, index, onPressItem }) => {
 
 const SearchScreen = () => {
   const currentYear = new Date().getFullYear().toString();
-  const { caoReceiver } = useUserInfo();
+  const {caoReceiver} = useUserInfo();
 
   const [searchText, setSearchText] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
@@ -318,7 +318,7 @@ const SearchScreen = () => {
       if (data.count === 1 && data.results.length > 0) {
         const trackingNumber =
           searchText.substring(4, 5) === '-' ||
-            searchText.substring(0, 3) === 'PR-'
+          searchText.substring(0, 3) === 'PR-'
             ? searchText
             : data.results[0].TrackingNumber;
 
@@ -428,9 +428,9 @@ const SearchScreen = () => {
     setSearchText('');
   };
 
-  const YearDropdown = ({ selectedYear, setSelectedYear }) => {
+  const YearDropdown = ({selectedYear, setSelectedYear}) => {
     const years = Array.from(
-      { length: Math.max(0, currentYear - 2023 + 1) },
+      {length: Math.max(0, currentYear - 2023 + 1)},
       (_, index) => ({
         label: `${currentYear - index}`,
         value: currentYear - index,
@@ -447,13 +447,13 @@ const SearchScreen = () => {
           borderRadius: 5,
         }}>
         <Dropdown
-          style={[styles.dropdown, { elevation: 10 }]}
+          style={[styles.dropdown, {elevation: 10}]}
           data={years}
           labelField="label"
           valueField="value"
           placeholder={`${selectedYear}`}
-          selectedTextStyle={{ color: '#252525' }}
-          placeholderStyle={{ color: '#252525' }}
+          selectedTextStyle={{color: '#252525'}}
+          placeholderStyle={{color: '#252525'}}
           icon={null} // Removes the icon
           value={selectedYear}
           onChange={item => {
@@ -481,7 +481,7 @@ const SearchScreen = () => {
                 width: '80%',
               }}>
               {/* Search Bar */}
-              <View style={{ flex: 1 }}>
+              <View style={{flex: 1}}>
                 <View style={styles.searchBarInput}>
                   <View
                     style={
@@ -500,8 +500,8 @@ const SearchScreen = () => {
                       selectedView === 'DocumentSearch'
                         ? 'Search TN# or Claimant'
                         : selectedView === 'PayrollEmployeeNumber'
-                          ? 'Search Employee Number'
-                          : 'Search Full Name'
+                        ? 'Search Employee Number'
+                        : 'Search Full Name'
                     }
                     onChangeText={text => filterData(text.toUpperCase())}
                     value={searchText.toUpperCase()}
@@ -558,7 +558,7 @@ const SearchScreen = () => {
               </View>
             </TouchableOpacity>
           </View>
-          <View style={{ padding: 8 }}>
+          <View style={{padding: 8}}>
             {/* <Text>Select Type</Text> */}
             {/* <TouchableOpacity onPress={() => navigation.navigate('Receiver')}>
               <Icon name="chevron-back" size={24} />
@@ -587,7 +587,7 @@ const SearchScreen = () => {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-            <View style={{ width: '80%', paddingRight: 10 }}>
+            <View style={{width: '80%', paddingRight: 10}}>
               <View style={styles.searchBarInput}>
                 <View
                   style={
@@ -652,7 +652,7 @@ const SearchScreen = () => {
               justifyContent: 'space-between',
               paddingTop: 10,
             }}>
-            <View style={{ width: '77%', paddingLeft: 80 }}>
+            <View style={{width: '77%', paddingLeft: 80}}>
               <View style={styles.searchBarInput}>
                 <TextInput
                   placeholder="First Name"
@@ -660,7 +660,7 @@ const SearchScreen = () => {
                   value={searchFirstName.toUpperCase()}
                   style={[
                     styles.searchBarInput,
-                    { fontSize: 14, color: 'black', textTransform: 'uppercase' },
+                    {fontSize: 14, color: 'black', textTransform: 'uppercase'},
                   ]}
                   autoCapitalize="characters"
                   placeholderTextColor="silver"
@@ -674,7 +674,7 @@ const SearchScreen = () => {
               </View>
             </View>
             <View
-              style={{ width: '30%', padding: 10, paddingVertical: 20 }}></View>
+              style={{width: '30%', padding: 10, paddingVertical: 20}}></View>
             {/* <View
               style={{
                 width: '30%',
@@ -730,7 +730,7 @@ const SearchScreen = () => {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-            <View style={{ width: '80%', paddingRight: 10 }}>
+            <View style={{width: '80%', paddingRight: 10}}>
               <View style={styles.searchBarInput}>
                 <View
                   style={
@@ -757,7 +757,7 @@ const SearchScreen = () => {
                   style={[
                     styles.searchBarContainer,
                     styles.searchBarInput,
-                    { fontSize: 14, color: 'black' },
+                    {fontSize: 14, color: 'black'},
                   ]}
                   placeholderTextColor="silver"
                   keyboardType="numeric"
@@ -803,7 +803,7 @@ const SearchScreen = () => {
           <Animated.View // Apply the shake animation to this View
             style={[
               styles.errorContainer,
-              { transform: [{ translateX: shakeAnimation }] },
+              {transform: [{translateX: shakeAnimation}]},
             ]}>
             <Text style={styles.errorText}>{errorMessage}</Text>
           </Animated.View>
@@ -826,7 +826,7 @@ const SearchScreen = () => {
     const renderFlatList = data => (
       <FlatList
         data={data}
-        renderItem={({ item, index }) => (
+        renderItem={({item, index}) => (
           <RenderSearchList
             item={item}
             index={index}
@@ -860,7 +860,7 @@ const SearchScreen = () => {
           <Animated.View
             style={[
               styles.errorContainer,
-              { transform: [{ translateX: shakeAnimation }] },
+              {transform: [{translateX: shakeAnimation}]},
             ]}>
             <Text style={styles.errorText}>{errorMessage}</Text>
           </Animated.View>
@@ -884,7 +884,7 @@ const SearchScreen = () => {
     const renderFlatList = data => (
       <FlatList
         data={data}
-        renderItem={({ item, index }) => (
+        renderItem={({item, index}) => (
           <RenderSearchList
             item={item}
             index={index}
@@ -915,27 +915,26 @@ const SearchScreen = () => {
     closeMenu();
   };
 
-  const renderYearItem = ({ item }) => (
+  const renderYearItem = ({item}) => (
     <TouchableOpacity style={styles.modalItem} onPress={() => selectYear(item)}>
       <Text style={styles.modalItemText}>{item}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <PaperProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-        <View
-          style={{
-            marginTop: 10,
-            flexDirection: 'row',
-            paddingStart: 10,
-            marginHorizontal: 5,
-            marginBottom: 10,
-            alignItems: 'center',
-            // Aligns items vertically in the row
-            justifyContent: 'space-between', // Distributes items evenly in the row
-          }}>
-          {/* <TouchableOpacity onPress={openYearModal} style={{}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+      <View
+        style={{
+          marginTop: 10,
+          flexDirection: 'row',
+          paddingStart: 10,
+          marginHorizontal: 5,
+          marginBottom: 10,
+          alignItems: 'center',
+          // Aligns items vertically in the row
+          justifyContent: 'space-between', // Distributes items evenly in the row
+        }}>
+        {/* <TouchableOpacity onPress={openYearModal} style={{}}>
             <View
               style={{
                 backgroundColor: 'rgba(13, 85, 199, 0.8)',
@@ -955,39 +954,36 @@ const SearchScreen = () => {
             </View>
           </TouchableOpacity> */}
 
-          <View
-            /* onPress={() => setSelectedView('DocumentSearch')} */
-            style={{ marginLeft: 10 }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_24pt-Bold',
-                fontSize: 24,
-                color: '#252525',
-              }}>
-              {/* Document */}Search
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Inter_24pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-              }}>
-              your tracking number
-            </Text>
-          </View>
+        <View
+          /* onPress={() => setSelectedView('DocumentSearch')} */
+          style={{marginLeft: 10}}>
+          <Text
+            style={{
+              fontFamily: 'Inter_24pt-Bold',
+              fontSize: 24,
+              color: '#252525',
+            }}>
+            {/* Document */}Search
+          </Text>
+          <Text
+            style={{
+              fontFamily: 'Inter_24pt-Regular',
+              fontSize: 14,
+              color: '#252525',
+            }}>
+            your tracking number
+          </Text>
+        </View>
 
+        {caoReceiver === '1' && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Receiver')}
+            style={{marginRight: 25}}>
+            <Icons name="qrcode-scan" size={40} color="black" />
+          </TouchableOpacity>
+        )}
 
-          {caoReceiver === '1' && (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Receiver')}
-              style={{ marginRight: 25 }}
-            >
-              <Icons name="qrcode-scan" size={40} color="black" />
-            </TouchableOpacity>
-          )}
-
-
-          {/* <View
+        {/* <View
             style={{
               flex: 1,
               flexDirection: 'row',
@@ -1051,44 +1047,41 @@ const SearchScreen = () => {
               <Divider />
             </Menu>
           </View> */}
-        </View>
+      </View>
 
-        <View></View>
+      <View></View>
 
-        <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-          {renderContent()}
-        </View>
+      <View style={{paddingHorizontal: 20, paddingBottom: 20}}>
+        {renderContent()}
+      </View>
 
-        <View
-          style={{
-            backgroundColor: 'rgba(232, 232, 232, 1)',
-            flex: 1,
-            paddingHorizontal: 20,
-          }}>
-          {selectedView === 'DocumentSearch'
-            ? renderData()
-            : renderDataPayroll()}
-        </View>
+      <View
+        style={{
+          backgroundColor: 'rgba(232, 232, 232, 1)',
+          flex: 1,
+          paddingHorizontal: 20,
+        }}>
+        {selectedView === 'DocumentSearch' ? renderData() : renderDataPayroll()}
+      </View>
 
-        <Modal transparent={true} visible={modalVisible} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <FlatList
-                data={years}
-                renderItem={renderYearItem}
-                keyExtractor={item => item}
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={closeYearModal}>
-                <Text style={styles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+      <Modal transparent={true} visible={modalVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <FlatList
+              data={years}
+              renderItem={renderYearItem}
+              keyExtractor={item => item}
+            />
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={closeYearModal}>
+              <Text style={styles.modalCloseButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-        {/* </ImageBackground> */}
-      </SafeAreaView>
-    </PaperProvider>
+        </View>
+      </Modal>
+      {/* </ImageBackground> */}
+    </SafeAreaView>
   );
 };
 

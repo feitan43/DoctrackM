@@ -11,36 +11,38 @@ const useSearchReceiver = () => {
 
   const fetchDataSearchReceiver = async (searchQuery, selectedYear) => {
     if (!searchQuery || !selectedYear || !officeCode || !accountType) return;
-
-
+  
     setLoading(true);
     setError(null);
-
+  
     try {
       const storedToken = await AsyncStorage.getItem('token');
-
       const url = `${BASE_URL}/searchTrackingNumber?year=${selectedYear}&office=${officeCode}&accountType=${accountType}&key=${searchQuery}`;
+      console.log('Fetching:', url);
+  
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-        },
+        headers: { Authorization: `Bearer ${storedToken}` },
       });
-
+  
+      const data = await response.json();
+      console.log('API Response:', data);
+  
       if (response.ok) {
-        const data = await response.json();
         setSearchTNData(data);
-        return data;  // Return data when successful
+        return data; 
       } else {
         setSearchTNData(null);
         throw new Error('Failed to fetch data');
       }
     } catch (err) {
+      console.error('Fetch Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+  
 
 /*   useEffect(() => {
     if (searchTNData) {

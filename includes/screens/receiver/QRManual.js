@@ -33,6 +33,7 @@ import { insertCommas } from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
 import { Button } from 'react-native-paper';
+import { Divider } from '@rneui/themed';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250;
@@ -54,17 +55,21 @@ const QRManual = () => {
   const [inputParams, setInputParams] = useState('');
 
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
   const { officeCode, privilege, permission, accountType, employeeNumber, caoReceiver } =
     useUserInfo();
 
+  console.log('CAO RECEIVER: ', caoReceiver);
+
   const { autoReceive, revertReceived, isLoading } = useReceiving();
+
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['45%', '70%', '80%'];
+  const snapPoints = ['53%', '60%', '80%'];
 
   const handleReceived = async (
     year,
@@ -74,21 +79,21 @@ const QRManual = () => {
     status,
     inputParams,
   ) => {
-
     try {
-      const response = await autoReceive(
+      const payload = {
         year,
         trackingNumber,
         trackingType,
         documentType,
         status,
         accountType,
-        privilege,
         officeCode,
         employeeNumber,
         inputParams,
-      );
+      };
 
+      const response = await autoReceive(payload);
+      // console.log('Received payload:', payload);
       if (response?.status === 'success') {
         console.log('Receive successful:', response);
         await fetchQRData(year, trackingNumber);
@@ -121,81 +126,200 @@ const QRManual = () => {
   };
 
 
+
   const handleRevert = async (
     year,
     trackingNumber,
     trackingType,
     documentType,
-    status,
+    status
   ) => {
     try {
-      const response = await revertReceived(
+
+      const response = await revertReceived({
         year,
         trackingNumber,
         trackingType,
         documentType,
         status,
         accountType,
-        privilege,
         officeCode,
         employeeNumber,
-      );
+      });
 
-      if (response?.status === 'success') {
-        console.log('Reverted successful:', response);
-        // Call fetchQRData with appropriate arguments
+      if (response?.status === "success") {
         await fetchQRData(year, trackingNumber);
       } else {
-        console.warn('Revert was not successful:', response);
-        Alert.alert('Warning', 'Revert operation did not succeed.');
+        console.warn("Revert failed:", response);
+        Alert.alert("Warning", "Revert operation did not succeed.");
       }
     } catch (error) {
-      console.error('Error in handleRevert:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred while processing. Please try again later.',
-      );
+      console.error("Error in handleRevert:", error);
+
+      if (error.response) {
+        console.error("Response Data:", JSON.stringify(error.response.data, null, 2));
+        console.error("Status Code:", error.response.status);
+        console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+      }
     }
   };
+
+
+
 
   // --------- Render Item QR Manual
 
   const renderItem = ({ item }) => {
+
     const showReceivedButton = (() => {
-      const isPO = item.TrackingType === 'PO';
-      const isPY = item.TrackingType === 'PY';
-      const isPX = item.TrackingType === 'PX';
+      const { TrackingType, privilege, officeCode, Status, OBRType } = item || {};
 
-      const validStatuses = [
-        'CBO Received',
-        'CBO Released',
-        'Voucher Received - Inspection',
-        'Voucher Received - Inventory',
-        'Pending Released - CAO'
-      ];
+      const isPR = TrackingType === 'PR' && privilege === '8';
+      const isPO = TrackingType === 'PO' && ['8', '5', '9'].includes(privilege);
+      const isPX = TrackingType === 'PX';
+      const isPY = TrackingType === 'PY';
 
-      if (isPO && item.Status === 'Supplier Conformed') {
+      if (isPR && Status === 'CTO Received') {
         return true;
-      }
+      };
 
       if (
-        isPY &&
-        item.Status === 'Admin Operation Received' &&
-        item.OBRType === '1'
+        isPO &&
+        ['1031', '1071'].includes(officeCode) &&
+        ['Supplier Conformed', 'Check Preparation - CTO'].includes(Status)
       ) {
         return true;
       }
 
-      if (isPX && item.Status === 'Check Preparation - CTO') {
+      if (isPY && Status === 'Admin Operation Received' && OBRType === '1') {
         return true;
       }
 
-      if (validStatuses.includes(item.Status)) {
+      if (isPX && Status === 'Check Preparation - CTO') return true;
+
+      return false;
+    })();
+
+
+    const showCAOReceivedButton = (() => {
+      const { TrackingType, Status, DocumentType } = item;
+
+      const isPY = TrackingType === 'PY';
+      const isPX = TrackingType === 'PX';
+      const isIP = TrackingType === 'IP';
+      const isPR = TrackingType === 'PR';
+
+      if (isPY && ['CBO Released', 'Pending Released - CAO'].includes(Status)) {
+        return true;
+      }
+
+      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF')
+      ) {
+        return true;
+      }
+
+      if (isPX && ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status)) {
+        return true;
+      }
+
+      if ((isIP || isPR) && Status === 'Pending Released - CAO') {
         return true;
       }
 
       return false;
     })();
+
+    const showCAORevertButton = (() => {
+      const { TrackingType, Status } = item;
+
+
+      //PX
+      if (TrackingType === 'PX') {
+        if (Status === 'CAO Received'
+        ) {
+          return true;
+        }
+      }
+
+      //PY
+      if (TrackingType === 'PY') {
+        if (Status === 'CAO Received') {
+          return true;
+        }
+      }
+
+      if (TrackingType === 'IP') {
+        if (Status === 'CAO Received') {
+          return true;
+        }
+      }
+
+      //PR
+      if (TrackingType === 'PR') {
+        if (Status === 'CAO Received') {
+          return true;
+        }
+      }
+
+      return false;
+    })();
+
+
+    const showRevertButton = (() => {
+      const { TrackingType, Status } = item;
+      //PX
+      if (TrackingType === 'PX' && officeCode === '1031') {
+        if (
+          (Status === 'Check Received - Administration') ||
+          (Status === 'Check Received - Operation')
+        ) {
+          return true;
+        }
+      }
+
+      //PO
+      if (TrackingType === 'PO' && caoReceiver === '1') {
+        if (Status === 'Check Preparation - CTO' || Status === 'Fund Control') {
+          return true;
+        }
+      }
+      if (TrackingType === 'PO' && (officeCode === '1031' || officeCode === '1071')) {
+        if (Status === 'Check Preparation - CTO' || Status === 'Fund Control') {
+          return true;
+        }
+      }
+
+
+      // if (TrackingType === 'PO' && officeCode === '1071') {
+      //   if (Status === 'Fund Control') {
+      //     return true;
+      //   }
+      // }
+
+      //PY
+      if (TrackingType === 'PY') {
+        if (Status === 'CAO Received') {
+          return true;
+        }
+      }
+
+      // if ((TrackingType === 'PY') && officeCode === '1071') {
+      //   if (Status === 'CBO Received') {
+      //     return true;
+      //   }
+      // }
+
+      //IP
+      if (TrackingType === 'IP') {
+        if (Status === 'CAO Received') {
+          return true;
+        }
+      }
+
+    })();
+
 
     const showPendingButton =
       officeCode === '1031' &&
@@ -204,42 +328,46 @@ const QRManual = () => {
       item.TrackingType === 'PX' &&
       item.Status === 'Admin Received';
 
-    const showRevertButton = (() => {
-      if (item.TrackingType === 'PX') {
-        if (officeCode === '1031') {
-          if (
-            privilege === '8' &&
-            item.Status === 'Check Received - Administration'
-          ) {
-            return true;
-          }
-          if (
-            privilege === '5' &&
-            item.Status === 'Check Received - Operation'
-          ) {
-            return true;
-          }
-        }
-      }
 
-      if (item.TrackingType === 'PO') {
-        if (officeCode === '1071') {
-          if (privilege === '9' && item.Status === 'Fund Control') {
-            return true;
-          }
-        }
-      }
 
-      if (item.TrackingType === 'PY') {
-        if (officeCode === '1071') {
-          if (privilege === '9' && item.Status === 'CBO Received') {
-            return true;
-          }
-        }
-      }
+    // const showRevertButton = (() => {
 
-      return false;
-    })();
+    //   switch (item.TrackingType) {
+    //     case 'PX':
+    //       if (officeCode === '1031') {
+    //         if (
+    //           (privilege === '8' && item.Status === 'Check Received - Administration') ||
+    //           (privilege === '5' && item.Status === 'Check Received - Operation')
+    //         ) {
+    //           return true;
+    //         }
+    //       }
+    //       break;
+
+    //     case 'PO':
+    //       if (officeCode === '1071') {
+    //         if (privilege === '9' && item.Status === 'Fund Control') {
+    //           return true;
+    //         }
+    //       }
+    //       break;
+
+    //     case 'PY':
+    //       if (
+    //         (officeCode === '1071' && privilege === '9' && item.Status === 'CBO Received') ||
+    //         (officeCode === 'TRAC' && privilege === '8' && item.Status === 'Check Received - Operation')
+    //       ) {
+    //         return true;
+    //       }
+    //       break;
+
+    //     default:
+    //       return false;
+    //   }
+
+    //   return false;
+    // })();
+
 
     return (
       <View style={styles.itemContainer}>
@@ -247,31 +375,73 @@ const QRManual = () => {
           <Text style={styles.label}>Year:</Text>
           <Text style={styles.value}>{item.Year}</Text>
         </View>
-
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{ bottom: 5 }}
+        />
         <View style={styles.textRow}>
           <Text style={styles.label}>Tracking Type:</Text>
           <Text style={styles.value}>{item.TrackingType}</Text>
         </View>
-
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{ bottom: 5 }}
+        />
         <View style={styles.textRow}>
           <Text style={styles.label}>Tracking Number:</Text>
           <Text style={styles.value}>{item.TrackingNumber}</Text>
         </View>
-
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{ bottom: 5 }}
+        />
         <View style={styles.textRow}>
           <Text style={styles.label}>Document Type:</Text>
-          <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail' >{item.DocumentType}</Text>
+          <Text style={styles.value}>{item.DocumentType}</Text>
         </View>
-
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{ bottom: 5 }}
+        />
         <View style={styles.textRow}>
           <Text style={styles.label}>Status:</Text>
           <Text style={styles.value}>{item.Status}</Text>
         </View>
-
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{ bottom: 5 }}
+        />
         <View style={styles.textRow}>
           <Text style={styles.label}>Amount:</Text>
           <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
         </View>
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          style={{ bottom: 5 }}
+        />
 
         {/* <View style={styles.textRow}>
           <Text style={styles.label}>OBRType:</Text>
@@ -385,7 +555,166 @@ const QRManual = () => {
             </>
           )}
 
-          {showRevertButton && (
+          {showCAOReceivedButton && (
+            <>
+              {item.Status === 'Supplier Conformed' && (
+                <View
+                  style={{
+                    alignSelf: 'center',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    alignContent: 'center',
+                  }}>
+                  {item.OBR_Number && (
+                    <Text
+                      style={{
+                        marginRight: 10,
+                        color: '#000',
+                        marginTop: 10,
+                      }}>
+                      OBR #
+                    </Text>
+                  )}
+
+                  <TextInput
+                    style={{
+                      height: 40,
+                      borderColor: '#ccc',
+                      borderWidth: 1,
+                      borderRadius: 4,
+                      padding: 10,
+                      marginTop: 10,
+                      color: '#000',
+                    }}
+                    placeholder={'Enter OBR #'}
+                    placeholderTextColor="#aaa"
+                    keyboardType="numeric"
+                    maxLength={10}
+                    value={inputParams || item.OBR_Number}
+                    onChangeText={text => {
+                      const numericText = text.replace(/[^0-9]/g, '');
+                      setInputParams(numericText);
+                    }}
+                    editable={false}
+                  />
+                </View>
+              )}
+              {/* Received Button */}
+              <Button
+                mode="contained"
+                loading={isLoading}
+                disabled={isLoading}
+                style={{
+                  marginTop: 10,
+                  borderRadius: 8,
+                  elevation: 1,
+                  backgroundColor: "#007bff"
+                }}
+
+                onPress={() => {
+                  if (item.TrackingType === 'PO') {
+                    if (officeCode === '1071' && privilege === '9') {
+                      if (item.Status === 'Supplier Conformed') {
+                        if (!item.OBR_Number || item.OBR_Number.trim() === '') {
+                          if (inputParams === '') {
+                            Alert.alert(
+                              'OBR Number Required',
+                              'Please enter a valid OBR number.'
+                            );
+                            return;
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  handleReceived(
+                    item.Year,
+                    item.TrackingNumber,
+                    item.TrackingType,
+                    item.DocumentType,
+                    item.Status,
+                    inputParams
+                  );
+                }}
+              >
+                Received
+              </Button>
+
+              {/* if (item.Status === 'Admin Operation Received') {
+          if (inputParams === '') {
+            Alert.alert(
+              'OBR Number Required',
+              'Please enter a valid OBR number.'
+            );
+            return; // Exit early if no inputParams
+          }
+        } 
+         
+          if {
+          Alert.alert(
+            'Action Restricted',
+            'You do not have permission to perform this action.'
+          );
+          return; // Exit if status is not valid
+        }*/}
+            </>
+          )}
+
+          {showCAORevertButton && (
+            <Button
+              mode="contained"
+              loading={isLoading}
+              disabled={isLoading}
+              style={{
+                marginTop: 10,
+                borderRadius: 8,
+                elevation: 1,
+                backgroundColor: "orange"
+              }}
+              onPress={() =>
+                handleRevert(
+                  item.Year,
+                  item.TrackingNumber,
+                  item.TrackingType,
+                  item.DocumentType,
+                  item.Status,
+                )
+              }
+            >
+              Revert
+            </Button>
+          )}
+
+
+          {/* {showRevertButton && (
+            <Button
+              mode="contained"
+              loading={isLoading}
+              disabled={isLoading}
+              style={{
+                marginTop: 10,
+                borderRadius: 8,
+                elevation: 1,
+                backgroundColor: "orange"
+              }}
+              onPress={() =>
+                handleRevert(
+                  item.Year,
+                  item.TrackingNumber,
+                  item.TrackingType,
+                  item.DocumentType,
+                  item.Status,
+                )
+              }
+            >
+              Revert
+            </Button>
+          )} */}
+
+
+
+          {/* {showRevertButton && (
             <TouchableOpacity
               style={{
                 flex: 1,
@@ -413,7 +742,38 @@ const QRManual = () => {
                 )}
               </View>
             </TouchableOpacity>
-          )}
+          )} */}
+
+          {/*REVERT BUTTON*/}
+          {/* <TouchableOpacity
+            style={{
+              flex: 1,
+              marginTop: 20,
+              backgroundColor: 'orange',
+              padding: 10,
+              margin: 5,
+              borderRadius: 4,
+            }}
+            onPress={() =>
+              handleRevert(
+                item.Year,
+                item.TrackingNumber,
+                item.TrackingType,
+                item.DocumentType,
+                item.Status,
+              )
+            }
+            disabled={isLoading}>
+            <View>
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.buttonText}>Revert</Text>
+              )}
+            </View>
+          </TouchableOpacity> */}
+
+
 
           {/*        {showPendingButton && (
             <TouchableOpacity
@@ -441,18 +801,18 @@ const QRManual = () => {
           <TouchableOpacity
             style={{
               flexDirection: 'row',
-              paddingTop: 10,
+              // paddingTop: 10,
             }}
             onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
             <Text
               style={{
-                color: '#007bff',
+                color: '#fff',
                 fontSize: 14,
               }}>
               Show More
             </Text>
 
-            <Icon name="chevron-forward" size={18} color={'#007bff'} />
+            <Icon name="chevron-forward" size={18} color={'#fff'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -465,25 +825,30 @@ const QRManual = () => {
 
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
+    console.log("Fetched Data:", data);
 
-    if (data.results.length > 0) {
-      const resultTrackingNumber =
-        trackingNumber.substring(4, 5) === '-' ||
-          trackingNumber.substring(0, 3) === 'PR-'
-          ? trackingNumber
-          : data.results[0].TrackingNumber;
-
-      navigation.navigate('Detail', {
-        index: 0,
-        selectedItem: {
-          Year: year,
-          TrackingNumber: resultTrackingNumber,
-          TrackingType: data.results[0].TrackingType,
-          data: data.results[0],
-        },
-      });
+    if (!data || !data.results || data.results.length === 0) {
+      console.warn("No results found.");
+      return;  // Exit early if there's no data
     }
+
+    const resultTrackingNumber =
+      trackingNumber.substring(4, 5) === '-' ||
+        trackingNumber.substring(0, 3) === 'PR-'
+        ? trackingNumber
+        : data.results[0].TrackingNumber;
+
+    navigation.navigate('Detail', {
+      index: 0,
+      selectedItem: {
+        Year: year,
+        TrackingNumber: resultTrackingNumber,
+        TrackingType: data.results[0].TrackingType,
+        data: data.results[0],
+      },
+    });
   };
+
 
   const format = useCameraFormat(cameraDevice, [
     { videoResolution: { width: 1280, height: 720 } },
@@ -562,7 +927,7 @@ const QRManual = () => {
             [
               {
                 text: 'Scan Again',
-                onPress: () => setCameraIsActive(true), // Reactivate the camera to scan again
+                onPress: () => setCameraIsActive(true),
               },
             ],
           );
@@ -570,7 +935,7 @@ const QRManual = () => {
         }
 
         // Process the valid data
-        console.log('QR Data:', data);
+        // console.log('QR Data:', data);
 
         // Mark the code as scanned
         setScannedCodes(prev => [...prev, scannedCode]);
@@ -753,49 +1118,48 @@ const QRManual = () => {
 
           <View style={styles.bottomSheetContent}>
             <ImageBackground style={{ flex: 1 }} source={require('../../../assets/images/docmobileBG.png')}>
-                <View
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  padding: 10
+                }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    bottomSheetRef.current?.close();
+                    setCameraIsActive(true);
+                  }}
                   style={{
+                    padding: 5,
+                    borderColor: 'gray',
                     flexDirection: 'row',
-                    justifyContent: 'flex-end', 
                     alignItems: 'center',
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                  }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      bottomSheetRef.current?.close();
-                      setCameraIsActive(true);
-                    }}
+                  }}
+                >
+                  <Icon
+                    name="backspace-outline"
+                    size={22}
+                    // color={'#252525'}
+                    color={'#fff'}
+                    style={{ marginRight: 2 }}
+                  />
+                  <Text
                     style={{
-                      padding: 5,
-                      borderColor: 'gray',
-                      flexDirection: 'row',
-                      alignItems: 'center',
+                      fontSize: 13,
+                      fontFamily: 'Inter_28pt-Bold',
+                      // color: '#252525',
+                      color: '#fff',
                     }}
                   >
-                    <Icon
-                      name="backspace-outline"
-                      size={22}
-                      // color={'#252525'}
-                      color={'#fff'}
-                      style={{ marginRight: 2 }}
-                    />
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        fontFamily: 'Inter_28pt-Bold',
-                        // color: '#252525',
-                        color: '#fff',
-                      }}
-                    >
-                      Close
-                    </Text>
-                  </TouchableOpacity>
+                    Close
+                  </Text>
+                </TouchableOpacity>
 
 
-                </View>
-                
-              <View style={{ flex: 1, paddingHorizontal: 10,  }}>
+              </View>
+
+              <View style={{ flex: 1, paddingHorizontal: 10, }}>
                 <BottomSheetFlatList // Use regular FlatList here
                   data={qrData}
                   renderItem={renderItem}
@@ -852,7 +1216,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_28pt-Bold',
   },
   itemContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     padding: 16,
     borderRadius: 10,
     elevation: 0,
@@ -878,21 +1242,23 @@ const styles = StyleSheet.create({
   },
   textRow: {
     flexDirection: 'row',
-    width: '65%',
+    alignItems: 'baseline',
+    paddingBottom: 10,
+    // paddingStart: 10,
   },
   label: {
-    width: '70%',
-    fontSize: 13,
-    fontFamily: 'Inter_28pt-Regular',
-    textAlign: 'right',
-    color: 'gray',
-
+    width: '25%',
+    color: 'white',
+    paddingStart: 10,
+    fontSize: 12,
+    fontFamily: 'Oswald-Light',
+    opacity: 0.6,
   },
   value: {
+    width: '70%',
+    color: 'white',
     fontSize: 14,
-    fontFamily: 'Inter_28pt-Regular',
-    width: '100%',
-    color: 'black',
+    fontFamily: 'Oswald-Regular',
     marginStart: 10,
   },
   cameraPreview: {
