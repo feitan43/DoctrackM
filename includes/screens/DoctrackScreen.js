@@ -447,7 +447,6 @@ const DoctrackScreen = ({
   const [refreshing, setRefreshing] = React.useState(false);
   const [isModalVisible, setModalVisible] = React.useState(false);
   const queryClient = useQueryClient();
-  console.log('ReceivedPerMonth Data:', receivedMonthly);
 
   const [selectedDate, setSelectedDate] = useState('');
 
@@ -3430,6 +3429,7 @@ const DoctrackScreen = ({
     );
   };
 
+
   const renderReceiver = () => (
     <View>
       <View style={{ marginBottom: 20 }}>
@@ -3505,6 +3505,7 @@ const DoctrackScreen = ({
                     navigation.navigate(item.screen, {
                       receivedMonthly: receivedMonthly?.ReceivedPerMonth ?? [],
                       allMonthsData: receivedMonthly?.AllMonthsData ?? {},
+                      allMonthsUniqueData: receivedMonthly?.AllUniqueMonthsData ?? {},
                       selectedYear
                     });
                   }

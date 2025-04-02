@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
-import { SafeAreaView, View, StyleSheet, ImageBackground, TouchableOpacity, Pressable, ScrollView } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { SafeAreaView, View, StyleSheet, ImageBackground, TouchableOpacity, Pressable, FlatList, Image } from 'react-native';
 import { Text, Card } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Switch } from 'react-native-paper';
+import { insertCommas } from '../../utils/insertComma';
 
 const MonthlyReceivedScreen = ({ navigation, route }) => {
-    const { receivedMonthly = [], selectedYear, allMonthsData = {} } = route.params || {};
-
+    const { receivedMonthly = [], selectedYear, allMonthsData = {}, allMonthsUniqueData = {} } = route.params || {};
     const [selectDate, setSelectDate] = useState(null);
+    const [isSwitchOn, setIsSwitchOn] = useState(false);
+    console.log('allMonthsUniqueData', allMonthsUniqueData);
+    const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
 
-    const receivedData = receivedMonthly.reduce((acc, item) => {
+    const receivedData = useMemo(() => receivedMonthly.reduce((acc, item) => {
         acc[item.Month] = {
             count: item.Count,
             documentType: item.DocumentType || "N/A",
@@ -16,29 +20,132 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             totalAmount: item.TotalAmount || 0
         };
         return acc;
-    }, {});
-
-    console.log('Received Data: ', receivedData);
+    }, {}), [receivedMonthly]);
 
     const MONTHS = [
         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
 
-    const monthlyData = MONTHS.map((month) => ({
-        month,
-        count: receivedData[month]?.count || 0,
-        documentType: receivedData[month]?.documentType || "N/A",
-        fund: receivedData[month]?.fund || "N/A",
-        totalAmount: receivedData[month]?.totalAmount || 0,
-    }));
+    const monthlyData = useMemo(() => MONTHS.map((month) => {
+        const count = isSwitchOn ? allMonthsUniqueData[month]?.Count || 0 : receivedData[month]?.count || 0;
+        console.log(`Month: ${month}, isSwitchOn: ${isSwitchOn}, Count: ${count}`);
+        return {
+            month,
+            count: count,
+            documentType: receivedData[month]?.documentType || "N/A",
+            fund: receivedData[month]?.fund || "N/A",
+            totalAmount: receivedData[month]?.totalAmount || 0,
+        };
+    }), [receivedData, isSwitchOn, allMonthsUniqueData]);
+
+
+    console.log('monthlyData', monthlyData);
+
+
+    const handleMonthPress = useCallback((month) => {
+        setSelectDate(prevDate => prevDate === month ? null : month);
+    }, []);
+
+    const renderMonths = () => (
+        <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-end', top: 10 }}>
+                <Text style={{ fontSize: 15, fontWeight: 'bold' }}>Accumulated / Unique</Text>
+                <Switch
+                    value={isSwitchOn}
+                    onValueChange={onToggleSwitch}
+                    trackColor={{ false: "#767577", true: "#B4B4B4" }}
+                    thumbColor={isSwitchOn ? "#007bff" : "#fff"}
+                    style={{ transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }] }}
+                />
+            </View>
+
+            <View style={styles.gridContainer}>
+                {monthlyData.map((item, index) => (
+                    <Pressable
+                        key={index}
+                        style={({ pressed }) => [
+                            styles.monthButton,
+                            selectDate === item.month && styles.selectedMonthButton,
+                            pressed && styles.pressedMonthButton
+                        ]}
+                        onPress={() => handleMonthPress(item.month)}
+                    >
+                        <Card.Content style={styles.cardContent}>
+                            <Text style={[styles.monthText, selectDate === item.month && styles.selectedText]}>
+                                {item.month}
+                            </Text>
+                            <Text style={[styles.countText, selectDate === item.month && styles.selectedText]}>
+                                {item.count}
+                            </Text>
+                        </Card.Content>
+                    </Pressable>
+                ))}
+            </View>
+        </View>
+    );
+
+    const renderDetails = () => {
+        const dataToRender = isSwitchOn
+            ? allMonthsUniqueData?.[selectDate]?.Data || []
+            : allMonthsData?.[selectDate]?.Data || [];
+
+
+        return selectDate ? (
+            <View style={styles.detailsContainer}>
+                <FlatList
+                    data={dataToRender}
+                    keyExtractor={(item, index) => index.toString()}
+                    ListHeaderComponent={<Text style={styles.detailsTitle}>
+                        {selectDate} {selectedYear} Details ({isSwitchOn ? "Unique" : "Accumulated"})
+                    </Text>}
+                    renderItem={({ item, index }) => (
+                        <View style={styles.dataRow}>
+                            <View style={styles.counterStyle}>
+                                <Text style={styles.counterText}>{index + 1}</Text>
+                            </View>
+                            <View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Tracking Number:</Text>
+                                    <Text style={styles.value}>{item.TrackingNumber || 'n/a'}</Text>
+                                </View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Document Type:</Text>
+                                    <Text style={styles.value}>{item.DocumentType || 'n/a'}</Text>
+                                </View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Fund:</Text>
+                                    <Text style={styles.value}>{item.Fund || 'n/a'}</Text>
+                                </View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Amount:</Text>
+                                    <Text style={styles.value}> {insertCommas(item.Amount || '')}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+                    ListEmptyComponent={() => (
+                        <View style={styles.emptyStateContainer}>
+                            <Image
+                                source={require('../../../assets/images/noresultsstate.png')}
+                                style={styles.emptyStateImage}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.emptyStateText}>NO DATA AVAILABLE</Text>
+                        </View>
+                    )}
+                />
+            </View>
+        ) : null;
+    };
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
             <View style={styles.container}>
                 <ImageBackground
                     source={require('../../../assets/images/CirclesBG.png')}
-                    style={styles.bgHeader}>
+                    style={styles.bgHeader}
+                >
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                             <Icon name="arrow-back" size={24} color="#fff" />
@@ -47,86 +154,17 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                     </View>
                 </ImageBackground>
 
-                <ScrollView >
-                    <View style={styles.contentWrapper}>
-                        <View style={styles.gridContainer}>
-                            {monthlyData.map((item, index) => (
-                                <Pressable
-                                    key={index}
-                                    style={({ pressed }) => [
-                                        styles.monthButton,
-                                        selectDate === item.month && styles.selectedMonthButton,
-                                        pressed && styles.pressedMonthButton
-                                    ]}
-                                    onPress={() => setSelectDate(selectDate === item.month ? null : item.month)}
-                                >
-                                    <Card.Content style={styles.cardContent}>
-                                        <Text style={[styles.monthText, selectDate === item.month && styles.selectedText]}>
-                                            {item.month}
-                                        </Text>
-                                        <Text style={[styles.countText, selectDate === item.month && styles.selectedText]}>
-                                            {item.count}
-                                        </Text>
-                                    </Card.Content>
-                                </Pressable>
-                            ))}
-                        </View>
-
-                        {selectDate && (
-                            <View style={styles.detailsContainer}>
-                                <Text style={styles.detailsTitle}>{selectDate} {selectedYear} Details</Text>
-                                <View style={{}}>
-                                    {(allMonthsData[selectDate]?.Data || []).map((item, index) => (
-                                        <View key={index} style={styles.dataRow}>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>
-                                                    TrackingNumber:
-                                                </Text>
-                                                <Text style={styles.value}>
-                                                    {item.TrackingNumber || 'n/a'}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>
-                                                    DocumentType:
-                                                </Text>
-                                                <Text style={styles.value}>
-                                                    {item.DocumentType || 'n/a'}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>
-                                                    Fund:
-                                                </Text>
-                                                <Text style={styles.value}>
-                                                    {item.Fund || 'n/a'}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>
-                                                    Amount:
-                                                </Text>
-                                                <Text style={styles.value}>
-                                                    {item.Amount || 'n/a'}
-                                                </Text>
-                                            </View>
-                                            {/* <Text style={styles.detailsText}>Tracking Number: {item.TrackingNumber || 'n/a'}</Text>
-                                            <Text style={styles.detailsText}>Document Type: {item.DocumentType || 'n/a'}</Text>
-                                            <Text style={styles.detailsText}>Fund: {item.Fund || 'n/a'}</Text>
-                                            <Text style={styles.detailsText}>Amount: {item.Amount || 'n/a'}</Text> */}
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-
-                        )}
-                    </View>
-                </ScrollView>
+                <View style={styles.contentWrapper}>
+                    <FlatList
+                        ListHeaderComponent={renderMonths()}
+                        ListFooterComponent={renderDetails()}
+                        showsVerticalScrollIndicator={false}
+                    />
+                </View>
             </View>
         </SafeAreaView>
     );
 };
-
 const styles = StyleSheet.create({
     container: { flex: 1 },
     bgHeader: {
@@ -153,12 +191,14 @@ const styles = StyleSheet.create({
     },
     contentWrapper: {
         flex: 1,
-        padding: 20,
+        paddingHorizontal: 10,
     },
+
     gridContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+        marginTop: 20
     },
     card: {
         width: '30%',
@@ -191,8 +231,8 @@ const styles = StyleSheet.create({
     monthButton: {
         width: '30%',
         alignItems: 'center',
-        paddingVertical: 10,
-        marginBottom: 10,
+        // paddingVertical: 5,
+        marginBottom: 5,
         borderRadius: 5,
         elevation: 1,
         backgroundColor: '#ffffff',
@@ -215,26 +255,33 @@ const styles = StyleSheet.create({
         color: '#ffffff',
     },
     detailsContainer: {
-        marginTop: 20,
-        padding: 15,
+        flex: 1,
+        padding: 10,
         // backgroundColor: '#f8f9fa',
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        elevation: 5
+        // backgroundColor: '#fff',
+        // borderWidth: 1,
+        // borderColor: '#ddd',
+        // borderRadius: 10,
+        elevation: 0
     },
     dataRow: {
-        backgroundColor: '#F3F3F3',
+        flexDirection: "row",
+        // alignItems: 'flex-start',
+        backgroundColor: '#fff',
+        elevation: 3,
+        // backgroundColor: 'yellow',
         borderRadius: 8,
-        padding: 10,
-        marginTop: 8
+        padding: 8,
+        marginTop: 10
     },
     textRow: {
         flexDirection: 'row',
-        alignItems: 'baseline',
-        paddingBottom: 10,
+        alignItems: 'flex-start',
+        marginBottom: 5,
         // paddingStart: 10,
     },
     detailsTitle: {
+        marginVertical: 5,
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
@@ -247,16 +294,51 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     value: {
-        width: '70%',
+        width: '55%',
         fontSize: 14,
         fontFamily: 'Oswald-Regular',
         marginStart: 10,
+    },
+    emptyStateContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+    },
+    emptyStateImage: {
+        width: 150,
+        height: 150,
+    },
+    emptyStateText: {
+        fontFamily: 'Roboto-Light',
+        color: '#999',
+        fontSize: 16,
+        marginTop: 10,
+        textAlign: 'center',
+    },
+    counterStyle: {
+        marginRight: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 30,
+        height: 30,
+        backgroundColor: '#007bff',
+        borderRadius: 6,
+    },
+    counterText: {
+        color: '#ddd',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
     detailsText: {
         fontSize: 16,
         // color: '#007bff',
         marginTop: 0,
     },
+    toggleButton: {
+        top: 10,
+        alignItems: 'flex-end'
+    }
 });
 
 export default MonthlyReceivedScreen;

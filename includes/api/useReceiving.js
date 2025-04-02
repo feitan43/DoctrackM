@@ -106,22 +106,25 @@ const useReceiving = (selectedYear) => {
       if (!employeeNumber || !selectedYear) return null;
       const storedToken = await AsyncStorage.getItem('token');
       if (!storedToken) throw new Error('Authorization token is missing');
-
+  
       const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
-      console.log('API: ', apiUrl); 
+      console.log('Fetching data from: ', apiUrl);
+  
       const response = await apiClient.get(apiUrl, {
         headers: {
           Authorization: `Bearer ${storedToken}`,
           'Content-Type': 'application/json',
         },
       });
-
+  
       return response.data;
     },
     enabled: !!employeeNumber && !!selectedYear,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000, 
+    keepPreviousData: true,
   });
-
-
+  
 
 
 
