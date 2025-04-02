@@ -25,8 +25,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(bodyParser.json({type: 'application/json'}));
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json({ type: 'application/json' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 
 var serviceAccount = require('./nodejs/doctracknotif-firebase-adminsdk-l5hyw-4ecbd3cc3b.json');
@@ -39,7 +39,7 @@ admin.initializeApp({
 //const ServerIp = "http://192.168.203.13";
 //const ServerIp = "http://192.168.254.111";
 
-const ServerIp = "http://192.168.254.134";
+const ServerIp = "http://192.168.254.195";
 //const ServerIp = "http://192.168.8.24";
 
 
@@ -54,8 +54,8 @@ async function sendNotifForNonRegulatory() {
     if (!response.ok) {
       throw new Error('Failed to fetch data');
     }
-    
-    const data = await response.json(); 
+
+    const data = await response.json();
 
     const tokens = data.map(item => ({ PushToken: item.PushToken, TransactionDelay: item.TransactionDelay, EmployeeNumber: item.EmployeeNumber }));
 
@@ -65,7 +65,7 @@ async function sendNotifForNonRegulatory() {
 
     for (let i = 0; i < tokens.length; i++) {
       const { PushToken, TransactionDelay: delay } = tokens[i]; // Corrected destructuring
-    
+
 
       // Skip sending notification if TransactionDelay is 0
       if (delay === 0) {
@@ -92,34 +92,34 @@ async function sendNotifForNonRegulatory() {
         },
         groupId: 'NonRegDelays',
       };
-    
 
-    const payload = {
-      tokens: [PushToken],
-      data: {
-        notifee: JSON.stringify(message),
-        groupId: 'NonRegDelays',
-      },
-    };
 
-    // Send the multicast message
-    const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
-    const fcmResponse = await messaging.sendEachForMulticast(payload);
+      const payload = {
+        tokens: [PushToken],
+        data: {
+          notifee: JSON.stringify(message),
+          groupId: 'NonRegDelays',
+        },
+      };
 
-    //console.log('FCM Response:', fcmResponse);
+      // Send the multicast message
+      const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
+      const fcmResponse = await messaging.sendEachForMulticast(payload);
 
-    fcmResponse.responses.forEach((resp, idx) => {
-      //console.log(`FCM Response for token ${tokens[idx].PushToken}:`, resp);
-      //console.log(
-       // `Successfully sent messages for token ${tokens[idx].PushToken}:`,
-      //  resp.successCount,
-     // );
-    });
-  }
+      //console.log('FCM Response:', fcmResponse);
+
+      fcmResponse.responses.forEach((resp, idx) => {
+        //console.log(`FCM Response for token ${tokens[idx].PushToken}:`, resp);
+        //console.log(
+        // `Successfully sent messages for token ${tokens[idx].PushToken}:`,
+        //  resp.successCount,
+        // );
+      });
+    }
 
     console.log(
       'Messages sent successfully to users non reg',
-      
+
       tokens.map(token => token.EmployeeNumber),
     );
   } catch (error) {
@@ -137,8 +137,8 @@ async function sendNotifForRegulatory() {
     if (!response.ok) {
       throw new Error('Failed to fetch data');
     }
-    
-    const data = await response.json(); 
+
+    const data = await response.json();
 
     const tokens = data.map(item => ({ PushToken: item.PushToken, TransactionDelay: item.TransactionDelay, EmployeeNumber: item.EmployeeNumber }));
 
@@ -147,11 +147,11 @@ async function sendNotifForRegulatory() {
     for (let i = 0; i < tokens.length; i++) {
       const { PushToken, TransactionDelay: delay } = tokens[i]; // Corrected destructuring
 
-         // Skip sending notification if TransactionDelay is 0
-         if (delay === 0) {
-          continue; // Move to the next iteration of the loop
-        }
-    
+      // Skip sending notification if TransactionDelay is 0
+      if (delay === 0) {
+        continue; // Move to the next iteration of the loop
+      }
+
       const message = {
         notification: {
           title: 'Delayed Transactions',
@@ -171,34 +171,34 @@ async function sendNotifForRegulatory() {
         },
         groupId: 'RegDelays',
       };
-    
 
-    const payload = {
-      tokens: [PushToken],
-      data: {
-        notifee: JSON.stringify(message),
-        groupId: 'RegDelays',
-      },
-    };
 
-    // Send the multicast message
-    const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
-    const fcmResponse = await messaging.sendEachForMulticast(payload);
+      const payload = {
+        tokens: [PushToken],
+        data: {
+          notifee: JSON.stringify(message),
+          groupId: 'RegDelays',
+        },
+      };
 
-    //console.log('FCM Response:', fcmResponse);
+      // Send the multicast message
+      const messaging = admin.messaging(); // Assuming you have imported and initialized admin.messaging()
+      const fcmResponse = await messaging.sendEachForMulticast(payload);
 
-    fcmResponse.responses.forEach((resp, idx) => {
-      //console.log(`FCM Response for token ${tokens[idx].PushToken}:`, resp);
-      //console.log(
-       // `Successfully sent messages for token ${tokens[idx].PushToken}:`,
-      //  resp.successCount,
-     // );
-    });
-  }
+      //console.log('FCM Response:', fcmResponse);
+
+      fcmResponse.responses.forEach((resp, idx) => {
+        //console.log(`FCM Response for token ${tokens[idx].PushToken}:`, resp);
+        //console.log(
+        // `Successfully sent messages for token ${tokens[idx].PushToken}:`,
+        //  resp.successCount,
+        // );
+      });
+    }
 
     console.log(
       'Messages sendNotifForReg sent successfully to users ',
-      
+
       tokens.map(token => token.EmployeeNumber),
     );
   } catch (error) {
@@ -209,16 +209,16 @@ async function sendNotifForRegulatory() {
 
 
 app.post('/triggerFunction', async (req, res) => {
- // const officeCodes = ['8751', '1031', '1081', 'BAAC', '1071', '1061', '1091'];
- const officeCode = 'TRAC';
+  // const officeCodes = ['8751', '1031', '1081', 'BAAC', '1071', '1061', '1091'];
+  const officeCode = 'TRAC';
 
   try {
     // Call the function
-   // await sendToUsersWithOfficeCodes(officeCodes);
+    // await sendToUsersWithOfficeCodes(officeCodes);
 
     sendNotifForNonRegulatory();
     sendNotifForRegulatory();
-  //sendNotifRealtime(officeCode);
+    //sendNotifRealtime(officeCode);
     res.status(200).send('Function triggered successfully');
   } catch (error) {
     console.error('Error triggering function:', error);
@@ -509,16 +509,16 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
 
 
     const headers = req.headers;
-//     const host = req.headers.host;
+    //     const host = req.headers.host;
 
-//     const officeCode = req.params.office;
-//     console.log('Office Code:', officeCode);
+    //     const officeCode = req.params.office;
+    //     console.log('Office Code:', officeCode);
 
-//     const tn = req.params.tn;
-//     console.log('TN:', tn);
+    //     const tn = req.params.tn;
+    //     console.log('TN:', tn);
 
-//     const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
-//     console.log('DT:', doctype);
+    //     const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
+    //     console.log('DT:', doctype);
 
     const { office: officeCode, tn, doctype } = req.params;
     console.log('Office Code:', officeCode);
@@ -581,8 +581,8 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
 
 
 //     if (ip !== '::ffff:192.168.200.4' && ip !== '::ffff:192.168.100.217' && ip !== '::ffff:192.168.203.13' && ip !== '::ffff:192.168.61.1' && ip !== '::ffff:192.168.254.134' && ip != '::ffff:120.28.215.237') {
-     
-     
+
+
 //       return res.status(403).json({ error: 'Forbidden' });
 //     }
 
@@ -604,7 +604,7 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
 //     }
 
 
-    
+
 
 //     // Filter the doctype based on the given conditions
 //     if (doctype.startsWith("WAGES") || doctype.includes("SLP") || 
@@ -666,11 +666,11 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
 //   } else {
 //     try {
 //       const response = await fetch(`${ServerIp}/gord/ajax/dataprocessor.php?itachi=1&office=${officeCode}`);
-      
+
 //       if (!response.ok) {
 //         throw new Error('Failed to fetch data');
 //       }
-      
+
 //       const data = await response.json(); 
 //       console.log(data);
 
@@ -967,32 +967,32 @@ async function sendNotifMyTransaction(tn) {
       const currentYear = new Date().getFullYear();
       const response = await fetch(`${ServerIp}/gord/ajax/dataprocessor.php?gusion=1&year=${currentYear}&tn=${tn}`);
       //console.log("res",response)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch data');
       }
-      
-      const data = await response.json(); 
+
+      const data = await response.json();
 
 
       const tokens = data.map(item => ({
         PushToken: item.PushToken,
         EmployeeNumber: item.EmployeeNumber
-      })).filter(item => item.PushToken); 
+      })).filter(item => item.PushToken);
 
       if (tokens.length === 0) {
-        return; 
+        return;
       }
 
       for (let i = 0; i < tokens.length; i++) {
-        const { PushToken } = tokens[i]; 
+        const { PushToken } = tokens[i];
 
         if (!PushToken) {
           continue;
         }
 
 
-        const message = { 
+        const message = {
           notification: {
             title: 'My Personal',
             body: `${tn} have already been updated.`,
@@ -1071,7 +1071,7 @@ async function sendNotifInspector(TrackingNumber, Inspector) {
     };
 
     const payload = {
-      tokens,  
+      tokens,
       data: {
         notifee: JSON.stringify(message),
         groupId: 'ForInspection',
@@ -1080,7 +1080,7 @@ async function sendNotifInspector(TrackingNumber, Inspector) {
 
     const messaging = admin.messaging();
     const fcmResponse = await messaging.sendEachForMulticast(payload);
-    
+
     console.log('FCM response:', fcmResponse);
   } catch (error) {
     console.error('Error sending inspector notifications:', error);
@@ -1105,7 +1105,7 @@ app.post('/sendNotifInspector', async (req, res) => {
 
 
 const latestVersion = {
-  version: '2.3',
+  version: '2.4',
   updateUrl: 'https://www.davaocityportal.com/gm8/DocMobile.apk' // URL where the update can be downloaded
 };
 console.log(latestVersion.version);
@@ -1192,7 +1192,7 @@ function verifyToken(req, res, next) {
   }}); */
 
 
-  app.post('/loginApi', async (req, res) => {
+app.post('/loginApi', async (req, res) => {
   const { EmployeeNumber, Password, PushToken, UserDevice } = req.body;
 
   console.log(EmployeeNumber, Password, PushToken, UserDevice);
@@ -1204,8 +1204,6 @@ function verifyToken(req, res, next) {
   const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?ark=1&user=${EmployeeNumber}&pass=${encodeURIComponent(hashedPassword)}&pushToken=${PushToken}&userDevice=${encodeURIComponent(UserDevice)}`;
 
-  console.log(apiUrl);
-
   try {
     const apiResponse = await fetch(apiUrl);
 
@@ -1214,6 +1212,7 @@ function verifyToken(req, res, next) {
     }
 
     const data = await apiResponse.json();
+    console.log(data);
 
     if (!data || !Array.isArray(data) || data.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -1244,10 +1243,10 @@ app.post('/logoutApi', async (req, res) => {
 
   if (!EmployeeNumber) {
     return res.status(400).json({ error: 'Missing credentials' });
-    
+
   }
 
- //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?sayonara=1&user=${EmployeeNumber}`; //live
+  //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?sayonara=1&user=${EmployeeNumber}`; //live
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?sayonara=1&user=${EmployeeNumber}`; //local
 
   try {
@@ -1283,11 +1282,11 @@ app.get('/userInfo', async (req, res) => {
     // Verify token format before further processing
     const isValidTokenFormat =
       /^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/.test(tokenString);
-  
+
     if (!isValidTokenFormat) {
       return res.status(401).json({ error: 'Invalid token format' });
     }
-  
+
     jwt.verify(tokenString, process.env.JWT_SECRET || 'defaultSecret', async (err, decoded) => {
       if (err) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -1317,7 +1316,7 @@ app.get('/userInfo', async (req, res) => {
 app.get('/regOfficeDelays', async (req, res) => {
 
   try {
-    const {OfficeCode} = req.query;
+    const { OfficeCode } = req.query;
 
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}` // live
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}`  //localhost
@@ -1327,7 +1326,7 @@ app.get('/regOfficeDelays', async (req, res) => {
 
     const apiResponse = await fetchRetry(apiUrl);
 
-    
+
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
@@ -1346,7 +1345,7 @@ app.get('/regOfficeDelays', async (req, res) => {
 app.get('/officeDelays', async (req, res) => {
 
   try {
-    const {OfficeCode} = req.query;
+    const { OfficeCode } = req.query;
 
     //console.log(OfficeCode);
 
@@ -1358,7 +1357,7 @@ app.get('/officeDelays', async (req, res) => {
     const apiResponse = await fetchRetry(apiUrl);
 
     //console.log(apiResponse);
-    
+
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
@@ -1377,7 +1376,7 @@ app.get('/officeDelays', async (req, res) => {
 app.get('/genInformation', async (req, res) => {
   const { TrackingNumber, Year, accountType, officeCode } = req.query;
 
- // console.log(TrackingNumber, Year, accountType, officeCode);
+  // console.log(TrackingNumber, Year, accountType, officeCode);
 
 
   try {
@@ -1395,7 +1394,7 @@ app.get('/genInformation', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
 
     // Remaining code remains the same
@@ -1414,7 +1413,7 @@ app.get('/obrInformation', async (req, res) => {
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?palworld=1&year=${Year}&tn=${TrackingNumber}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?palworld=1&year=${Year}&tn=${TrackingNumber}`;
 
-    
+
     const apiResponse = await fetch(apiUrl);
 
 
@@ -1423,7 +1422,7 @@ app.get('/obrInformation', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
 
     // Remaining code remains the same
@@ -1450,7 +1449,7 @@ app.get('/salaryList', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
 
   } catch (error) {
@@ -1479,8 +1478,8 @@ app.get('/prpopxDetails', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-   // console.log("From server", data);
-    
+    // console.log("From server", data);
+
     res.json(data);
 
     // Remaining code remains the same
@@ -1552,7 +1551,7 @@ app.get('/computationBreakdown', async (req, res) => {
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?fallout=1&year=${Year}&tn=${TrackingNumber}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?fallout=1&year=${Year}&tn=${TrackingNumber}`;
 
-    
+
     const apiResponse = await fetch(apiUrl);
     //console.log(apiUrl)
 
@@ -1580,7 +1579,7 @@ app.get('/transactionHistory', async (req, res) => {
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
-    
+
     const apiResponse = await fetch(apiUrl);
     //console.log(apiUrl)
 
@@ -1590,7 +1589,7 @@ app.get('/transactionHistory', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-   // console.log(data)
+    // console.log(data)
 
     res.json(data);
 
@@ -1602,10 +1601,10 @@ app.get('/transactionHistory', async (req, res) => {
 });
 
 app.get('/myTransactions', async (req, res) => {
-  const {EmployeeNumber, Year} = req.query;
+  const { EmployeeNumber, Year } = req.query;
 
   //console.log("Year-- Server",Year, EmployeeNumber);
-  
+
 
   try {
     // Existing code remains the same
@@ -1624,9 +1623,9 @@ app.get('/myTransactions', async (req, res) => {
 
     //console.log(data);
 
-   // io.emit('myTransactionData', data);
+    // io.emit('myTransactionData', data);
 
-    
+
 
     res.json(data);
 
@@ -1638,10 +1637,10 @@ app.get('/myTransactions', async (req, res) => {
 });
 
 app.get('/recentlyUpdated', async (req, res) => {
-  const {OfficeCode} = req.query;
+  const { OfficeCode } = req.query;
 
   //console.log("Year-- Server",Year);
-  
+
 
   try {
     // Existing code remains the same
@@ -1657,14 +1656,14 @@ app.get('/recentlyUpdated', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
 
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in recentlyUpdated:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 io.on('connection', (socket) => {
@@ -1679,20 +1678,20 @@ io.on('connection', (socket) => {
 
   // Handle disconnection
   socket.on('disconnect', () => {
-  /*   console.log('user disconnected'); */
+    /*   console.log('user disconnected'); */
   });
 });
 
 app.get('/updatedNow', async (req, res) => {
-  const {OfficeCode} = req.query;
-  
+  const { OfficeCode } = req.query;
+
   //http://192.168.100.217/gord/ajax/dataprocessor.php?killua=1&office=
   try {
     // Existing code remains the same
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
-    
+
     const apiResponse = await fetch(apiUrl);
 
 
@@ -1713,15 +1712,15 @@ app.get('/updatedNow', async (req, res) => {
 });
 
 app.get('/transactionUpdate', async (req, res) => {
-  const {Office, Year} = req.query;
-  
+  const { Office, Year } = req.query;
+
   //http://192.168.100.217/gord/ajax/dataprocessor.php?killua=1&office=
   try {
     // Existing code remains the same
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?killua=1&office=${OfficeCode}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?gusion=1&year=${Year}&office=${Office}`; //
-    
+
     const apiResponse = await fetch(apiUrl);
 
 
@@ -1730,7 +1729,7 @@ app.get('/transactionUpdate', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    res.json(data); 
+    res.json(data);
 
     io.emit('updatedNowData', data);
 
@@ -1742,7 +1741,7 @@ app.get('/transactionUpdate', async (req, res) => {
 });
 
 app.get('/read', async (req, res) => {
-  const {OfficeCode} = req.query;
+  const { OfficeCode } = req.query;
   try {
 
 
@@ -1751,7 +1750,7 @@ app.get('/read', async (req, res) => {
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?kakashi=1&office=${OfficeCode}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?kakashi=1&office=${OfficeCode}`;
 
-    
+
     const apiResponse = await fetch(apiUrl);
 
     if (!apiResponse.ok) {
@@ -1760,7 +1759,7 @@ app.get('/read', async (req, res) => {
 
     const data = await apiResponse.json();
     console.log(data);
-    
+
     res.json(data);
 
     // Remaining code remains the same
@@ -1772,12 +1771,12 @@ app.get('/read', async (req, res) => {
 
 
 app.get('/transactionSummary', async (req, res) => {
-  const {Year, TrackingType, OfficeCode} = req.query;
+  const { Year, TrackingType, OfficeCode } = req.query;
 
   //console.log(Year, TrackingType, OfficeCode);
 
   //console.log("Year-- Server",Year);
-  
+
 
   try {
     // Existing code remains the same
@@ -1792,7 +1791,7 @@ app.get('/transactionSummary', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
@@ -1800,7 +1799,7 @@ app.get('/transactionSummary', async (req, res) => {
   } catch (error) {
     console.error('Error fetching data in transactionSummary:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/othersVouchers', async (req, res) => {
@@ -1820,14 +1819,14 @@ app.get('/othersVouchers', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in othersVouchers:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/othersOthers', async (req, res) => {
@@ -1845,45 +1844,46 @@ app.get('/othersOthers', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in othersothers:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/searchTrackingNumber', async (req, res) => {
-  const { year, office, accountType, key } = req.query; 
+  const { year, office, accountType, key } = req.query;
 
-  //console.log(year, office, accountType, key);
+  console.log(year, office, accountType, key);
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?nighteye=1&year=${year}&office=${office}&accountType=${accountType}&key=${key}`;
 
     const apiResponse = await fetch(apiUrl);
 
-    //console.log(apiUrl);
+
+    console.log(apiUrl);
 
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
 
     const data = await apiResponse.json();
-    
+    console.log('SEARCH DATA: ', data)
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in searchTrackingNumber:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/searchPayroll', async (req, res) => {
-  const { year, office, accountType, key } = req.query; 
+  const { year, office, accountType, key } = req.query;
 
   //console.log(year, office, accountType, key);
 
@@ -1899,18 +1899,18 @@ app.get('/searchPayroll', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in searchPayroll:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/getInspectionItems', async (req, res) => {
-  const { year, trackingNumber,  accountType } = req.query; 
+  const { year, trackingNumber, accountType } = req.query;
 
   //console.log(year, trackingNumber,  accountType);
 
@@ -1926,18 +1926,18 @@ app.get('/getInspectionItems', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in searchPayroll:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/inspectItems', async (req, res) => {
-  const { year, employeeNumber, trackingNumber, accountType, status , remarks} = req.query; 
+  const { year, employeeNumber, trackingNumber, accountType, status, remarks } = req.query;
 
   console.log(year, employeeNumber, trackingNumber, accountType, status, remarks);
 
@@ -1953,45 +1953,45 @@ app.get('/inspectItems', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //  console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in inspect items:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/getInspectorImage', async (req, res) => {
   try {
-      const { year, trackingNumber } = req.query; 
-     // console.log(year, trackingNumber);
+    const { year, trackingNumber } = req.query;
+    // console.log(year, trackingNumber);
 
-      const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?getInspectorImage=1&year=${year}&tn=${trackingNumber}`;
-     // console.log(apiUrl)
-      const response = await fetch(apiUrl);
-     // console.log(response);
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?getInspectorImage=1&year=${year}&tn=${trackingNumber}`;
+    // console.log(apiUrl)
+    const response = await fetch(apiUrl);
+    // console.log(response);
 
-      const data = await response.json();
+    const data = await response.json();
 
-     // console.log(data);
+    // console.log(data);
 
-      if (data.success) {
-          const images = data.images; 
-          res.json({ success: data.success, images });
-      } else {
-          res.json({ error: data.error });
-      }
+    if (data.success) {
+      const images = data.images;
+      res.json({ success: data.success, images });
+    } else {
+      res.json({ error: data.error });
+    }
   } catch (error) {
-      console.error('Error fetching inspector images:', error);
-      res.status(500).json({ error: 'An error occurred while fetching images.' });
+    console.error('Error fetching inspector images:', error);
+    res.status(500).json({ error: 'An error occurred while fetching images.' });
   }
 });
 
 
 app.get('/getInspectionList', async (req, res) => {
-  const { employeeNumber } = req.query; 
+  const { employeeNumber } = req.query;
 
   //console.log(employeeNumber);
 
@@ -2007,18 +2007,18 @@ app.get('/getInspectionList', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in getInspectList:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/getRecentActivity', async (req, res) => {
-  const { employeeNumber } = req.query; 
+  const { employeeNumber } = req.query;
 
   //console.log(employeeNumber);
 
@@ -2034,18 +2034,18 @@ app.get('/getRecentActivity', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in getInspectList:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/getQRData', async (req, res) => {
-  const { Year, TrackingNumber } = req.query; 
+  const { Year, TrackingNumber } = req.query;
 
   //console.log(Year, TrackingNumber);
 
@@ -2061,20 +2061,20 @@ app.get('/getQRData', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
   } catch (error) {
     console.error('Error fetching data in getInspectList:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 //NEW 1-22-2025 below
 
 app.get('/receiverReceived', async (req, res) => {
-  const { Year, TrackingNumber, TrackingType, DocumentType, Status, AccountType, Privilege, OfficeCode, EmployeeNumber, inputParams } = req.query; 
+  const { Year, TrackingNumber, TrackingType, DocumentType, Status, AccountType, Privilege, OfficeCode, EmployeeNumber, inputParams } = req.query;
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receiverReceived=1&year=${Year}&tn=${TrackingNumber}&tt=${TrackingType}&documentType=${DocumentType}&status=${Status}&accountType=${AccountType}&privilege=${Privilege}&officeCode=${OfficeCode}&empNum=${EmployeeNumber}&inputParams=${inputParams}`;
 
@@ -2085,59 +2085,84 @@ app.get('/receiverReceived', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching data in receiverReceived:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/receiverReverted', async (req, res) => {
-  const { Year, TrackingNumber, TrackingType, DocumentType, Status, AccountType, Privilege, OfficeCode, EmployeeNumber } = req.query; 
+  const { Year, TrackingNumber, TrackingType, DocumentType, Status, AccountType, OfficeCode, EmployeeNumber } = req.query;
+
   try {
-    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receiverReverted=1&year=${Year}&tn=${TrackingNumber}&tt=${TrackingType}&documentType=${DocumentType}&status=${Status}&accountType=${AccountType}&privilege=${Privilege}&officeCode=${OfficeCode}&empNum=${EmployeeNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receiverReverted=1&year=${Year}&tn=${TrackingNumber}&tt=${TrackingType}&documentType=${DocumentType}&status=${Status}&accountType=${AccountType}&officeCode=${OfficeCode}&empNum=${EmployeeNumber}`;
 
-    console.log(apiUrl);
+    console.log('Fetching Data From:', apiUrl);
+
     const apiResponse = await fetch(apiUrl);
+    console.log('API Response Status:', apiResponse.status);
 
+    const rawText = await apiResponse.text();
+    console.log('API Raw Response:', rawText);
 
-    if (!apiResponse.ok) {
-      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    // Extract JSON portion from response
+    const jsonMatch = rawText.match(/{.*}/s); // Finds the JSON part
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in API response');
     }
 
-    const data = await apiResponse.json();
-    
+    const data = JSON.parse(jsonMatch[0]); // Parse the extracted JSON
+    console.log('REVERT DATA:', data);
+
     res.json(data);
 
   } catch (error) {
-    console.error('Error fetching data in getInspectList:', error.message);
+    console.error('Error fetching data in /receiverReverted:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
+
 
 app.get('/receivingCount', async (req, res) => {
-  const { EmployeeNumber } = req.query; 
+  const { EmployeeNumber, Year } = req.query;
   try {
-    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?tobio=1&empnum=${EmployeeNumber}`;
-
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?tobio=1&empnum=${EmployeeNumber}&year=${Year}`;
     const apiResponse = await fetch(apiUrl);
-
-
+    console.log('RECEIVING COUNT API: ', apiUrl)
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
 
     const data = await apiResponse.json();
-    
-    res.json(data);
 
+    // Ensure the response contains MonthlyReceived data (array of objects)
+    res.json(data);
   } catch (error) {
-    console.error('Error fetching data in getInspectList:', error.message);
+    console.error('Error fetching data in receivingCount:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
+app.get('/receivedMonthly', async (req, res) => {
+  const { EmployeeNumber, Year } = req.query;
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receivedMonthly=1&empnum=${EmployeeNumber}&year=${Year}`;
+    const apiResponse = await fetch(apiUrl);
+    console.log('RECEIVING COUNT API: ', apiUrl)
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+    const data = await apiResponse.json()
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching data in receivingCount:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 
 app.get('/myAccountability', async (req, res) => {
   const { EmployeeNumber } = req.query;
@@ -2335,7 +2360,7 @@ app.get('/assignInspector', async (req, res) => {
     if (error.response) {
       return res.status(error.response.status).json({ error: error.response.statusText });
     }
-    
+
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -2364,7 +2389,7 @@ app.get('/getEvaluation', async (req, res) => {
 });
 
 app.get('/evaluatorEvaluate', async (req, res) => {
-  const { Year,TrackingNumber, EmployeeNumber, Status } = req.query;
+  const { Year, TrackingNumber, EmployeeNumber, Status } = req.query;
 
   if (!Year) {
     return res.status(400).json({ error: 'Year is required' });
@@ -2383,7 +2408,7 @@ app.get('/evaluatorEvaluate', async (req, res) => {
 });
 
 app.get('/evaluatorRevert', async (req, res) => {
-  const { Year,TrackingNumber, EmployeeNumber, Status } = req.query;
+  const { Year, TrackingNumber, EmployeeNumber, Status } = req.query;
 
   if (!Year) {
     return res.status(400).json({ error: 'Year is required' });
@@ -2544,7 +2569,7 @@ app.get('/projectCleansing', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
@@ -2552,11 +2577,11 @@ app.get('/projectCleansing', async (req, res) => {
   } catch (error) {
     console.error('Error fetching data in project cleansing:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 app.get('/projectCleansingDetails', async (req, res) => {
-  const {Barangay, Title, Office, Status, Inspected, Fund} = req.query;
+  const { Barangay, Title, Office, Status, Inspected, Fund } = req.query;
   //console.log(Barangay, Title, Office, Status, Inspected, Fund);
 
   try {
@@ -2572,7 +2597,7 @@ app.get('/projectCleansingDetails', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    
+
     res.json(data);
     //console.log(data);
 
@@ -2580,7 +2605,7 @@ app.get('/projectCleansingDetails', async (req, res) => {
   } catch (error) {
     console.error('Error fetching data in project cleansing details:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
-  } 
+  }
 });
 
 
