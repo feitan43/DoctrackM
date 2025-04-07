@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { SafeAreaView, View, StyleSheet, ImageBackground, TouchableOpacity, Pressable, FlatList, Image } from 'react-native';
 import { Text, Card } from 'react-native-paper';
+import { TabView, TabBar } from 'react-native-tab-view';
+
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Switch } from 'react-native-paper';
 import { insertCommas } from '../../utils/insertComma';
@@ -11,6 +13,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     const [isSwitchOn, setIsSwitchOn] = useState(false);
     console.log('allMonthsUniqueData', allMonthsUniqueData);
     const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
+    const [tabIndex, setTabIndex] = useState(0);
 
     const receivedData = useMemo(() => receivedMonthly.reduce((acc, item) => {
         acc[item.Month] = {
@@ -47,6 +50,83 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
         setSelectDate(prevDate => prevDate === month ? null : month);
     }, []);
 
+
+    const [tabRoutes] = useState([
+        { key: 'gen', title: 'GEN FUND' },
+        { key: 'trust', title: 'TRUST FUND' },
+        { key: 'sef', title: 'SEF' },
+    ]);
+
+
+    const renderScene = ({ route }) => {
+        switch (route.key) {
+            case 'gen':
+                return <TabContent text="GEN FUND 1 Content" />;
+            case 'trust':
+                return <TabContent text="TRUST FUND 2 Content" />;
+            case 'sef':
+                return <TabContent text="SEF 3 Content" />;
+            default:
+                return null;
+        }
+    };
+
+    const renderFunds = () => {
+        const dummyData = [
+            { trackingNumber: 'TRK123456789', amount: '$100.00' },
+            { trackingNumber: 'TRK987654321', amount: '$200.00' },
+            { trackingNumber: 'TRK564738291', amount: '$300.00' },
+        ];
+
+        return (
+            <View>
+                {dummyData.map((data, index) => (
+                    <View key={index} style={{  
+                        backgroundColor: '#fff',
+                        elevation: 3,
+                        borderRadius: 8,
+                        padding: 8,
+                        marginTop: 10,
+                        marginRight: 5
+                     }}>
+                        <Text>Tracking Number: {data.trackingNumber}</Text>
+                        <Text>Amount: {data.amount}</Text>
+                    </View>
+                ))}
+            </View>
+        );
+    };
+
+
+
+    const TabContent = () => (
+        <View style={{ padding: 5 }}>
+            <View style={{
+                padding: 0,
+            }}>
+                {renderFunds()}
+            </View>
+        </View>
+    );
+
+
+    const renderTabBar = props => (
+        <TabBar
+            {...props}
+            indicatorStyle={{ height: 3, borderRadius: 2, backgroundColor: '#007bff' }}
+            style={{
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                marginHorizontal: 0,
+                marginTop: 10,
+                overflow: 'hidden',
+            }}
+            labelStyle={{ color: '#000', fontWeight: 'bold' }}
+        />
+    );
+
+
+
     const renderMonths = () => (
         <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-end', top: 10 }}>
@@ -81,7 +161,23 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                         </Card.Content>
                     </Pressable>
                 ))}
+
             </View>
+
+            {selectDate && (
+                <View style={{ marginTop: 2 }}>
+                    <TabView
+                        lazy
+                        navigationState={{ index: tabIndex, routes: tabRoutes }}
+                        renderScene={renderScene}
+                        onIndexChange={setTabIndex}
+                        renderTabBar={renderTabBar}
+                        style={{ padding: 5 }}
+                    />
+                </View>
+            )}
+
+
         </View>
     );
 
