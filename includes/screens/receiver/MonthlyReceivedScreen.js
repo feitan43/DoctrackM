@@ -1,19 +1,30 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { SafeAreaView, View, StyleSheet, ImageBackground, TouchableOpacity, Pressable, FlatList, Image } from 'react-native';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useWindowDimensions, SafeAreaView, View, StyleSheet, ImageBackground, TouchableOpacity, Pressable, FlatList, Image, ScrollView } from 'react-native';
 import { Text, Card } from 'react-native-paper';
 import { TabView, TabBar } from 'react-native-tab-view';
 
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Switch } from 'react-native-paper';
 import { insertCommas } from '../../utils/insertComma';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+
 
 const MonthlyReceivedScreen = ({ navigation, route }) => {
-    const { receivedMonthly = [], selectedYear, allMonthsData = {}, allMonthsUniqueData = {} } = route.params || {};
+    const { receivedMonthly = [], selectedYear, allMonthsData = {}, allMonthsUniqueData = {}, accumulatedFundsData = {}, uniqueFundsData = {} } = route.params || {};
     const [selectDate, setSelectDate] = useState(null);
     const [isSwitchOn, setIsSwitchOn] = useState(false);
-    console.log('allMonthsUniqueData', allMonthsUniqueData);
+    const { width } = useWindowDimensions();
     const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
     const [tabIndex, setTabIndex] = useState(0);
+    const [activeTab, setActiveTab] = useState('gen');
+
+    const bottomSheetRef = useRef(null);
+    const snapPoints = ['75%'];
+    const [bottomSheetData, setBottomSheetData] = useState([]);
+
+    const handleShowBottomSheet = () => {
+        bottomSheetRef.current?.snapToIndex(0);
+    };
 
     const receivedData = useMemo(() => receivedMonthly.reduce((acc, item) => {
         acc[item.Month] = {
@@ -31,7 +42,18 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     ];
 
     const monthlyData = useMemo(() => MONTHS.map((month) => {
-        const count = isSwitchOn ? allMonthsUniqueData[month]?.Count || 0 : receivedData[month]?.count || 0;
+        let count;
+        if (isSwitchOn) {
+            count = allMonthsUniqueData[month]?.Count || 0;
+        } else if (receivedData[month]) {
+            count = receivedData[month]?.count || 0;
+        } else if (accumulatedFundsData[month]) {
+            count = accumulatedFundsData[month]?.count || 0;
+        } else {
+            count = uniqueFundsData[month]?.count || 0;
+        }
+
+
         console.log(`Month: ${month}, isSwitchOn: ${isSwitchOn}, Count: ${count}`);
         return {
             month,
@@ -40,80 +62,213 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             fund: receivedData[month]?.fund || "N/A",
             totalAmount: receivedData[month]?.totalAmount || 0,
         };
-    }), [receivedData, isSwitchOn, allMonthsUniqueData]);
-
-
-    console.log('monthlyData', monthlyData);
+    }), [receivedData, isSwitchOn, allMonthsUniqueData, accumulatedFundsData, uniqueFundsData]);
 
 
     const handleMonthPress = useCallback((month) => {
         setSelectDate(prevDate => prevDate === month ? null : month);
     }, []);
 
+    const getFundCounts = () => {
+        const dataToRender = isSwitchOn
+            ? uniqueFundsData?.[selectDate]?.Data || []
+            : accumulatedFundsData?.[selectDate]?.Data || [];
 
-    const [tabRoutes] = useState([
+        const genCount = dataToRender.filter(item => item.Fund?.toLowerCase() === 'general fund').length;
+        const trustCount = dataToRender.filter(item => item.Fund?.toLowerCase() === 'trust fund').length;
+        const sefCount = dataToRender.filter(item => item.Fund?.toLowerCase() === 'sef').length;
+
+        return { genCount, trustCount, sefCount };
+    };
+
+
+    const [tabRoutes, setTabRoutes] = useState([
         { key: 'gen', title: 'GEN FUND' },
         { key: 'trust', title: 'TRUST FUND' },
         { key: 'sef', title: 'SEF' },
     ]);
 
+    useEffect(() => {
+        const { genCount, trustCount, sefCount } = getFundCounts();
+
+        setTabRoutes([
+            { key: 'gen', title: `GENERAL FUND (${genCount})` },
+            { key: 'trust', title: `TRUST FUND (${trustCount})` },
+            { key: 'sef', title: `SEF (${sefCount})` },
+        ]);
+    }, [isSwitchOn, selectDate, uniqueFundsData, accumulatedFundsData]);
+
 
     const renderScene = ({ route }) => {
         switch (route.key) {
             case 'gen':
-                return <TabContent text="GEN FUND 1 Content" />;
+                return <TabContent fundType="GENERAL FUND" />;
             case 'trust':
-                return <TabContent text="TRUST FUND 2 Content" />;
+                return <TabContent fundType="TRUST FUND" />;
             case 'sef':
-                return <TabContent text="SEF 3 Content" />;
+                return <TabContent fundType="SEF" />;
             default:
                 return null;
         }
     };
 
-    const renderFunds = () => {
-        const dummyData = [
-            { trackingNumber: 'TRK123456789', amount: '$100.00' },
-            { trackingNumber: 'TRK987654321', amount: '$200.00' },
-            { trackingNumber: 'TRK564738291', amount: '$300.00' },
-        ];
+    const renderTabs = () => {
+        const { genCount, trustCount, sefCount } = getFundCounts();
 
         return (
-            <View>
-                {dummyData.map((data, index) => (
-                    <View key={index} style={{  
-                        backgroundColor: '#fff',
-                        elevation: 3,
-                        borderRadius: 8,
-                        padding: 8,
-                        marginTop: 10,
-                        marginRight: 5
-                     }}>
-                        <Text>Tracking Number: {data.trackingNumber}</Text>
-                        <Text>Amount: {data.amount}</Text>
-                    </View>
-                ))}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 10, gap: 10 }}>
+                <TouchableOpacity
+                    style={[styles.tabButton, activeTab === 'gen' && styles.activeTab]}
+                    onPress={() => setActiveTab('gen')}
+                >
+                    <Text style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: activeTab === 'gen' ? 'white' : 'black'
+                    }}>
+                        {`GEN FUND (${genCount})`}
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tabButton, activeTab === 'trust' && styles.activeTab]}
+                    onPress={() => setActiveTab('trust')}
+                >
+                    <Text style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: activeTab === 'trust' ? 'white' : 'black'
+                    }}>
+                        {`TRUST FUND (${trustCount})`}
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tabButton, activeTab === 'sef' && styles.activeTab]}
+                    onPress={() => setActiveTab('sef')}
+                >
+                    <Text style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: activeTab === 'sef' ? 'white' : 'black'
+                    }}>
+                        {`SEF (${sefCount})`}
+                    </Text>
+                </TouchableOpacity>
             </View>
         );
     };
 
 
+    const renderFunds = (fundType) => {
+        const dataToRender = isSwitchOn
+            ? uniqueFundsData?.[selectDate]?.Data || []
+            : accumulatedFundsData?.[selectDate]?.Data || [];
 
-    const TabContent = () => (
-        <View style={{ padding: 5 }}>
-            <View style={{
-                padding: 0,
-            }}>
-                {renderFunds()}
+        const filteredData = dataToRender.filter(
+            (item) => item.Fund && fundType && item.Fund.toLowerCase() === fundType.toLowerCase()
+        );
+
+        const handleShowMore = () => {
+            setBottomSheetData(filteredData);
+            handleShowBottomSheet();
+        };
+
+        const fundsData = filteredData.slice(0, 3);
+        if (fundsData.length === 0) {
+            return (
+                <View
+                    style={{
+                        // backgroundColor: 'white',
+                        // elevation: 3,
+                        marginLeft: 5,
+                        // marginBottom: 10,
+                        marginRight: 15,
+                        // marginTop: 10,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        // height: 100,
+                        padding: 20,
+                        borderRadius: 10,
+                        // shadowColor: '#000',
+                        // shadowOffset: { width: 0, height: 2 },
+                        // shadowOpacity: 0.8,
+                        // shadowRadius: 3,
+                    }}
+                >
+                    <Image
+                        source={require('../../../assets/images/noresultsstate.png')}
+                        style={{ height: 70 }}
+                        resizeMode="center"
+                    />
+                    <Text style={styles.emptyStateText}>NO DATA AVAILABLE</Text>
+                </View>
+            );
+        }
+
+
+        return (
+            <View style={{ padding: 2 }}>
+                {fundsData.map((item, index) => (
+                    <View
+                        key={index}
+                        style={{
+                            flex: 1,
+                            backgroundColor: '#fff',
+                            elevation: 3,
+                            borderRadius: 8,
+                            padding: 8,
+                            marginBottom: 5,
+                            marginTop: 5,
+                            borderRightColor: '#007bff',
+                            borderRightWidth: 2,
+                        }}
+                    >
+                        <View style={styles.dataRowFunds}>
+                            <View style={styles.counterStyle}>
+                                <Text style={styles.counterText}>{index + 1}</Text>
+                            </View>
+                            <View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Tracking Number: </Text>
+                                    <Text style={styles.value}>{item.TrackingNumber}</Text>
+                                </View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Fund: </Text>
+                                    <Text style={styles.value}> {item.Fund}</Text>
+                                </View>
+                                <View style={styles.textRow}>
+                                    <Text style={styles.label}>Amount: </Text>
+                                    <Text style={styles.value}> {insertCommas(item.Amount)}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                ))}
+
+
+                <View style={{ alignItems: 'flex-end', right: 15 }}>
+                    <TouchableOpacity onPress={handleShowMore}>
+                        <Text>Show More / ({fundsData.length})</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
-    );
+        );
+    };
+
+
+    const TabContent = ({ fundType }) => {
+        return (
+            <View>
+                {renderFunds(fundType)}
+            </View>
+        );
+    };
 
 
     const renderTabBar = props => (
         <TabBar
             {...props}
             indicatorStyle={{ height: 3, borderRadius: 2, backgroundColor: '#007bff' }}
+
             style={{
                 backgroundColor: '#fff',
                 borderRadius: 12,
@@ -121,11 +276,9 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                 marginTop: 10,
                 overflow: 'hidden',
             }}
-            labelStyle={{ color: '#000', fontWeight: 'bold' }}
+            labelStyle={{ color: '#000', fontWeight: 'bold', fontSize: 12 }}
         />
     );
-
-
 
     const renderMonths = () => (
         <View>
@@ -165,16 +318,14 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             </View>
 
             {selectDate && (
-                <View style={{ marginTop: 2 }}>
-                    <TabView
-                        lazy
-                        navigationState={{ index: tabIndex, routes: tabRoutes }}
-                        renderScene={renderScene}
-                        onIndexChange={setTabIndex}
-                        renderTabBar={renderTabBar}
-                        style={{ padding: 5 }}
-                    />
+
+                <View style={{ flex: 1, marginVertical: 15 }}>
+                    {renderTabs()}
+                    {activeTab === 'gen' && <TabContent fundType="GENERAL FUND" />}
+                    {activeTab === 'trust' && <TabContent fundType="TRUST FUND" />}
+                    {activeTab === 'sef' && <TabContent fundType="SEF" />}
                 </View>
+
             )}
 
 
@@ -238,6 +389,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
             <View style={styles.container}>
+
                 <ImageBackground
                     source={require('../../../assets/images/CirclesBG.png')}
                     style={styles.bgHeader}
@@ -257,10 +409,116 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                         showsVerticalScrollIndicator={false}
                     />
                 </View>
+
+
+                <BottomSheet
+                    ref={bottomSheetRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    // enablePanDownToClose={true}
+                    // enableOverDrag={true}
+                    backgroundStyle={{ flex: 1 }}
+                    backdropComponent={(props) => (
+                        <BottomSheetBackdrop
+                            {...props}
+                            disappearsOnIndex={-1}
+                            appearsOnIndex={0}
+                            opacity={0.5} // Adjust the dim level
+                        />
+                    )}
+                >
+                    <ImageBackground style={{ flex: 1 }} source={require('../../../assets/images/docmobileBG.png')}>
+                        <View style={{ alignItems: 'flex-end', marginRight: 15, paddingVertical: 5 }}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    bottomSheetRef.current?.close();
+                                }}
+                                style={{
+                                    padding: 5,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <Icon
+                                    name="backspace-outline"
+                                    size={22}
+                                    color={'#fff'}
+                                    style={{ marginRight: 2 }}
+                                />
+                                <Text
+                                    style={{
+                                        fontSize: 13,
+                                        fontFamily: 'Inter_28pt-Bold',
+                                        color: '#fff',
+                                    }}
+                                >
+                                    Close
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <BottomSheetFlatList
+                            data={bottomSheetData}
+                            contentContainerStyle={styles.bottomSheetList}
+                            renderItem={({ item, index }) => (
+                                <View style={{
+                                    flex: 1,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                                    // elevation: 3,
+                                    borderRadius: 8,
+                                    padding: 8,
+                                    marginBottom: 10,
+
+
+                                }}>
+                                    <View>
+                                        <View style={styles.dataRowFunds}>
+                                            <View style={styles.counterStyle}>
+                                                <Text style={styles.counterText}>{index + 1}</Text>
+                                            </View>
+                                            <View>
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.itemLabel}>
+                                                        TrackingNumber:
+                                                    </Text>
+                                                    <Text style={styles.itemValue}>
+                                                        {item.TrackingNumber}
+                                                    </Text>
+                                                </View>
+
+
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.itemLabel}>
+                                                        Fund:
+                                                    </Text>
+                                                    <Text style={styles.itemValue}>
+                                                        {item.Fund}
+                                                    </Text>
+                                                </View>
+
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.itemLabel}>
+                                                        Amount:
+                                                    </Text>
+                                                    <Text style={styles.itemValue}>
+                                                        {insertCommas(item.Amount)}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                        </View>
+
+                                    </View>
+                                </View>
+                            )}
+                        /></ImageBackground>
+                </BottomSheet>
             </View>
         </SafeAreaView>
     );
 };
+
+
 const styles = StyleSheet.create({
     container: { flex: 1 },
     bgHeader: {
@@ -370,6 +628,10 @@ const styles = StyleSheet.create({
         padding: 8,
         marginTop: 10
     },
+    dataRowFunds: {
+        flexDirection: "row",
+        padding: 0
+    },
     textRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -402,18 +664,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     emptyStateImage: {
-        width: 150,
-        height: 150,
+        height: 70,
     },
     emptyStateText: {
         fontFamily: 'Roboto-Light',
         color: '#999',
-        fontSize: 16,
+        fontSize: 15,
         marginTop: 10,
         textAlign: 'center',
     },
     counterStyle: {
-        marginRight: 0,
+        marginRight: 10,
         alignItems: 'center',
         justifyContent: 'center',
         width: 30,
@@ -421,6 +682,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#007bff',
         borderRadius: 6,
     },
+
     counterText: {
         color: '#ddd',
         fontWeight: 'bold',
@@ -434,7 +696,39 @@ const styles = StyleSheet.create({
     toggleButton: {
         top: 10,
         alignItems: 'flex-end'
-    }
+    },
+    bottomSheetList: {
+        flexGrow: 1,
+        paddingHorizontal: 15,
+
+    },
+    itemLabel: {
+        width: '30%',
+        color: 'white',
+        paddingStart: 10,
+        fontSize: 12,
+        fontFamily: 'Oswald-Light',
+        opacity: 0.6,
+    },
+
+    itemValue: {
+        width: '70%',
+        color: 'white',
+        fontSize: 14,
+        fontFamily: 'Oswald-Regular',
+        marginStart: 10,
+    },
+    tabButton: {
+        alignItems: 'center',
+        paddingVertical: 10,
+        // paddingHorizontal: 20,
+        width: '31%',
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+    },
+    activeTab: {
+        backgroundColor: '#007bff',
+    },
 });
 
 export default MonthlyReceivedScreen;

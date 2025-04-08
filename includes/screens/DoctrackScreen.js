@@ -447,7 +447,7 @@ const DoctrackScreen = ({
   const [refreshing, setRefreshing] = React.useState(false);
   const [isModalVisible, setModalVisible] = React.useState(false);
   const queryClient = useQueryClient();
-
+  console.log('UNIQUE FUNDS: ', receivedMonthly?.uniqueFundsData)
   const [selectedDate, setSelectedDate] = useState('');
 
   const navigation = useNavigation();
@@ -3506,6 +3506,8 @@ const DoctrackScreen = ({
                       receivedMonthly: receivedMonthly?.ReceivedPerMonth ?? [],
                       allMonthsData: receivedMonthly?.AllMonthsData ?? {},
                       allMonthsUniqueData: receivedMonthly?.AllUniqueMonthsData ?? {},
+                      accumulatedFundsData: receivedMonthly?.accumulatedFundsData ?? {},
+                      uniqueFundsData: receivedMonthly?.uniqueFundsData ?? {},
                       selectedYear
                     });
                   }
