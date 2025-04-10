@@ -299,8 +299,8 @@ const QRAuto = () => {
               style={{ bottom: 5 }}
             />
             <View style={styles.textRow}>
-              <Text style={styles.label}>Status:</Text>
-              <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
+              <Text style={styles.label}>Amount:</Text>
+              <Text style={styles.value}>{item.Amount}</Text>
             </View>
             <Divider
               width={1.9}
@@ -309,39 +309,39 @@ const QRAuto = () => {
               marginHorizontal={10}
               style={{ bottom: 5 }}
             />
-              <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            alignSelf: 'flex-end',
-            paddingTop: 10,
-          }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: 'transparent',
-              borderRadius: 4,
-              flexDirection: 'row',
-              // paddingTop: 10,
-            }}
-            onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
-            <View>
-              <Text
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                alignSelf: 'flex-end',
+                paddingTop: 10,
+              }}>
+              <TouchableOpacity
                 style={{
-                  color: '#fff',
-                  textAlign: 'right',
-                  fontSize: 14,
-                }}>
-                Show More
-              </Text>
+                  backgroundColor: 'transparent',
+                  borderRadius: 4,
+                  flexDirection: 'row',
+                  // paddingTop: 10,
+                }}
+                onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
+                <View>
+                  <Text
+                    style={{
+                      color: '#fff',
+                      textAlign: 'right',
+                      fontSize: 14,
+                    }}>
+                    Show More
+                  </Text>
+                </View>
+                <Icon name="chevron-forward" size={20} color={'#fff'} />
+              </TouchableOpacity>
             </View>
-            <Icon name="chevron-forward" size={20} color={'#fff'} />
-          </TouchableOpacity>
-        </View>
           </View>
 
         </View>
 
-      
+
       </View>
     );
   }, []);
