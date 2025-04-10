@@ -31,7 +31,6 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             count: item.Count,
             documentType: item.DocumentType || "N/A",
             fund: item.Fund || "N/A",
-            totalAmount: item.TotalAmount || 0
         };
         return acc;
     }, {}), [receivedMonthly]);
@@ -54,13 +53,11 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
         }
 
 
-        console.log(`Month: ${month}, isSwitchOn: ${isSwitchOn}, Count: ${count}`);
         return {
             month,
             count: count,
             documentType: receivedData[month]?.documentType || "N/A",
             fund: receivedData[month]?.fund || "N/A",
-            totalAmount: receivedData[month]?.totalAmount || 0,
         };
     }), [receivedData, isSwitchOn, allMonthsUniqueData, accumulatedFundsData, uniqueFundsData]);
 
@@ -82,81 +79,77 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     };
 
 
-    const [tabRoutes, setTabRoutes] = useState([
-        { key: 'gen', title: 'GEN FUND' },
-        { key: 'trust', title: 'TRUST FUND' },
-        { key: 'sef', title: 'SEF' },
-    ]);
 
-    useEffect(() => {
-        const { genCount, trustCount, sefCount } = getFundCounts();
-
-        setTabRoutes([
-            { key: 'gen', title: `GENERAL FUND (${genCount})` },
-            { key: 'trust', title: `TRUST FUND (${trustCount})` },
-            { key: 'sef', title: `SEF (${sefCount})` },
-        ]);
-    }, [isSwitchOn, selectDate, uniqueFundsData, accumulatedFundsData]);
-
-
-    const renderScene = ({ route }) => {
-        switch (route.key) {
-            case 'gen':
-                return <TabContent fundType="GENERAL FUND" />;
-            case 'trust':
-                return <TabContent fundType="TRUST FUND" />;
-            case 'sef':
-                return <TabContent fundType="SEF" />;
-            default:
-                return null;
-        }
-    };
 
     const renderTabs = () => {
         const { genCount, trustCount, sefCount } = getFundCounts();
 
         return (
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 10, gap: 10 }}>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === 'gen' && styles.activeTab]}
-                    onPress={() => setActiveTab('gen')}
-                >
-                    <Text style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: activeTab === 'gen' ? 'white' : 'black'
-                    }}>
-                        {`GEN FUND (${genCount})`}
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === 'trust' && styles.activeTab]}
-                    onPress={() => setActiveTab('trust')}
-                >
-                    <Text style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: activeTab === 'trust' ? 'white' : 'black'
-                    }}>
-                        {`TRUST FUND (${trustCount})`}
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tabButton, activeTab === 'sef' && styles.activeTab]}
-                    onPress={() => setActiveTab('sef')}
-                >
-                    <Text style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: activeTab === 'sef' ? 'white' : 'black'
-                    }}>
-                        {`SEF (${sefCount})`}
-                    </Text>
-                </TouchableOpacity>
+            <View>
+                <Text style={[styles.detailsTitle, { marginVertical: 10 }]}> Fund Breakdown - {isSwitchOn ? "Unique" : "Accumulated"}</Text>
+                <View style={styles.fundGridContainer}>
+                    <TouchableOpacity
+                        style={[styles.tabButton, activeTab === 'gen' && styles.activeTab]}
+                        onPress={() => setActiveTab('gen')}
+                    >
+                        <Text style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: activeTab === 'gen' ? 'white' : 'black'
+                        }}>
+                            GF
+                        </Text>
+                        <Text style={{
+                            fontSize: 16,
+                            fontWeight: 'bold',
+                            // color: '#007bff'
+                            color: activeTab === 'gen' ? 'white' : '#007bff'
+                        }}>
+                            {genCount}
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, activeTab === 'trust' && styles.activeTab]}
+                        onPress={() => setActiveTab('trust')}
+                    >
+                        <Text style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: activeTab === 'trust' ? 'white' : 'black'
+                        }}>
+                            TF
+                        </Text>
+                        <Text style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: activeTab === 'trust' ? 'white' : '#007bff'
+                        }}>
+                            {trustCount}
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, activeTab === 'sef' && styles.activeTab]}
+                        onPress={() => setActiveTab('sef')}
+                    >
+                        <Text style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: activeTab === 'sef' ? 'white' : 'black'
+                        }}>
+                            SEF
+                        </Text>
+                        <Text style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            color: activeTab === 'sef' ? 'white' : '#007bff'
+                        }}>
+                            {sefCount}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         );
     };
-
 
     const renderFunds = (fundType) => {
         const dataToRender = isSwitchOn
@@ -167,89 +160,130 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             (item) => item.Fund && fundType && item.Fund.toLowerCase() === fundType.toLowerCase()
         );
 
+        console.log('FUNDS DATA: ', filteredData);
+
         const handleShowMore = () => {
             setBottomSheetData(filteredData);
             handleShowBottomSheet();
         };
 
-        const fundsData = filteredData.slice(0, 3);
-        if (fundsData.length === 0) {
-            return (
-                <View
-                    style={{
-                        // backgroundColor: 'white',
-                        // elevation: 3,
-                        marginLeft: 5,
-                        // marginBottom: 10,
-                        marginRight: 15,
-                        // marginTop: 10,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        // height: 100,
-                        padding: 20,
-                        borderRadius: 10,
-                        // shadowColor: '#000',
-                        // shadowOffset: { width: 0, height: 2 },
-                        // shadowOpacity: 0.8,
-                        // shadowRadius: 3,
-                    }}
-                >
-                    <Image
-                        source={require('../../../assets/images/noresultsstate.png')}
-                        style={{ height: 70 }}
-                        resizeMode="center"
-                    />
-                    <Text style={styles.emptyStateText}>NO DATA AVAILABLE</Text>
-                </View>
-            );
-        }
+        // const fundsData = filteredData.slice(0, 3);
+        // if (fundsData.length === 0) {
+        //     return (
+        //         <View
+        //             style={{
+        //                 // backgroundColor: 'white',
+        //                 // elevation: 3,
+        //                 marginLeft: 5,
+        //                 // marginBottom: 10,
+        //                 marginRight: 15,
+        //                 // marginTop: 10,
+        //                 alignItems: 'center',
+        //                 justifyContent: 'center',
+        //                 // height: 100,
+        //                 padding: 20,
+        //                 borderRadius: 10,
+        //                 // shadowColor: '#000',
+        //                 // shadowOffset: { width: 0, height: 2 },
+        //                 // shadowOpacity: 0.8,
+        //                 // shadowRadius: 3,
+        //             }}
+        //         >
+        //             <Image
+        //                 source={require('../../../assets/images/noresultsstate.png')}
+        //                 style={{ height: 70 }}
+        //                 resizeMode="center"
+        //             />
+        //             <Text style={styles.emptyStateText}>NO DATA AVAILABLE</Text>
+        //         </View>
+        //     );
+        // }
 
 
         return (
-            <View style={{ padding: 2 }}>
-                {fundsData.map((item, index) => (
-                    <View
-                        key={index}
-                        style={{
-                            flex: 1,
-                            backgroundColor: '#fff',
-                            elevation: 3,
-                            borderRadius: 8,
-                            padding: 8,
-                            marginBottom: 5,
-                            marginTop: 5,
-                            borderRightColor: '#007bff',
-                            borderRightWidth: 2,
-                        }}
-                    >
-                        <View style={styles.dataRowFunds}>
-                            <View style={styles.counterStyle}>
-                                <Text style={styles.counterText}>{index + 1}</Text>
-                            </View>
-                            <View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Tracking Number: </Text>
-                                    <Text style={styles.value}>{item.TrackingNumber}</Text>
-                                </View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Fund: </Text>
-                                    <Text style={styles.value}> {item.Fund}</Text>
-                                </View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Amount: </Text>
-                                    <Text style={styles.value}> {insertCommas(item.Amount)}</Text>
-                                </View>
-                            </View>
+            <View style={{ paddingHorizontal: 5 }}>
+                {filteredData.length > 0 && (
+                    <View>
+                        <View style={{ marginVertical: 0 }}>
+                            <Text style={[styles.subTitle, { marginTop: 10 }]}>List of Transactions</Text>
                         </View>
+
+                        <FlatList
+                            data={filteredData}
+                            keyExtractor={(item, index) => index.toString()}
+                            renderItem={({ item, index }) => (
+                                <View
+                                    style={{
+                                        flex: 1,
+                                        padding: 10,
+                                        marginVertical: 0,
+                                    }}
+                                >
+                                    <View style={[styles.dataRowFunds]}>
+                                        <View
+                                            style={{
+                                                marginRight: 10,
+                                                alignItems: 'baseline',
+                                                justifyContent: 'center',
+                                                flexDirection: 'row',
+                                            }}
+                                        >
+                                            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+                                                {index + 1}
+                                            </Text>
+                                        </View>
+
+                                        <View
+                                            style={{
+                                                borderBottomWidth: 1.5,
+                                                borderBottomColor: 'gray',
+                                            }}>
+                                            <View style={styles.textRow}>
+                                                <Text style={styles.label}>Tracking Number: </Text>
+                                                <Text style={styles.value}>{item.TrackingNumber}</Text>
+                                            </View>
+                                            <View style={styles.textRow}>
+                                                <Text style={styles.label}>Document Type: </Text>
+                                                <Text style={styles.value}>{item.DocumentType}</Text>
+                                            </View>
+                                            <View style={styles.textRow}>
+                                                <Text style={styles.label}>Fund: </Text>
+                                                <Text style={styles.value}>{item.Fund}</Text>
+                                            </View>
+                                            <View style={styles.textRow}>
+                                                <Text style={styles.label}>Net Amount: </Text>
+                                                <Text style={styles.value}>{insertCommas(item.NetAmount)}</Text>
+                                            </View>
+                                            {/* <View style={styles.textRow}>
+                                                <Text style={styles.label}>Amount: </Text>
+                                                <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
+                                            </View> */}
+                                        </View>
+                                    </View>
+                                    <View style={{
+                                        alignItems: 'flex-end',
+                                        marginBottom: 5,
+                                    }}>
+                                        <View style={{ alignItems: 'center', flexDirection: 'row' }}>
+                                            <Text style={{
+
+                                                fontSize: 14,
+                                                fontFamily: 'Oswald-Light',
+                                                opacity: 0.6,
+                                            }}>Amount: </Text>
+                                            <Text style={{
+                                                width: '25%',
+                                                fontSize: 14,
+                                                fontFamily: 'Oswald-Regular',
+                                                marginStart: 10,
+                                            }}>{insertCommas(item.Amount)}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        />
                     </View>
-                ))}
-
-
-                <View style={{ alignItems: 'flex-end', right: 15 }}>
-                    <TouchableOpacity onPress={handleShowMore}>
-                        <Text>Show More / ({fundsData.length})</Text>
-                    </TouchableOpacity>
-                </View>
+                )}
             </View>
         );
     };
@@ -264,25 +298,9 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     };
 
 
-    const renderTabBar = props => (
-        <TabBar
-            {...props}
-            indicatorStyle={{ height: 3, borderRadius: 2, backgroundColor: '#007bff' }}
-
-            style={{
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                marginHorizontal: 0,
-                marginTop: 10,
-                overflow: 'hidden',
-            }}
-            labelStyle={{ color: '#000', fontWeight: 'bold', fontSize: 12 }}
-        />
-    );
-
     const renderMonths = () => (
         <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-end', top: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-end', marginVertical: 10 }}>
                 <Text style={{ fontSize: 15, fontWeight: 'bold' }}>Accumulated / Unique</Text>
                 <Switch
                     value={isSwitchOn}
@@ -318,8 +336,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             </View>
 
             {selectDate && (
-
-                <View style={{ flex: 1, marginVertical: 15 }}>
+                <View style={{ marginVertical: 0 }}>
                     {renderTabs()}
                     {activeTab === 'gen' && <TabContent fundType="GENERAL FUND" />}
                     {activeTab === 'trust' && <TabContent fundType="TRUST FUND" />}
@@ -343,7 +360,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                 <FlatList
                     data={dataToRender}
                     keyExtractor={(item, index) => index.toString()}
-                    ListHeaderComponent={<Text style={styles.detailsTitle}>
+                    ListHeaderComponent={<Text style={[styles.detailsTitle, { marginTop: 10 }]}>
                         {selectDate} {selectedYear} Details ({isSwitchOn ? "Unique" : "Accumulated"})
                     </Text>}
                     renderItem={({ item, index }) => (
@@ -520,7 +537,10 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
 
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: {
+        flex: 1,
+    },
+
     bgHeader: {
         paddingTop: 30,
         height: 80,
@@ -528,64 +548,79 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
     },
+
     backButton: {
         position: 'absolute',
         left: 20,
     },
+
     title: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#fff',
     },
+
     contentWrapper: {
         flex: 1,
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
     },
 
     gridContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginTop: 20
+        paddingHorizontal: 5,
     },
+
+    fundGridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        paddingHorizontal: 5,
+    },
+
     card: {
         width: '30%',
         marginVertical: 10,
         paddingVertical: 3,
-        marginBottom: 10,
         borderRadius: 5,
         elevation: 0,
         alignItems: 'center',
         backgroundColor: '#fff',
     },
+
     selectedCard: {
         backgroundColor: '#cce5ff',
         borderColor: '#007bff',
     },
+
     cardContent: {
         alignItems: 'center',
         paddingVertical: 15,
     },
+
     monthText: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#333',
     },
+
     countText: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#007bff'
+        color: '#007bff',
     },
+
     monthButton: {
         width: '30%',
         alignItems: 'center',
-        // paddingVertical: 5,
         marginBottom: 5,
         borderRadius: 5,
         elevation: 1,
@@ -595,55 +630,61 @@ const styles = StyleSheet.create({
         borderBottomColor: 'silver',
         borderRightColor: 'silver',
     },
+
     selectedMonthButton: {
+        backgroundColor: '#007bff',
         borderBottomWidth: 2,
         borderRightWidth: 2,
-        backgroundColor: '#007bff',
         borderBottomColor: 'silver',
         borderRightColor: 'silver',
     },
+
     pressedMonthButton: {
         backgroundColor: '#007bff',
     },
+
     selectedText: {
         color: '#ffffff',
     },
+
     detailsContainer: {
         flex: 1,
-        padding: 10,
-        // backgroundColor: '#f8f9fa',
-        // backgroundColor: '#fff',
-        // borderWidth: 1,
-        // borderColor: '#ddd',
-        // borderRadius: 10,
-        elevation: 0
+        paddingHorizontal: 5,
     },
+
     dataRow: {
-        flexDirection: "row",
-        // alignItems: 'flex-start',
+        flexDirection: 'row',
         backgroundColor: '#fff',
         elevation: 3,
-        // backgroundColor: 'yellow',
         borderRadius: 8,
         padding: 8,
-        marginTop: 10
+        marginBottom: 10,
     },
+
     dataRowFunds: {
-        flexDirection: "row",
-        padding: 0
+        flexDirection: 'row',
+        padding: 0,
     },
+
     textRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         marginBottom: 5,
-        // paddingStart: 10,
     },
+
     detailsTitle: {
-        marginVertical: 5,
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 15
+    },
+
+    subTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
     },
+
     label: {
         width: '35%',
         paddingStart: 10,
@@ -651,21 +692,25 @@ const styles = StyleSheet.create({
         fontFamily: 'Oswald-Light',
         opacity: 0.6,
     },
+
     value: {
         width: '55%',
         fontSize: 14,
         fontFamily: 'Oswald-Regular',
         marginStart: 10,
     },
+
     emptyStateContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 20,
     },
+
     emptyStateImage: {
         height: 70,
     },
+
     emptyStateText: {
         fontFamily: 'Roboto-Light',
         color: '#999',
@@ -673,6 +718,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         textAlign: 'center',
     },
+
     counterStyle: {
         marginRight: 10,
         alignItems: 'center',
@@ -688,20 +734,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
+
     detailsText: {
         fontSize: 16,
-        // color: '#007bff',
         marginTop: 0,
     },
+
     toggleButton: {
         top: 10,
-        alignItems: 'flex-end'
+        alignItems: 'flex-end',
     },
+
     bottomSheetList: {
         flexGrow: 1,
         paddingHorizontal: 15,
-
     },
+
     itemLabel: {
         width: '30%',
         color: 'white',
@@ -718,17 +766,25 @@ const styles = StyleSheet.create({
         fontFamily: 'Oswald-Regular',
         marginStart: 10,
     },
+
     tabButton: {
+        padding: 15,
+        width: '30%',
         alignItems: 'center',
-        paddingVertical: 10,
-        // paddingHorizontal: 20,
-        width: '31%',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 8,
+        marginBottom: 5,
+        borderRadius: 5,
+        elevation: 1,
+        backgroundColor: '#ffffff',
+        borderBottomWidth: 2,
+        borderRightWidth: 2,
+        borderBottomColor: 'silver',
+        borderRightColor: 'silver',
     },
+
     activeTab: {
         backgroundColor: '#007bff',
     },
 });
+
 
 export default MonthlyReceivedScreen;
