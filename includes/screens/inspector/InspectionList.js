@@ -92,7 +92,7 @@ export const InspectionList = ({item, index, onPressItem}) => {
                   alignSelf: 'center',
                   height: 1,
                   backgroundColor: '#ddd',
-                  width: '80%',
+                  width: '100%',
                   marginVertical: 5,
                   borderRadius: 10,
                 }}

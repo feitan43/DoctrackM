@@ -44,6 +44,7 @@ const AttachmentsScreen = ({navigation}) => {
     if (fileName.match(/\.(jpg|jpeg|png|gif)$/i)) return 'image/*';
     return 'unknown';
   };
+
   const pickFile = async () => {
     try {
       if (typeof pick !== 'function') {

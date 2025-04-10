@@ -416,11 +416,6 @@ export function Route() {
 
   return (
     <NavigationContainer ref={NavigationService.setTopLevelNavigator}>
-     {/*  <StatusBar
-        barStyle="light-content"
-        backgroundColor={'transparent'}
-        translucent
-      /> */}
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
@@ -493,7 +488,6 @@ export function Route() {
         <Stack.Screen name='RequestScreen' component={RequestScreen} />
         <Stack.Screen name='OnScheduleScreen' component={OnScheduleScreen} />
 
-
         <Stack.Screen name='Evaluate' component={EvaluateScreen} />
         <Stack.Screen name='OnEvaluation' component={OnEvaluationScreen} />
         <Stack.Screen name='Evaluated' component={EvaluatedScreen} />
@@ -504,6 +498,7 @@ export function Route() {
         <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
 
         <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
+
 
         <Stack.Screen
           name="ProjectCleansing"

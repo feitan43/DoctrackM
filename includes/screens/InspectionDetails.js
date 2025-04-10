@@ -49,6 +49,7 @@ import {
   useUploadInspector,
   useRemoveInspectorImage,
   useInspectionPRDetails,
+  useEditDeliveryDate,
 } from '../hooks/useInspection';
 import moment from 'moment';
 import {scale, verticalScale, moderateScale} from 'react-native-size-matters';
@@ -109,8 +110,8 @@ const InspectionDetails = ({route, navigation}) => {
   const {
     mutate: removeInspectorImage,
     isPending: removing,
-    isLoading: removingImage,
   } = useRemoveInspectorImage();
+  const { mutate : editDeliveryDate, isPending : editDeliveryDateLoading} = useEditDeliveryDate(); 
   const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] =
     useState(false);
   const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] =
@@ -225,7 +226,8 @@ const InspectionDetails = ({route, navigation}) => {
     //const pxTN = dataItems?.vouchers?.[0]?.TrackingNumber;
 
     const year = dataItems?.vouchers?.[0]?.Year || item?.Year;
-    const pxTN = dataItems?.vouchers?.[0]?.TrackingNumber || item?.TrackingNumber;
+    const pxTN =
+      dataItems?.vouchers?.[0]?.TrackingNumber || item?.TrackingNumber;
     if (!imagePath || imagePath.length === 0) {
       showMessage({
         message: 'No image selected for upload.',
@@ -267,15 +269,74 @@ const InspectionDetails = ({route, navigation}) => {
     );
   };
 
-  const handleInvoiceSubmit = (invoice, date) => {
+  const handleInvoiceSubmit = async (invoice, date) => {
     setInvoiceNumber(invoice);
     setInvoiceBottomSheetVisible(false);
 
-    const formattedDate = date ? date.toISOString().split('T')[0] : 'No date';
-
-    console.log('Invoice:', invoice);
-    console.log('Date:', formattedDate);
+  
+    const formattedDate = date
+      ? date.toLocaleDateString('en-US').replace(/\//g, '-') 
+      : 'No date';
+  
+    let inspectionStatus = 'Inspected';
+    const deliveryId = item?.Id;
+    const trackingNumber = item?.TrackingNumber;
+    const totalItems = Array.isArray(dataItems?.poRecord)
+    ? dataItems.poRecord.length
+    : 0;
+  
+    try {
+      const result = await inspectItems({
+        year: selectedYear,
+        deliveryId,
+        trackingNumber: trackingNumber,
+        inspectionStatus,
+        invNumber: invoice, 
+        invDate: formattedDate, 
+      });
+  
+      if (result.status === 'success') {
+        showMessage({
+          message: 'Inspection Successful',
+          description: result.message,
+          type: 'success',
+          icon: 'success',
+          backgroundColor: '#2E7D32',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+  
+        refreshData();
+        closeBottomSheet();
+        setCheckedItems(Array(totalItems).fill(false));
+      } else {
+        showMessage({
+          message: 'Inspection Failed',
+          description: result.message || 'Something went wrong.',
+          type: 'danger',
+          icon: 'danger',
+          backgroundColor: '#D32F2F',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Inspection Error:', error.message || error);
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'An error occurred while inspecting items.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+    }
   };
+  
 
   const handleScheduleSubmit = ({date, deliveryId}) => {
     if (!date || !deliveryId) {
@@ -507,6 +568,7 @@ const InspectionDetails = ({route, navigation}) => {
                           routeItem={route.params.item}
                           queryClient={queryClient}
                           handleUploadBottomSheet={handleUploadBottomSheet}
+                          editDeliveryDate={editDeliveryDate}
                         />
                       )}
                       keyExtractor={item =>
@@ -1030,7 +1092,11 @@ const PODetailsSection = ({item}) => (
           borderBottomWidth: 1,
           borderBottomColor: '#eee',
         }}>
-        <InfoRow index={4} label="Office" value={item.OfficeName?.replace(/\\/g, '')} />
+        <InfoRow
+          index={4}
+          label="Office"
+          value={item.OfficeName?.replace(/\\/g, '')}
+        />
         <InfoRow index={5} label="Claimant" value={item.Claimant} />
         <InfoRow index={6} label="PO TN" value={item.TrackingNumber} />
         <InfoRow index={7} label="Status" value={item.Status} />
@@ -1046,8 +1112,7 @@ const PODetailsSection = ({item}) => (
   </Section>
 );
 
-
-const DeliverySection = ({dataItems}) => (
+const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
   <Section title="Delivery">
     {dataItems?.delivery?.length > 0 ? (
       dataItems.delivery.map((deliveryItem, index) => (
@@ -1097,27 +1162,27 @@ const DeliverySection = ({dataItems}) => (
                 {' '}
                 Dates
               </Text>
-              {deliveryItem.DeliveryDatesHistory.split(', ').map(
-                (date, i, arr) => (
+              {deliveryItem.DeliveryDatesHistory.split(', ').map((date, i, arr) => {
+                const isLast = i === arr.length - 1; // Check if it's the last date
+
+                return (
                   <View
                     key={i}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
                       marginTop: 5,
-                      backgroundColor:
-                        i === arr.length - 1 ? '#EAF2F8' : '#E5E7EB',
+                      backgroundColor: isLast ? '#EAF2F8' : '#E5E7EB',
                       paddingVertical: 5,
                       paddingHorizontal: 5,
                       borderRadius: 5,
                     }}>
                     <Text
                       style={{
-                        color: i === arr.length - 1 ? 'white' : '#2C3E50',
+                        color: isLast ? 'white' : '#2C3E50',
                         fontWeight: 'bold',
                         marginRight: 10,
-                        backgroundColor:
-                          i === arr.length - 1 ? '#5DADE2' : '#ccc',
+                        backgroundColor: isLast ? '#5DADE2' : '#ccc',
                         paddingHorizontal: 5,
                         paddingVertical: 5,
                         borderRadius: 2,
@@ -1132,9 +1197,23 @@ const DeliverySection = ({dataItems}) => (
                       }}>
                       {date}
                     </Text>
+
+                    {/* Show Edit button only for the latest date */}
+                    {/* {isLast && (
+                      <TouchableOpacity
+                        onPress={() => handleEditDeliveryDate(i, deliveryItem)}
+                        style={{
+                          marginLeft: 'auto',
+                          padding: 5,
+                          backgroundColor: '#5DADE2',
+                          borderRadius: 5,
+                        }}>
+                        <Text style={{color: '#fff', fontSize: 14}}>Edit</Text>
+                      </TouchableOpacity>
+                    )} */}
                   </View>
-                ),
-              )}
+                );
+              })}
             </View>
           )}
         </View>
@@ -1146,6 +1225,8 @@ const DeliverySection = ({dataItems}) => (
     )}
   </Section>
 );
+
+
 
 const ItemsSection = ({
   dataItems,
@@ -1356,6 +1437,7 @@ export const RenderInspection = memo(
     setImagePath,
     queryClient,
     handleUploadBottomSheet,
+    editDeliveryDate,
   }) => {
     const handleCheck = index => {
       const updatedCheckedItems = [...checkedItems];
@@ -1461,6 +1543,19 @@ export const RenderInspection = memo(
       }
     };
 
+
+    const handleEditDeliveryDate = (index, deliveryItem) => {
+      console.log('Edit delivery date:', deliveryItem.Id);
+    
+      // Assuming you want to edit the delivery date for the given item
+      const newDeliveryDate = '2025-04-05'; // Replace with the new delivery date
+    
+      editDeliveryDate({
+        deliveryId: deliveryItem.Id,
+        deliveryDate: newDeliveryDate, // Use the new date here
+      });
+    };
+
     const renderInspectorImage = (uri, index) => (
       <View key={index} style={{position: 'relative', marginBottom: 10}}>
         <TouchableOpacity onPress={() => openImageModal(uri)}>
@@ -1549,7 +1644,7 @@ export const RenderInspection = memo(
         <View style={{}}>
           <PaymentSection dataItems={dataItems} />
           <PODetailsSection item={item} />
-          <DeliverySection dataItems={dataItems} />
+          <DeliverySection dataItems={dataItems} handleEditDeliveryDate={handleEditDeliveryDate} />
           <ItemsSection
             dataItems={dataItems}
             checkedItems={checkedItems}
@@ -1597,7 +1692,7 @@ export const Footer = ({
     ? dataItems.poRecord.length
     : 0;
 
-  const handleInspectItems = async () => {
+ /*  const handleInspectItems = async () => {
     if (!Array.isArray(checkedItems) || checkedItems.length === 0) {
       showMessage({
         message: 'Inspection Failed',
@@ -1703,8 +1798,132 @@ export const Footer = ({
         duration: 3000,
       });
     }
-  };
+  }; */
 
+  const handleInspectItems = async () => {
+    if (!Array.isArray(checkedItems) || checkedItems.length === 0) {
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'No items found to inspect.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+  
+    const totalItems = Array.isArray(dataItems?.poRecord)
+      ? dataItems.poRecord.length
+      : 0;
+    const selectedItems = checkedItems.filter(Boolean).length;
+    const trackingNumber = dataItems.vouchers[0]?.TrackingNumber;
+  
+    if (selectedItems !== totalItems) {
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'Please check all items before tagging Inspected.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+  
+    if (voucherStatus.toLowerCase() === 'inspection on hold') {
+      setInvoiceBottomSheetVisible(true);
+      closeBottomSheet();
+      return;
+    }
+  
+    if (voucherStatus.toLowerCase() !== 'for inspection') {
+      showMessage({
+        message: 'Inspection Failed',
+        description: `Status should be 'For Inspection'. Current status: '${voucherStatus}'`,
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+  
+    Alert.alert(
+      'Confirm Inspection',
+      'Are you sure you want to mark this inspection as completed?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            let inspectionStatus = 'Inspected';
+            const deliveryId = item?.Id;
+  
+            try {
+              const result = await inspectItems({
+                year: selectedYear,
+                deliveryId,
+                trackingNumber,
+                inspectionStatus,
+              });
+  
+              if (result.status === 'success') {
+                showMessage({
+                  message: 'Inspection Successful',
+                  description: result.message,
+                  type: 'success',
+                  icon: 'success',
+                  backgroundColor: '#2E7D32',
+                  color: '#FFFFFF',
+                  floating: true,
+                  duration: 3000,
+                });
+  
+                refreshData();
+                closeBottomSheet();
+                setCheckedItems(Array(totalItems).fill(false));
+              } else {
+                showMessage({
+                  message: 'Inspection Failed',
+                  description: result.message || 'Something went wrong.',
+                  type: 'danger',
+                  icon: 'danger',
+                  backgroundColor: '#D32F2F',
+                  color: '#FFFFFF',
+                  floating: true,
+                  duration: 3000,
+                });
+              }
+            } catch (error) {
+              console.error('Inspection Error:', error.message || error);
+              showMessage({
+                message: 'Inspection Failed',
+                description: 'An error occurred while inspecting items.',
+                type: 'danger',
+                icon: 'danger',
+                backgroundColor: '#D32F2F',
+                color: '#FFFFFF',
+                floating: true,
+                duration: 3000,
+              });
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+  
   const handleRevert = async () => {
     const selectedItems = checkedItems.filter(Boolean).length;
     const trackingNumber = dataItems.vouchers[0]?.TrackingNumber;
@@ -2135,10 +2354,11 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
             onPress={() => setOpenDate(true)}>
             <Text style={{color: selectedDate ? 'black' : '#ccc'}}>
               {selectedDate
-                ? selectedDate.toISOString().split('T')[0]
-                : 'YYYY-MM-DD'}
+                ? selectedDate.toLocaleDateString('en-US').replace(/\//g, '-') // Format as MM-DD-YYYY
+                : 'MM-DD-YYYY'}
             </Text>
           </TouchableOpacity>
+
           <DatePicker
             modal
             open={openDate}
@@ -2428,7 +2648,7 @@ const PRInspection = ({
   employeeNumber,
   navigation,
   removeInspectorImage,
-  setImagePath
+  setImagePath,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -2444,16 +2664,22 @@ const PRInspection = ({
       setLoading(false);
     }
   }, [prData]);
-    useEffect(() => {
-      setFetchTimestamp(Date.now());
-    }, []);
-
+  useEffect(() => {
+    setFetchTimestamp(Date.now());
+  }, []);
 
   if (loading) {
     return (
-      <View style={{ /* flex: 1, */justifyContent: 'center', alignItems: 'center', marginTop:20 }}>
+      <View
+        style={{
+          /* flex: 1, */ justifyContent: 'center',
+          alignItems: 'center',
+          marginTop: 20,
+        }}>
         <ActivityIndicator size="large" color="#1A508C" />
-        <Text style={{ marginTop: 10, color: 'black' }}>Loading PR Inspection...</Text>
+        <Text style={{marginTop: 10, color: 'black'}}>
+          Loading PR Inspection...
+        </Text>
       </View>
     );
   }
@@ -2675,8 +2901,8 @@ const PRInspection = ({
         const year = item?.Year;
         const prTN = item?.TrackingNumber;
 
-        console.log("uri",uri, year, prTN)
-        
+        console.log('uri', uri, year, prTN);
+
         if (results.success) {
           showMessage({
             message: 'Image removed successfully!',
@@ -2691,12 +2917,9 @@ const PRInspection = ({
           await FastImage.clearMemoryCache();
           await FastImage.clearDiskCache();
 
-          queryClient.setQueryData(
-            ['inspectorImages', year, prTN],
-            oldData => {
-              return oldData?.filter(item => item.uri !== uri) || [];
-            },
-          );
+          queryClient.setQueryData(['inspectorImages', year, prTN], oldData => {
+            return oldData?.filter(item => item.uri !== uri) || [];
+          });
 
           setTimeout(() => {
             fetchData();
@@ -2833,8 +3056,7 @@ const PRInspection = ({
 
   return (
     <>
-      <View
-        style={{}}>
+      <View style={{}}>
         <ScrollView
           contentContainerStyle={{
             padding: 10,
@@ -3276,8 +3498,8 @@ const styles = StyleSheet.create({
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    gap:10,
-    paddingTop: 10
+    gap: 10,
+    paddingTop: 10,
   },
   blurBackground: {
     flex: 1,

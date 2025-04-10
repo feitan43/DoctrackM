@@ -146,7 +146,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
             <View
               style={{
                 backgroundColor: 'white',
-                margin: 10,
+                margin: 20,
                 borderRadius: 10,
               }}>
               <Pressable
@@ -154,7 +154,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                 style={({pressed}) => [
                   {
                     flexDirection: 'row',
-                    paddingVertical: 10,
+                    paddingVertical: 5,
                     paddingHorizontal: 15,
                     alignItems: 'center',
                     backgroundColor: pressed
@@ -166,7 +166,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                 android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
                 <Icon
                   name="person-outline"
-                  size={24}
+                  size={20}
                   padding={10}
                   color="gray"
                 />
@@ -182,17 +182,18 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                 </Text>
                 <Icon
                   name="chevron-forward"
-                  size={20}
+                  size={18}
                   padding={10}
                   color="rgba(123, 123, 123, 1)"
                 />
               </Pressable>
+              <View style={{height:1,backgroundColor:'#ccc', marginHorizontal:20}}/>
               <Pressable
                 onPress={handleNotifications}
                 style={({pressed}) => [
                   {
                     flexDirection: 'row',
-                    paddingVertical: 10,
+                    paddingVertical: 5,
                     paddingHorizontal: 15,
                     alignItems: 'center',
                     backgroundColor: pressed
@@ -204,7 +205,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                 android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
                 <Icon
                   name="notifications-outline"
-                  size={24}
+                  size={20}
                   padding={10}
                   color="gray"
                 />
@@ -226,20 +227,14 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                 />
               </Pressable>
 
-              {/* Divider */}
-              {/*   <View
-                style={{
-                  height: 1,
-                  backgroundColor: 'silver',
-                }}
-              />
- */}
+              <View style={{height:1,backgroundColor:'#ccc', marginHorizontal:20}}/>
+
               <Pressable
                 onPress={handleContactUs}
                 style={({pressed}) => [
                   {
                     flexDirection: 'row',
-                    paddingVertical: 10,
+                    paddingVertical: 5,
                     paddingHorizontal: 15,
                     alignItems: 'center',
                     backgroundColor: pressed
@@ -248,8 +243,10 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                     borderRadius: 10,
                   },
                 ]}
-                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-                <Icon name="call-outline" size={24} padding={10} color="gray" />
+                android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
+                <Icon name="call-outline" size={20}
+                  padding={10}
+                  color="rgba(123, 123, 123, 1)" />
                 <Text
                   style={{
                     flex: 1,
@@ -258,7 +255,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                     fontFamily: 'Inter_28pt-Regular',
                     fontSize: 14,
                   }}>
-                  Contact Us
+                Contact Us
                 </Text>
                 <Icon
                   name="chevron-forward"
@@ -268,20 +265,15 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                 />
               </Pressable>
 
-              {/* Divider */}
-              {/*  <View
-                style={{
-                  height: 1,
-                  backgroundColor: 'silver',
-                }}
-              /> */}
+              <View style={{height:1,backgroundColor:'#ccc', marginHorizontal:20}}/>
+
 
               <Pressable
                 onPress={() => setModalVisible(true)}
                 style={({pressed}) => [
                   {
                     flexDirection: 'row',
-                    paddingVertical: 10,
+                    paddingVertical: 5,
                     paddingHorizontal: 15,
                     alignItems: 'center',
                     backgroundColor: pressed
@@ -290,24 +282,11 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                     borderRadius: 10,
                   },
                 ]}
-                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
+                android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
                 <View style={{}}>
-                  {/* <Image
-                    source={require('../../assets/images/logout.png')}
-                    style={{
-                      height: 20,
-                      width: 20,
-                      padding: 10,
-                      tintColor: 'rgba(123, 123, 123, 1)',
-                    }}
-                     name="log-out-outline"
-                  size={25}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                  /> */}
                   <Icon
                     name="exit-outline"
-                    size={24}
+                    size={20}
                     padding={10}
                     color={'rgb(253, 0, 0)'}
                   />
@@ -323,12 +302,6 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
                   }}>
                   Log out
                 </Text>
-                {/*  <Icon
-                  name="chevron-forward"
-                  size={20}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                /> */}
               </Pressable>
             </View>
 

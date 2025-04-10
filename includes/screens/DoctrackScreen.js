@@ -24,10 +24,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {Image} from 'react-native-ui-lib';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useQueryClient} from '@tanstack/react-query';
-import {
-  useInspectorImages,
-  useInspection,
-} from '../hooks/useInspection';
+import {useInspectorImages, useInspection} from '../hooks/useInspection';
 import {
   useRequestInspection,
   useOnSchedule,
@@ -190,51 +187,49 @@ const RecentActivity = ({
         <Text style={{color: 'red', textAlign: 'center', marginVertical: 10}}>
           Something went wrong. Please try again.
         </Text>
+      ) : filteredData.length === 0 ? (
+        <Text style={{textAlign: 'center', color: 'gray', padding: 10}}>
+          No results found
+        </Text>
       ) : (
         <View style={{marginBottom: 5}}>
-          {filteredData.length === 0 ? (
-            <Text style={{textAlign: 'center', color: 'gray', padding: 10}}>
-              No results found
-            </Text>
-          ) : (
-            paginatedData.map((item, index) => (
-              <Pressable key={index} onPress={() => onPressItem(item)}>
-                <View style={{flexDirection: 'row', marginVertical: 10}}>
-                  <View style={{width: '30%', alignItems: 'center'}}>
-                    <InspectionImage item={item} />
-                  </View>
-                  <View style={{width: '70%'}}>
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_28pt-SemiBold',
-                        fontSize: 12,
-                        color: '#252525',
-                      }}
-                      numberOfLines={1}>
-                      {item.OfficeName}
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_28pt-Regular',
-                        fontSize: 12,
-                        color: '#252525',
-                      }}>
-                      {item.CategoryCode} -{' '}
-                      <Text style={{fontSize: 10}}>{item.CategoryName}</Text>
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_28pt-Regular',
-                        fontSize: 12,
-                        color: '#252525',
-                      }}>
-                      {item.TrackingNumber}
-                    </Text>
-                  </View>
+          {paginatedData.map((item, index) => (
+            <Pressable key={index} onPress={() => onPressItem(item)}>
+              <View style={{flexDirection: 'row', marginVertical: 10}}>
+                <View style={{width: '30%', alignItems: 'center'}}>
+                  <InspectionImage item={item} />
                 </View>
-              </Pressable>
-            ))
-          )}
+                <View style={{width: '70%'}}>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_28pt-SemiBold',
+                      fontSize: 12,
+                      color: '#252525',
+                    }}
+                    numberOfLines={1}>
+                    {item?.OfficeName}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_28pt-Regular',
+                      fontSize: 12,
+                      color: '#252525',
+                    }}>
+                    {item?.CategoryCode} -{' '}
+                    <Text style={{fontSize: 10}}>{item?.CategoryName}</Text>
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_28pt-Regular',
+                      fontSize: 12,
+                      color: '#252525',
+                    }}>
+                    {item?.TrackingNumber}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
         </View>
       )}
     </View>
@@ -392,7 +387,8 @@ const DoctrackScreen = ({
   const totalDocumentTypeCount = getSumOfDocumentTypeCount(othersVouchersData);
   const checkReleasedOthersCount = getTotalCheckReleasedCount(othersOthersData);
   const caoReleasedOthersCount = getTotalCAOReleasedCount(othersOthersData);
-  const totalDocumentTypeOthersCount = getSumOfDocumentTypeCount(othersOthersData);
+  const totalDocumentTypeOthersCount =
+    getSumOfDocumentTypeCount(othersOthersData);
   const percentage = getPercentage(checkReleasedCount, totalDocumentTypeCount);
   const percentageOthers = getPercentageOthers(
     checkReleasedOthersCount,
@@ -630,14 +626,13 @@ const DoctrackScreen = ({
       await Promise.all([
         fetchMyPersonal(),
         fetchMyAccountability(),
-        fetchRecentActivity(),
         fetchRequests(),
       ]);
 
       queryClient.invalidateQueries({queryKey: ['inspection']});
       queryClient.invalidateQueries({queryKey: ['inspectionRequest']});
       queryClient.invalidateQueries({queryKey: ['onSchedule']});
-      //queryClient.invalidateQueries({queryKey: ['inspectionRecentActivity']});
+      queryClient.invalidateQueries({queryKey: ['inspectionRecentActivity']});
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -882,136 +877,140 @@ const DoctrackScreen = ({
 
         {/*TRANSACTION COUNTER*/}
         <View
-  style={{
-    padding: 10,
-    marginTop: 10,
-    marginHorizontal: 10,
-    backgroundColor: 'white',
-    borderRadius: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'silver',
-    borderRightWidth: 1,
-    borderRightColor: 'silver',
-  }}>
-  <View
-    style={{
-      borderBottomWidth: 1,
-      borderBottomColor: '#eee',
-    }}>
-    <Text
-      style={{
-        fontFamily: 'Inter_28pt-Bold',
-        color: '#252525',
-        fontSize: 15,
-        paddingHorizontal: 10,
-      }}>
-      Transaction Counter
-    </Text>
-  </View>
+          style={{
+            padding: 10,
+            marginTop: 10,
+            marginHorizontal: 10,
+            backgroundColor: 'white',
+            borderRadius: 5,
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 2},
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: 'silver',
+            borderRightWidth: 1,
+            borderRightColor: 'silver',
+          }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: '#eee',
+            }}>
+            <Text
+              style={{
+                fontFamily: 'Inter_28pt-Bold',
+                color: '#252525',
+                fontSize: 15,
+                paddingHorizontal: 10,
+              }}>
+              Transaction Counter
+            </Text>
+          </View>
 
-  <View
-    style={{
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
-      gap: 10,
-      paddingHorizontal: 10,
-      marginTop: 5,
-      paddingTop: 10,
-    }}>
-    {[
-      {
-        label: 'Delays',
-        count: `${officeDelaysLength ? officeDelaysLength : 0}`,
-        screen: 'OfficeDelays',
-        condition: accountType === '1',
-      },
-      {
-        label: 'Updated',
-        count: `${updatedNowData ? updatedNowData : 0}`,
-        screen: 'RecentUpdated',
-      },
-      {
-        label: 'Attachments',
-        icon: 'document-attach',
-        screen: 'Attachments',
-      },
-      {
-        label: 'RegDelays',
-        count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
-        screen: 'Summary',
-        condition:
-          accountType > '1' &&
-          [
-            '8751',
-            '1031',
-            'BAAC',
-            'BACN',
-            '1071',
-            '1081',
-            '1061',
-            '1091',
-          ].includes(officeCode),
-      },
-    ].map((item, index, arr) => {
-      if (item.condition === false) {
-        return null;
-      }
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'flex-start',
+              gap: 10,
+              paddingHorizontal: 10,
+              marginTop: 5,
+              paddingTop: 10,
+            }}>
+            {[
+              {
+                label: 'Delays',
+                count: `${officeDelaysLength ? officeDelaysLength : 0}`,
+                screen: 'OfficeDelays',
+                condition: accountType === '1',
+              },
+              {
+                label: 'Updated',
+                count: `${updatedNowData ? updatedNowData : 0}`,
+                screen: 'RecentUpdated',
+              },
+              /* {
+                label: 'Attachments',
+                icon: 'document-attach',
+                screen: 'PDF',
+              }, */
+              {
+                label: 'RegDelays',
+                count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
+                screen: 'Summary',
+                condition:
+                  accountType > '1' &&
+                  [
+                    '8751',
+                    '1031',
+                    'BAAC',
+                    'BACN',
+                    '1071',
+                    '1081',
+                    '1061',
+                    '1091',
+                  ].includes(officeCode),
+              },
+            ].map((item, index, arr) => {
+              if (item.condition === false) {
+                return null;
+              }
 
-      return (
-        <Pressable
-          key={index}
-          onPress={() => navigation.navigate(item.screen, item.params)}
-          style={({ pressed }) => [
-            {
-              width: arr.length === 3 ? '32%' : '32%',
-              alignItems: 'center',
-              paddingVertical: 10,
-              marginBottom: 10,
-              borderRadius: 5,
-              elevation: 1,
-              backgroundColor: pressed ? '#007bff' : '#ffffff',
-              borderBottomWidth: 2,
-              borderBottomColor: 'silver',
-              borderRightWidth: 2,
-              borderRightColor: 'silver',
-            },
-          ]}
-          android_ripple={{}}>
-          {({ pressed }) => (
-            <>
-              {item.icon ? (
-                <Icon name={item.icon} size={26} color={pressed ? 'white' : 'black'} style={{marginVertical:5}} />
-              ) : (
-                <Text
-                  style={{
-                    color: pressed ? 'white' : 'black',
-                    fontFamily: 'Inter_28pt-Bold',
-                    fontSize: 26,
-                  }}>
-                  {item.count || 0}
-                </Text>
-              )}
-              <Text
-                style={{
-                  color: pressed ? 'white' : '#252525',
-                  fontFamily: 'Inter_28pt-Regular',
-                  fontSize: 10,
-                }}>
-                {item.label}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      );
-    })}
-  </View>
-</View>
-
+              return (
+                <Pressable
+                  key={index}
+                  onPress={() => navigation.navigate(item.screen, item.params)}
+                  style={({pressed}) => [
+                    {
+                      width: arr.length === 3 ? '32%' : '32%',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      marginBottom: 10,
+                      borderRadius: 5,
+                      elevation: 1,
+                      backgroundColor: pressed ? '#007bff' : '#ffffff',
+                      borderBottomWidth: 2,
+                      borderBottomColor: 'silver',
+                      borderRightWidth: 2,
+                      borderRightColor: 'silver',
+                    },
+                  ]}
+                  android_ripple={{}}>
+                  {({pressed}) => (
+                    <>
+                      {item.icon ? (
+                        <Icon
+                          name={item.icon}
+                          size={26}
+                          color={pressed ? 'white' : 'black'}
+                          style={{marginVertical: 5}}
+                        />
+                      ) : (
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : 'black',
+                            fontFamily: 'Inter_28pt-Bold',
+                            fontSize: 26,
+                          }}>
+                          {item.count || 0}
+                        </Text>
+                      )}
+                      <Text
+                        style={{
+                          color: pressed ? 'white' : '#252525',
+                          fontFamily: 'Inter_28pt-Regular',
+                          fontSize: 10,
+                        }}>
+                        {item.label}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={{marginBottom: 10}}>
           {/*Personal*/}
@@ -2207,12 +2206,7 @@ const DoctrackScreen = ({
         </View>
       </View>
 
-      <View
-        style={
-          {
-            /* marginBottom: 10 */
-          }
-        }>
+      <View style={{}}>
         <RecentActivity
           recentActivityData={recentActivityData}
           recentActivityError={recentActivityError}

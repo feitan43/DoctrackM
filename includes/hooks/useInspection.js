@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchInspection,fetchInspectionDetails, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage, fetchInspectionPRDetails, fetchInspectionRecentActivity  } from '../api/inspectionApi.js';
+import { fetchInspection,fetchInspectionDetails, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage, fetchInspectionPRDetails, fetchInspectionRecentActivity, fetchEditDeliveryDate  } from '../api/inspectionApi.js';
 import useUserInfo from '../api/useUserInfo.js';
 
 export const useInspection = () => {
@@ -148,7 +148,8 @@ export const useInspectionPRDetails = (year, trackingNumber) => {
 
 export const useInspectionRecentActivity = () => {
   const { employeeNumber } = useUserInfo();
-
+  console.log("recent", employeeNumber)
+  
   return useQuery({
     queryKey: employeeNumber ? ['inspectionRecentActivity', employeeNumber] : ['inspectionRecentActivity'],
     queryFn: () => (employeeNumber ? fetchInspectionRecentActivity(employeeNumber) : Promise.resolve([])),
@@ -156,4 +157,31 @@ export const useInspectionRecentActivity = () => {
     staleTime: 5 * 60 * 1000, 
     retry: 2, 
   });
+};
+
+export const useEditDeliveryDate = () => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async ({ deliveryId, deliveryDate }) => {
+      if (!deliveryId || !deliveryDate) {
+        return Promise.reject(new Error('Delivery ID and Delivery Date are required'));
+      }
+      // Call the function to update the delivery date
+      return await fetchEditDeliveryDate(deliveryId, deliveryDate);
+    },
+    onSuccess: () => {
+      // After success, invalidate the relevant query (e.g., 'inspection')
+      queryClient.invalidateQueries(['inspection']);
+    },
+    onError: (error) => {
+      console.error('Mutation error:', error.message);
+    },
+    onSettled: () => {
+      // Optionally run any action after the mutation has finished (success or error)
+    },
+    retry: 2, // Retry the mutation 2 times in case of failure
+  });
+
+  return mutation;
 };

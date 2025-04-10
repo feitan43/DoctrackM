@@ -40,7 +40,6 @@ const ForInspection = ({navigation}) => {
   const queryClient = useQueryClient();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
-  console.log("datainv",data)
   const offices = [
     {label: 'All Offices', value: null, key: 'all-offices'},
     ...Array.from(

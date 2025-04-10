@@ -64,8 +64,9 @@ const App = () => {
 
 
   return (
+    <GestureHandlerRootView style={{flex: 1}}>
+
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{flex: 1}}>
         <StatusBar
           barStyle="light-content"
           backgroundColor="transparent"
@@ -103,8 +104,9 @@ const App = () => {
             </View>
           )}
         </View>
-      </GestureHandlerRootView>
     </QueryClientProvider>
+    </GestureHandlerRootView>
+
   );
 };
 

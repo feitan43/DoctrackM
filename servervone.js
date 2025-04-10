@@ -1388,7 +1388,7 @@ app.get('/genInformation', async (req, res) => {
 
     const apiResponse = await fetch(apiUrl);
 
-    console.log(apiUrl);
+    //console.log(apiUrl);
 
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
@@ -2567,9 +2567,56 @@ app.get('/addSchedule', async (req, res) => {
   }
 });
 
+app.get('/editDeliveryDate', async (req, res) => {
+  const { deliveryId, deliveryDate } = req.query;
+
+  if (!deliveryId || !deliveryDate) {
+    return res.status(400).json({ error: 'deliveryId and deliveryDate are required' });
+  }
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?editDeliveryDate=1&deliveryId=${deliveryId}&deliveryDate=${encodeURIComponent(deliveryDate)}`;
+    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error adding schedule:', error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+  }
+});
 
 
+app.get('/getAttachmentFiles', async (req, res) => {
+  try {
+      const { year, trackingNumber, form } = req.query; 
+      console.log('Received params:', year, trackingNumber, form);
 
+      const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?getAttachmentFiles=1&year=${year}&tn=${trackingNumber}&type=${encodeURIComponent(form)}`;
+      
+      console.log("url",apiUrl);
+      const response = await fetch(apiUrl);
+
+      // Check if response is okay before proceeding
+      if (!response.ok) {
+          return res.status(response.status).json({ error: 'Failed to fetch attachment files from server.' });
+      }
+
+      const data = await response.json();
+
+      console.log("data",data);
+
+        // Check if the response data indicates success
+      if (data.success) {
+          const images = data.images; 
+          return res.json({ success: data.success, images });
+      } else {
+          return res.json({ error: data.error });
+      }
+  } catch (error) {
+      console.error('Error fetching attachment files:', error);
+      return res.status(500).json({ error: 'An error occurred while fetching attachment files.' });
+  }
+});
 
 
 

@@ -192,12 +192,26 @@ export const fetchInspectionRecentActivity = async (employeeNumber) => {
   if (!employeeNumber) {
     throw new Error('Employee Number is required');
   }
-
   try {
     const { data } = await apiClient.get(`/getRecentActivity?employeeNumber=${employeeNumber}`);
     return data;
   } catch (error) {
     console.error('Error fetching recent activity:', error);
+    throw error;
+  }
+};
+
+export const fetchEditDeliveryDate = async (deliveryId, deliveryDate) => {
+  try {
+    if (!deliveryId) throw new Error("deliveryId is required");
+
+    const { data } = await apiClient.get(
+      `/editDeliveryDate?deliveryId=${deliveryId}&deliveryDate=${deliveryDate}`
+    );
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching editDeliveryDate:", error.message);
     throw error;
   }
 };

@@ -1,6 +1,6 @@
 import { BASE_URL_FORLIVE, BASE_URL_DEV, ENVIRONMENT } from '@env';
 
-const BASE_URL = ENVIRONMENT.trim() === 'development2' ? BASE_URL_FORLIVE : BASE_URL_DEV;
+const BASE_URL = ENVIRONMENT.trim() === 'developement2' ? BASE_URL_FORLIVE : BASE_URL_DEV;
 
 console.log('Current Base URL:', BASE_URL);
 

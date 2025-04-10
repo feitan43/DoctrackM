@@ -19,27 +19,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/FontAwesome6';
 import {Dropdown} from 'react-native-element-dropdown';
-
 import {Menu, Divider, IconButton, PaperProvider} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
 
-/* const insertCommas = value => {
-  if (value === null || value === '') {
-    return '';
-  }
-  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}; */
 
-const years = ['2025', '2024', '2023'];
-
-/* const years = Array.from(
-  {length: Math.max(0, currentYear - 2023 + 1)},
-  (_, index) => ({
-    label: `${currentYear - index}`,
-    value: currentYear - index,
-  }),
-); */
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   // const modifiedDate = item.DateModified.split(' ')[0];
@@ -190,6 +174,14 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
 
 const SearchScreen = () => {
   const currentYear = new Date().getFullYear().toString();
+  
+  const years = Array.from(
+    {length: Math.max(0, currentYear - 2023 + 1)},
+    (_, index) => ({
+      label: `${currentYear - index}`,
+      value: currentYear - index,
+    }),
+  );
 
   const [searchText, setSearchText] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
@@ -514,7 +506,7 @@ const SearchScreen = () => {
                     autoCapitalize="characters"
                     placeholderTextColor="silver"
                     placeholderStyle={styles.placeholderText}
-                    //autoFocus={true}
+                    autoFocus={true}
                     autoCorrect={false}
                     autoCompleteType="off"
                     textContentType="none"
