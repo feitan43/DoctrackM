@@ -11,7 +11,8 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/b
 
 const MonthlyReceivedScreen = ({ navigation, route }) => {
     const { receivedMonthly = [], selectedYear, allMonthsData = {}, allMonthsUniqueData = {}, accumulatedFundsData = {}, uniqueFundsData = {} } = route.params || {};
-    const [selectDate, setSelectDate] = useState(null);
+
+
     const [isSwitchOn, setIsSwitchOn] = useState(false);
     const { width } = useWindowDimensions();
     const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
@@ -39,6 +40,13 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
+
+    const [selectDate, setSelectDate] = useState(() => {
+        const currentMonthIndex = new Date().getMonth();
+        return MONTHS[currentMonthIndex];
+    });
+
+
 
     const monthlyData = useMemo(() => MONTHS.map((month) => {
         let count;
@@ -86,7 +94,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
 
         return (
             <View>
-                <Text style={[styles.detailsTitle, { marginVertical: 10 }]}> Fund Breakdown - {isSwitchOn ? "Unique" : "Accumulated"}</Text>
+                <Text style={[styles.detailsTitle, { marginVertical: 25, }]}> Fund Breakdown - {isSwitchOn ? "Unique" : "Accumulated"}</Text>
                 <View style={styles.fundGridContainer}>
                     <TouchableOpacity
                         style={[styles.tabButton, activeTab === 'gen' && styles.activeTab]}
@@ -160,7 +168,6 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             (item) => item.Fund && fundType && item.Fund.toLowerCase() === fundType.toLowerCase()
         );
 
-        console.log('FUNDS DATA: ', filteredData);
 
         const handleShowMore = () => {
             setBottomSheetData(filteredData);
@@ -205,83 +212,86 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                 {filteredData.length > 0 && (
                     <View>
                         <View style={{ marginVertical: 0 }}>
-                            <Text style={[styles.subTitle, { marginTop: 10 }]}>List of Transactions</Text>
+                            <Text style={[styles.subTitle, { marginTop: 25 }]}>List of Transactions</Text>
                         </View>
 
-                        <FlatList
-                            data={filteredData}
-                            keyExtractor={(item, index) => index.toString()}
-                            renderItem={({ item, index }) => (
-                                <View
-                                    style={{
-                                        flex: 1,
-                                        padding: 10,
-                                        marginVertical: 0,
-                                    }}
-                                >
-                                    <View style={[styles.dataRowFunds]}>
-                                        <View
-                                            style={{
-                                                marginRight: 10,
-                                                alignItems: 'baseline',
-                                                justifyContent: 'center',
-                                                flexDirection: 'row',
-                                            }}
-                                        >
-                                            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
-                                                {index + 1}
-                                            </Text>
-                                        </View>
+                        <View style={{ marginTop: 10 }}>
+                            <FlatList
+                                data={filteredData}
+                                keyExtractor={(item, index) => index.toString()}
+                                renderItem={({ item, index }) => (
+                                    <View
+                                        style={{
+                                            flex: 1,
+                                            padding: 10,
+                                            marginVertical: 0,
+                                        }}
+                                    >
+                                        <View style={[styles.dataRowFunds]}>
+                                            <View
+                                                style={{
+                                                    marginRight: 10,
+                                                    alignItems: 'baseline',
+                                                    justifyContent: 'center',
+                                                    flexDirection: 'row',
+                                                }}
+                                            >
+                                                <Text style={{ fontWeight: 'bold', fontSize: 16 }}>
+                                                    {index + 1}
+                                                </Text>
+                                            </View>
 
-                                        <View
-                                            style={{
-                                                borderBottomWidth: 1.5,
-                                                borderBottomColor: 'gray',
-                                            }}>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>Tracking Number: </Text>
-                                                <Text style={styles.value}>{item.TrackingNumber}</Text>
-                                            </View>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>Document Type: </Text>
-                                                <Text style={styles.value}>{item.DocumentType}</Text>
-                                            </View>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>Fund: </Text>
-                                                <Text style={styles.value}>{item.Fund}</Text>
-                                            </View>
-                                            <View style={styles.textRow}>
-                                                <Text style={styles.label}>Net Amount: </Text>
-                                                <Text style={styles.value}>{insertCommas(item.NetAmount)}</Text>
-                                            </View>
-                                            {/* <View style={styles.textRow}>
+                                            <View
+                                                style={{
+                                                    borderBottomWidth: 1.5,
+                                                    borderBottomColor: 'gray',
+                                                }}>
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.label}>Fund: </Text>
+                                                    <Text style={styles.value}>{item.Fund}</Text>
+                                                </View>
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.label}>Tracking Number: </Text>
+                                                    <Text style={styles.value}>{item.TrackingNumber}</Text>
+                                                </View>
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.label}>Document Type: </Text>
+                                                    <Text style={styles.value}>{item.DocumentType}</Text>
+                                                </View>
+
+                                                <View style={styles.textRow}>
+                                                    <Text style={styles.label}>Net Amount: </Text>
+                                                    <Text style={styles.value}>{insertCommas(item.NetAmount)}</Text>
+                                                </View>
+                                                {/* <View style={styles.textRow}>
                                                 <Text style={styles.label}>Amount: </Text>
                                                 <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
                                             </View> */}
+                                            </View>
                                         </View>
-                                    </View>
-                                    <View style={{
-                                        alignItems: 'flex-end',
-                                        marginBottom: 5,
-                                    }}>
-                                        <View style={{ alignItems: 'center', flexDirection: 'row' }}>
-                                            <Text style={{
+                                        <View style={{
+                                            alignItems: 'flex-end',
+                                            marginBottom: 5,
+                                        }}>
+                                            <View style={{ alignItems: 'center', flexDirection: 'row' }}>
+                                                <Text style={{
 
-                                                fontSize: 14,
-                                                fontFamily: 'Oswald-Light',
-                                                opacity: 0.6,
-                                            }}>Amount: </Text>
-                                            <Text style={{
-                                                width: '25%',
-                                                fontSize: 14,
-                                                fontFamily: 'Oswald-Regular',
-                                                marginStart: 10,
-                                            }}>{insertCommas(item.Amount)}</Text>
+                                                    fontSize: 14,
+                                                    fontFamily: 'Oswald-Light',
+                                                    opacity: 0.6,
+                                                }}>Amount: </Text>
+                                                <Text style={{
+                                                    width: '25%',
+                                                    fontSize: 14,
+                                                    fontFamily: 'Oswald-Regular',
+                                                    marginStart: 10,
+                                                }}>{insertCommas(item.Amount)}</Text>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-                            )}
-                        />
+                                )}
+                            />
+                        </View>
                     </View>
                 )}
             </View>
@@ -300,7 +310,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
 
     const renderMonths = () => (
         <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-end', marginVertical: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-end', marginVertical: 15 }}>
                 <Text style={{ fontSize: 15, fontWeight: 'bold' }}>Accumulated / Unique</Text>
                 <Switch
                     value={isSwitchOn}
@@ -318,24 +328,39 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                         style={({ pressed }) => [
                             styles.monthButton,
                             selectDate === item.month && styles.selectedMonthButton,
-                            pressed && styles.pressedMonthButton
+                            pressed && styles.pressedMonthButton,
                         ]}
                         onPress={() => handleMonthPress(item.month)}
                     >
-                        <Card.Content style={styles.cardContent}>
-                            <Text style={[styles.monthText, selectDate === item.month && styles.selectedText]}>
-                                {item.month}
-                            </Text>
-                            <Text style={[styles.countText, selectDate === item.month && styles.selectedText]}>
-                                {item.count}
-                            </Text>
-                        </Card.Content>
+                        {({ pressed }) => (
+                            <Card.Content style={styles.cardContent}>
+                                <Text
+                                    style={[
+                                        styles.monthText,
+                                        selectDate === item.month && styles.selectedText,
+                                        pressed && styles.whiteText,
+                                    ]}
+                                >
+                                    {item.month}
+                                </Text>
+                                <Text
+                                    style={[
+                                        styles.countText,
+                                        selectDate === item.month && styles.selectedText,
+                                        pressed && styles.whiteText,
+                                    ]}
+                                >
+                                    {item.count}
+                                </Text>
+                            </Card.Content>
+                        )}
                     </Pressable>
+
                 ))}
 
             </View>
 
-            {selectDate && (
+            {/* {selectDate && (
                 <View style={{ marginVertical: 0 }}>
                     {renderTabs()}
                     {activeTab === 'gen' && <TabContent fundType="GENERAL FUND" />}
@@ -343,65 +368,74 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                     {activeTab === 'sef' && <TabContent fundType="SEF" />}
                 </View>
 
-            )}
+            )} */}
+
+            <View style={{ marginVertical: 0 }}>
+                {renderTabs()}
+                {activeTab === 'gen' && <TabContent fundType="GENERAL FUND" />}
+                {activeTab === 'trust' && <TabContent fundType="TRUST FUND" />}
+                {activeTab === 'sef' && <TabContent fundType="SEF" />}
+            </View>
+
+
 
 
         </View>
     );
 
-    const renderDetails = () => {
-        const dataToRender = isSwitchOn
-            ? allMonthsUniqueData?.[selectDate]?.Data || []
-            : allMonthsData?.[selectDate]?.Data || [];
+    // const renderDetails = () => {
+    //     const dataToRender = isSwitchOn
+    //         ? allMonthsUniqueData?.[selectDate]?.Data || []
+    //         : allMonthsData?.[selectDate]?.Data || [];
 
 
-        return selectDate ? (
-            <View style={styles.detailsContainer}>
-                <FlatList
-                    data={dataToRender}
-                    keyExtractor={(item, index) => index.toString()}
-                    ListHeaderComponent={<Text style={[styles.detailsTitle, { marginTop: 10 }]}>
-                        {selectDate} {selectedYear} Details ({isSwitchOn ? "Unique" : "Accumulated"})
-                    </Text>}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.dataRow}>
-                            <View style={styles.counterStyle}>
-                                <Text style={styles.counterText}>{index + 1}</Text>
-                            </View>
-                            <View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Tracking Number:</Text>
-                                    <Text style={styles.value}>{item.TrackingNumber || 'n/a'}</Text>
-                                </View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Document Type:</Text>
-                                    <Text style={styles.value}>{item.DocumentType || 'n/a'}</Text>
-                                </View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Fund:</Text>
-                                    <Text style={styles.value}>{item.Fund || 'n/a'}</Text>
-                                </View>
-                                <View style={styles.textRow}>
-                                    <Text style={styles.label}>Amount:</Text>
-                                    <Text style={styles.value}> {insertCommas(item.Amount || '')}</Text>
-                                </View>
-                            </View>
-                        </View>
-                    )}
-                    ListEmptyComponent={() => (
-                        <View style={styles.emptyStateContainer}>
-                            <Image
-                                source={require('../../../assets/images/noresultsstate.png')}
-                                style={styles.emptyStateImage}
-                                resizeMode="contain"
-                            />
-                            <Text style={styles.emptyStateText}>NO DATA AVAILABLE</Text>
-                        </View>
-                    )}
-                />
-            </View>
-        ) : null;
-    };
+    //     return selectDate ? (
+    //         <View style={styles.detailsContainer}>
+    //             <FlatList
+    //                 data={dataToRender}
+    //                 keyExtractor={(item, index) => index.toString()}
+    //                 ListHeaderComponent={<Text style={[styles.detailsTitle, { marginTop: 25 }]}>
+    //                     {selectDate} {selectedYear} Details ({isSwitchOn ? "Unique" : "Accumulated"})
+    //                 </Text>}
+    //                 renderItem={({ item, index }) => (
+    //                     <View style={styles.dataRow}>
+    //                         <View style={styles.counterStyle}>
+    //                             <Text style={styles.counterText}>{index + 1}</Text>
+    //                         </View>
+    //                         <View>
+    //                             <View style={styles.textRow}>
+    //                                 <Text style={styles.label}>Tracking Number:</Text>
+    //                                 <Text style={styles.value}>{item.TrackingNumber || 'n/a'}</Text>
+    //                             </View>
+    //                             <View style={styles.textRow}>
+    //                                 <Text style={styles.label}>Document Type:</Text>
+    //                                 <Text style={styles.value}>{item.DocumentType || 'n/a'}</Text>
+    //                             </View>
+    //                             <View style={styles.textRow}>
+    //                                 <Text style={styles.label}>Fund:</Text>
+    //                                 <Text style={styles.value}>{item.Fund || 'n/a'}</Text>
+    //                             </View>
+    //                             <View style={styles.textRow}>
+    //                                 <Text style={styles.label}>Amount:</Text>
+    //                                 <Text style={styles.value}> {insertCommas(item.Amount || '')}</Text>
+    //                             </View>
+    //                         </View>
+    //                     </View>
+    //                 )}
+    //                 ListEmptyComponent={() => (
+    //                     <View style={styles.emptyStateContainer}>
+    //                         <Image
+    //                             source={require('../../../assets/images/noresultsstate.png')}
+    //                             style={styles.emptyStateImage}
+    //                             resizeMode="contain"
+    //                         />
+    //                         <Text style={styles.emptyStateText}>NO DATA AVAILABLE</Text>
+    //                     </View>
+    //                 )}
+    //             />
+    //         </View>
+    //     ) : null;
+    // };
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -422,7 +456,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                 <View style={styles.contentWrapper}>
                     <FlatList
                         ListHeaderComponent={renderMonths()}
-                        ListFooterComponent={renderDetails()}
+                        // ListFooterComponent={renderDetails()}
                         showsVerticalScrollIndicator={false}
                     />
                 </View>
@@ -617,13 +651,15 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#007bff',
     },
+    whiteText: {
+        color: '#fff',
+    },
 
     monthButton: {
         width: '30%',
         alignItems: 'center',
         marginBottom: 5,
         borderRadius: 5,
-        elevation: 1,
         backgroundColor: '#ffffff',
         borderBottomWidth: 2,
         borderRightWidth: 2,
@@ -782,7 +818,7 @@ const styles = StyleSheet.create({
     },
 
     activeTab: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#1a8cff',
     },
 });
 
