@@ -62,175 +62,7 @@ const QRAuto = () => {
 
   const [showCheck, setShowCheck] = useState(true);
 
-  /* useEffect(() => {
-    handleCameraPermission();
-  }, []);
 
-  const handleCameraPermission = async () => {
-    try {
-      const cameraPermission = await check(PERMISSIONS.ANDROID.CAMERA); // Replace with PERMISSIONS.IOS.CAMERA for iOS
-
-      if (cameraPermission === RESULTS.GRANTED) {
-        //console.log('Camera permission granted.');
-      } else if (
-        cameraPermission === RESULTS.DENIED ||
-        cameraPermission === RESULTS.LIMITED
-      ) {
-        const requestResult = await request(PERMISSIONS.ANDROID.CAMERA); // Replace with PERMISSIONS.IOS.CAMERA for iOS
-        if (requestResult === RESULTS.GRANTED) {
-          console.log('Camera permission granted after request.');
-        } else {
-          Alert.alert(
-            'Permission Denied',
-            'Camera permission is required to scan QR codes. Please enable it in the app settings.',
-          );
-        }
-      } else if (cameraPermission === RESULTS.BLOCKED) {
-        Alert.alert(
-          'Permission Blocked',
-          'Camera permission is blocked. Please enable it in the app settings.',
-        );
-      }
-    } catch (error) {
-      console.error('Error checking or requesting camera permission:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred while checking camera permissions.',
-      );
-    }
-  }; */
-
-
-  // const renderItem = ({ item }) => {
-  //   return (
-  //     <View>
-  //       <View style={{ flexDirection: 'row' }}>
-  //         {/* {showCheck && receivingData && (
-  //           <>
-  //             {receivingData.status === 'success' && (
-  //               <Icon
-  //                 name="checkmark-circle-outline"
-  //                 size={60}
-  //                 color="green"
-  //                 style={{ alignSelf: 'center' }}
-  //               />
-  //             )}
-  //             {receivingData.status === 'error' &&
-  //               item.Status !== 'Admin Received' && (
-  //                 <Icon
-  //                   name="close-circle-outline"
-  //                   size={60}
-  //                   color="red"
-  //                   style={{ alignSelf: 'center' }}
-  //                 />
-  //               )}
-  //             {receivingData.status === 'error' &&
-  //               item.Status === 'Admin Received' && (
-  //                 <Icon
-  //                   name="checkmark-done-circle-outline"
-  //                   size={60}
-  //                   color="green"
-  //                   style={{ alignSelf: 'center' }}
-  //                 />
-  //               )}
-  //           </>
-  //         )} */}
-
-  //         <View style={styles.itemContainer}>
-  //           <View style={styles.textRow}>
-  //             <Text style={styles.label}>Year:</Text>
-  //             <Text style={styles.value}>{item.Year}</Text>
-  //           </View>
-  //           <Divider
-  //             width={1.9}
-  //             color={'rgba(217, 217, 217, 0.1)'}
-  //             borderStyle={'dashed'}
-  //             marginHorizontal={10}
-  //             marginBottom={5}
-  //             style={{ bottom: 5 }}
-  //           />
-  //           <View style={styles.textRow}>
-  //             <Text style={styles.label}>Tracking Type:</Text>
-  //             <Text style={styles.value}>{item.TrackingType}</Text>
-  //           </View>
-  //           <Divider
-  //             width={1.9}
-  //             color={'rgba(217, 217, 217, 0.1)'}
-  //             borderStyle={'dashed'}
-  //             marginHorizontal={10}
-  //             marginBottom={5}
-  //             style={{ bottom: 5 }}
-  //           />
-  //           <View style={styles.textRow}>
-  //             <Text style={styles.label}>Tracking Number:</Text>
-  //             <Text style={styles.value}>{item.TrackingNumber}</Text>
-  //           </View>
-  //           <Divider
-  //             width={1.9}
-  //             color={'rgba(217, 217, 217, 0.1)'}
-  //             borderStyle={'dashed'}
-  //             marginHorizontal={10}
-  //             marginBottom={5}
-  //             style={{ bottom: 5 }}
-  //           />
-  //           <View style={styles.textRow}>
-  //             <Text style={styles.label}>Document Type:</Text>
-  //             <Text style={styles.value} numberOfLines={2} ellipsizeMode='tail' >{item.DocumentType}</Text>
-  //           </View>
-  //           <Divider
-  //             width={1.9}
-  //             color={'rgba(217, 217, 217, 0.1)'}
-  //             borderStyle={'dashed'}
-  //             marginHorizontal={10}
-  //             marginBottom={5}
-  //             style={{ bottom: 5 }}
-  //           />
-  //           <View style={styles.textRow}>
-  //             <Text style={styles.label}>Status:</Text>
-  //             <Text style={styles.value}>{item.Status}</Text>
-  //           </View>
-  //           <Divider
-  //             width={1.9}
-  //             color={'rgba(217, 217, 217, 0.1)'}
-  //             borderStyle={'dashed'}
-  //             marginHorizontal={10}
-  //             style={{ bottom: 5 }}
-  //           />
-  //         </View>
-  //       </View>
-
-  //       <View
-  //         style={{
-  //           flex: 1,
-  //           alignItems: 'center',
-  //           alignSelf: 'flex-end',
-  //           paddingTop: 10,
-  //         }}>
-  //         <TouchableOpacity
-  //           style={{
-  //             //marginTop: 20,
-  //             backgroundColor: 'transparent',
-  //             borderRadius: 4,
-  //             flexDirection: 'row',
-  //             paddingTop: 10,
-  //           }}
-  //           onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
-  //           <View>
-  //             <Text
-  //               style={{
-  //                 color: '#fff',
-  //                 textAlign: 'right',
-  //                 fontSize: 14,
-  //               }}>
-  //               Show More
-  //             </Text>
-  //           </View>
-  //           <Icon name="chevron-forward" size={20} color={'#fff'} />
-  //         </TouchableOpacity>
-  //       </View>
-  //     </View>
-  //   );
-  // };
 
   const renderItem = useMemo(() => {
     return ({ item }) => (
@@ -300,7 +132,7 @@ const QRAuto = () => {
             />
             <View style={styles.textRow}>
               <Text style={styles.label}>Amount:</Text>
-              <Text style={styles.value}>{item.Amount}</Text>
+              <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
             </View>
             <Divider
               width={1.9}
@@ -413,7 +245,6 @@ const QRAuto = () => {
         const [year, ...trackingParts] = result.split('-');
         const trackingNumber = trackingParts.join('-');
 
-
         const isValidYear =
           /^\d{4}$/.test(year) &&
           parseInt(year) >= 2024 &&
@@ -438,34 +269,47 @@ const QRAuto = () => {
         }
 
         const qrData = data[0];
-        const status = qrData.Status || '';
+        const { TrackingType, Status, DocumentType, Fund } = qrData;
 
-        const validStatuses = [
-          // 'CBO Received',
-          'CBO Released',
-          'Voucher Received - Inspection',
-          'Voucher Received - Inventory',
-          'Pending Released - CAO',
-        ];
+        const isEligibleForReceive = (() => {
+          if (TrackingType === 'PY') {
+            if (['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status))
+              return true;
+            if (
+              Status === 'Encoded' &&
+              ['Liquidation', 'Remitance - HDMF'].includes(DocumentType) &&
+              Fund === 'Trust Fund'
+            ) return true;
+          }
 
-        if (!validStatuses.includes(status)) {
+          if (TrackingType === 'PX') {
+            if (['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status))
+              return true;
+          }
+
+          if (TrackingType === 'IP') {
+            if (['Pending Released - CAO', 'Encoded'].includes(Status))
+              return true;
+          }
+
+
+          return false;
+        })();
+
+        if (!isEligibleForReceive) {
           ToastAndroid.show(
-            `Document is not eligible for scanning. (${status})`,
+            `Document is not eligible for auto-receive. (${Status})`,
             ToastAndroid.SHORT
           );
           return;
         }
 
-
-        const trackingType = qrData.TrackingType || '';
-        const documentType = qrData.DocumentType || '';
-
-        const data2 = await autoReceive({
+        const receiveResponse = await autoReceive({
           year,
           trackingNumber,
-          trackingType,
-          documentType,
-          status,
+          trackingType: TrackingType,
+          documentType: DocumentType,
+          status: Status,
           accountType,
           privilege,
           officeCode,
@@ -473,43 +317,17 @@ const QRAuto = () => {
         });
 
         try {
-          if (data2 && data2.status === 'success') {
-            console.log('data2', data2);
+          const latestData = await fetchQRData(year, trackingNumber);
 
-            const data = await fetchQRData(year, trackingNumber);
-
-            //  if (
-            //   data &&
-            //   data.length > 0 &&
-            //   data[0].Status === 'Admin Received'
-            // ) {
-            //   ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
-            //   return;
-            // }
-            // console.log('Data: ' ,data)
-            /*   console.log(data.Status);
-        
-            if (data3.Status === 'Admin Received') {
-              ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
-            } */
-          }
-          if (data2 && data2.status === 'error') {
-            const data = await fetchQRData(year, trackingNumber);
-            /* console.log(data);
-            console.log(data[0].Status); */
-
-            // Check the Status in the response data
-            if (
-              data &&
-              data.length > 0 &&
-              data[0].Status === 'Admin Received'
-            ) {
-              ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
-              return;
-            }
+          if (
+            receiveResponse?.status === 'error' &&
+            latestData?.[0]?.Status === 'Admin Received'
+          ) {
+            ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
+            return;
           }
         } catch (error) {
-          console.error('Error fetching QR data:', error);
+          console.error('Error fetching QR data after autoReceive:', error);
           ToastAndroid.show(
             'An error occurred. Please try again.',
             ToastAndroid.SHORT,
@@ -533,6 +351,7 @@ const QRAuto = () => {
       }
     },
   });
+
 
   return (
     <View style={styles.container}>

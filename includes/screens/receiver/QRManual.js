@@ -56,6 +56,8 @@ const QRManual = () => {
 
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
 
+  console.log('QR DATA: ', qrData);
+
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
@@ -204,7 +206,8 @@ const QRManual = () => {
 
 
     const showCAOReceivedButton = (() => {
-      const { TrackingType, Status, DocumentType } = item;
+      const { TrackingType, Status, DocumentType, Fund } = item;
+      console.log('CAO RECEIVED : ', item)
 
       const isPY = TrackingType === 'PY';
       const isPX = TrackingType === 'PX';
@@ -215,7 +218,7 @@ const QRManual = () => {
         return true;
       }
 
-      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF')
+      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF') && (Fund === 'Trust Fund')
       ) {
         return true;
       }
@@ -242,6 +245,8 @@ const QRManual = () => {
           return true;
         }
       }
+
+
 
       //PY
       if (TrackingType === 'PY') {
