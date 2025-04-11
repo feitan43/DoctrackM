@@ -850,9 +850,6 @@ async function sendNotifRealtime(officeCode, retryCount = 3, delayMs = 5000) {
   }
 }
 
-
-
-
 // async function sendNotifRealtime(officeCode) {
 //   if (!officeCode) {
 //     return;
@@ -1280,7 +1277,6 @@ app.get('/userInfo', async (req, res) => {
 
     const tokenString = token.split(' ')[1];
 
-    // Verify token format before further processing
     const isValidTokenFormat =
       /^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/.test(tokenString);
   
@@ -2585,27 +2581,22 @@ app.get('/editDeliveryDate', async (req, res) => {
   }
 });
 
-
 app.get('/getAttachmentFiles', async (req, res) => {
   try {
       const { year, trackingNumber, form } = req.query; 
-      console.log('Received params:', year, trackingNumber, form);
+
+      console.log(year, trackingNumber, form )
 
       const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?getAttachmentFiles=1&year=${year}&tn=${trackingNumber}&type=${encodeURIComponent(form)}`;
       
-      console.log("url",apiUrl);
       const response = await fetch(apiUrl);
 
-      // Check if response is okay before proceeding
       if (!response.ok) {
           return res.status(response.status).json({ error: 'Failed to fetch attachment files from server.' });
       }
 
       const data = await response.json();
 
-      console.log("data",data);
-
-        // Check if the response data indicates success
       if (data.success) {
           const images = data.images; 
           return res.json({ success: data.success, images });
@@ -2617,8 +2608,6 @@ app.get('/getAttachmentFiles', async (req, res) => {
       return res.status(500).json({ error: 'An error occurred while fetching attachment files.' });
   }
 });
-
-
 
 app.get('/projectCleansing', async (req, res) => {
 

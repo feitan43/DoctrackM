@@ -29,8 +29,6 @@ export const uploadTNAttach = async ({ imagePath, year, tn, form, employeeNumber
       body: formData,
     });
 
-    console.log(formData);
-
     const responseData = await res.json();
 
     if (!res.ok) {
@@ -74,7 +72,6 @@ export const removeTNAttach = async ({ year, tn, form }) => {
     throw err;
   }
 };
-
 
 export const fetchAttachmentFiles = async (year, trackingNumber, form) => {
   if (!year || !trackingNumber) {

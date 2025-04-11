@@ -30,17 +30,56 @@ import {
   useOnSchedule,
 } from '../hooks/useInspectionScheduler';
 
+
+const InspectionImage = React.memo(({ year, trackingNumber }) => {
+  const {
+    data: inspectorImages,
+    loading: isLoading,
+    error,
+  } = useInspectorImages(year, trackingNumber);
+
+  if (isLoading) {
+    return (
+      <View style={{ backgroundColor: 'transparent' }}>
+        <ActivityIndicator size="small" color="white" style={{ width: 60, height: 60 }} />
+      </View>
+    );
+  }
+
+  if (error || !inspectorImages?.length) {
+    return (
+      <Image
+        source={require('../../assets/images/noImage.jpg')}
+        style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
+      />
+    );
+  }
+
+  return (
+    <FastImage
+      source={{
+        uri: inspectorImages[0],
+        priority: FastImage.priority.high,
+        cache: 'web',
+      }}
+      style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
+      resizeMode={FastImage.resizeMode.cover}
+    />
+  );
+});
+
+
 const RecentActivity = ({
   recentActivityData,
   recentActivityError,
   recentActivityLoading,
   navigation,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const pageRef = useRef(1);
   const itemsPerPage = 5;
 
-  const filteredData =
-    recentActivityData && recentActivityData.length > 0
+  const filteredData = useMemo(() => {
+    return recentActivityData && recentActivityData.length > 0
       ? recentActivityData.filter(
           item =>
             item.Status.toLowerCase() === 'inspected' ||
@@ -48,72 +87,27 @@ const RecentActivity = ({
             item.DateInspected !== null,
         )
       : [];
+  }, [recentActivityData]);
 
-  const paginatedData =
-    filteredData.length > 0
-      ? filteredData.slice(
-          (currentPage - 1) * itemsPerPage,
-          currentPage * itemsPerPage,
-        )
-      : [];
+  const paginatedData = useMemo(() => {
+    const start = (pageRef.current - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData]);
 
   const nextPage = () => {
-    if (currentPage * itemsPerPage < filteredData.length) {
-      setCurrentPage(currentPage + 1);
+    if (pageRef.current * itemsPerPage < filteredData.length) {
+      pageRef.current += 1;
     }
   };
 
   const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    if (pageRef.current > 1) {
+      pageRef.current -= 1;
     }
   };
 
   const onPressItem = item => {
-    navigation.navigate('InspectionDetails', {item});
-  };
-
-  const InspectionImage = ({item}) => {
-    const {
-      data: inspectorImages,
-      loading: isLoading,
-      error: error,
-    } = useInspectorImages(item?.Year, item?.TrackingNumber);
-
-    if (isLoading) {
-      return (
-        <View style={{backgroundColor: 'transparent'}}>
-          <ActivityIndicator
-            size="small"
-            color="white"
-            style={{width: 60, height: 60}}
-          />
-        </View>
-      );
-    }
-
-    if (error) {
-      return (
-        <Image
-          source={require('../../assets/images/noImage.jpg')}
-          style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
-        />
-      );
-    }
-
-    const imageUri = inspectorImages?.length > 0 ? inspectorImages[0] : null;
-
-    return (
-      <FastImage
-        source={
-          imageUri
-            ? {uri: imageUri, priority: FastImage.priority.high, cache: 'web'}
-            : require('../../assets/images/noImage.jpg')
-        }
-        style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
-        resizeMode={FastImage.resizeMode.cover}
-      />
-    );
+    navigation.navigate('InspectionDetails', { item });
   };
 
   return (
@@ -146,12 +140,12 @@ const RecentActivity = ({
             }}>
             Recent Activity
           </Text>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <TouchableOpacity onPress={prevPage} disabled={currentPage === 1}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={prevPage} disabled={pageRef.current === 1}>
               <Icon
                 name="chevron-back"
                 size={24}
-                color={currentPage === 1 ? '#eee' : 'black'}
+                color={pageRef.current === 1 ? '#eee' : 'black'}
               />
             </TouchableOpacity>
             <Text
@@ -159,17 +153,15 @@ const RecentActivity = ({
                 marginHorizontal: 20,
                 fontSize: 14,
                 color: 'gray',
-              }}>{`${currentPage}`}</Text>
+              }}>{`${pageRef.current}`}</Text>
             <TouchableOpacity
               onPress={nextPage}
-              disabled={currentPage * itemsPerPage >= filteredData.length}>
+              disabled={pageRef.current * itemsPerPage >= filteredData.length}>
               <Icon
                 name="chevron-forward"
                 size={24}
                 color={
-                  currentPage * itemsPerPage >= filteredData.length
-                    ? '#eee'
-                    : 'black'
+                  pageRef.current * itemsPerPage >= filteredData.length ? '#eee' : 'black'
                 }
               />
             </TouchableOpacity>
@@ -178,28 +170,24 @@ const RecentActivity = ({
       </View>
 
       {recentActivityLoading ? (
-        <ActivityIndicator
-          size="large"
-          color="gray"
-          style={{marginVertical: 10}}
-        />
+        <ActivityIndicator size="large" color="gray" style={{ marginVertical: 10 }} />
       ) : recentActivityError ? (
-        <Text style={{color: 'red', textAlign: 'center', marginVertical: 10}}>
+        <Text style={{ color: 'red', textAlign: 'center', marginVertical: 10 }}>
           Something went wrong. Please try again.
         </Text>
       ) : filteredData.length === 0 ? (
-        <Text style={{textAlign: 'center', color: 'gray', padding: 10}}>
+        <Text style={{ textAlign: 'center', color: 'gray', padding: 10 }}>
           No results found
         </Text>
       ) : (
-        <View style={{marginBottom: 5}}>
+        <View style={{ marginBottom: 5 }}>
           {paginatedData.map((item, index) => (
             <Pressable key={index} onPress={() => onPressItem(item)}>
-              <View style={{flexDirection: 'row', marginVertical: 10}}>
-                <View style={{width: '30%', alignItems: 'center'}}>
-                  <InspectionImage item={item} />
+              <View style={{ flexDirection: 'row', marginVertical: 10 }}>
+                <View style={{ width: '30%', alignItems: 'center' }}>
+                <InspectionImage year={item?.Year} trackingNumber={item?.TrackingNumber} />
                 </View>
-                <View style={{width: '70%'}}>
+                <View style={{ width: '70%' }}>
                   <Text
                     style={{
                       fontFamily: 'Inter_28pt-SemiBold',
@@ -216,7 +204,7 @@ const RecentActivity = ({
                       color: '#252525',
                     }}>
                     {item?.CategoryCode} -{' '}
-                    <Text style={{fontSize: 10}}>{item?.CategoryName}</Text>
+                    <Text style={{ fontSize: 10 }}>{item?.CategoryName}</Text>
                   </Text>
                   <Text
                     style={{

@@ -120,12 +120,19 @@ const HomeScreen = ({navigation}) => {
     loadingUseOthers,
     refetchDataOthers,
   } = useOthers(selectedYear);
-  const {
+/*   const {
     recentActivityData,
     recentActivityError,
     recentActivityLoading,
     fetchRecentActivity,
-  } = useRecentActivity();
+  } = useRecentActivity(); */
+  const {
+    data: recentActivityData,
+    error: recentActivityError,
+    loading: recentActivityLoading,
+    refetch: fetchRecentActivity,
+  } = useInspection();
+
   const {
     receivingCountData,
     isLoading: loadingReceiving,

@@ -35,9 +35,11 @@ import {useQueryClient} from '@tanstack/react-query';
 import FastImage from 'react-native-fast-image';
 import ZoomableImage from '../utils/ZoomableImage';
 import { insertCommas } from '../utils/insertComma';
+
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
   const {employeeNumber} = useUserInfo();
+  const queryClient = useQueryClient();
   const {
     genInformationData,
     genInfoLoading,
@@ -56,12 +58,9 @@ const DetailScreen = ({route, navigation}) => {
     salaryList,
     salaryListLoading,
   } = useGenInformation(selectedItem.index, selectedItem);
-  const queryClient = useQueryClient();
 
-  const {mutate: uploadMutation, isPending: uploadAttachLoading} =
-    useUploadTNAttach();
-  const {mutate: removeAttachment, isPending: removeAttachmentLoading} =
-    useRemoveTNAttach();
+  const {mutate: uploadMutation, isPending: uploadAttachLoading} = useUploadTNAttach();
+  const {mutate: removeAttachment, isPending: removeAttachmentLoading} = useRemoveTNAttach();
 
   const {data: obrFiles, isLoading: obrLoading} = useAttachmentFiles(
     genInformationData?.Year,
@@ -74,33 +73,13 @@ const DetailScreen = ({route, navigation}) => {
     genInformationData?.TrackingNumber,
     'PR Form',
   );
-  console.log("prfiles", prFiles);
 
   const {data: rfqFiles, isLoading: rfqLoading} = useAttachmentFiles(
     genInformationData?.Year,
     genInformationData?.TrackingNumber,
     'RFQ Form',
   );
-  const {data: poFiles, isLoading: poFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'PO Form',
-  );
-  const {data: acceptanceFiles, isLoading: acceptanceFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Acceptance Form',
-  );
-  const {data: rfiFiles, isLoading: rfiFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'RFI Form',
-  );
-  const {data: requestForDeliveryExtensionFiles, isLoading: requestForDeliveryExtensionFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Request for Delivery Extension',
-  );
+
   const {data: dvFiles, isLoading: dvFilesLoading} = useAttachmentFiles(
     genInformationData?.Year,
     genInformationData?.TrackingNumber,
@@ -156,13 +135,33 @@ const DetailScreen = ({route, navigation}) => {
     genInformationData?.TrackingNumber,
     'Bac Cert (Conspicuous Place)',
   );
-  
+  const {data: poFiles, isLoading: poFilesLoading} = useAttachmentFiles(
+    genInformationData?.Year,
+    genInformationData?.TrackingNumber,
+    'PO Form',
+  );
+  const {data: acceptanceFiles, isLoading: acceptanceFilesLoading} = useAttachmentFiles(
+    genInformationData?.Year,
+    genInformationData?.TrackingNumber,
+    'Acceptance Form',
+  );
+  const {data: rfiFiles, isLoading: rfiFilesLoading} = useAttachmentFiles(
+    genInformationData?.Year,
+    genInformationData?.TrackingNumber,
+    'RFI Form',
+  );
+  const {data: requestForDeliveryExtensionFiles, isLoading: requestForDeliveryExtensionFilesLoading} = useAttachmentFiles(
+    genInformationData?.Year,
+    genInformationData?.TrackingNumber,
+    'Request for Delivery Extension',
+  );
+
+
   const [genStatusGuide, setGenStatusGuide] = useState([]);
   const [genStatusOffice, setGenStatusOffice] = useState([]);
   const [genOrderStat, setGenOrderStat] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [token, setToken] = useState(null);
   const scrollViewRef = useRef(null);
   const obrInfoRef = useRef(null);
   const prDetailsRef = useRef(null);
@@ -225,12 +224,6 @@ const DetailScreen = ({route, navigation}) => {
     const htmlRegex = /<[^>]*>/g;
     return newText.replace(htmlRegex, ' ');
   }
-
-  const handlePressLink = () => {
-    const dynamicUrl =
-      'https://www.davaocityportal.com/citydoc2024/interface/formDV.php?trackingNumber=1011-142'; // Replace with your dynamic URL
-    navigation.navigate('WebView', {url: dynamicUrl});
-  };
 
   useEffect(() => {
     try {
@@ -394,7 +387,6 @@ const DetailScreen = ({route, navigation}) => {
     );
   };
   
-
   const removeSelectedFile = (attachment, index) => {
     setSelectedFiles(prevFiles => {
       const updatedFiles = [...prevFiles];
@@ -566,7 +558,7 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
-  const renderDetailsPRRequest = () => {
+  const renderDetailsPRRequest = (obrFiles, prFiles, rfqFiles) => {
     if (selectedItem.TrackingType === 'PR') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -1515,6 +1507,8 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderDetailsPOOrder = () => {
+
+    
     if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -2850,6 +2844,9 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderDetailsPayment = () => {
+
+ 
+
     if (selectedItem.TrackingType === 'PX') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -5929,7 +5926,7 @@ const DetailScreen = ({route, navigation}) => {
               {(() => {
                 switch (selectedItem.TrackingType) {
                   case 'PR':
-                    return renderDetailsPRRequest();
+                    return renderDetailsPRRequest(obrFiles, prFiles, rfqFiles);
                   case 'PO':
                     return renderDetailsPOOrder();
                   case 'PX':

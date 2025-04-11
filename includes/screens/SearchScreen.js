@@ -506,7 +506,7 @@ const SearchScreen = () => {
                     autoCapitalize="characters"
                     placeholderTextColor="silver"
                     placeholderStyle={styles.placeholderText}
-                    autoFocus={true}
+                    //autoFocus={true}
                     autoCorrect={false}
                     autoCompleteType="off"
                     textContentType="none"

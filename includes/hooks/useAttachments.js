@@ -54,16 +54,25 @@ export const useRemoveTNAttach = (onSuccess, onError) => {
   });
 };
 
-export const useAttachmentFiles = (year, trackingNumber, form) => {
+export const useAttachmentFiles = (year, trackingNumber, trackingType) => {
   return useQuery({
-    queryKey: ['attachmentFiles', year, trackingNumber, form],
+    queryKey: ['attachmentFiles', year, trackingNumber, trackingType],
     queryFn: async () => {
-      if (!year || !trackingNumber || !form) {
-        throw new Error('Year, Tracking Number, and Form are required');
+      if (!year || !trackingNumber || !trackingType) {
+        throw new Error('Year, Tracking Number, and Tracking Type are required');
       }
-      return await fetchAttachmentFiles(year, trackingNumber, form);
+
+      const formsToFetch =
+        trackingType === 'PR'
+          ? ['BR Form', 'PR Form', 'RFQ Form'] 
+          : [trackingType]; 
+      const results = await Promise.all(
+        formsToFetch.map(form => fetchAttachmentFiles(year, trackingNumber, form))
+      );
+
+      return results.flat(); // Combine all fetched arrays into one
     },
-    enabled: !!year && !!trackingNumber && !!form,
+    enabled: !!year && !!trackingNumber && !!trackingType,
     staleTime: 5 * 60 * 1000,
     retry: 2,
     onError: error => {

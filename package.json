@@ -55,6 +55,7 @@
     "node-fetch-retry": "^2.0.1",
     "notifee": "^0.0.1",
     "react": "18.2.0",
+    "react-hook-form": "^7.55.0",
     "react-native": "^0.73.2",
     "react-native-asset": "^2.1.1",
     "react-native-awesome-gallery": "^0.3.9",
