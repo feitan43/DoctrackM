@@ -214,7 +214,7 @@ const QRManual = () => {
       const isIP = TrackingType === 'IP';
       const isPR = TrackingType === 'PR';
 
-      if (isPY && ['CBO Released', 'Pending Released - CAO'].includes(Status)) {
+      if (isPY && ['CBO Released', 'Pending Released - CAO','CBO Received'].includes(Status)) {
         return true;
       }
 

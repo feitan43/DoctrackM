@@ -102,6 +102,7 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState();
   const [showReminder, setShowReminder] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
+
   const {
     dataPR,
     dataPO,
@@ -148,6 +149,7 @@ const HomeScreen = ({ navigation }) => {
     error: receivingError,
     receivingCount,
   } = useReceiving(selectedYear);
+
 
   const { trackSumData, trackSumError, trackSumLoading, refetchTrackSum } =
     useTrackingSummary(selectedYear);
@@ -259,7 +261,7 @@ const HomeScreen = ({ navigation }) => {
       setLoading(false); // Hide loading indicator after fetching data
     }, 1500); // Adjust timing as needed
 
-    console.log('Selected Year:', year);
+
   };
 
   const handleNotification = async () => {

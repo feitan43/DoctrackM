@@ -100,31 +100,31 @@ const useReceiving = (selectedYear) => {
   });
 
 
-  const receivedMonthly = useQuery({
-    queryKey: ['receivedMonthly', employeeNumber, selectedYear],
-    queryFn: async () => {
-      if (!employeeNumber || !selectedYear) return null;
-      const storedToken = await AsyncStorage.getItem('token');
-      if (!storedToken) throw new Error('Authorization token is missing');
-  
-      const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
-      console.log('Fetching data from: ', apiUrl);
-  
-      const response = await apiClient.get(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-  
-      return response.data;
-    },
-    enabled: !!employeeNumber && !!selectedYear,
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000, 
-    keepPreviousData: true,
-  });
-  
+  // const receivedMonthly = useQuery({
+  //   queryKey: ['receivedMonthly', employeeNumber, selectedYear],
+  //   queryFn: async () => {
+  //     if (!employeeNumber || !selectedYear) return null;
+  //     const storedToken = await AsyncStorage.getItem('token');
+  //     if (!storedToken) throw new Error('Authorization token is missing');
+
+  //     const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
+  //     console.log('Fetching data from: ', apiUrl);
+
+  //     const response = await apiClient.get(apiUrl, {
+  //       headers: {
+  //         Authorization: `Bearer ${storedToken}`,
+  //         'Content-Type': 'application/json',
+  //       },
+  //     });
+
+  //     return response.data;
+  //   },
+  //   enabled: !!employeeNumber && !!selectedYear,
+  //   staleTime: 5 * 60 * 1000,
+  //   cacheTime: 10 * 60 * 1000,
+  //   keepPreviousData: true,
+  // });
+
 
 
 
@@ -138,7 +138,8 @@ const useReceiving = (selectedYear) => {
 
 
   return {
-    isLoading,
+    isLoading: receivingCount.isLoading,
+    isFetching: receivingCount.isFetching,
     error,
     receivingData,
     autoReceive: autoReceiveMutation.mutateAsync,
@@ -146,7 +147,7 @@ const useReceiving = (selectedYear) => {
     revertReceived: revertReceivedMutation.mutateAsync,
     receivingCount: receivingCount.refetch,
     receivingCountData: receivingCount.data,
-    receivedMonthly: receivedMonthly.data
+    // receivedMonthly: receivedMonthly.data
 
   };
 };

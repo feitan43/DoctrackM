@@ -6,13 +6,12 @@ import { TabView, TabBar } from 'react-native-tab-view';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Switch } from 'react-native-paper';
 import { insertCommas } from '../../utils/insertComma';
+import { useReceiving } from '../../hooks/useReceiving';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
 
 const MonthlyReceivedScreen = ({ navigation, route }) => {
-    const { receivedMonthly = [], selectedYear, allMonthsData = {}, allMonthsUniqueData = {}, accumulatedFundsData = {}, uniqueFundsData = {} } = route.params || {};
-
-
+    const { receivedMonthly = [], selectedYear, accumulatedFundsData = {}, uniqueFundsData = {} } = route.params || {};
     const [isSwitchOn, setIsSwitchOn] = useState(false);
     const { width } = useWindowDimensions();
     const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
@@ -30,7 +29,6 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     const receivedData = useMemo(() => receivedMonthly.reduce((acc, item) => {
         acc[item.Month] = {
             count: item.Count,
-            documentType: item.DocumentType || "N/A",
             fund: item.Fund || "N/A",
         };
         return acc;
@@ -49,25 +47,23 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
 
 
     const monthlyData = useMemo(() => MONTHS.map((month) => {
-        let count;
-        if (isSwitchOn) {
-            count = allMonthsUniqueData[month]?.Count || 0;
-        } else if (receivedData[month]) {
-            count = receivedData[month]?.count || 0;
-        } else if (accumulatedFundsData[month]) {
-            count = accumulatedFundsData[month]?.count || 0;
-        } else {
-            count = uniqueFundsData[month]?.count || 0;
-        }
+        let data;
 
+        if (isSwitchOn) {
+            // Unique view
+            data = uniqueFundsData[month];
+        } else {
+            // Accumulated view
+            data = receivedData[month] || accumulatedFundsData[month];
+        }
 
         return {
             month,
-            count: count,
-            documentType: receivedData[month]?.documentType || "N/A",
-            fund: receivedData[month]?.fund || "N/A",
+            count: data?.Count || data?.count || 0,
+            documentType: data?.documentType || "N/A",
+            fund: data?.Fund || data?.fund || "N/A",
         };
-    }), [receivedData, isSwitchOn, allMonthsUniqueData, accumulatedFundsData, uniqueFundsData]);
+    }), [isSwitchOn, uniqueFundsData, receivedData, accumulatedFundsData]);
 
 
     const handleMonthPress = useCallback((month) => {
@@ -85,8 +81,6 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
 
         return { genCount, trustCount, sefCount };
     };
-
-
 
 
     const renderTabs = () => {
@@ -352,7 +346,9 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                                 >
                                     {item.count}
                                 </Text>
+
                             </Card.Content>
+
                         )}
                     </Pressable>
 
