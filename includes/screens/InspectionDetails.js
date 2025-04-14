@@ -58,10 +58,10 @@ import Spinner from 'react-native-loading-spinner-overlay';
 import useUserInfo from '../api/useUserInfo';
 
 const InspectionDetails = ({route, navigation}) => {
-  //const {item} = route.params;
+  const {item} = route.params;
   const queryClient = useQueryClient();
   const {employeeNumber} = useUserInfo();
-  const [item, setItem] = useState(route.params.item);
+  //const [item, setItem] = useState(route.params.item);
   const [search, setSearch] = useState('');
   const [selectedYear, setSelectedYear] = useState(item.Year);
   const [checkedItems, setCheckedItems] = useState([]);
@@ -336,7 +336,6 @@ const InspectionDetails = ({route, navigation}) => {
       });
     }
   };
-  
 
   const handleScheduleSubmit = ({date, deliveryId}) => {
     if (!date || !deliveryId) {

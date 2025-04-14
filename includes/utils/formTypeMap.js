@@ -2,7 +2,6 @@ export const formTypeMap = {
     PR: ['OBR Form', 'PR Form', 'RFQ Form'],
     PO: [
       'OBR Form',
-      'PR Form',
       'PO Form',
       'Acceptance Form',
       'RFI Form',

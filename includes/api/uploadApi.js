@@ -85,8 +85,8 @@ export const fetchAttachmentFiles = async (year, trackingNumber, form) => {
     );
 
     if (data.success) {
-      const image_URL = `http://192.168.254.134/`;
-      // const image_URL = `https://www.davaocityportal.com/`;
+      //const image_URL = `http://192.168.254.134/`;
+       const image_URL = `https://www.davaocityportal.com/`;
 
       return data.images.map(image => `${image_URL}/tempUpload/${image}`);
     } else {

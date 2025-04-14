@@ -4,6 +4,8 @@ import {
   removeTNAttach,
   fetchAttachmentFiles,
 } from '../api/uploadApi.js';
+import { formTypeMap } from '../utils/formTypeMap.js';
+
 
 export const useUploadTNAttach = (onSuccess, onError) => {
   return useMutation({
@@ -62,15 +64,15 @@ export const useAttachmentFiles = (year, trackingNumber, trackingType) => {
         throw new Error('Year, Tracking Number, and Tracking Type are required');
       }
 
-      const formsToFetch =
-        trackingType === 'PR'
-          ? ['BR Form', 'PR Form', 'RFQ Form'] 
-          : [trackingType]; 
+      const formsToFetch = formTypeMap[trackingType] || [trackingType];
+
       const results = await Promise.all(
-        formsToFetch.map(form => fetchAttachmentFiles(year, trackingNumber, form))
+        formsToFetch.map(form =>
+          fetchAttachmentFiles(year, trackingNumber, form)
+        )
       );
 
-      return results.flat(); // Combine all fetched arrays into one
+      return results.flat();
     },
     enabled: !!year && !!trackingNumber && !!trackingType,
     staleTime: 5 * 60 * 1000,
@@ -80,3 +82,4 @@ export const useAttachmentFiles = (year, trackingNumber, trackingType) => {
     },
   });
 };
+

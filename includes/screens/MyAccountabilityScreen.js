@@ -1,4 +1,11 @@
-import React, {useEffect, useState, memo, useCallback,useMemo, useRef} from 'react';
+import React, {
+  useEffect,
+  useState,
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   View,
   Text,
@@ -27,6 +34,7 @@ import {FlashList} from '@shopify/flash-list';
 import useMyAccountability from '../api/useMyAccountabilty';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
+import Loading from '../utils/Loading';
 
 const currentYear = new Date().getFullYear();
 
@@ -225,9 +233,6 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
   );
 });
 
-
-
-
 const MyAccountabilityScreen = ({navigation}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const {accountabilityData, loading, error, fetchMyAccountability} =
@@ -318,166 +323,29 @@ const MyAccountabilityScreen = ({navigation}) => {
     setSelectedYear(year);
   };
 
-
   const renderContent = () => {
     if (loading) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.8)' }}>
-          <ActivityIndicator size="large" color="#004ab1" />
-          <Text style={{ marginTop: 10, fontSize: 16, color: 'gray' }}>Loading...</Text>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.8)',
+          }}>
+          <Loading visible={loading} />
         </View>
       );
     }
-  
+
     if (!accountabilityData) {
-      return null; // Prevent rendering if accountabilityData is undefined
+      return null;
     }
-  
+
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         {accountabilityData.length > 0 ? (
           <View>
-            <View style={{ alignSelf: 'center', margin: 10 }}>
-              <Text>
-                You have{' '}
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#252525' }}>
-                  {accountabilityData.length}
-                </Text>{' '}
-                items in your name
-              </Text>
-            </View>
-  
-            <Text style={{ paddingHorizontal: 20, fontStyle: 'italic', color: 'gray' }}>
-              Categories
-            </Text>
-  
-            <FlatList
-              data={categories.filter(item =>
-                accountabilityData.some(dataItem =>
-                  item?.cat?.includes(dataItem.Category),
-                ),
-              )}
-              keyExtractor={(item, index) => (item?.Id ? String(item.Id) : `fallback-${index}`)}
-              numColumns={3}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingVertical: 10 }}
-              renderItem={({ item }) => {
-                const categoryCount = accountabilityData.filter(dataItem =>
-                  item?.cat?.includes(dataItem.Category),
-                ).length;
-  
-                return (
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 10,
-                      backgroundColor: selectedCategory === item ? 'lightblue' : 'white',
-                      borderRadius: 10,
-                      margin: 5,
-                      elevation: 3,
-                    }}
-                    onPress={() => handlePress(item)}
-                  >
-                    {categoryCount > 0 && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: 5,
-                          right: 5,
-                          backgroundColor: 'red',
-                          borderRadius: 10,
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          zIndex: 1,
-                        }}
-                      >
-                        <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                          {categoryCount}
-                        </Text>
-                      </View>
-                    )}
-  
-                    <Icons name={item.icon} size={30} color="#252525" />
-                    <Text style={{ textAlign: 'center', marginTop: 5 }}>{item.name}</Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        ) : (
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              padding: 20,
-              backgroundColor: '#f8f9fb',
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: 'white',
-                padding: 20,
-                borderRadius: 10,
-                shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
-                elevation: 5,
-                alignItems: 'center',
-              }}
-            >
-              <Icons name="clipboard" size={50} color="#b0b0b0" />
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 10 }}>
-                No Accountabilities
-              </Text>
-              <Text style={{ fontSize: 14, color: 'gray', textAlign: 'center', marginTop: 5 }}>
-                You currently have no items assigned to you.
-              </Text>
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  };
-  
-
-
-
-
-  return (
-    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-      <View style={styles.container}>
-        <ImageBackground
-          source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
-          style={styles.bgHeader}>
-          <View style={styles.header}>
-            <Pressable
-              style={({pressed}) => [
-                pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                styles.backButton,
-              ]}
-              android_ripple={{
-                color: '#F6F6F6',
-                borderless: true,
-                radius: 24,
-              }}
-              onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back" size={24} color="#fff" />
-            </Pressable>
-
-            <Text style={styles.title}>Accountabilities</Text>
-          </View>
-        </ImageBackground>
-
-
-        <View style={{flex:1}}>
-          {renderContent()}
-        </View>
-
-        {/* {accountabilityData?.length > 0 ? (
-          <View style={{flex: 1}}>
             <View style={{alignSelf: 'center', margin: 10}}>
               <Text>
                 You have{' '}
@@ -504,7 +372,9 @@ const MyAccountabilityScreen = ({navigation}) => {
                   item?.cat?.includes(dataItem.Category),
                 ),
               )}
-              keyExtractor={(item, index) => (item?.Id ? String(item.Id) : `fallback-${index}`)}
+              keyExtractor={(item, index) =>
+                item?.Id ? String(item.Id) : `fallback-${index}`
+              }
               numColumns={3}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{paddingVertical: 10}}
@@ -533,7 +403,7 @@ const MyAccountabilityScreen = ({navigation}) => {
                           position: 'absolute',
                           top: 5,
                           right: 5,
-                          backgroundColor: 'red',
+                          backgroundColor: '#fc6060',
                           borderRadius: 10,
                           paddingHorizontal: 6,
                           paddingVertical: 2,
@@ -550,7 +420,7 @@ const MyAccountabilityScreen = ({navigation}) => {
                       </View>
                     )}
 
-                    <Icons name={item.icon} size={30} color="#252525" />
+                    <Icons name={item.icon} size={30} color="#252525" style={{opacity:.7}}/>
                     <Text style={{textAlign: 'center', marginTop: 5}}>
                       {item.name}
                     </Text>
@@ -561,139 +431,167 @@ const MyAccountabilityScreen = ({navigation}) => {
           </View>
         ) : (
           <View
-          style={{
-            flex: 1,
-            //justifyContent: 'center',
-            alignItems: 'center',
-            padding: 20,
-            backgroundColor: '#f8f9fb',
-          }}
-        >
-          <View
             style={{
-              backgroundColor: 'white',
-              padding: 20,
-              borderRadius: 10,
-              shadowColor: '#000',
-              shadowOpacity: 0.1,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              elevation: 5,
+              flex: 1,
               alignItems: 'center',
-            }}
-          >
-            <Icons name="clipboard" size={50} color="#b0b0b0" />
-            <Text
+              padding: 20,
+              backgroundColor: '#f8f9fb',
+            }}>
+            <View
               style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: '#333',
-                marginTop: 10,
-              }}
-            >
-              No Accountabilities
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: 'gray',
-                textAlign: 'center',
-                marginTop: 5,
-              }}
-            >
-              You currently have no items assigned to you.
-            </Text>
-          </View>
-        </View>
-        )} */}
-
-<BottomSheet
-      ref={bottomSheetRef}
-      index={modalVisible ? 1 : -1} // Open when modalVisible is true
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      onClose={handleClose}
-      backgroundStyle={{backgroundColor: 'white', borderRadius: 10}}
-    >
-      {/* Header Section */}
-      <View style={{backgroundColor: '#004ab1', padding: 10}}>
-        <TouchableOpacity onPress={handleClose} style={{alignSelf: 'flex-start', padding: 10}}>
-          <Icons name="close" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={{alignItems: 'center', marginBottom: 10}}>
-          <Icons name={selectedCategory?.icon} size={40} color="white" />
-          <Text style={{fontSize: 18, fontWeight: 'bold', textAlign: 'center', color: 'white'}}>
-            {selectedCategory?.name}
-          </Text>
-        </View>
-      </View>
-
-      {/* Scrollable FlatList */}
-      <BottomSheetFlatList
-        data={filteredData}
-        keyExtractor={(item, index) => item.Id?.toString() || index.toString()}
-        contentContainerStyle={{paddingBottom: 50, paddingVertical:20}}
-        renderItem={({item, index}) => (
-          <View style={styles.card}>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>TN</Text>
-              <Text style={styles.cardValue}>{item.Year} - {item.TrackingNumber}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>Common</Text>
-              <Text style={styles.cardValue}>{item.CommonName}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>Brand</Text>
-              <Text style={styles.cardValue}>{item.Brand}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>Date</Text>
-              <Text style={styles.cardValue}>{item.DateAcquired}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>Amount</Text>
-              <Text style={styles.cardValue}>{insertCommas(item.Amount)}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardLabel}>Item</Text>
-              <Text style={[styles.cardValue]} numberOfLines={4} ellipsizeMode="tail">
-                {item.Item}
+                backgroundColor: 'white',
+                padding: 20,
+                borderRadius: 10,
+                shadowColor: '#000',
+                shadowOpacity: 0.1,
+                shadowRadius: 10,
+                shadowOffset: {width: 0, height: 4},
+                elevation: 5,
+                alignItems: 'center',
+              }}>
+              <Icons name="clipboard" size={50} color="#b0b0b0" />
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  color: '#333',
+                  marginTop: 10,
+                }}>
+                No Accountabilities
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: 'gray',
+                  textAlign: 'center',
+                  marginTop: 5,
+                }}>
+                You currently have no items assigned to you.
               </Text>
             </View>
-            <TouchableOpacity style={{alignSelf: 'flex-end', padding: 10}} onPress={() => onPressItem(index, item)}>
-              <Text style={{color: 'orange'}}>See Details</Text>
-            </TouchableOpacity>
           </View>
         )}
-        ListEmptyComponent={
-          <View style={{padding: 20, alignItems: 'center'}}>
-            <Text style={{fontSize: 14, color: 'gray'}}>No Results Found</Text>
-          </View>
-        }
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      />
-    </BottomSheet>
+      </View>
+    );
+  };
 
-        {/* Display Filtered Data */}
-        {/* <FlatList
+  return (
+    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+      <View style={styles.container}>
+        <ImageBackground
+          source={require('../../assets/images/CirclesBG.png')}
+          style={styles.bgHeader}>
+          <View style={styles.header}>
+            <Pressable
+              style={({pressed}) => [
+                pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
+                styles.backButton,
+              ]}
+              android_ripple={{
+                color: '#F6F6F6',
+                borderless: true,
+                radius: 24,
+              }}
+              onPress={() => navigation.goBack()}>
+              <Icon name="arrow-back" size={24} color="#fff" />
+            </Pressable>
+
+            <Text style={styles.title}>Accountabilities</Text>
+          </View>
+        </ImageBackground>
+
+        <View style={{flex: 1}}>{renderContent()}</View>
+
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={modalVisible ? 1 : -1} // Open when modalVisible is true
+          snapPoints={snapPoints}
+          enablePanDownToClose
+          onClose={handleClose}
+          backgroundStyle={{backgroundColor: 'white', borderRadius: 10}}
+          handleComponent={() => null} // 👈 This removes the header/handle
+        >
+          {/* Header Section */}
+          <View style={{backgroundColor: '#004ab1', padding: 10}}>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={{alignSelf: 'flex-start', padding: 10}}>
+              <Icons name="close" size={24} color="white" />
+            </TouchableOpacity>
+            <View style={{alignItems: 'center', marginBottom: 10}}>
+              <Icons name={selectedCategory?.icon} size={40} color="white" />
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  color: 'white',
+                }}>
+                {selectedCategory?.name}
+              </Text>
+            </View>
+          </View>
+
+          <BottomSheetFlatList
             data={filteredData}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({item}) => (
-              <View style={{padding: 10, borderBottomWidth: 1}}>
-                <Text>{item.name}</Text>
-                <Text>Category: {item.Category}</Text>
-                <Text>
-                  Category: {item.Year} - {item.TrackingNumber}
-                </Text>
-                <Text>Category: {item.Brand}</Text>
-                <Text>Category: {item.DateAcquired}</Text>
+            keyExtractor={(item, index) =>
+              item.Id?.toString() || index.toString()
+            }
+            contentContainerStyle={{paddingBottom: 50, paddingVertical: 20}}
+            renderItem={({item, index}) => (
+              <View style={styles.card}>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardLabel}>TN</Text>
+                  <Text style={styles.cardValue}>
+                    {item.Year} - {item.TrackingNumber}
+                  </Text>
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardLabel}>Common</Text>
+                  <Text style={styles.cardValue}>{item.CommonName}</Text>
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardLabel}>Brand</Text>
+                  <Text style={styles.cardValue}>{item.Brand}</Text>
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardLabel}>Date</Text>
+                  <Text style={styles.cardValue}>{item.DateAcquired}</Text>
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardLabel}>Amount</Text>
+                  <Text style={styles.cardValue}>
+                    {insertCommas(item.Amount)}
+                  </Text>
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardLabel}>Item</Text>
+                  <Text
+                    style={[styles.cardValue]}
+                    numberOfLines={4}
+                    ellipsizeMode="tail">
+                    {item.Item}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={{alignSelf: 'flex-end', padding: 10}}
+                  onPress={() => onPressItem(index, item)}>
+                  <Text style={{color: 'orange'}}>See Details</Text>
+                </TouchableOpacity>
               </View>
             )}
-          /> */}
+            ListEmptyComponent={
+              <View style={{padding: 20, alignItems: 'center'}}>
+                <Text style={{fontSize: 14, color: 'gray'}}>
+                  No Results Found
+                </Text>
+              </View>
+            }
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          />
+        </BottomSheet>
 
-        {/* <View style={{height: '100%'}}>{renderContent()}</View> */}
       </View>
     </SafeAreaView>
   );
@@ -704,11 +602,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  /*  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  }, */
   transactionItem: {
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -776,7 +669,7 @@ const styles = StyleSheet.create({
     marginStart: 10,
   },
   bgHeader: {
-    paddingTop:30,
+    paddingTop: 30,
     height: 80,
     backgroundColor: '#1a508c',
     flexDirection: 'row',

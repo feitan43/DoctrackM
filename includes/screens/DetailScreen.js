@@ -29,15 +29,23 @@ import {
   useRemoveTNAttach,
   useAttachmentFiles,
 } from '../hooks/useAttachments';
-import {showMessage} from 'react-native-flash-message'; 
+import {showMessage} from 'react-native-flash-message';
 import useUserInfo from '../api/useUserInfo';
 import {useQueryClient} from '@tanstack/react-query';
 import FastImage from 'react-native-fast-image';
 import ZoomableImage from '../utils/ZoomableImage';
-import { insertCommas } from '../utils/insertComma';
+import {insertCommas} from '../utils/insertComma';
+import {formTypeMap} from '../utils/formTypeMap';
 
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
+  const {
+    index: index,
+    Year: year,
+    TrackingNumber: trackingNumber,
+    TrackingType: trackingType,
+  } = route.params.selectedItem;
+
   const {employeeNumber} = useUserInfo();
   const queryClient = useQueryClient();
   const {
@@ -57,105 +65,18 @@ const DetailScreen = ({route, navigation}) => {
     paymentHistoryLoading,
     salaryList,
     salaryListLoading,
-  } = useGenInformation(selectedItem.index, selectedItem);
+  } = useGenInformation(index, selectedItem);
 
-  const {mutate: uploadMutation, isPending: uploadAttachLoading} = useUploadTNAttach();
-  const {mutate: removeAttachment, isPending: removeAttachmentLoading} = useRemoveTNAttach();
+  const {mutate: uploadMutation, isPending: uploadAttachLoading} =
+    useUploadTNAttach();
+  const {mutate: removeAttachment, isPending: removeAttachmentLoading} =
+    useRemoveTNAttach();
 
-  const {data: obrFiles, isLoading: obrLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'OBR Form',
-  );
-
-  const {data: prFiles, isLoading: prLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'PR Form',
-  );
-
-  const {data: rfqFiles, isLoading: rfqLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'RFQ Form',
-  );
-
-  const {data: dvFiles, isLoading: dvFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'DV Form',
-  );
-  const {data: abstractOfBidsFiles, isLoading: abstractOfBidsLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Abstract of Bids',
-  );
-  const {data: financialProposalFiles, isLoading: financialProposalFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Financial Proposal',
-  );
-  const {data: invitationToObserverFiles, isLoading: invitationToObserverFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Invitation to Observer',
-  );
-  const {data: bidEvaluationFiles, isLoading: bidEvaluationFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Bid Evaluation',
-  );
-  const {data: postQualificationFiles, isLoading: postQualificationFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Post Qualification',
-  );
-  const {data: certificateOfEligibilityFiles, isLoading: certificateOfEligibilityFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Certificate of Eligibility',
-  );
-  const {data: philgepsPostingFiles, isLoading: philgepsPostingFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Philgeps Posting',
-  );
-  const {data: philgepsAwardFiles, isLoading: philgepsAwardFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Philgeps Award',
-  );
-  const {data: certificationFiles, isLoading: certificationFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Certification (Mode, Award, Minutes)',
-  );
-  const {data: bacCertFiles, isLoading: bacCertFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Bac Cert (Conspicuous Place)',
-  );
-  const {data: poFiles, isLoading: poFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'PO Form',
-  );
-  const {data: acceptanceFiles, isLoading: acceptanceFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Acceptance Form',
-  );
-  const {data: rfiFiles, isLoading: rfiFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'RFI Form',
-  );
-  const {data: requestForDeliveryExtensionFiles, isLoading: requestForDeliveryExtensionFilesLoading} = useAttachmentFiles(
-    genInformationData?.Year,
-    genInformationData?.TrackingNumber,
-    'Request for Delivery Extension',
-  );
-
+  const {
+    data: attachmentsFiles,
+    isLoading: attachmentsFilesLoading,
+    isError: attachementsFilesError,
+  } = useAttachmentFiles(year, trackingNumber, trackingType);
 
   const [genStatusGuide, setGenStatusGuide] = useState([]);
   const [genStatusOffice, setGenStatusOffice] = useState([]);
@@ -320,10 +241,10 @@ const DetailScreen = ({route, navigation}) => {
     tn,
     form,
     employeeNumber,
-    onSuccessCallback
+    onSuccessCallback,
   ) => {
-    console.log("form", form);
-  
+    console.log('form', form);
+
     if (!items || items.length === 0) {
       showMessage({
         message: 'No items selected for upload.',
@@ -333,7 +254,7 @@ const DetailScreen = ({route, navigation}) => {
       });
       return;
     }
-  
+
     if (!year || !tn || !employeeNumber) {
       showMessage({
         message: 'Missing required parameters.',
@@ -344,17 +265,17 @@ const DetailScreen = ({route, navigation}) => {
       });
       return;
     }
-  
+
     const imagePath = items.map(item => ({
       uri: item?.uri,
       name: item?.name,
       type: item?.type,
     }));
-  
+
     uploadMutation(
-      { imagePath, year, tn, form, employeeNumber },
+      {imagePath, year, tn, form, employeeNumber},
       {
-        onSuccess: (data) => {
+        onSuccess: data => {
           showMessage({
             message: `${form} ${data?.message || 'Upload successful!'}`,
             type: 'success',
@@ -362,18 +283,18 @@ const DetailScreen = ({route, navigation}) => {
             floating: true,
             duration: 3000,
           });
-  
+
           queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
           queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
-  
+
           setSelectedFiles([]);
           bottomSheetRef.current?.close();
-  
+
           if (onSuccessCallback) {
             onSuccessCallback();
           }
         },
-        onError: (error) => {
+        onError: error => {
           showMessage({
             message: `${form} Upload failed!`,
             description: error?.message || 'Something went wrong',
@@ -383,10 +304,10 @@ const DetailScreen = ({route, navigation}) => {
             duration: 3000,
           });
         },
-      }
+      },
     );
   };
-  
+
   const removeSelectedFile = (attachment, index) => {
     setSelectedFiles(prevFiles => {
       const updatedFiles = [...prevFiles];
@@ -396,7 +317,6 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const handleRemove = async (year, tn, form, onSuccessCallback) => {
-  
     if (!year || !tn || !form) {
       showMessage({
         message: 'Missing required parameters.',
@@ -407,7 +327,7 @@ const DetailScreen = ({route, navigation}) => {
       });
       return;
     }
-  
+
     Alert.alert(
       'Confirm Deletion',
       'Are you sure you want to delete the files for this form?',
@@ -420,9 +340,9 @@ const DetailScreen = ({route, navigation}) => {
           text: 'Delete',
           onPress: () => {
             removeAttachment(
-              { year, tn, form },
+              {year, tn, form},
               {
-                onSuccess: (data) => {
+                onSuccess: data => {
                   showMessage({
                     message: `${form} ${data?.message || 'Remove successful!'}`,
                     type: 'success',
@@ -430,15 +350,25 @@ const DetailScreen = ({route, navigation}) => {
                     floating: true,
                     duration: 3000,
                   });
-  
-                  queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
-                  queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
-  
+
+                  queryClient.invalidateQueries([
+                    'attachmentFiles',
+                    year,
+                    tn,
+                    form,
+                  ]);
+                  queryClient.refetchQueries([
+                    'attachmentFiles',
+                    year,
+                    tn,
+                    form,
+                  ]);
+
                   if (onSuccessCallback) {
                     onSuccessCallback();
                   }
                 },
-                onError: (error) => {
+                onError: error => {
                   showMessage({
                     message: 'Remove failed!',
                     description: error?.message || 'Something went wrong',
@@ -448,15 +378,15 @@ const DetailScreen = ({route, navigation}) => {
                     duration: 3000,
                   });
                 },
-              }
+              },
             );
           },
         },
       ],
-      { cancelable: false }
+      {cancelable: false},
     );
   };
-  
+
   const [selectedFiles, setSelectedFiles] = useState([]);
 
   const pickFile = async () => {
@@ -479,74 +409,72 @@ const DetailScreen = ({route, navigation}) => {
         return;
       }
       setSelectedFiles(prevState => [...prevState, ...newFiles]);
-    } catch (err) {
-    }
+    } catch (err) {}
   };
 
   const renderAttachmentPreview = (attachments = [], onRemove) => {
-    if (!attachments.length) return null;
-    return (
-      <BottomSheetFlatList
-        data={attachments}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({item, index}) => (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginTop: 8,
-              padding: 10,
-              borderWidth: 1,
-              borderColor: '#ddd',
-              borderRadius: 8,
-              backgroundColor: '#F5F5F5',
-              justifyContent: 'space-between', 
-            }}>
-            {item.uri && (
-              <FastImage
-                source={{uri: item.uri}}
-                style={{width: 60, height: 60, borderRadius: 4}}
-              />
-            )}
-            <View
-              style={{
-                marginLeft: item.uri ? 8 : 0,
-                flexShrink: 1,
-                flexGrow: 1,
-              }}>
-              <Text
+        if (!attachments.length) return null;
+        return (
+          <BottomSheetFlatList
+            data={attachments}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({item, index}) => (
+              <View
                 style={{
-                  fontSize: 14,
-                  color: 'black',
-                  textAlignVertical: 'center',
-                }}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                {item.name}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => removeSelectedFile(item, index)}
-              style={{
-                padding: 16,
-                borderRadius: 4,
-                backgroundColor: '#D32F2F',
-              }}>
-              <Icon name={'trash-outline'} size={20} color={'white'} />
-            </TouchableOpacity>
-          </View>
-        )}
-      />
-    );
-  };
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginTop: 8,
+                  padding: 10,
+                  borderWidth: 1,
+                  borderColor: '#ddd',
+                  borderRadius: 8,
+                  backgroundColor: '#F5F5F5',
+                  justifyContent: 'space-between', 
+                }}>
+                {item.uri && (
+                  <FastImage
+                    source={{uri: item.uri}}
+                    style={{width: 60, height: 60, borderRadius: 4}}
+                  />
+                )}
+                <View
+                  style={{
+                    marginLeft: item.uri ? 8 : 0,
+                    flexShrink: 1,
+                    flexGrow: 1,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: 'black',
+                      textAlignVertical: 'center',
+                    }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail">
+                    {item.name}
+                  </Text>
+                </View>
+    
+                <TouchableOpacity
+                  onPress={() => removeSelectedFile(item, index)}
+                  style={{
+                    padding: 16,
+                    borderRadius: 4,
+                    backgroundColor: '#D32F2F',
+                  }}>
+                  <Icon name={'trash-outline'} size={20} color={'white'} />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        );
+      };
 
   const [currentFormType, setCurrentFormType] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loadedUris, setLoadedUris] = useState(new Set());
 
   const handleAttachFiles = formType => {
-    console.log('formType', formType);
     setCurrentFormType(formType);
     bottomSheetRef.current?.present();
   };
@@ -558,7 +486,7 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
-  const renderDetailsPRRequest = (obrFiles, prFiles, rfqFiles) => {
+  const renderDetailsPRRequest = () => {
     if (selectedItem.TrackingType === 'PR') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -1339,160 +1267,157 @@ const DetailScreen = ({route, navigation}) => {
           </View>
 
           {genInformationData.Year === '2025' && (
-          <View style={styles.obrContainer}>
-            <View style={styles.detailsContainer}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  padding: 10,
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <Text
+            <View style={styles.obrContainer}>
+              <View style={styles.detailsContainer}>
+                <View
                   style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'left',
-                    marginStart: 10,
-                    flex: 1,
+                    flexDirection: 'row',
+                    padding: 10,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}>
-                  DIGITAL COPIES
-                </Text>
-              </View>
-              <View
-                style={{
-                  paddingHorizontal: 15,
-                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                }}>
-                {['OBR Form', 'PR Form', 'RFQ Form'].map((formType, index) => {
-                  const files =
-                    formType === 'OBR Form'
-                      ? obrFiles
-                      : formType === 'PR Form'
-                      ? prFiles
-                      : formType === 'RFQ Form'
-                      ? rfqFiles
-                      : [];
-
-                  const hasFiles = files && files.length > 0;
-
-                  return (
-                    <View
-                      key={formType}
-                      style={{
-                        marginVertical: 10,
-                        paddingBottom: 10,
-                        borderBottomWidth: 1,
-                        borderColor: 'silver',
-                      }}>
+                  <Text
+                    style={{
+                      fontFamily: 'Oswald-Regular',
+                      color: 'white',
+                      fontSize: 16,
+                      textAlign: 'left',
+                      marginStart: 10,
+                      flex: 1,
+                    }}>
+                    DIGITAL COPIES
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 15,
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  }}>
+                  {formTypeMap.PR.map((formType, index) => {
+                   const formTypeFiles = attachmentsFiles?.filter(
+                    fileUrl => fileUrl.split('~')[2] === formType
+                  ) || [];
+                  
+                  const hasFiles = formTypeFiles.length > 0;
+                    return (
                       <View
-                        style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
-                          {`${index + 1}. ${formType}`}
-                        </Text>
+                        key={formType}
+                        style={{
+                          marginVertical: 10,
+                          paddingBottom: 10,
+                          borderBottomWidth: 1,
+                          borderColor: 'silver',
+                        }}>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
+                            {`${index + 1}. ${formType}`}
+                          </Text>
 
-                        <TouchableOpacity
-                          disabled={hasFiles}
-                          onPress={() => handleAttachFiles(formType)}
-                          style={{
-                            backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            marginRight: 10,
-                            opacity: hasFiles ? 0.5 : 1,
-                          }}>
-                          <Text
+                          <TouchableOpacity
+                            disabled={hasFiles}
+                            onPress={() => handleAttachFiles(formType)}
                             style={{
-                              color: '#FFFFFF',
-                              fontSize: 12,
-                              fontWeight: 'bold',
+                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+                              paddingVertical: 6,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              marginRight: 10,
+                              opacity: hasFiles ? 0.5 : 1,
                             }}>
-                            Attach Files
-                          </Text>
-                        </TouchableOpacity>
+                            <Text
+                              style={{
+                                color: '#FFFFFF',
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                              }}>
+                              Attach Files
+                            </Text>
+                          </TouchableOpacity>
 
-                        <TouchableOpacity
-                          disabled={!hasFiles}
-                          onPress={() =>
-                            handleRemove(
-                              genInformationData.Year,
-                              genInformationData.TrackingNumber,
-                              formType,
-                            )
-                          }
-                          style={{
-                            backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-                            paddingVertical: 4,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            opacity: !hasFiles ? 0.5 : 1,
-                          }}>
-                          <Icon
-                            name={'trash-outline'}
-                            size={20}
-                            color={'#FF6347'}
-                          />
-                        </TouchableOpacity>
+                          <TouchableOpacity
+                            disabled={!hasFiles}
+                            onPress={() =>
+                              handleRemove(year, trackingNumber, formType)
+                            }
+                            style={{
+                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+                              paddingVertical: 4,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              opacity: !hasFiles ? 0.5 : 1,
+                            }}>
+                            <Icon
+                              name={'trash-outline'}
+                              size={20}
+                              color={'#FF6347'}
+                            />
+                          </TouchableOpacity>
+                        </View>
+
+                        <View style={{marginTop: 5}}>
+                          {attachmentsFiles &&
+                          attachmentsFiles.length > 0 &&
+                          attachmentsFiles.some(
+                            fileUrl => fileUrl.split('~')[2] === formType,
+                          ) ? (
+                            attachmentsFiles
+                              .filter(
+                                fileUrl => fileUrl.split('~')[2] === formType,
+                              )
+                              .map((fileUrl, index) => {
+                                const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                                const uniqueKey = `file-${formType}-${index}`;
+                                const fileExtension = fileUrl.split('.').pop();
+
+                                return (
+                                  <View
+                                    key={uniqueKey}
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      marginTop: 5,
+                                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                      padding: 10,
+                                    }}>
+                                    <TouchableOpacity
+                                      onPress={() => {
+                                        if (fileExtension === 'pdf') {
+                                          Linking.openURL(uniqueUri);
+                                        } else {
+                                          handleImagePress(uniqueUri);
+                                        }
+                                      }}>
+                                      <Text
+                                        style={{
+                                          color: '#fff',
+                                          fontSize: 12,
+                                          flex: 1,
+                                        }}>
+                                        {fileUrl.split('~').slice(-2).join('~')}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                );
+                              })
+                          ) : (
+                            <Text
+                              style={{
+                                color: '#ccc',
+                                fontSize: 12,
+                                marginTop: 5,
+                              }}>
+                              No attached files
+                            </Text>
+                          )}
+                        </View>
                       </View>
-
-                      <View style={{marginTop: 5}}>
-                        {hasFiles ? (
-                          files.map((file, fileIndex) => {
-                            const uniqueUri = `${file}?timestamp=${new Date().getTime()}`;
-                            const uniqueKey = `${formType}-${file}-${fileIndex}`;
-
-                            return (
-                              <View
-                                key={uniqueKey}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  marginTop: 5,
-                                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                  padding: 10,
-                                }}>
-                                <TouchableOpacity
-  onPress={() => {
-    const fileExtension = file.split('.').pop(); // Get the file extension
-
-    if (fileExtension === 'pdf') {
-      // If it's a PDF, initiate the download or open it in a browser
-      Linking.openURL(uniqueUri);  // This will open the PDF in the default browser or PDF viewer
-    } else {
-      // Handle the image or other file types
-      handleImagePress(uniqueUri, formType);
-    }
-  }}
->
-  <Text
-    style={{
-      color: '#fff',
-      fontSize: 12,
-      flex: 1,
-    }}
-  >
-    {file.split('~').slice(-2).join('~')}
-  </Text>
-</TouchableOpacity>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <Text
-                            style={{color: '#ccc', fontSize: 12, marginTop: 5}}>
-                            No attached files
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </View>
             </View>
-          </View>
           )}
           <View style={{height: 500}} />
         </ScrollView>
@@ -1507,8 +1432,6 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderDetailsPOOrder = () => {
-
-    
     if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -2668,167 +2591,159 @@ const DetailScreen = ({route, navigation}) => {
               </View>
             </View>
           </View>
-        
+
           {genInformationData.Year === '2025' && (
-          <View style={styles.obrContainer}>
-            <View style={styles.detailsContainer}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  padding: 10,
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <Text
+            <View style={styles.obrContainer}>
+              <View style={styles.detailsContainer}>
+                <View
                   style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'left',
-                    marginStart: 10,
-                    flex: 1,
+                    flexDirection: 'row',
+                    padding: 10,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}>
-                  DIGITAL COPIES
-                </Text>
-              </View>
-              <View
-                style={{
-                  paddingHorizontal: 15,
-                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                }}>
-              {[
-                  'OBR Form',
-                  'PR Form',
-                  'PO Form',
-                  'Acceptance Form',
-                  'RFI Form',
-                  'Request for Delivery Extension'
-                ].map((formType, index) => {
-                  const files =
-                    formType === 'OBR Form'
-                      ? obrFiles
-                      : formType === 'PR Form'
-                      ? prFiles
-                      : formType === 'PO Form'
-                      ? poFiles
-                      : formType === 'Acceptance Form'
-                      ? acceptanceFiles
-                      : formType === 'RFI Form'
-                      ? rfiFiles
-                      : formType === 'Request for Delivery Extension'
-                      ? requestForDeliveryExtensionFiles
-                      : [];
-
-                  const hasFiles = files && files.length > 0;
-
-                  return (
-                    <View
-                      key={formType}
-                      style={{
-                        marginVertical: 10,
-                        paddingBottom: 10,
-                        borderBottomWidth: 1,
-                        borderColor: 'silver',
-                      }}>
+                  <Text
+                    style={{
+                      fontFamily: 'Oswald-Regular',
+                      color: 'white',
+                      fontSize: 16,
+                      textAlign: 'left',
+                      marginStart: 10,
+                      flex: 1,
+                    }}>
+                    DIGITAL COPIES
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 15,
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  }}>
+                  {formTypeMap.PO.map((formType, index) => {
+                   const formTypeFiles = attachmentsFiles?.filter(
+                    fileUrl => fileUrl.split('~')[2] === formType
+                  ) || [];
+                  
+                  const hasFiles = formTypeFiles.length > 0;
+                    return (
                       <View
-                        style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
-                        {`${index + 1}. ${formType}`}
-                        </Text>
+                        key={formType}
+                        style={{
+                          marginVertical: 10,
+                          paddingBottom: 10,
+                          borderBottomWidth: 1,
+                          borderColor: 'silver',
+                        }}>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
+                            {`${index + 1}. ${formType}`}
+                          </Text>
 
-                        <TouchableOpacity
-                          disabled={hasFiles || formType === 'PR Form'}
-                          onPress={() => handleAttachFiles(formType)}
-                          style={{
-                            backgroundColor: hasFiles || formType === 'PR Form' ? '#ccc' : '#1976D2',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            marginRight: 10,
-                            opacity: hasFiles || formType === 'PR Form' ? 0.5 : 1,
-                          }}
-                        >
-                          <Text
+                          <TouchableOpacity
+                            disabled={hasFiles}
+                            onPress={() => handleAttachFiles(formType)}
                             style={{
-                              color: '#FFFFFF',
-                              fontSize: 12,
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            Attach Files
-                          </Text>
-                        </TouchableOpacity>
+                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+                              paddingVertical: 6,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              marginRight: 10,
+                              opacity: hasFiles ? 0.5 : 1,
+                            }}>
+                            <Text
+                              style={{
+                                color: '#FFFFFF',
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                              }}>
+                              Attach Files
+                            </Text>
+                          </TouchableOpacity>
 
-                        <TouchableOpacity
-                          disabled={!hasFiles}
-                          onPress={() =>
-                            handleRemove(
-                              genInformationData.Year,
-                              genInformationData.TrackingNumber,
-                              formType,
-                            )
-                          }
-                          style={{
-                            backgroundColor: !hasFiles ? '#ccc' : '#FF6347',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            opacity: !hasFiles ? 0.5 : 1,
-                          }}>
-                          <Icon
-                            name={'trash-outline'}
-                            size={16}
-                            color={'#FFFFFF'}
-                          />
-                        </TouchableOpacity>
-                      </View>
+                          <TouchableOpacity
+                            disabled={!hasFiles}
+                            onPress={() =>
+                              handleRemove(year, trackingNumber, formType)
+                            }
+                            style={{
+                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+                              paddingVertical: 4,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              opacity: !hasFiles ? 0.5 : 1,
+                            }}>
+                            <Icon
+                              name={'trash-outline'}
+                              size={20}
+                              color={'#FF6347'}
+                            />
+                          </TouchableOpacity>
+                        </View>
 
-                      <View style={{marginTop: 5}}>
-                        {hasFiles ? (
-                          files.map((file, fileIndex) => {
-                            const uniqueUri = `${file}?timestamp=${new Date().getTime()}`;
-                            const uniqueKey = `${formType}-${file}-${fileIndex}`;
+                        <View style={{marginTop: 5}}>
+                          {attachmentsFiles &&
+                          attachmentsFiles.length > 0 &&
+                          attachmentsFiles.some(
+                            fileUrl => fileUrl.split('~')[2] === formType,
+                          ) ? (
+                            attachmentsFiles
+                              .filter(
+                                fileUrl => fileUrl.split('~')[2] === formType,
+                              )
+                              .map((fileUrl, index) => {
+                                const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                                const uniqueKey = `file-${formType}-${index}`;
+                                const fileExtension = fileUrl.split('.').pop();
 
-                            return (
-                              <View
-                                key={uniqueKey}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  marginTop: 5,
-                                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                  padding: 10,
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() =>
-                                    handleImagePress(uniqueUri, formType)
-                                  }>
-                                  <Text
+                                return (
+                                  <View
+                                    key={uniqueKey}
                                     style={{
-                                      color: '#fff',
-                                      fontSize: 12,
-                                      flex: 1,
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      marginTop: 5,
+                                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                      padding: 10,
                                     }}>
-                                    {file.split('~').slice(-2).join('~')}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <Text
-                            style={{color: '#ccc', fontSize: 12, marginTop: 5}}>
-                            No attached files
-                          </Text>
-                        )}
+                                    <TouchableOpacity
+                                      onPress={() => {
+                                        if (fileExtension === 'pdf') {
+                                          Linking.openURL(uniqueUri);
+                                        } else {
+                                          handleImagePress(uniqueUri);
+                                        }
+                                      }}>
+                                      <Text
+                                        style={{
+                                          color: '#fff',
+                                          fontSize: 12,
+                                          flex: 1,
+                                        }}>
+                                        {fileUrl.split('~').slice(-2).join('~')}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                );
+                              })
+                          ) : (
+                            <Text
+                              style={{
+                                color: '#ccc',
+                                fontSize: 12,
+                                marginTop: 5,
+                              }}>
+                              No attached files
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </View>
             </View>
-          </View>       
           )}
 
           <View style={{height: 500}} />
@@ -2844,9 +2759,6 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderDetailsPayment = () => {
-
- 
-
     if (selectedItem.TrackingType === 'PX') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -4365,180 +4277,157 @@ const DetailScreen = ({route, navigation}) => {
           </View>
 
           {genInformationData.Year === '2025' && (
-          <View style={styles.obrContainer}>
-            <View style={styles.detailsContainer}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  padding: 10,
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <Text
+            <View style={styles.obrContainer}>
+              <View style={styles.detailsContainer}>
+                <View
                   style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'left',
-                    marginStart: 10,
-                    flex: 1,
+                    flexDirection: 'row',
+                    padding: 10,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}>
-                  DIGITAL COPIES
-                </Text>
-              </View>
-              <View
-                style={{
-                  paddingHorizontal: 15,
-                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                }}>
-                {[
-                  'DV Form',
-                  'OBR Form',
-                  'Abstract of Bids',
-                  'Financial Proposal',
-                  'Invitation to Observer',
-                  'Bid Evaluation',
-                  'Post Qualification',
-                  'Certificate of Eligibility',
-                  'Philgeps Posting',
-                  'Philgeps Award',
-                  'Certification (Mode, Award, Minutes)',
-                  'Bac Cert (Conspicuous Place)',
-                ].map((formType, index) => {
-                  const files =
-                    formType === 'DV Form'
-                      ? dvFiles
-                      : formType === 'OBR Form'
-                      ? obrFiles
-                      : formType === 'Abstract of Bids'
-                      ? abstractOfBidsFiles
-                      : formType === 'Financial Proposal'
-                      ? financialProposalFiles
-                      : formType === 'Invitation to Observer'
-                      ? invitationToObserverFiles
-                      : formType === 'Bid Evaluation'
-                      ? bidEvaluationFiles
-                      : formType === 'Post Qualification'
-                      ? postQualificationFiles
-                      : formType === 'Certificate of Eligibility'
-                      ? certificateOfEligibilityFiles
-                      : formType === 'Philgeps Posting'
-                      ? philgepsPostingFiles
-                      : formType === 'Philgeps Award'
-                      ? philgepsAwardFiles
-                      : formType === 'Certification (Mode, Award, Minutes)'
-                      ? certificationFiles
-                      : formType === 'Bac Cert (Conspicuous Place)'
-                      ? bacCertFiles
-                      : [];
+                  <Text
+                    style={{
+                      fontFamily: 'Oswald-Regular',
+                      color: 'white',
+                      fontSize: 16,
+                      textAlign: 'left',
+                      marginStart: 10,
+                      flex: 1,
+                    }}>
+                    DIGITAL COPIES
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 15,
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  }}>
+                  {formTypeMap.PX.map((formType, index) => {
+                   const formTypeFiles = attachmentsFiles?.filter(
+                    fileUrl => fileUrl.split('~')[2] === formType
+                  ) || [];
+                  
+                  const hasFiles = formTypeFiles.length > 0;
+                    return (
+                      <View
+                        key={formType}
+                        style={{
+                          marginVertical: 10,
+                          paddingBottom: 10,
+                          borderBottomWidth: 1,
+                          borderColor: 'silver',
+                        }}>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
+                            {`${index + 1}. ${formType}`}
+                          </Text>
 
-                  const hasFiles = files && files.length > 0;
-
-                  return (
-                    <View
-                      key={formType}
-                      style={{
-                        marginVertical: 10,
-                        paddingBottom: 10,
-                        borderBottomWidth: 1,
-                        borderColor: 'silver',
-                      }}>
-                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
-                          {`${index + 1}. ${formType}`}
-                        </Text>
-
-                        <TouchableOpacity
-                          disabled={hasFiles}
-                          onPress={() => handleAttachFiles(formType)}
-                          style={{
-                            backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            marginRight: 10,
-                            opacity: hasFiles ? 0.5 : 1,
-                          }}>
-                          <Text
+                          <TouchableOpacity
+                            disabled={hasFiles}
+                            onPress={() => handleAttachFiles(formType)}
                             style={{
-                              color: '#FFFFFF',
-                              fontSize: 12,
-                              fontWeight: 'bold',
+                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+                              paddingVertical: 6,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              marginRight: 10,
+                              opacity: hasFiles ? 0.5 : 1,
                             }}>
-                            Attach Files
-                          </Text>
-                        </TouchableOpacity>
+                            <Text
+                              style={{
+                                color: '#FFFFFF',
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                              }}>
+                              Attach Files
+                            </Text>
+                          </TouchableOpacity>
 
-                        <TouchableOpacity
-                          disabled={!hasFiles}
-                          onPress={() =>
-                            handleRemove(
-                              genInformationData.Year,
-                              genInformationData.TrackingNumber,
-                              formType,
-                            )
-                          }
-                          style={{
-                            backgroundColor: !hasFiles ? '#ccc' : '#FF6347',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            opacity: !hasFiles ? 0.5 : 1,
-                          }}>
-                          <Icon
-                            name={'trash-outline'}
-                            size={16}
-                            color={'#FFFFFF'}
-                          />
-                        </TouchableOpacity>
-                      </View>
+                          <TouchableOpacity
+                            disabled={!hasFiles}
+                            onPress={() =>
+                              handleRemove(year, trackingNumber, formType)
+                            }
+                            style={{
+                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+                              paddingVertical: 4,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              opacity: !hasFiles ? 0.5 : 1,
+                            }}>
+                            <Icon
+                              name={'trash-outline'}
+                              size={20}
+                              color={'#FF6347'}
+                            />
+                          </TouchableOpacity>
+                        </View>
 
-                      <View style={{marginTop: 5}}>
-                        {hasFiles ? (
-                          files.map((file, fileIndex) => {
-                            const uniqueUri = `${file}?timestamp=${new Date().getTime()}`;
-                            const uniqueKey = `${formType}-${file}-${fileIndex}`;
+                        <View style={{marginTop: 5}}>
+                          {attachmentsFiles &&
+                          attachmentsFiles.length > 0 &&
+                          attachmentsFiles.some(
+                            fileUrl => fileUrl.split('~')[2] === formType,
+                          ) ? (
+                            attachmentsFiles
+                              .filter(
+                                fileUrl => fileUrl.split('~')[2] === formType,
+                              )
+                              .map((fileUrl, index) => {
+                                const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                                const uniqueKey = `file-${formType}-${index}`;
+                                const fileExtension = fileUrl.split('.').pop();
 
-                            return (
-                              <View
-                                key={uniqueKey}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  marginTop: 5,
-                                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                  padding: 10,
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() =>
-                                    handleImagePress(uniqueUri, formType)
-                                  }>
-                                  <Text
+                                return (
+                                  <View
+                                    key={uniqueKey}
                                     style={{
-                                      color: '#fff',
-                                      fontSize: 12,
-                                      flex: 1,
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      marginTop: 5,
+                                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                                      padding: 10,
                                     }}>
-                                    {file.split('~').slice(-2).join('~')}
-                                    </Text>
-                                </TouchableOpacity>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <Text
-                            style={{color: '#ccc', fontSize: 12, marginTop: 5}}>
-                            No attached files
-                          </Text>
-                        )}
+                                    <TouchableOpacity
+                                      onPress={() => {
+                                        if (fileExtension === 'pdf') {
+                                          Linking.openURL(uniqueUri);
+                                        } else {
+                                          handleImagePress(uniqueUri);
+                                        }
+                                      }}>
+                                      <Text
+                                        style={{
+                                          color: '#fff',
+                                          fontSize: 12,
+                                          flex: 1,
+                                        }}>
+                                        {fileUrl.split('~').slice(-2).join('~')}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                );
+                              })
+                          ) : (
+                            <Text
+                              style={{
+                                color: '#ccc',
+                                fontSize: 12,
+                                marginTop: 5,
+                              }}>
+                              No attached files
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </View>
             </View>
-          </View>
           )}
 
           <View style={{height: 500}} />
@@ -5896,9 +5785,7 @@ const DetailScreen = ({route, navigation}) => {
                         fontSize: 10,
                         fontFamily: 'Oswald-Regular',
                         color: '#FFFFFF',
-                      }}>
-                      {/* Tracking Number */}
-                    </Text>
+                      }}></Text>
                   </>
                 )}
               </View>
@@ -5923,19 +5810,19 @@ const DetailScreen = ({route, navigation}) => {
               </View>
             ) : (
               <View style={{height: '100%', paddingBottom: 55}}>
-              {(() => {
-                switch (selectedItem.TrackingType) {
-                  case 'PR':
-                    return renderDetailsPRRequest(obrFiles, prFiles, rfqFiles);
-                  case 'PO':
-                    return renderDetailsPOOrder();
-                  case 'PX':
-                    return renderDetailsPayment();
-                  default:
-                    return renderOtherDetails();
-                }
-              })()}
-            </View>
+                {(() => {
+                  switch (selectedItem.TrackingType) {
+                    case 'PR':
+                      return renderDetailsPRRequest();
+                    case 'PO':
+                      return renderDetailsPOOrder();
+                    case 'PX':
+                      return renderDetailsPayment();
+                    default:
+                      return renderOtherDetails();
+                  }
+                })()}
+              </View>
             )}
           </View>
 
@@ -5973,7 +5860,7 @@ const DetailScreen = ({route, navigation}) => {
                   ? 'DV Form'
                   : currentFormType === 'Abstract of Bids'
                   ? 'Abstract of Bids'
-                   : currentFormType === 'Financial Proposal'
+                  : currentFormType === 'Financial Proposal'
                   ? 'Financial Proposal'
                   : currentFormType === 'Invitation to Observer'
                   ? 'Invitation to Observer'
@@ -6010,12 +5897,12 @@ const DetailScreen = ({route, navigation}) => {
               </TouchableOpacity>
 
               <View style={{flex: 1, alignItems: 'center'}}>
-                {selectedFiles.length > 0 ? (
+                {selectedFiles?.length > 0 ? (
                   renderAttachmentPreview(selectedFiles, handleRemove)
                 ) : (
                   <Text
                     style={{fontSize: 14, color: '#666', marginVertical: 10}}>
-                    No files selected
+                    No files attached
                   </Text>
                 )}
               </View>

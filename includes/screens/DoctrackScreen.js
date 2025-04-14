@@ -25,13 +25,9 @@ import {Image} from 'react-native-ui-lib';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useQueryClient} from '@tanstack/react-query';
 import {useInspectorImages, useInspection} from '../hooks/useInspection';
-import {
-  useRequestInspection,
-  useOnSchedule,
-} from '../hooks/useInspectionScheduler';
+import {useRequestInspection, useOnSchedule} from '../hooks/useInspectionScheduler';
 
-
-const InspectionImage = React.memo(({ year, trackingNumber }) => {
+const InspectionImage = React.memo(({year, trackingNumber}) => {
   const {
     data: inspectorImages,
     loading: isLoading,
@@ -40,8 +36,12 @@ const InspectionImage = React.memo(({ year, trackingNumber }) => {
 
   if (isLoading) {
     return (
-      <View style={{ backgroundColor: 'transparent' }}>
-        <ActivityIndicator size="small" color="white" style={{ width: 60, height: 60 }} />
+      <View style={{backgroundColor: 'transparent'}}>
+        <ActivityIndicator
+          size="small"
+          color="white"
+          style={{width: 60, height: 60}}
+        />
       </View>
     );
   }
@@ -50,7 +50,7 @@ const InspectionImage = React.memo(({ year, trackingNumber }) => {
     return (
       <Image
         source={require('../../assets/images/noImage.jpg')}
-        style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
+        style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
       />
     );
   }
@@ -62,12 +62,11 @@ const InspectionImage = React.memo(({ year, trackingNumber }) => {
         priority: FastImage.priority.high,
         cache: 'web',
       }}
-      style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
+      style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
       resizeMode={FastImage.resizeMode.cover}
     />
   );
 });
-
 
 const RecentActivity = ({
   recentActivityData,
@@ -107,7 +106,7 @@ const RecentActivity = ({
   };
 
   const onPressItem = item => {
-    navigation.navigate('InspectionDetails', { item });
+    navigation.navigate('InspectionDetails', {item});
   };
 
   return (
@@ -140,8 +139,10 @@ const RecentActivity = ({
             }}>
             Recent Activity
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={prevPage} disabled={pageRef.current === 1}>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <TouchableOpacity
+              onPress={prevPage}
+              disabled={pageRef.current === 1}>
               <Icon
                 name="chevron-back"
                 size={24}
@@ -161,7 +162,9 @@ const RecentActivity = ({
                 name="chevron-forward"
                 size={24}
                 color={
-                  pageRef.current * itemsPerPage >= filteredData.length ? '#eee' : 'black'
+                  pageRef.current * itemsPerPage >= filteredData.length
+                    ? '#eee'
+                    : 'black'
                 }
               />
             </TouchableOpacity>
@@ -170,24 +173,31 @@ const RecentActivity = ({
       </View>
 
       {recentActivityLoading ? (
-        <ActivityIndicator size="large" color="gray" style={{ marginVertical: 10 }} />
+        <ActivityIndicator
+          size="large"
+          color="gray"
+          style={{marginVertical: 10}}
+        />
       ) : recentActivityError ? (
-        <Text style={{ color: 'red', textAlign: 'center', marginVertical: 10 }}>
+        <Text style={{color: 'red', textAlign: 'center', marginVertical: 10}}>
           Something went wrong. Please try again.
         </Text>
       ) : filteredData.length === 0 ? (
-        <Text style={{ textAlign: 'center', color: 'gray', padding: 10 }}>
+        <Text style={{textAlign: 'center', color: 'gray', padding: 10}}>
           No results found
         </Text>
       ) : (
-        <View style={{ marginBottom: 5 }}>
+        <View style={{marginBottom: 5}}>
           {paginatedData.map((item, index) => (
             <Pressable key={index} onPress={() => onPressItem(item)}>
-              <View style={{ flexDirection: 'row', marginVertical: 10 }}>
-                <View style={{ width: '30%', alignItems: 'center' }}>
-                <InspectionImage year={item?.Year} trackingNumber={item?.TrackingNumber} />
+              <View style={{flexDirection: 'row', marginVertical: 10}}>
+                <View style={{width: '30%', alignItems: 'center'}}>
+                  <InspectionImage
+                    year={item?.Year}
+                    trackingNumber={item?.TrackingNumber}
+                  />
                 </View>
-                <View style={{ width: '70%' }}>
+                <View style={{width: '70%'}}>
                   <Text
                     style={{
                       fontFamily: 'Inter_28pt-SemiBold',
@@ -204,7 +214,7 @@ const RecentActivity = ({
                       color: '#252525',
                     }}>
                     {item?.CategoryCode} -{' '}
-                    <Text style={{ fontSize: 10 }}>{item?.CategoryName}</Text>
+                    <Text style={{fontSize: 10}}>{item?.CategoryName}</Text>
                   </Text>
                   <Text
                     style={{
@@ -229,12 +239,9 @@ const DoctrackScreen = ({
   regOfficeDelaysLength,
   myTransactionsLength,
   updatedNowData,
-  updatedDateTime,
   officeCode,
   accountType,
   officeName,
-  employeeNumber,
-  fullName,
   privilege,
   permission,
   dataPR,
@@ -255,7 +262,6 @@ const DoctrackScreen = ({
   loadingTransSum,
   loadingUseOthers,
   selectedYear,
-  setSelectedYear,
   fetchDataRegOfficeDelays,
   refetchDataOthers,
   fetchOfficeDelays,
@@ -267,24 +273,17 @@ const DoctrackScreen = ({
   forInspection,
   inspected,
   inspectionOnHold,
-  fetchRecentActivity,
-  receivingCount,
   receivingCountData,
   trackSumData,
   trackSumError,
   trackSumLoading,
-  refetchTrackSum,
   regTrackSumData,
   regTrackSumError,
   regTrackSumLoading,
-  refetchRegTrackSum,
   accountabilityData,
   fetchMyAccountability,
-  requestsLength,
   requestsLoading,
   fetchRequests,
-  OnScheduleLength,
-  myTransactionsLoading,
   onEvalDataCount,
   evaluatedDataCount,
   evalPendingDataCount,
@@ -300,11 +299,7 @@ const DoctrackScreen = ({
 
   const {data: requestInspectionData} = useRequestInspection();
   const {data: onScheduleData} = useOnSchedule();
-  const {
-    data: recentActivityData,
-    error: recentActivityError,
-    loading: recentActivityLoading,
-  } = useInspection();
+  const {data: recentActivityData, error: recentActivityError, loading: recentActivityLoading} = useInspection();
 
   const navigation = useNavigation();
 
@@ -375,14 +370,9 @@ const DoctrackScreen = ({
   const totalDocumentTypeCount = getSumOfDocumentTypeCount(othersVouchersData);
   const checkReleasedOthersCount = getTotalCheckReleasedCount(othersOthersData);
   const caoReleasedOthersCount = getTotalCAOReleasedCount(othersOthersData);
-  const totalDocumentTypeOthersCount =
-    getSumOfDocumentTypeCount(othersOthersData);
+  const totalDocumentTypeOthersCount = getSumOfDocumentTypeCount(othersOthersData);
   const percentage = getPercentage(checkReleasedCount, totalDocumentTypeCount);
-  const percentageOthers = getPercentageOthers(
-    checkReleasedOthersCount,
-    caoReleasedOthersCount,
-    totalDocumentTypeOthersCount,
-  );
+  const percentageOthers = getPercentageOthers(checkReleasedOthersCount, caoReleasedOthersCount, totalDocumentTypeOthersCount);
   const [visibleStatusCounts, setVisibleStatusCounts] = useState({});
   const [visibleDocuments, setVisibleDocuments] = useState(false);
   const [visibleDocumentsOthers, setVisibleDocumentsOthers] = useState(false);
@@ -669,7 +659,10 @@ const DoctrackScreen = ({
         {/* TRACKING SUMMARY */}
 
         {!['10', '5', '8', '9', '11'].includes(privilege) &&
-          permission !== '10' && (
+          permission !== '10' &&
+          ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC'].includes(
+            officeCode,
+          ) && (
             <View
               style={{
                 padding: 10,
@@ -967,23 +960,14 @@ const DoctrackScreen = ({
                   android_ripple={{}}>
                   {({pressed}) => (
                     <>
-                      {item.icon ? (
-                        <Icon
-                          name={item.icon}
-                          size={26}
-                          color={pressed ? 'white' : 'black'}
-                          style={{marginVertical: 5}}
-                        />
-                      ) : (
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : 'black',
-                            fontFamily: 'Inter_28pt-Bold',
-                            fontSize: 26,
-                          }}>
-                          {item.count || 0}
-                        </Text>
-                      )}
+                      <Text
+                        style={{
+                          color: pressed ? 'white' : '#007bff',
+                          fontFamily: 'Inter_28pt-Bold',
+                          fontSize: 26,
+                        }}>
+                        {item.count || 0}
+                      </Text>
                       <Text
                         style={{
                           color: pressed ? 'white' : '#252525',
@@ -1001,121 +985,118 @@ const DoctrackScreen = ({
         </View>
 
         <View style={{marginBottom: 10}}>
-          {/*Personal*/}
+        <View
+          style={{
+            padding: 10,
+            marginTop: 10,
+            marginHorizontal: 10,
+            backgroundColor: 'white',
+            borderRadius: 5,
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 2},
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: 'silver',
+            borderRightWidth: 1,
+            borderRightColor: 'silver',
+          }}>
           <View
             style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8,
               borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
+              borderBottomColor: '#eee',
             }}>
-            <View
+            <Text
               style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#252525',
-                  fontSize: 15,
-                  paddingHorizontal: 10,
-                }}>
-                Personal
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-start',
-                gap: 10,
+                fontFamily: 'Inter_28pt-Bold',
+                color: '#252525',
+                fontSize: 15,
                 paddingHorizontal: 10,
-                marginTop: 5,
-                paddingTop: 10,
               }}>
-              {[
-                {
-                  label: 'SLRY',
-                  count: `${
-                    myTransactionsLength && myTransactionsLength
-                      ? myTransactionsLength
-                      : 0
-                  }`,
-                  screen: 'MyTransactions',
-                },
-                {
-                  label: 'ARE',
-                  count: `${
-                    accountabilityData && accountabilityData.length
-                      ? accountabilityData.length
-                      : 0
-                  }`,
-                  screen: 'MyAccountability',
-                },
-              ].map((item, index, arr) => {
-                if (item.condition === false) {
-                  return null;
-                }
+              Personal
+            </Text>
+          </View>
 
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={() =>
-                      navigation.navigate(item.screen, item.params)
-                    }
-                    style={({pressed}) => [
-                      {
-                        width: arr.length === 3 ? '32%' : '32%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        marginBottom: 10,
-                        borderRadius: 5,
-                        elevation: 1,
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 2,
-                        borderRightColor: 'silver',
-                      },
-                    ]}
-                    android_ripple={{}}>
-                    {({pressed}) => (
-                      <>
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : 'black',
-                            fontFamily: 'Inter_28pt-Bold',
-                            fontSize: 26,
-                          }}>
-                          {item.count || 0}
-                        </Text>
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#252525',
-                            fontFamily: 'Inter_28pt-Regular',
-                            fontSize: 10,
-                          }}>
-                          {item.label}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'flex-start',
+              gap: 10,
+              paddingHorizontal: 10,
+              marginTop: 5,
+              paddingTop: 10,
+            }}>
+            {[
+              {
+                label: 'SLRY',
+                count: `${
+                  myTransactionsLength && myTransactionsLength
+                    ? myTransactionsLength
+                    : 0
+                }`,
+                screen: 'MyTransactions',
+              },
+              {
+                label: 'ARE',
+                count: `${
+                  accountabilityData && accountabilityData.length
+                    ? accountabilityData.length
+                    : 0
+                }`,
+                screen: 'MyAccountability',
+              },
+            ].map((item, index, arr) => {
+              if (item.condition === false) {
+                return null;
+              }
+
+              return (
+                <Pressable
+                  key={index}
+                  onPress={() => navigation.navigate(item.screen, item.params)}
+                  style={({pressed}) => [
+                    {
+                      width: arr.length === 3 ? '32%' : '32%',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      marginBottom: 10,
+                      borderRadius: 5,
+                      elevation: 1,
+                      backgroundColor: pressed ? '#007bff' : '#ffffff',
+                      borderBottomWidth: 2,
+                      borderBottomColor: 'silver',
+                      borderRightWidth: 2,
+                      borderRightColor: 'silver',
+                    },
+                  ]}
+                  android_ripple={{}}>
+                  {({pressed}) => (
+                    <>
+                      <Text
+                        style={{
+                          color: pressed ? 'white' : '#007bff',
+                          fontFamily: 'Inter_28pt-Bold',
+                          fontSize: 26,
+                        }}>
+                        {item.count || 0}
+                      </Text>
+                      <Text
+                        style={{
+                          color: pressed ? 'white' : '#252525',
+                          fontFamily: 'Inter_28pt-Regular',
+                          fontSize: 10,
+                        }}>
+                        {item.label}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              );
+            })}
           </View>
         </View>
+      </View>
 
         {accountType === '1' ? (
           <View
@@ -2236,56 +2217,6 @@ const DoctrackScreen = ({
           }}
         />
       </View>
-
-      {/* <View style={{marginTop: 5}}>
-          {recentActivityData.map((item, index) => (
-            <Pressable
-              key={index}
-              style={({pressed}) => [
-                {
-                  marginHorizontal: 10,
-                  marginBottom: 5,
-                  shadowColor: '#000',
-                  shadowOffset: {width: 0, height: 2},
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  backgroundColor: pressed
-                    ? 'rgba(255, 255, 255, 0.1)'
-                    : 'rgba(0,0,0, 0.05)',
-                },
-              ]}
-              android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-              <View
-                style={{paddingHorizontal: 20, paddingVertical: 10, gap: -5}}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    fontSize: 14,
-                    color: 'white',
-                  }}>
-                  {item.Status}{' '}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 12,
-                      color: 'silver',
-                    }}>
-                    TN#: {item.TrackingNumber}
-                  </Text>
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    fontSize: 10,
-                    color: 'silver',
-                    marginTop: 5,
-                  }}>
-                  {item.DateInspected}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View> */}
     </View>
   );
   const [summaryDate, setSummaryDate] = useState('');
@@ -2332,247 +2263,6 @@ const DoctrackScreen = ({
             /* backgroundColor:'#004ab1' */
           }
         }>
-        {/* <View style={{marginBottom: 10}}>
-          <View
-            style={{
-              padding: 15,
-              marginHorizontal: 10,
-              marginTop: 10,
-              backgroundColor: '#fff',
-              borderRadius: 10,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.1,
-              shadowRadius: 5,
-              elevation: 5,
-              borderBottomWidth: 1,
-              borderBottomColor: '#E0E0E0',
-              borderRightWidth: 1,
-              borderRightColor: '#E0E0E0',
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#ddd',
-                paddingBottom: 8,
-                marginBottom: 10,
-                justifyContent: 'space-between',
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#1E1E1E',
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  paddingHorizontal: 10,
-                }}>
-                Summary
-              </Text>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  backgroundColor: '#eee',
-                  borderRadius: 20,
-                  overflow: 'hidden',
-                  padding: 2,
-                }}>
-                {['Unique', 'Accumulated'].map(type => (
-                  <TouchableOpacity
-                    key={type}
-                    onPress={() => setSelected(type)}
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor:
-                        selected === type ? '#007BFF' : 'transparent',
-                      alignItems: 'center',
-                    }}
-                    activeOpacity={0.7}>
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        color: selected === type ? '#fff' : '#000',
-                      }}>
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={{flex: 1}}>
-              <ScrollView horizontal>
-                <DataTable style={{width: 320}}>
-                  <DataTable.Header
-                    style={{backgroundColor: 'rgba(0, 123, 255, 0.2)'}}>
-                    {['Month', 'On Eval', 'Evaluated', 'Pending', 'Total'].map(
-                      (col, i) => (
-                        <DataTable.Title
-                          key={i}
-                          numeric={i > 0}
-                          style={{flex: 1}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 'bold',
-                              color: '#000',
-                              textAlign: 'center',
-                            }}>
-                            {col}
-                          </Text>
-                        </DataTable.Title>
-                      ),
-                    )}
-                  </DataTable.Header>
-
-                  {sortedData.map((item, i) => (
-                    <DataTable.Row
-                      key={i}
-                      style={{
-                        backgroundColor: i % 2 === 0 ? '#F5F5F5' : '#FFF',
-                        minHeight: 30,
-                      }}>
-                      <DataTable.Cell>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            color: '#000',
-                            textAlign: 'center',
-                          }}>
-                          {item.Month}{' '}
-                        </Text>
-                      </DataTable.Cell>
-                      {[
-                        item.OnEvaluationAccounting,
-                        item.EvaluatedAccounting,
-                        item.PendingAtCAO,
-                        item.TotalCount,
-                      ].map((val, j) => (
-                        <DataTable.Cell
-                          key={j}
-                          numeric
-                          style={{flex: 1, alignItems: 'center'}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color:
-                                item.Month === 'Total' ? '#D9534F' : '#333',
-                              textAlign: 'center',
-                            }}>
-                            {val}
-                          </Text>
-                        </DataTable.Cell>
-                      ))}
-                    </DataTable.Row>
-                  ))}
-
-                  <DataTable.Row
-                    style={{
-                      backgroundColor: '#rgba(0, 123, 255, 0.76)',
-                      minHeight: 30,
-                    }}>
-                    <DataTable.Cell>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 'bold',
-                          color: '#FFF',
-                          textAlign: 'center',
-                        }}>
-                        Total
-                      </Text>
-                    </DataTable.Cell>
-                    {[
-                      'OnEvaluationAccounting',
-                      'EvaluatedAccounting',
-                      'PendingAtCAO',
-                      'TotalCount',
-                    ].map((key, j) => (
-                      <DataTable.Cell
-                        key={j}
-                        numeric
-                        style={{flex: 1, alignItems: 'center'}}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            color: '#FFF',
-                            textAlign: 'center',
-                          }}>
-                          {evaluatorSummaryData.reduce(
-                            (sum, item) => sum + (parseInt(item[key]) || 0),
-                            0,
-                          )}
-                        </Text>
-                      </DataTable.Cell>
-                    ))}
-                  </DataTable.Row>
-                </DataTable>
-              </ScrollView>
-            </View>
-          </View>
-        </View> */}
-
-        {/* 
-        <View style={{ marginBottom: 5 }}>
-        <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            marginHorizontal: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 6,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver',
-          }}>
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-              paddingBottom: 5,
-              marginBottom: 5,
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Bold',
-                color: '#252525',
-                fontSize: 16,
-                paddingHorizontal: 10,
-              }}>
-              Daily Transaction
-            </Text>
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Calendar
-              onDayPress={onTransactionDayPress}
-              markedDates={{
-                [transactionDate]: { selected: true, selectedColor: '#007BFF' },
-              }}
-              style={{ marginBottom: 10 }}
-            />
-            <Text style={styles.subHeader}>
-              {transactionDate
-                ? `Transactions for ${transactionDate}`
-                : 'Select a Date'}
-            </Text>
-             
-            </View>
-          </View>
-        </View> */}
-
         <View style={{marginBottom: 5}}>
           <View
             style={{
@@ -2586,10 +2276,6 @@ const DoctrackScreen = ({
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
               elevation: 6,
-              /* borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver', */
             }}>
             <View
               style={{
@@ -2651,13 +2337,12 @@ const DoctrackScreen = ({
                     },
                   ];
 
-                  // Check if all counts are 0
                   const hasResults = items.some(item => item.length > 0);
 
                   return hasResults ? (
                     items.map(
                       (item, index, arr) =>
-                        item.length > 0 && ( // Only show Pressable if length > 0
+                        item.length > 0 && ( 
                           <Pressable
                             key={index}
                             onPress={() =>
@@ -2677,10 +2362,6 @@ const DoctrackScreen = ({
                                 backgroundColor: pressed
                                   ? '#007bff'
                                   : '#ffffff',
-                                //borderBottomWidth: 1,
-                                //borderBottomColor: 'silver',
-                                //borderRightWidth: 1,
-                                //borderRightColor: 'silver',
 
                                 // iOS shadow properties
                                 shadowColor: '#000',
@@ -2733,112 +2414,6 @@ const DoctrackScreen = ({
           </View>
         </View>
 
-        {/*         <View style={{marginBottom: 5}}>
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 6,
-              borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
-                  paddingHorizontal: 10,
-                }}>
-                Actions
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-start',
-                gap: 10,
-                marginEnd: 10,
-                paddingHorizontal: 10,
-                marginTop: 5,
-                paddingTop: 10,
-              }}>
-              {[
-                {
-                  label: 'Evaluate',
-                  icon: `laptop`,
-                  screen: 'Evaluate',
-                },
-              
-              ].map((item, index, arr) => {
-                if (item.condition === false) {
-                  return null;
-                }
-
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={() =>
-                      navigation.navigate(item.screen, item.params)
-                    }
-                    style={({pressed}) => [
-                      {
-                        width: arr.length === 3 ? '32%' : '32%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        marginBottom: 10,
-                        borderRadius: 5,
-                        elevation: 1,
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 2,
-                        borderRightColor: 'silver',
-                      },
-                    ]}
-                    android_ripple={{}}>
-                    {({pressed}) => (
-                      <>
-                        <Icons
-                          name="file-document-edit"
-                          size={30}
-                          color={pressed ? 'white' : '#0c0c0c'}
-                          paddingVertical={5}
-                        />
-
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#252525',
-                            fontFamily: 'Inter_28pt-Regular',
-                            fontSize: 10,
-                          }}>
-                          {item.label}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </View> */}
-
         <View style={{marginBottom: 10}}>
           {/* Personal */}
           <View
@@ -2852,11 +2427,7 @@ const DoctrackScreen = ({
               shadowOffset: {width: 0, height: 2},
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
-              elevation: 8,
-              /* borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver', */
+              elevation: 8,             
             }}>
             <View
               style={{
@@ -3049,11 +2620,6 @@ const DoctrackScreen = ({
                           borderRadius: 5,
                           elevation: 5, // Android shadow
                           backgroundColor: pressed ? '#007bff' : '#ffffff',
-                          //borderBottomWidth: 1,
-                          //borderBottomColor: 'silver',
-                          //borderRightWidth: 1,
-                          //borderRightColor: 'silver',
-
                           // iOS shadow properties
                           shadowColor: '#000',
                           shadowOffset: {width: 0, height: 2},
@@ -3067,7 +2633,6 @@ const DoctrackScreen = ({
                           <Icons
                             name={item.icon}
                             size={35}
-                            //color={pressed ? 'white' : '#0c0c0c'}
                             color={pressed ? 'white' : '#007bff'}
                           />
                           <Text
@@ -3154,29 +2719,17 @@ const DoctrackScreen = ({
               paddingHorizontal: 10,
               marginTop: 5,
             }}>
-            {/*  <Pressable
-            onPress={() => navigation.navigate('Inspection', { indexTab: 0 })}
-            android_ripple={{ color: 'rgba(0.0.0,0.9)', borderless: false }}
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              paddingVertical: 10,
-            }}> */}
             <Pressable
-              //onPress={() => navigation.navigate('ForInspection', {indexTab: 0})}
               style={({pressed}) => [
                 {
                   flex: 1,
                   alignItems: 'center',
                   paddingVertical: 10,
-                  //marginHorizontal:10,
                   shadowColor: '#000',
                   shadowOffset: {width: 0, height: 2},
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
                   borderRadius: 5,
-                  //borderWidth: 1,
-                  //borderColor: 'silver',
                   backgroundColor: pressed
                     ? 'rgba(255, 255, 255, 0.1)'
                     : 'rgba(207, 227, 250, 0.45)',
@@ -3203,7 +2756,6 @@ const DoctrackScreen = ({
             </Pressable>
 
             <Pressable
-              //onPress={() => navigation.navigate('Inspected', {indexTab: 1})}
               style={({pressed}) => [
                 {
                   flex: 1,
@@ -3215,8 +2767,6 @@ const DoctrackScreen = ({
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
                   borderRadius: 5,
-                  //borderWidth: 1,
-                  //borderColor: 'silver',
                   backgroundColor: pressed
                     ? 'rgba(255, 255, 255, 0.1)'
                     : 'rgba(207, 227, 250, 0.45)',
@@ -3247,14 +2797,11 @@ const DoctrackScreen = ({
                   flex: 1,
                   alignItems: 'center',
                   paddingVertical: 10,
-                  //marginHorizontal:10,
                   shadowColor: '#000',
                   shadowOffset: {width: 0, height: 2},
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
                   borderRadius: 5,
-                  //borderWidth: 1,
-                  //borderColor: 'silver',
                   backgroundColor: pressed
                     ? 'rgba(255, 255, 255, 0.1)'
                     : 'rgba(207, 227, 250, 0.45)',

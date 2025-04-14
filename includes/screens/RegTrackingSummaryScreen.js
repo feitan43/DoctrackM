@@ -273,9 +273,9 @@ const RegTrackingSummaryScreen = ({route}) => {
 
   return (
     <PaperProvider>
-      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+      <SafeAreaView style={{flex: 1, /* backgroundColor: 'white' */}}>
         <View style={styles.container}>
-          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+          {/* <StatusBar barStyle="dark-content" backgroundColor="#ffffff" /> */}
           <View
             style={{
               flexDirection: 'row',
@@ -287,6 +287,7 @@ const RegTrackingSummaryScreen = ({route}) => {
               shadowOpacity: 0.2,
               shadowRadius: 3,
               elevation: 3,
+              //backgroundColor:'#60A5FA'
             }}>
             <Pressable
               style={({pressed}) => [

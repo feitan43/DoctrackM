@@ -1309,7 +1309,6 @@ app.get('/userInfo', async (req, res) => {
   }
 });
 
-
 app.get('/regOfficeDelays', async (req, res) => {
 
   try {
@@ -1337,7 +1336,6 @@ app.get('/regOfficeDelays', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
-
 
 app.get('/officeDelays', async (req, res) => {
 
