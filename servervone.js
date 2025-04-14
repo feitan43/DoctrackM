@@ -39,7 +39,7 @@ admin.initializeApp({
 //const ServerIp = "http://192.168.203.13";
 //const ServerIp = "http://192.168.254.111";
 
-const ServerIp = "http://192.168.254.195";
+const ServerIp = "http://192.168.254.131";
 //const ServerIp = "http://192.168.8.24";
 
 
@@ -1203,7 +1203,7 @@ app.post('/loginApi', async (req, res) => {
 
   const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?ark=1&user=${EmployeeNumber}&pass=${encodeURIComponent(hashedPassword)}&pushToken=${PushToken}&userDevice=${encodeURIComponent(UserDevice)}`;
-
+  console.log('API: ', apiUrl);
   try {
     const apiResponse = await fetch(apiUrl);
 
@@ -1212,7 +1212,7 @@ app.post('/loginApi', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    console.log(data);
+    console.log('Data:', data);
 
     if (!data || !Array.isArray(data) || data.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -2051,7 +2051,7 @@ app.get('/getQRData', async (req, res) => {
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?frieren=1&year=${Year}&tn=${TrackingNumber}`;
-
+    console.log('QR DATA: ', apiUrl)
     const apiResponse = await fetch(apiUrl);
 
     //console.log(apiUrl);
@@ -2131,7 +2131,7 @@ app.get('/receivingCount', async (req, res) => {
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?tobio=1&empnum=${EmployeeNumber}&year=${Year}`;
     const apiResponse = await fetch(apiUrl);
-    console.log('RECEIVING COUNT API: ', apiUrl)
+    console.log('RECEIVING COUNT TOBIO API: ', apiUrl)
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
@@ -2145,23 +2145,6 @@ app.get('/receivingCount', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-app.get('/receivedMonthly', async (req, res) => {
-  const { EmployeeNumber, Year } = req.query;
-  try {
-    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receivedMonthly=1&empnum=${EmployeeNumber}&year=${Year}`;
-    const apiResponse = await fetch(apiUrl);
-    console.log('RECEIVING COUNT API: ', apiUrl)
-    if (!apiResponse.ok) {
-      throw new Error(`API request failed with status: ${apiResponse.status}`);
-    }
-    const data = await apiResponse.json()
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching data in receivingCount:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
 
 
 app.get('/myAccountability', async (req, res) => {
@@ -2173,8 +2156,8 @@ app.get('/myAccountability', async (req, res) => {
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?dabi=1&empnum=${EmployeeNumber}`;
+    console.log(apiUrl)
     const apiResponse = await axios.get(apiUrl);
-
     res.json(apiResponse.data);
   } catch (error) {
     console.error('Error fetching data in myAccountability:', error.message);
