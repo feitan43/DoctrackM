@@ -56,7 +56,6 @@ const QRManual = () => {
 
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
 
-  console.log('QR DATA: ', qrData);
 
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
@@ -64,7 +63,6 @@ const QRManual = () => {
   const { officeCode, privilege, permission, accountType, employeeNumber, caoReceiver } =
     useUserInfo();
 
-  console.log('CAO RECEIVER: ', caoReceiver);
 
   const { autoReceive, revertReceived, isLoading } = useReceiving();
 
@@ -207,8 +205,7 @@ const QRManual = () => {
 
     const showCAOReceivedButton = (() => {
       const { TrackingType, Status, DocumentType, Fund } = item;
-      console.log('CAO RECEIVED : ', item)
-
+  
       const isPY = TrackingType === 'PY';
       const isPX = TrackingType === 'PX';
       const isIP = TrackingType === 'IP';
