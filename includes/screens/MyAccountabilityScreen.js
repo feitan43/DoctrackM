@@ -35,6 +35,7 @@ import useMyAccountability from '../api/useMyAccountabilty';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import Loading from '../utils/Loading';
+import { InteractionManager } from 'react-native';
 
 const currentYear = new Date().getFullYear();
 
@@ -168,75 +169,17 @@ const categories = [
       'CAT 102',
       'NO CAT',
       '',
+      null,
     ],
   },
 ];
-
-const RenderTransaction = memo(({item, index, onPressItem}) => {
-  return (
-    <View style={styles.card}>
-      <View style={{backgroundColor: '#F5F7FA', borderRadius: 5}}>
-        <View style={styles.cardInfo}>
-          <View
-            style={{
-              width: 30,
-              height: 25,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontFamily: 'Inter_28pt-Bold',
-                color: 'rgb(7, 84, 252)',
-                textAlign: 'center',
-              }}>
-              {index + 1}
-            </Text>
-          </View>
-          <Text style={[styles.cardLabel, {flex: 0.24, fontSize: 16}]}>TN</Text>
-          <Text style={[styles.cardValue, {flex: 0.8, fontSize: 16}]}>
-            {item.Year} - {item.TrackingNumber}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardLabel}>Status</Text>
-        <Text style={styles.cardValue}>{item.Status}</Text>
-      </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardLabel}>Common</Text>
-        <Text style={styles.cardValue}>{item.CommonName}</Text>
-      </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardLabel}>Date Acquired</Text>
-        <Text style={styles.cardValue}>{item.DateAcquired}</Text>
-      </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardLabel}>Category</Text>
-        <Text style={styles.cardValue}>{item.PR_CategoryCode}</Text>
-      </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardLabel}>Amount</Text>
-        <Text style={styles.cardValue}>{insertCommas(item.Amount)}</Text>
-      </View>
-
-      <TouchableOpacity
-        style={{alignSelf: 'flex-end'}}
-        onPress={() => navigation.navigate('Detail', {item, data})}>
-        <Text style={{color: 'orange'}}>View Details</Text>
-      </TouchableOpacity>
-
-      <View style={styles.buttonContainer}></View>
-    </View>
-  );
-});
 
 const MyAccountabilityScreen = ({navigation}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const {accountabilityData, loading, error, fetchMyAccountability} =
     useMyAccountability();
+
+    console.log(accountabilityData)
   const [selectedItems, setSelectedItems] = useState([]);
   const [visibleItems, setVisibleItems] = useState(6);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -323,6 +266,7 @@ const MyAccountabilityScreen = ({navigation}) => {
     setSelectedYear(year);
   };
 
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -333,7 +277,7 @@ const MyAccountabilityScreen = ({navigation}) => {
             alignItems: 'center',
             backgroundColor: 'rgba(255,255,255,0.8)',
           }}>
-          <Loading visible={loading} />
+          <Loading />
         </View>
       );
     }
@@ -378,55 +322,56 @@ const MyAccountabilityScreen = ({navigation}) => {
               numColumns={3}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{paddingVertical: 10}}
-              renderItem={({item}) => {
+              renderItem={({ item }) => {
                 const categoryCount = accountabilityData.filter(dataItem =>
-                  item?.cat?.includes(dataItem.Category),
+                  item.cat.includes(dataItem.Category),
                 ).length;
 
                 return (
                   <TouchableOpacity
                     style={{
-                      flex: 1,
+                      flex: 1 / 3,
+                      margin: 8,
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 10,
-                      backgroundColor:
-                        selectedCategory === item ? 'lightblue' : 'white',
-                      borderRadius: 10,
-                      margin: 5,
-                      elevation: 3,
                     }}
-                    onPress={() => handlePress(item)}>
-                    {categoryCount > 0 && (
-                      <View
+                    onPress={() => handlePress(item)}
+                  >
+                    <LinearGradient
+                      colors={['#3B82F6', '#1E40AF']}
+                      style={{
+                        width: 100,
+                        height: 90,
+                        borderRadius: 12,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        //elevation: 4,
+                      }}
+                    >
+                      <Icons
+                        name={item.icon}
+                        size={30}
+                        color="#fff"
+                        style={{ marginBottom: 4 }}
+                      />
+                      <Text
                         style={{
-                          position: 'absolute',
-                          top: 5,
-                          right: 5,
-                          backgroundColor: '#fc6060',
-                          borderRadius: 10,
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          zIndex: 1,
-                        }}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                          }}>
-                          {categoryCount}
-                        </Text>
-                      </View>
-                    )}
-
-                    <Icons name={item.icon} size={30} color="#252525" style={{opacity:.7}}/>
-                    <Text style={{textAlign: 'center', marginTop: 5}}>
-                      {item.name}
-                    </Text>
+                          color: 'white',
+                          fontSize: 10,
+                          textAlign: 'center',
+                          paddingHorizontal: 5,
+                        }}
+                        numberOfLines={2}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text style={{ color: 'white', fontSize: 10 }}>
+                        ({categoryCount})
+                      </Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 );
               }}
+
             />
           </View>
         ) : (

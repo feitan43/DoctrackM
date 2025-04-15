@@ -11,6 +11,8 @@ import {
   Linking,
   Alert,
   Modal,
+  StatusBar,
+  //SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ActivityIndicator} from 'react-native-paper';
@@ -36,6 +38,8 @@ import FastImage from 'react-native-fast-image';
 import ZoomableImage from '../utils/ZoomableImage';
 import {insertCommas} from '../utils/insertComma';
 import {formTypeMap} from '../utils/formTypeMap';
+import LinearGradient from 'react-native-linear-gradient';
+import Loading from '../utils/Loading';
 
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
@@ -46,7 +50,7 @@ const DetailScreen = ({route, navigation}) => {
     TrackingType: trackingType,
   } = route.params.selectedItem;
 
-  const {employeeNumber} = useUserInfo();
+  const {employeeNumber, procurement} = useUserInfo();
   const queryClient = useQueryClient();
   const {
     genInformationData,
@@ -133,6 +137,12 @@ const DetailScreen = ({route, navigation}) => {
 
   const toggleDescription = index => {
     setExpandedIndex(expandedIndex === index ? null : index);
+  };
+  const [scrolled, setScrolled] = useState(false);
+
+  const handleScroll = (event) => {
+    const y = event.nativeEvent.contentOffset.y;
+    setScrolled(y > 0); // true if user has scrolled down
   };
 
   function removeHtmlTags(text) {
@@ -413,62 +423,62 @@ const DetailScreen = ({route, navigation}) => {
   };
 
   const renderAttachmentPreview = (attachments = [], onRemove) => {
-        if (!attachments.length) return null;
-        return (
-          <BottomSheetFlatList
-            data={attachments}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({item, index}) => (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginTop: 8,
-                  padding: 10,
-                  borderWidth: 1,
-                  borderColor: '#ddd',
-                  borderRadius: 8,
-                  backgroundColor: '#F5F5F5',
-                  justifyContent: 'space-between', 
-                }}>
-                {item.uri && (
-                  <FastImage
-                    source={{uri: item.uri}}
-                    style={{width: 60, height: 60, borderRadius: 4}}
-                  />
-                )}
-                <View
-                  style={{
-                    marginLeft: item.uri ? 8 : 0,
-                    flexShrink: 1,
-                    flexGrow: 1,
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: 'black',
-                      textAlignVertical: 'center',
-                    }}
-                    numberOfLines={1}
-                    ellipsizeMode="tail">
-                    {item.name}
-                  </Text>
-                </View>
-    
-                <TouchableOpacity
-                  onPress={() => removeSelectedFile(item, index)}
-                  style={{
-                    padding: 16,
-                    borderRadius: 4,
-                    backgroundColor: '#D32F2F',
-                  }}>
-                  <Icon name={'trash-outline'} size={20} color={'white'} />
-                </TouchableOpacity>
-              </View>
+    if (!attachments.length) return null;
+    return (
+      <BottomSheetFlatList
+        data={attachments}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({item, index}) => (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 8,
+              padding: 10,
+              borderWidth: 1,
+              borderColor: '#ddd',
+              borderRadius: 8,
+              backgroundColor: '#F5F5F5',
+              justifyContent: 'space-between',
+            }}>
+            {item.uri && (
+              <FastImage
+                source={{uri: item.uri}}
+                style={{width: 60, height: 60, borderRadius: 4}}
+              />
             )}
-          />
-        );
-      };
+            <View
+              style={{
+                marginLeft: item.uri ? 8 : 0,
+                flexShrink: 1,
+                flexGrow: 1,
+              }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: 'black',
+                  textAlignVertical: 'center',
+                }}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {item.name}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => removeSelectedFile(item, index)}
+              style={{
+                padding: 16,
+                borderRadius: 4,
+                backgroundColor: '#D32F2F',
+              }}>
+              <Icon name={'trash-outline'} size={20} color={'white'} />
+            </TouchableOpacity>
+          </View>
+        )}
+      />
+    );
+  };
 
   const [currentFormType, setCurrentFormType] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -490,327 +500,241 @@ const DetailScreen = ({route, navigation}) => {
     if (selectedItem.TrackingType === 'PR') {
       return (
         <ScrollView ref={scrollViewRef}>
+
           <View ref={genInfoRef} style={{marginTop: 10}}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    GENERAL INFORMATION
-                  </Text>
-                </View>
-                <View style={{paddingTop: 10}}>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Office</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.OfficeName.replace(/\\/g, '')}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Status</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.TrackingType} {'-'}{' '}
-                      {genInformationData.Status}
-                    </Text>
-                  </View>
+            <View style={styles.cardContainer}>
+              <LinearGradient
+                colors={['#2563EB', '#1E3A8A']}
+                style={styles.cardHeader}>
+                <Text style={styles.headerText}>GENERAL INFORMATION</Text>
+              </LinearGradient>
 
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>OBR Number</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.OBR_Number}
-                    </Text>
+              <View style={styles.cardDetails}>
+                {[
+                  {
+                    label: 'Office',
+                    value: genInformationData.OfficeName?.replace(/\\/g, ''),
+                  },
+                  {
+                    label: 'Status',
+                    value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
+                  },
+                  {label: 'OBR Number', value: genInformationData.OBR_Number},
+                  {label: 'PR Number', value: genInformationData.PR_Number},
+                  {label: 'PR Sched', value: genInformationData.PR_Sched},
+                  {label: 'Fund', value: genInformationData.Fund},
+                  {label: 'Encoded By', value: genInformationData.EncodedBy},
+                  {
+                    label: 'Date Encoded',
+                    value: genInformationData.DateEncoded,
+                  },
+                  {
+                    label: 'Date Updated',
+                    value: genInformationData.DateModified,
+                  },
+                ].map((item, index) => (
+                  <View key={index}>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.label}>{item.label}</Text>
+                      <Text style={styles.labelValue}>{item.value}</Text>
+                    </View>
+                    {index !== 8 && <View style={styles.divider} />}
                   </View>
-
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>PR Number</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.PR_Number}
-                    </Text>
-                  </View>
-
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>PR Sched</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.PR_Sched}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Fund</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.Fund}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>EncodedBy</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.EncodedBy}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>DateEncoded</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.DateEncoded}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>DateUpdated</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.DateModified}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                </View>
+                ))}
               </View>
             </View>
           </View>
 
-          <View ref={obrInfoRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    OBR INFORMATION
-                  </Text>
-                </View>
-                <View>
+          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
+          <View style={styles.cardContainer}>
+            <LinearGradient
+              colors={['#2563EB', '#1E3A8A']}
+              style={styles.cardHeader}
+            >
+              <Text style={styles.headerText}>OBR INFORMATION</Text>
+            </LinearGradient>
+
+            <View style={styles.cardTable}>
+              <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
+                <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
+                <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
+              </View>
+
+              {OBRInformation && OBRInformation.length > 0 ? (
+                OBRInformation.map((item, index) => (
                   <View
-                    style={{
-                      backgroundColor: 'rgba(0,0,0, 0.5)',
-                      padding: 5,
+                  key={index}
+                  style={[
+                    styles.tableRow,
+                    {
                       flexDirection: 'row',
-                    }}>
-                    <Text
-                      style={{
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                        marginEnd: 20,
-                        marginStart: 5,
-                        flex: 1,
-                        fontSize: 12,
-                      }}>
-                      PROGRAM
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                        marginEnd: 40,
-                        flex: 1,
-                        fontSize: 12,
-                      }}>
-                      CODE
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                        marginEnd: 5,
-                        flex: 1,
-                        textAlign: 'right',
-                        fontSize: 12,
-                      }}>
-                      AMOUNT
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#E5E7EB',
+                      paddingVertical: 5,
+                    },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_ProgramCode}</Text>
+                    <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
+                  </View>
+                
+                  <View style={{ flex: 1 }}>
+                  <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_AccountCode}</Text>
+                    <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
+                  </View>
+                
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>
+                      {insertCommas(item.Amount)}
                     </Text>
                   </View>
-
-                  {OBRInformation && OBRInformation.length > 0 ? (
-                    OBRInformation.map((item, index) => (
-                      <View key={index}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: 5,
-                            paddingBottom: 15,
-                            //borderBottomWidth: 1,
-                            paddingStart: 10,
-                            //borderBottomColor: 'silver',
-                          }}>
-                          <View style={{flex: 1}}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: 'white',
-                                fontFamily: 'Oswald-Regular',
-                              }}>
-                              {item.PR_ProgramCode}
-                            </Text>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: 'silver',
-                                fontFamily: 'Oswald-ExtraLight',
-                              }}>
-                              {item.ProgramName}
-                            </Text>
-                          </View>
-                          <View style={{flex: 1}}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: 'white',
-                                fontFamily: 'Oswald-Regular',
-                              }}>
-                              {item.PR_AccountCode}
-                            </Text>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: 'silver',
-                                fontFamily: 'Oswald-ExtraLight',
-                              }}>
-                              {item.AccountTitle}
-                            </Text>
-                          </View>
-                          <View
-                            style={{
-                              flex: 1,
-                              alignItems: 'flex-end',
-                              marginEnd: 10,
-                            }}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: 'white',
-                                fontFamily: 'Oswald-Regular',
-                              }}>
-                              {insertCommas(item.Amount)}
-                            </Text>
-                          </View>
-                        </View>
-                        <Divider
-                          width={1.9}
-                          color={'rgba(217, 217, 217, 0.1)'}
-                          borderStyle={'solid'}
-                          marginHorizontal={10}
-                          marginBottom={5}
-                          style={{bottom: 5}}
-                        />
-                      </View>
-                    ))
-                  ) : (
-                    <Text
-                      style={{color: 'silver', fontFamily: 'Oswald-Regular'}}>
-                      No data available
-                    </Text>
-                  )}
                 </View>
-                <View
-                  style={{
-                    alignItems: 'flex-end',
-                    paddingRight: 5,
-                    paddingBottom: 10,
-                  }}>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontSize: 20,
-                      fontFamily: 'Oswald-Regular',
-                      paddingEnd: 5,
-                      textAlign: 'right',
-                    }}>
-                    {insertCommas(totalAmount.toFixed(2))}
+                
+                ))
+              ) : (
+                <Text style={styles.noDataText}>No data available</Text>
+              )}
+
+              <View style={styles.totalContainer}>
+                <Text style={[styles.totalAmount, {marginEnd:5}]}>
+                  {insertCommas(totalAmount.toFixed(2))}
+                </Text>
+              </View>
+            </View>
+          </View>
+          </View>
+
+          <View ref={prDetailsRef} style={{ marginTop: 20 }}>
+            <View style={styles.cardContainer}>
+              <LinearGradient
+                colors={['#2563EB', '#1E3A8A']}
+                style={styles.cardHeader}>
+                <Text style={styles.headerText}>PR DETAILS</Text>
+              </LinearGradient>
+
+              <View style={styles.cardTable}>
+                <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB', }]}>
+                  <View style={{ flex: 2 }}>
+                    <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={styles.tableHeaderText}>QTY | COST</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
+                  </View>
+                </View>
+
+                {prpopxDetails && prpopxDetails.length > 0 ? (
+                  prpopxDetails.map((detail, index) => (
+                    <View key={index}>
+                      <View style={[styles.tableRow,{  flexDirection: 'row',
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#E5E7EB',
+                      paddingVertical: 10,}]}>
+                        <View style={{ flex: 2 }}>
+                          <TouchableOpacity onPress={() => toggleDescription(index)}>
+                            <Text
+                              style={styles.tableRowSub}
+                              numberOfLines={expandedIndex === index ? undefined : 3}
+                              ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
+                              {detail.Description}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Qty & Cost Column */}
+                        <View style={{ flex: 1, alignItems: 'center' }}>
+                          <Text style={styles.tableRowMain}>
+                            {Math.floor(detail.Qty)}{' '}
+                            <Text style={styles.tableRowSub}>{detail.Unit}</Text>
+                          </Text>
+                          <Text style={styles.tableRowSub}>
+                            {insertCommas(detail.Amount)}
+                          </Text>
+                        </View>
+
+                        {/* Total Column */}
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                          <Text
+                            style={[
+                              styles.tableRowMain,
+                              {paddingVertical: 5 },
+                            ]}>
+                            {insertCommas(detail.Total)}
+                          </Text>
+                        </View>
+                      </View>
+
+                     {/*  {index !== prpopxDetails.length - 1 && (
+                        <View style={styles.divider} />
+                      )} */}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No data available</Text>
+                )}
+
+                <View style={styles.totalContainer}>
+                <Text style={[styles.totalAmount, {marginEnd:5}]}>
+                    {insertCommas(prpopxTotalAmount.toFixed(2))}
                   </Text>
                 </View>
               </View>
             </View>
           </View>
 
-          <View ref={prDetailsRef}>
+          <View ref={remarksRef} style={{marginTop: 20}}>
+          <View style={styles.cardContainer}>
+            <LinearGradient
+              colors={['#2563EB', '#1E3A8A']}
+              style={styles.cardHeader}>
+              <Text style={styles.headerText}>REMARKS</Text>
+            </LinearGradient>
+
+            <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+              {genInformationData?.Remarks1 ? (
+                <Text style={styles.remarksText}>
+                  {removeHtmlTags(genInformationData.Remarks1)}
+                </Text>
+              ) : (
+                <Text style={styles.noDataText}>No remarks available.</Text>
+              )}
+            </View>
+          </View>
+          </View>
+
+          <View style={{ marginTop: 20 }}>
+          <View style={styles.cardContainer}>
+            <LinearGradient
+                colors={['#2563EB', '#1E3A8A']}
+                style={styles.cardHeader}>
+              <Text style={styles.headerText}>PENDING NOTE</Text>
+            </LinearGradient>
+
+            <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+            {genInformationData?.Remarks ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: '#92400E',
+                  lineHeight: 20,
+                }}>
+                {genInformationData.Remarks}
+              </Text>
+            ) : (
+              <Text
+              style={styles.noDataText}>
+                No pending note provided.
+              </Text>
+            )}
+            </View>
+          </View>
+          </View>
+
+          {/* <View ref={prDetailsRef}>
             <View style={styles.obrContainer}>
               <View style={styles.detailsContainer}>
                 <View
@@ -998,427 +922,263 @@ const DetailScreen = ({route, navigation}) => {
                 </View>
               </View>
             </View>
-          </View>
+          </View> */}
 
-          <View style={styles.obrContainer}>
-            <View style={styles.detailsContainer}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  padding: 10,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  alignItems: 'center',
-                }}>
-                {/* <Icon
-                  name={'information-circle-outline'}
-                  size={28}
-                  color={'rgba(132, 218, 92, 1)'}
-                /> */}
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'center',
-                    marginStart: 10,
-                  }}>
-                  REMARKS
-                </Text>
-              </View>
+         {genInformationData.Year === '2025' && procurement === '1' && (
+          <View  style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <LinearGradient
+                colors={['#2563EB', '#1E3A8A']}
+                style={styles.cardHeader}>
+                <Text style={styles.headerText}>DIGITAL COPIES</Text>
+              </LinearGradient>
 
-              <View
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 10,
-                  paddingBottom: 15,
-                }}>
-                <View style={styles.obrRow}>
-                  <View
-                    style={{
-                      flexDirection: 'column',
-                      alignItems: 'left',
-                      width: 'auto',
-                    }}>
-                    {genInformationData.Remarks1 ? (
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontFamily: 'Oswald-Regular',
-                          color: 'white',
-                        }}>
-                        {removeHtmlTags(genInformationData.Remarks1)}
-                      </Text>
-                    ) : (
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontFamily: 'Oswald-Regular',
-                          color: 'white',
-                        }}></Text>
-                    )}
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
+              <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+              {formTypeMap.PR.map((formType, index) => {
+                  const formTypeFiles =
+                    attachmentsFiles?.filter(
+                      fileUrl => fileUrl.split('~')[2] === formType,
+                    ) || [];
 
-          <View style={styles.obrContainer}>
-            <View style={styles.detailsContainer}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  padding: 10,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  alignItems: 'center',
-                }}>
-                {/* <Icon
-                  name={'information-circle-outline'}
-                  size={28}
-                  color={'rgba(132, 218, 92, 1)'}
-                /> */}
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    textAlign: 'center',
-                    marginStart: 10,
-                  }}>
-                  PENDING NOTE
-                </Text>
-              </View>
+                  const hasFiles = formTypeFiles.length > 0;
 
-              <View
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 10,
-                  paddingBottom: 15,
-                }}>
-                <View style={styles.obrRow}>
-                  <View
-                    style={{
-                      flexDirection: 'column',
-                      alignItems: 'left',
-                      width: 'auto',
-                    }}>
-                    {genInformationData.Remarks ? (
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontFamily: 'Oswald-Regular',
-                          color: 'white',
-                        }}>
-                        {genInformationData.Remarks}
-                      </Text>
-                    ) : (
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontFamily: 'Oswald-Regular',
-                          color: 'white',
-                        }}></Text>
-                    )}
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View ref={transactionHistoryRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    alignItems: 'center',
-                  }}>
-                  {/* <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    TRANSACTION HISTORY
-                  </Text>
-                </View>
-
-                <View style={{flex: 1}}>
-                  {transactionHistory && transactionHistory.length > 0 ? (
-                    <DataTable
+                  return (
+                    <View
+                      key={formType}
                       style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                        alignSelf: 'center',
+                        marginVertical: 10,
+                        paddingBottom: 10,
+                        borderBottomWidth: 1,
+                        borderColor: '#e5e7eb',
                       }}>
                       <View
-                        style={{
-                          flexDirection: 'row',
-                          paddingVertical: 5,
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        }}>
-                        <View style={{flex: 1}}></View>
-                        <View style={{flex: 3, marginEnd: 15}}>
-                          <Text
-                            style={{
-                              fontFamily: 'Oswald-ExtraLight',
-                              color: 'white',
-                              fontSize: 12,
-                            }}>
-                            DATE
+                        style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
+                        <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
+                          {`${index + 1}. ${formType}`}
+                        </Text>
+
+                        <TouchableOpacity
+                          disabled={hasFiles}
+                          onPress={() => handleAttachFiles(formType)}
+                          style={{
+                            backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+                            paddingVertical: 6,
+                            paddingHorizontal: 12,
+                            borderRadius: 5,
+                            marginRight: 10,
+                            opacity: hasFiles ? 0.5 : 1,
+                          }}>
+                          <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>
+                            Attach Files
                           </Text>
-                        </View>
-                        <View style={{flex: 5}}>
-                          <Text
-                            style={{
-                              fontFamily: 'Oswald-ExtraLight',
-                              color: 'white',
-                              fontSize: 12,
-                            }}>
-                            STATUS
-                          </Text>
-                        </View>
-                        <View style={{flex: 3, marginEnd: 10}}>
-                          <Text
-                            style={{
-                              fontFamily: 'Oswald-ExtraLight',
-                              color: 'white',
-                              textAlign: 'right', // align text to the right for numeric
-                              fontSize: 12,
-                            }}>
-                            COMPLETION
-                          </Text>
-                        </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          disabled={!hasFiles}
+                          onPress={() => handleRemove(year, trackingNumber, formType)}
+                          style={{
+                            backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+                            paddingVertical: 4,
+                            paddingHorizontal: 12,
+                            borderRadius: 5,
+                            opacity: !hasFiles ? 0.5 : 1,
+                          }}>
+                          <Icon name={'trash-outline'} size={20} color={'#FF6347'} />
+                        </TouchableOpacity>
                       </View>
 
-                      {transactionHistory.map((item, index) => (
-                        <View
-                          key={index}
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: 10,
-                            alignItems: 'center',
-                            //paddingTop: 10,
-                            //paddingBottom: 10,
-                            backgroundColor:
-                              index % 2 === 0
-                                ? 'rgba(0, 0, 0, 0.1)'
-                                : 'rgba(0, 0, 0, 0.2)', // Alternating background color
-                          }}>
-                          <View style={{flex: 1}}>
-                            <Text
-                              style={{
-                                textAlign: 'center',
-                                fontSize: 12,
-                                color: 'silver',
-                                fontFamily: 'Oswald-ExtraLight',
-                              }}>
-                              {index + 1}
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 15}}>
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontFamily: 'Oswald-ExtraLight',
-                                color: 'silver',
-                              }}>
-                              {item.DateModified}
-                            </Text>
-                          </View>
-                          <View style={{flex: 5}}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                fontFamily: 'Oswald-Regular',
-                                color: 'white',
-                              }}>
-                              {item.Status}
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 10}}>
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontFamily: 'Oswald-ExtraLight',
-                                textAlign: 'right',
-                                color: 'silver',
-                              }}>
-                              {removeHtmlTags(item.Completion)}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                    </DataTable>
-                  ) : (
-                    <View style={{backgroundColor: 'white'}}>
-                      <Text>No Transaction History available</Text>
+                      <View style={{marginTop: 5}}>
+                        {hasFiles ? (
+                          formTypeFiles.map((fileUrl, fileIndex) => {
+                            const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                            const fileExtension = fileUrl.split('.').pop();
+                            const uniqueKey = `file-${formType}-${fileIndex}`;
+
+                            return (
+                              <View
+                                key={uniqueKey}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  marginTop: 5,
+                                  backgroundColor: '#f1f5f9',
+                                  padding: 10,
+                                  borderRadius: 6,
+                                }}>
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    if (fileExtension === 'pdf') {
+                                      Linking.openURL(uniqueUri);
+                                    } else {
+                                      handleImagePress(uniqueUri);
+                                    }
+                                  }}>
+                                  <Text style={{color: '#1e293b', fontSize: 12}}>
+                                    {fileUrl.split('~').slice(-2).join('~')}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            );
+                          })
+                        ) : (
+                          <Text style={{color: '#9ca3af', fontSize: 12}}>
+                            No attached files
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                  )}
-                </View>
+                  );
+                })}
               </View>
             </View>
           </View>
+          )}
 
-          {genInformationData.Year === '2025' && (
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
+        <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 3,
+              elevation: 2,
+              marginHorizontal: 16,
+              overflow: 'hidden',
+            }}>
+             <LinearGradient
+                colors={['#2563EB', '#1E3A8A']}
+                style={styles.cardHeader}>
+                <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
+              </LinearGradient>
+
+            <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
+              {/* Table Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  paddingBottom: 8,
+                  borderBottomWidth: 1,
+                  borderColor: '#E5E7EB',
+                  marginBottom: 6,
+                }}>
+                <View style={{ flex: 1 }} />
+                <View style={{ flex: 3 }}>
                   <Text
                     style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      textAlign: 'left',
-                      marginStart: 10,
-                      flex: 1,
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      fontWeight: '500',
                     }}>
-                    DIGITAL COPIES
+                    DATE
                   </Text>
                 </View>
-                <View
-                  style={{
-                    paddingHorizontal: 15,
-                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                  }}>
-                  {formTypeMap.PR.map((formType, index) => {
-                   const formTypeFiles = attachmentsFiles?.filter(
-                    fileUrl => fileUrl.split('~')[2] === formType
-                  ) || [];
-                  
-                  const hasFiles = formTypeFiles.length > 0;
-                    return (
-                      <View
-                        key={formType}
-                        style={{
-                          marginVertical: 10,
-                          paddingBottom: 10,
-                          borderBottomWidth: 1,
-                          borderColor: 'silver',
-                        }}>
-                        <View
-                          style={{flexDirection: 'row', alignItems: 'center'}}>
-                          <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
-                            {`${index + 1}. ${formType}`}
-                          </Text>
-
-                          <TouchableOpacity
-                            disabled={hasFiles}
-                            onPress={() => handleAttachFiles(formType)}
-                            style={{
-                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                              paddingVertical: 6,
-                              paddingHorizontal: 12,
-                              borderRadius: 5,
-                              marginRight: 10,
-                              opacity: hasFiles ? 0.5 : 1,
-                            }}>
-                            <Text
-                              style={{
-                                color: '#FFFFFF',
-                                fontSize: 12,
-                                fontWeight: 'bold',
-                              }}>
-                              Attach Files
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            disabled={!hasFiles}
-                            onPress={() =>
-                              handleRemove(year, trackingNumber, formType)
-                            }
-                            style={{
-                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-                              paddingVertical: 4,
-                              paddingHorizontal: 12,
-                              borderRadius: 5,
-                              opacity: !hasFiles ? 0.5 : 1,
-                            }}>
-                            <Icon
-                              name={'trash-outline'}
-                              size={20}
-                              color={'#FF6347'}
-                            />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={{marginTop: 5}}>
-                          {attachmentsFiles &&
-                          attachmentsFiles.length > 0 &&
-                          attachmentsFiles.some(
-                            fileUrl => fileUrl.split('~')[2] === formType,
-                          ) ? (
-                            attachmentsFiles
-                              .filter(
-                                fileUrl => fileUrl.split('~')[2] === formType,
-                              )
-                              .map((fileUrl, index) => {
-                                const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-                                const uniqueKey = `file-${formType}-${index}`;
-                                const fileExtension = fileUrl.split('.').pop();
-
-                                return (
-                                  <View
-                                    key={uniqueKey}
-                                    style={{
-                                      flexDirection: 'row',
-                                      alignItems: 'center',
-                                      marginTop: 5,
-                                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                      padding: 10,
-                                    }}>
-                                    <TouchableOpacity
-                                      onPress={() => {
-                                        if (fileExtension === 'pdf') {
-                                          Linking.openURL(uniqueUri);
-                                        } else {
-                                          handleImagePress(uniqueUri);
-                                        }
-                                      }}>
-                                      <Text
-                                        style={{
-                                          color: '#fff',
-                                          fontSize: 12,
-                                          flex: 1,
-                                        }}>
-                                        {fileUrl.split('~').slice(-2).join('~')}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                );
-                              })
-                          ) : (
-                            <Text
-                              style={{
-                                color: '#ccc',
-                                fontSize: 12,
-                                marginTop: 5,
-                              }}>
-                              No attached files
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
+                <View style={{ flex: 5 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      fontWeight: '500',
+                    }}>
+                    STATUS
+                  </Text>
+                </View>
+                <View style={{ flex: 3 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      fontWeight: '500',
+                      textAlign: 'right',
+                    }}>
+                    COMPLETION
+                  </Text>
                 </View>
               </View>
+
+              {/* Table Body */}
+              {transactionHistory && transactionHistory.length > 0 ? (
+                transactionHistory.map((item, index) => (
+                  <View key={index}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
+                        borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
+                      }}>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: '#6B7280',
+                            textAlign: 'center',
+                          }}>
+                          {index + 1}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 3 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: '#4B5563',
+                          }}>
+                          {item.DateModified}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 5 }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: '#1F2937',
+                            fontWeight: '500',
+                          }}>
+                          {item.Status}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 3 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: '#6B7280',
+                            textAlign: 'right',
+                            marginEnd:10
+                          }}>
+                          {removeHtmlTags(item.Completion)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {index !== transactionHistory.length - 1 && (
+                      <View
+                        style={{
+                          height: 1,
+                          backgroundColor: '#E5E7EB',
+                          marginVertical: 6,
+                        }}
+                      />
+                    )}
+                  </View>
+                ))
+              ) : (
+                <Text
+                  style={{
+                    color: '#9CA3AF',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    marginTop: 10,
+                  }}>
+                  No Transaction History available
+                </Text>
+              )}
             </View>
-          )}
+          </View>
+        </View>
+
+
+
           <View style={{height: 500}} />
         </ScrollView>
       );
@@ -2592,7 +2352,7 @@ const DetailScreen = ({route, navigation}) => {
             </View>
           </View>
 
-          {genInformationData.Year === '2025' && (
+          {genInformationData.Year === '2025' && procurement === '1' && (
             <View style={styles.obrContainer}>
               <View style={styles.detailsContainer}>
                 <View
@@ -2621,11 +2381,12 @@ const DetailScreen = ({route, navigation}) => {
                     backgroundColor: 'rgba(0, 0, 0, 0.1)',
                   }}>
                   {formTypeMap.PO.map((formType, index) => {
-                   const formTypeFiles = attachmentsFiles?.filter(
-                    fileUrl => fileUrl.split('~')[2] === formType
-                  ) || [];
-                  
-                  const hasFiles = formTypeFiles.length > 0;
+                    const formTypeFiles =
+                      attachmentsFiles?.filter(
+                        fileUrl => fileUrl.split('~')[2] === formType,
+                      ) || [];
+
+                    const hasFiles = formTypeFiles.length > 0;
                     return (
                       <View
                         key={formType}
@@ -4276,7 +4037,7 @@ const DetailScreen = ({route, navigation}) => {
             </View>
           </View>
 
-          {genInformationData.Year === '2025' && (
+          {genInformationData.Year === '2025' && procurement === '1' && (
             <View style={styles.obrContainer}>
               <View style={styles.detailsContainer}>
                 <View
@@ -4305,11 +4066,12 @@ const DetailScreen = ({route, navigation}) => {
                     backgroundColor: 'rgba(0, 0, 0, 0.1)',
                   }}>
                   {formTypeMap.PX.map((formType, index) => {
-                   const formTypeFiles = attachmentsFiles?.filter(
-                    fileUrl => fileUrl.split('~')[2] === formType
-                  ) || [];
-                  
-                  const hasFiles = formTypeFiles.length > 0;
+                    const formTypeFiles =
+                      attachmentsFiles?.filter(
+                        fileUrl => fileUrl.split('~')[2] === formType,
+                      ) || [];
+
+                    const hasFiles = formTypeFiles.length > 0;
                     return (
                       <View
                         key={formType}
@@ -5712,238 +5474,234 @@ const DetailScreen = ({route, navigation}) => {
 
   return (
     <BottomSheetModalProvider>
-      <ImageBackground
-        source={require('../../assets/images/docmobileBG.png')}
-        style={{flex: 1}}>
-        <SafeAreaView style={{flex: 1}}>
-          <View style={styles.container}>
+        <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+        <StatusBar barStyle="light-content"  backgroundColor="#1E3A8A" />
+        <View style={styles.container}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 10,
+              position: 'relative',
+              paddingTop: 20,
+              borderBottomWidth:1,
+              borderBottomColor:'#E5E7EB'
+            }}>
             <View
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: 10,
-                position: 'relative',
-                paddingTop: 20,
+                position: 'absolute',
+                left: 10,
+                borderRadius: 999,
+                overflow: 'hidden',
               }}>
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 10,
-                  borderRadius: 999,
-                  overflow: 'hidden',
-                }}>
-                <Pressable
-                  style={({pressed}) => [
-                    pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                    {
-                      backgroundColor: 'transparent',
-                      padding: 10,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    },
-                  ]}
-                  android_ripple={{color: 'gray'}}
-                  onPress={() => navigation.goBack()}>
-                  <Icon name="chevron-back-outline" size={26} color="white" />
-                </Pressable>
-              </View>
-              <View style={{alignItems: 'center', rowGap: -5}}>
-                {genInformationData ? (
-                  <>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontSize: 20,
-                        fontFamily: 'Oswald-Medium',
-                        lineHeight: 22,
-                      }}>
-                      {genInformationData.TrackingNumber}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontFamily: 'Oswald-Regular',
-                        color: '#FFFFFF',
-                      }}>
-                      Tracking Number
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontSize: 20,
-                        fontFamily: 'Oswald-Medium',
-                        lineHeight: 22,
-                      }}>
-                      {''}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontFamily: 'Oswald-Regular',
-                        color: '#FFFFFF',
-                      }}></Text>
-                  </>
-                )}
-              </View>
+              <Pressable
+                style={({pressed}) => [
+                  pressed && {backgroundColor: 'gray'},
+                  {
+                    backgroundColor: 'transparent',
+                    padding: 10,
+                    flexDirection: 'row',
+                    alignItems: 'flex-end',
+                  },
+                ]}
+                android_ripple={{color: 'gray'}}
+                onPress={() => navigation.goBack()}>
+                <Icon name="chevron-back-outline" size={26} color="gray" />
+              </Pressable>
             </View>
-
-            {genInfoLoading ? (
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  justifyContent: 'center',
-                  alignSelf: 'center',
-                  borderRadius: 50,
-                  marginTop: 10,
-                }}>
-                <ActivityIndicator
-                  size="small"
-                  color="white"
-                  justifyContent="center"
-                  style={{flex: 1}}
-                />
-              </View>
-            ) : (
-              <View style={{height: '100%', paddingBottom: 55}}>
-                {(() => {
-                  switch (selectedItem.TrackingType) {
-                    case 'PR':
-                      return renderDetailsPRRequest();
-                    case 'PO':
-                      return renderDetailsPOOrder();
-                    case 'PX':
-                      return renderDetailsPayment();
-                    default:
-                      return renderOtherDetails();
-                  }
-                })()}
-              </View>
-            )}
+            <View style={{alignItems: 'center', rowGap: -5}}>
+              {genInformationData ? (
+                <>
+                  <Text
+                    style={{
+                      color: '#252525',
+                      fontSize: 20,
+                      fontFamily: 'Oswald-Medium',
+                      lineHeight: 22,
+                    }}>
+                    {genInformationData.TrackingNumber}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontFamily: 'Oswald-Regular',
+                      color: 'gray',
+                      fontStyle: 'italic',
+                    }}>
+                    Doctrack{' '}
+                    <Text
+                      style={{
+                        fontFamily: 'Oswald-Medium',
+                        fontSize: 12,
+                        lineHeight: 20,
+                        color: '#252525',
+                        fontStyle: 'italic',
+                      }}>
+                      {year}
+                    </Text>
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontSize: 20,
+                      fontFamily: 'Oswald-Medium',
+                      lineHeight: 22,
+                    }}>
+                    {''}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontFamily: 'Oswald-Regular',
+                      color: '#FFFFFF',
+                    }}></Text>
+                </>
+              )}
+            </View>
           </View>
 
-          <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
-            <View
-              style={{
-                flex: 1,
-                padding: 16,
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                justifyContent: 'space-between',
-              }}>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                  color: '#444',
-                  marginBottom: 10,
-                }}>
-                {currentFormType === 'OBR Form'
-                  ? 'OBR Form'
-                  : currentFormType === 'PR Form'
-                  ? 'PR Form'
-                  : currentFormType === 'RFQ Form'
-                  ? 'RFQ Form'
-                  : currentFormType === 'PO Form'
-                  ? 'PO Form'
-                  : currentFormType === 'Acceptance Form'
-                  ? 'Acceptance Form'
-                  : currentFormType === 'RFI Form'
-                  ? 'RFI Form'
-                  : currentFormType === 'Request for Delivery Extension'
-                  ? 'Request for Delivery Extension'
-                  : currentFormType === 'DV Form'
-                  ? 'DV Form'
-                  : currentFormType === 'Abstract of Bids'
-                  ? 'Abstract of Bids'
-                  : currentFormType === 'Financial Proposal'
-                  ? 'Financial Proposal'
-                  : currentFormType === 'Invitation to Observer'
-                  ? 'Invitation to Observer'
-                  : currentFormType === 'Bid Evaluation'
-                  ? 'Bid Evaluation'
-                  : currentFormType === 'Post Qualification'
-                  ? 'Post Qualification'
-                  : currentFormType === 'Certificate of Eligibility'
-                  ? 'Certificate of Eligibility'
-                  : currentFormType === 'Philgeps Posting'
-                  ? 'Philgeps Posting'
-                  : currentFormType === 'Philgeps Award'
-                  ? 'Philgeps Award'
-                  : currentFormType === 'Certification (Mode, Award, Minutes)'
-                  ? 'Certification (Mode, Award, Minutes)'
-                  : currentFormType === 'Bac Cert (Conspicuous Place)'
-                  ? 'Bac Cert (Conspicuous Place)'
-                  : 'No form type selected'}
-              </Text>
-              <TouchableOpacity
-                onPress={pickFile}
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#1976D2',
-                  paddingVertical: 10,
-                  paddingHorizontal: 18,
-                  borderRadius: 6,
-                  alignItems: 'center',
-                }}>
-                <Text
-                  style={{color: '#1976D2', fontSize: 16, fontWeight: '500'}}>
-                  Browse
-                </Text>
-              </TouchableOpacity>
-
-              <View style={{flex: 1, alignItems: 'center'}}>
-                {selectedFiles?.length > 0 ? (
-                  renderAttachmentPreview(selectedFiles, handleRemove)
-                ) : (
-                  <Text
-                    style={{fontSize: 14, color: '#666', marginVertical: 10}}>
-                    No files attached
-                  </Text>
-                )}
-              </View>
-
-              <TouchableOpacity
-                onPress={() =>
-                  handleUpload(
-                    selectedFiles,
-                    genInformationData.Year,
-                    genInformationData.TrackingNumber,
-                    currentFormType,
-                    employeeNumber,
-                  )
-                }
-                style={{
-                  backgroundColor: uploadAttachLoading ? '#ccc' : '#1976D2',
-                  paddingVertical: 12,
-                  borderRadius: 6,
-                  alignItems: 'center',
-                }}
-                disabled={uploadAttachLoading}>
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
-                  {uploadAttachLoading ? 'Uploading...' : 'Upload'}{' '}
-                </Text>
-              </TouchableOpacity>
+          {genInfoLoading ? (
+            <View>
+              <Loading />
             </View>
-          </BottomSheetModal>
-          {selectedImage && (
-            <View style={styles.zoomableContainer}>
-              <ZoomableImage
-                key={selectedImage}
-                uri={selectedImage}
-                currentFormType={currentFormType}
-                close={() => setSelectedImage(null)}
-                loadedUris={loadedUris}
-                setLoadedUris={setLoadedUris}
-              />
+            
+          ) : (
+            <View style={{height: '100%', paddingBottom: 55}}>
+              {(() => {
+                switch (selectedItem.TrackingType) {
+                  case 'PR':
+                    return renderDetailsPRRequest();
+                  case 'PO':
+                    return renderDetailsPOOrder();
+                  case 'PX':
+                    return renderDetailsPayment();
+                  default:
+                    return renderOtherDetails();
+                }
+              })()}
             </View>
           )}
-        </SafeAreaView>
-      </ImageBackground>
+        </View>
+
+        <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
+          <View
+            style={{
+              flex: 1,
+              padding: 16,
+              backgroundColor: '#fff',
+              borderRadius: 12,
+              justifyContent: 'space-between',
+            }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: '#444',
+                marginBottom: 10,
+              }}>
+              {currentFormType === 'OBR Form'
+                ? 'OBR Form'
+                : currentFormType === 'PR Form'
+                ? 'PR Form'
+                : currentFormType === 'RFQ Form'
+                ? 'RFQ Form'
+                : currentFormType === 'PO Form'
+                ? 'PO Form'
+                : currentFormType === 'Acceptance Form'
+                ? 'Acceptance Form'
+                : currentFormType === 'RFI Form'
+                ? 'RFI Form'
+                : currentFormType === 'Request for Delivery Extension'
+                ? 'Request for Delivery Extension'
+                : currentFormType === 'DV Form'
+                ? 'DV Form'
+                : currentFormType === 'Abstract of Bids'
+                ? 'Abstract of Bids'
+                : currentFormType === 'Financial Proposal'
+                ? 'Financial Proposal'
+                : currentFormType === 'Invitation to Observer'
+                ? 'Invitation to Observer'
+                : currentFormType === 'Bid Evaluation'
+                ? 'Bid Evaluation'
+                : currentFormType === 'Post Qualification'
+                ? 'Post Qualification'
+                : currentFormType === 'Certificate of Eligibility'
+                ? 'Certificate of Eligibility'
+                : currentFormType === 'Philgeps Posting'
+                ? 'Philgeps Posting'
+                : currentFormType === 'Philgeps Award'
+                ? 'Philgeps Award'
+                : currentFormType === 'Certification (Mode, Award, Minutes)'
+                ? 'Certification (Mode, Award, Minutes)'
+                : currentFormType === 'Bac Cert (Conspicuous Place)'
+                ? 'Bac Cert (Conspicuous Place)'
+                : 'No form type selected'}
+            </Text>
+            <TouchableOpacity
+              onPress={pickFile}
+              style={{
+                borderWidth: 1,
+                borderColor: '#1976D2',
+                paddingVertical: 10,
+                paddingHorizontal: 18,
+                borderRadius: 6,
+                alignItems: 'center',
+              }}>
+              <Text style={{color: '#1976D2', fontSize: 16, fontWeight: '500'}}>
+                Browse
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{flex: 1, alignItems: 'center'}}>
+              {selectedFiles?.length > 0 ? (
+                renderAttachmentPreview(selectedFiles, handleRemove)
+              ) : (
+                <Text style={{fontSize: 14, color: '#666', marginVertical: 10}}>
+                  No files attached
+                </Text>
+              )}
+            </View>
+
+            <TouchableOpacity
+              onPress={() =>
+                handleUpload(
+                  selectedFiles,
+                  genInformationData.Year,
+                  genInformationData.TrackingNumber,
+                  currentFormType,
+                  employeeNumber,
+                )
+              }
+              style={{
+                backgroundColor: uploadAttachLoading ? '#ccc' : '#1976D2',
+                paddingVertical: 12,
+                borderRadius: 6,
+                alignItems: 'center',
+              }}
+              disabled={uploadAttachLoading}>
+              <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
+                {uploadAttachLoading ? 'Uploading...' : 'Upload'}{' '}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheetModal>
+        {selectedImage && (
+          <View style={styles.zoomableContainer}>
+            <ZoomableImage
+              key={selectedImage}
+              uri={selectedImage}
+              currentFormType={currentFormType}
+              close={() => setSelectedImage(null)}
+              loadedUris={loadedUris}
+              setLoadedUris={setLoadedUris}
+            />
+          </View>
+        )}
+      </SafeAreaView>
     </BottomSheetModalProvider>
   );
 };
@@ -5951,6 +5709,7 @@ const DetailScreen = ({route, navigation}) => {
 const styles = StyleSheet.create({
   container: {
     paddingBottom: 10,
+    backgroundColor: 'white',
   },
   header: {
     width: '100%',
@@ -6081,7 +5840,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Oswald-Light',
     fontSize: 10,
     paddingRight: 5,
-    color: 'white', // Example color, change as needed
+    color: 'white', 
   },
   particularsText: {
     fontSize: 14,
@@ -6089,14 +5848,142 @@ const styles = StyleSheet.create({
   },
   zoomableContainer: {
     flex: 1,
-    position: 'absolute', // Ensures it overlays on top of other content
+    position: 'absolute', 
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', 
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+    marginHorizontal: 15,
+  },
+  cardHeader: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#2563EB',
+  },
+  headerText: {
+    fontFamily: 'Oswald-Regular',
+    fontSize: 17,
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  cardDetails: {
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    backgroundColor: '#f9f9f9',
+  },
+  detailItem: {
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  labelValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'black',
+    marginVertical: 10,
+  },
+  cardTable: {
+    //marginHorizontal: 10,
+    //marginHorizontal:10,
+    paddingBottom: 10,
+  },
+
+  tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    backgroundColor:'#CCCCCC'
+  },
+
+  tableHeaderText: {
+    flex: 1,
+    //fontFamily: 'Inter_28pt-Regular',
+    color: '#252525',
+    fontSize: 12,
+    marginHorizontal:10,
+  },
+
+  tableHeaderTextRight: {
+    flex: 1,
+    //fontFamily: 'Inter_28pt-Regular',
+    color: '#252525',
+    fontSize: 12,
+    marginHorizontal:10,
+    textAlign: 'right',
+
+  },
+  tableRowHeader: {
+    flexDirection: 'row',
+    //paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    marginHorizontal:10,
+    alignItems:'center'
+  },
+
+  tableRowMain: {
+    //fontFamily: 'Inter_28pt-Regular',
+    fontWeight:'500',
+    fontSize: 13,
+    color: '#252525',
+  },
+
+  tableRowSub: {
+    //fontFamily: 'Inter_28pt-ExtraLight',
+    fontSize: 11,
+    color: '#525252',
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(217, 217, 217, 0.1)',
+    marginVertical: 5,
+  },
+
+  noDataText: {
+    color: 'silver',
+    paddingVertical: 5,
+    padding:10,
+    fontWeight:'400',
+  },
+
+  totalContainer: {
+    alignItems: 'flex-end',
+    marginTop: 10,
+    paddingRight: 5,
+  },
+
+  totalAmount: {
+    color: '#EF4444',
+    fontSize: 20,
+    fontFamily: 'Oswald-Regular',
   },
 });
 

@@ -21,7 +21,8 @@ export const uploadTNAttach = async ({ imagePath, year, tn, form, employeeNumber
     });
   });
 
-  const upload_URL = 'http://192.168.254.134/gord/ajax/dataprocessor.php';
+  //const upload_URL = 'http://192.168.254.134/gord/ajax/dataprocessor.php';
+  const upload_URL = 'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';
 
   try {
     const res = await fetch(upload_URL, {
@@ -47,8 +48,8 @@ export const removeTNAttach = async ({ year, tn, form }) => {
   }
 
   try {
-    const remove_URL = `http://192.168.254.134/`;
-    //const remove_URL = `https://www.davaocityportal.com/`;
+    //const remove_URL = `http://192.168.254.134/`;
+    const remove_URL = `https://www.davaocityportal.com/`;
 
     const url = new URL(`${remove_URL}/gord/ajax/dataprocessor.php`);
     url.searchParams.append('removeTNAttach', 1);

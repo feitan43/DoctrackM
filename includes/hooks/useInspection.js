@@ -50,6 +50,7 @@ export const useInspectItems = () => {
 
   const mutation = useMutation({
     mutationFn: async ({ year, deliveryId, trackingNumber, inspectionStatus,invNumber, invDate, remarks }) => {
+      console.log(year, deliveryId, trackingNumber, inspectionStatus,invNumber, invDate, remarks)
 
       if (!trackingNumber || !inspectionStatus || !deliveryId) {
         throw new Error('Tracking number and status are required');
@@ -136,15 +137,18 @@ export const useInspectionPRDetails = (year, trackingNumber) => {
   return useQuery({
     queryKey: ["inspectionPRDetails", year, trackingNumber],
     queryFn: async () => {
-      if (!trackingNumber) throw new Error("Tracking Number is required");
+      if (!trackingNumber || !trackingNumber.startsWith("PR-")) {
+        return null;  // Just return null if the trackingNumber doesn't start with "PR-"
+      }
 
       return await fetchInspectionPRDetails(year, trackingNumber);
     },
-    enabled: !!trackingNumber, 
+    enabled: !!trackingNumber && trackingNumber.startsWith("PR-"), // Only enable query if trackingNumber starts with "PR-"
     staleTime: 5 * 60 * 1000, 
     retry: 2, 
   });
 };
+
 
 export const useInspectionRecentActivity = () => {
   const { employeeNumber } = useUserInfo();

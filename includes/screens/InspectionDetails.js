@@ -420,6 +420,8 @@ const InspectionDetails = ({route, navigation}) => {
       ? dataItems.poRecord.length
       : 0;
 
+      console.log(trackingNumber, inspectionStatus, deliveryId)
+
     try {
       const result = await inspectItems({
         year: selectedYear,
@@ -1264,7 +1266,6 @@ const ItemsSection = ({
               shadowOpacity: 0.1,
               shadowOffset: {width: 0, height: 2},
               shadowRadius: 3,
-              elevation: 3, // For Android shadow effect
             }}>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <Text

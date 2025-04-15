@@ -79,8 +79,8 @@ export const fetchInspectorImage = async (year, trackingNumber) => {
     );
 
     if (data.success) {
-      const image_URL = `http://192.168.254.134/`;
-      // const image_URL = `https://www.davaocityportal.com/`;
+      //const image_URL = `http://192.168.254.134/`;
+       const image_URL = `https://www.davaocityportal.com/`;
       return data.images.map(image => `${image_URL}/tempUpload/${image}`);
     } else {
       //console.error('Failed to fetch images:', data.error || 'Unknown error');
@@ -113,8 +113,8 @@ export const uploadInspector = async ({ imagePath, year, pxTN, employeeNumber })
     });
   });
 
-  const upload_URL = 'http://192.168.254.134/gord/ajax/dataprocessor.php';
-  //const upload_URL = 'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';
+  //const upload_URL = 'http://192.168.254.134/gord/ajax/dataprocessor.php';
+  const upload_URL = 'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';
 
   const res = await fetch(upload_URL, {
     method: 'POST',
@@ -144,8 +144,8 @@ export const removeInspectorImage = async (imageUri) => {
     const fyl = fylWithExtension.split('.')[0];
 
     //const storedToken = await AsyncStorage.getItem('token');
-    const upload_URL = `http://192.168.254.134/`;
-    //const upload_URL = `https://www.davaocityportal.com/`;
+    //const upload_URL = `http://192.168.254.134/`;
+    const upload_URL = `https://www.davaocityportal.com/`;
 
     const url = new URL(`${upload_URL}/gord/ajax/dataprocessor.php`);
     url.searchParams.append('removeThisUpload', 1);
