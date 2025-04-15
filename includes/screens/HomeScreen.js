@@ -376,7 +376,7 @@ const HomeScreen = ({ navigation }) => {
           fetchRecentActivity={fetchRecentActivity}
           receivingCount={receivingCount}
           receivingCountData={receivingCountData}
-          receivedMonthly={receivedMonthly}
+          // receivedMonthly={receivedMonthly}
           loadingReceiving={loadingReceiving}
           receivingError={receivingError}
           trackSumData={trackSumData}

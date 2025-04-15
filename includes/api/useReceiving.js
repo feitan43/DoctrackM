@@ -8,15 +8,11 @@ import useUserInfo from './useUserInfo';
 
 
 const useReceiving = (selectedYear) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [receivingData, setReceivingData] = useState(null);
   const [revertedData, setRevertedData] = useState(null);
-  const [receivingCountData, setReceivingCountData] = useState(null);
-  const [controller, setController] = useState(null);
   const queryClient = useQueryClient();
   const { employeeNumber } = useUserInfo();
-
 
   const getAuthHeaders = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -27,10 +23,19 @@ const useReceiving = (selectedYear) => {
     };
   };
 
-
-  // RECEIVE MUTATION
+  // === MUTATION: AUTO RECEIVE 
   const autoReceiveMutation = useMutation({
-    mutationFn: async ({ year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams }) => {
+    mutationFn: async ({
+      year,
+      trackingNumber,
+      trackingType,
+      documentType,
+      status,
+      accountType,
+      privilege,
+      officeCode,
+      inputParams
+    }) => {
       if (!year || !trackingNumber) throw new Error('Year and TrackingNumber are required');
       const headers = await getAuthHeaders();
 
@@ -38,10 +43,8 @@ const useReceiving = (selectedYear) => {
       const { data } = await apiClient.get(apiUrl, {}, { headers });
       return data;
     },
-
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['receivingCount'], employeeNumber);
-      queryClient.invalidateQueries(['receivedMonthly'], employeeNumber);
+      queryClient.invalidateQueries(['receivingCount', employeeNumber]);
       setReceivingData(data);
     },
     onError: (err) => {
@@ -49,92 +52,58 @@ const useReceiving = (selectedYear) => {
     }
   });
 
-
-  // REVERT RECEIVED MUTATION
+  // === MUTATION: REVERT RECEIVED
   const revertReceivedMutation = useMutation({
-    mutationFn: async ({ year, trackingNumber, trackingType, documentType, status, accountType, officeCode }) => {
+    mutationFn: async ({
+      year,
+      trackingNumber,
+      trackingType,
+      documentType,
+      status,
+      accountType,
+      officeCode
+    }) => {
       if (!year || !trackingNumber) throw new Error('Year and TrackingNumber are required');
       const headers = await getAuthHeaders();
+
       const apiUrl = `/receiverReverted?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&AccountType=${accountType}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}`;
-      const { data } = await apiClient.get(apiUrl, {}, {
-        headers,
-      });
+      const { data } = await apiClient.get(apiUrl, {}, { headers });
       return data;
     },
-
-    onError: (error) => {
-      if (axios.isAxiosError(error)) {
-        console.error('Error Status:', error.response?.status);
-        console.error('Error Data:', error.response?.data);
-        console.error('Error Headers:', error.response?.headers);
-      } else {
-        console.error('Unexpected Error:', error);
-      }
-    },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['receivingCount'], employeeNumber);
+      queryClient.invalidateQueries(['receivingCount', employeeNumber]);
       setRevertedData(data);
+    },
+    onError: (error) => {
+      console.error('Revert Error:', axios.isAxiosError(error) ? error.response?.status : error);
     }
   });
 
-
+  // RECEIVING COUNT 
   const receivingCount = useQuery({
     queryKey: ['receivingCount', employeeNumber, selectedYear],
     queryFn: async () => {
       if (!employeeNumber || !selectedYear) return null;
-
-      const storedToken = await AsyncStorage.getItem('token');
-      if (!storedToken) throw new Error('Authorization token is missing');
-
+      const headers = await getAuthHeaders();
       const apiUrl = `/receivingCount?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
-      const response = await apiClient.get(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
+      const response = await apiClient.get(apiUrl, { headers });
       return response.data;
     },
     enabled: !!employeeNumber && !!selectedYear,
   });
 
-
-  // const receivedMonthly = useQuery({
-  //   queryKey: ['receivedMonthly', employeeNumber, selectedYear],
-  //   queryFn: async () => {
-  //     if (!employeeNumber || !selectedYear) return null;
-  //     const storedToken = await AsyncStorage.getItem('token');
-  //     if (!storedToken) throw new Error('Authorization token is missing');
-
-  //     const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
-  //     console.log('Fetching data from: ', apiUrl);
-
-  //     const response = await apiClient.get(apiUrl, {
-  //       headers: {
-  //         Authorization: `Bearer ${storedToken}`,
-  //         'Content-Type': 'application/json',
-  //       },
-  //     });
-
-  //     return response.data;
-  //   },
-  //   enabled: !!employeeNumber && !!selectedYear,
-  //   staleTime: 5 * 60 * 1000,
-  //   cacheTime: 10 * 60 * 1000,
-  //   keepPreviousData: true,
-  // });
-
-
-
-
-  useEffect(() => {
-    return () => {
-      if (controller) {
-        controller.abort();
-      }
-    };
-  }, [controller]);
+  //RECEIVED MONTHLY 
+  const receivedMonthly = useQuery({
+    queryKey: ['receivedMonthly', employeeNumber, selectedYear],
+    queryFn: async () => {
+      if (!employeeNumber || !selectedYear) return null;
+      const headers = await getAuthHeaders();
+      const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
+      const response = await apiClient.get(apiUrl, { headers });
+      return response.data;
+    },
+    enabled: !!employeeNumber && !!selectedYear,
+  });
 
 
   return {
@@ -145,10 +114,9 @@ const useReceiving = (selectedYear) => {
     autoReceive: autoReceiveMutation.mutateAsync,
     revertedData,
     revertReceived: revertReceivedMutation.mutateAsync,
-    receivingCount: receivingCount.refetch,
+    refetchReceivingCount: receivingCount.refetch,
     receivingCountData: receivingCount.data,
-    // receivedMonthly: receivedMonthly.data
-
+    receivedMonthlyData: receivedMonthly.data,
   };
 };
 

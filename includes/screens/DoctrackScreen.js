@@ -863,7 +863,6 @@ const DoctrackScreen = ({
         fetchMyPersonal(),
         fetchMyAccountability(),
         refetchDataOthers(),
-        receivedMonthly,
         receivingCountData,
       ]);
     } catch (error) {
@@ -3505,9 +3504,6 @@ const DoctrackScreen = ({
                 onPress={() => {
                   if (item.screen) {
                     navigation.navigate(item.screen, {
-                      receivedMonthly: receivingCountData?.ReceivedPerMonth ?? [],
-                      accumulatedFundsData: receivingCountData?.accumulatedFundsData ?? {},
-                      uniqueFundsData: receivingCountData?.uniqueFundsData ?? {},
                       selectedYear,
                     });
                   }
