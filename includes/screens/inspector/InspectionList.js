@@ -7,7 +7,6 @@ export const InspectionList = ({item, index, onPressItem}) => {
     ? item.DeliveryDatesHistory.split(',')
     : [];
   const lastIndex = deliveryDates.length - 1;
-
   return (
     <View style={styles.card}>
       <View
@@ -55,8 +54,8 @@ export const InspectionList = ({item, index, onPressItem}) => {
               }}>
               |
             </Text>{' '}
-            {item.TrackingNumber}
-          </Text>
+            {item.TrackingNumber || item.RefTrackingNumber}
+            </Text>
         </View>
       </View>
 
@@ -67,19 +66,6 @@ export const InspectionList = ({item, index, onPressItem}) => {
           <Text style={styles.label}>Office</Text>
           <Text style={styles.value}>{item.OfficeName}</Text>
         </View>
-        {/*  <View style={styles.textRow}>
-          <Text style={styles.label}>Year</Text>
-          <Text style={styles.value}>{item.Year}</Text>
-        </View> */}
-
-        {/*     <View style={styles.textRow}>
-          <Text style={styles.label}>
-             {item.TrackingNumber?.startsWith('PR-') ? 'TN' : 'Payment TN'}
-            TN
-          </Text>
-          <Text style={styles.value}>{item.TrackingNumber}</Text>
-        </View> */}
-
         <View style={styles.textRow}>
           <Text style={styles.label}>Category</Text>
           <Text style={styles.value}>
@@ -121,31 +107,23 @@ export const InspectionList = ({item, index, onPressItem}) => {
 
       <View style={styles.textRow}>
           <Text style={styles.label}>Date</Text>
-          <View style={styles.deliveryContainer}>
-            {deliveryDates.length > 0 ? (
-              deliveryDates.map((date, idx) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.deliveryIndexContainer,
-                    idx === lastIndex
-                      ? styles.latestDelivery
-                      : styles.previousDelivery,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.deliveryIndex,
-                      idx === lastIndex ? styles.latestDeliveryIndex : {},
-                    ]}>
-                    {idx + 1}
-                  </Text>
-                  <Text style={styles.deliveryDate}>{date.trim()}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.value}>N/A</Text>
-            )}
-          </View>
+          <Text style={styles.value}>{item.DeliveryDate || 'N/A'}</Text>
+
+          {/* <View style={styles.deliveryContainer}>
+          {deliveryDates.length > 0 ? (
+            <View
+              style={[styles.deliveryIndexContainer, styles.latestDelivery]}>
+              <Text style={[styles.deliveryIndex, styles.latestDeliveryIndex]}>
+                {deliveryDates.length}
+              </Text>
+              <Text style={styles.deliveryDate}>
+                {deliveryDates[lastIndex].trim()}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.value}>N/A</Text>
+          )}
+          </View> */}
         </View>
 
       <Pressable

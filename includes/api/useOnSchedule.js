@@ -27,7 +27,7 @@ const useOnSchedule = () => {
     fetchOnSchedule();
   }, []);
 
-  return {data, dataLength, loading, error, fetchOnSchedule}; // Return dataLength
+  return {data, dataLength, loading, error, fetchOnSchedule}; 
 };
 
 export default useOnSchedule;

@@ -66,59 +66,26 @@ const InspectionDetails = ({route, navigation}) => {
   const [selectedYear, setSelectedYear] = useState(item.Year);
   const [checkedItems, setCheckedItems] = useState([]);
   const bottomSheetRef = useRef(null);
-
   const [modalVisible, setModalVisible] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [message, setMessage] = useState('');
-
   const [showUploading, setShowUploading] = useState(false);
-
   const [refreshKey, setRefreshKey] = useState(0);
-
   const [imagePath, setImagePath] = useState([]);
-
-  const {
-    data: inspectorImages,
-    isLoading: inspectorImagesLoading,
-    error: inspectorImagesError,
-  } = useInspectorImages(selectedYear, item.TrackingNumber);
-  const {
-    data: data,
-    isLoading: DetailsLoading,
-    error: DetailsError,
-  } = useInspectionDetails(selectedYear, item.TrackingPartner);
-  const {
-    data: prData,
-    isLoading: prLoading,
-    error: prError,
-  } = useInspectionPRDetails(selectedYear, item.TrackingNumber);
-  const {
-    data: dataItems,
-    isLoading: ItemsLoading,
-    error: ItemsError,
-  } = useInspectionItems(selectedYear, item.TrackingPartner);
-
+  const {data: inspectorImages,isLoading: inspectorImagesLoading,error: inspectorImagesError} = useInspectorImages(selectedYear, item.TrackingNumber);
+  const {data: data,isLoading: DetailsLoading,error: DetailsError} = useInspectionDetails(selectedYear, item.TrackingPartner);
+  const {data: prData,isLoading: prLoading,error: prError} = useInspectionPRDetails(selectedYear, item.RefTrackingNumber);
+  const {data: dataItems,isLoading: ItemsLoading,error: ItemsError} = useInspectionItems(selectedYear, item.TrackingPartner);
   const {mutate: addSchedule, isPending: isAdding} = useAddSchedule();
-  const {mutateAsync: inspectItems, isPending: isInspecting} =
-    useInspectItems();
-  const {
-    mutate: uploadInspector,
-    isPending: uploading,
-    isLoading,
-  } = useUploadInspector();
-  const {
-    mutate: removeInspectorImage,
-    isPending: removing,
-  } = useRemoveInspectorImage();
+  const {mutateAsync: inspectItems, isPending: isInspecting} = useInspectItems();
+  const {mutate: uploadInspector,isPending: uploading,isLoading} = useUploadInspector();
+  const {mutate: removeInspectorImage,isPending: removing,} = useRemoveInspectorImage();
   const { mutate : editDeliveryDate, isPending : editDeliveryDateLoading} = useEditDeliveryDate(); 
-  const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] =
-    useState(false);
-  const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] =
-    useState(false);
+  const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] = useState(false);
+  const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [remarksBottomSheetVisible, setRemarksBottomSheetVisible] =
-    useState(false);
+  const [remarksBottomSheetVisible, setRemarksBottomSheetVisible] = useState(false);
   const [selectedRemark, setSelectedRemark] = useState('');
   const [remarks, setRemarks] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -273,7 +240,6 @@ const InspectionDetails = ({route, navigation}) => {
     setInvoiceNumber(invoice);
     setInvoiceBottomSheetVisible(false);
 
-  
     const formattedDate = date
       ? date.toLocaleDateString('en-US').replace(/\//g, '-') 
       : 'No date';
@@ -284,7 +250,7 @@ const InspectionDetails = ({route, navigation}) => {
     const totalItems = Array.isArray(dataItems?.poRecord)
     ? dataItems.poRecord.length
     : 0;
-  
+    console.log(invoice, formattedDate);
     try {
       const result = await inspectItems({
         year: selectedYear,
@@ -502,7 +468,7 @@ const InspectionDetails = ({route, navigation}) => {
         </ImageBackground>
 
         <View>
-          {item.TrackingNumber?.startsWith('PR-') ? (
+        {item?.RefTrackingNumber ? (
             <PRInspection
               item={item}
               dataItems={dataItems}
@@ -595,38 +561,38 @@ const InspectionDetails = ({route, navigation}) => {
       </View>
 
       {/*  {!isInspecting && (
-  <View
-    style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 100,
-    }}>
-    <BlurView
-      style={{
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-      }}
-      blurType="light"
-      blurAmount={5}
-    />
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 100,
+              }}>
+              <BlurView
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                }}
+                blurType="light"
+                blurAmount={5}
+              />
 
-    <View
-      style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
-        padding: 20,
-        borderRadius: 10,
-        alignItems: 'center',
-      }}>
-      <ActivityIndicator size="large" color="#ffffff" />
-    </View>
-  </View>
-)} */}
+              <View
+                style={{
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+                  padding: 20,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                }}>
+                <ActivityIndicator size="large" color="#ffffff" />
+              </View>
+            </View>
+          )} */}
 
       <Spinner
         visible={isInspecting}
@@ -662,8 +628,8 @@ const InspectionDetails = ({route, navigation}) => {
         onClose={() => setRemarksBottomSheetVisible(false)}
         remarks={remarks}
         setRemarks={setRemarks}
-        selectedRemark={selectedRemark} // ✅ Ensure selectedRemark is passed
-        setSelectedRemark={setSelectedRemark} // ✅ Ensure setSelectedRemark is passed
+        selectedRemark={selectedRemark} 
+        setSelectedRemark={setSelectedRemark} 
         submitRemarks={submitRemarks}
       />
 
@@ -1164,7 +1130,7 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
                 Dates
               </Text>
               {deliveryItem.DeliveryDatesHistory.split(', ').map((date, i, arr) => {
-                const isLast = i === arr.length - 1; // Check if it's the last date
+                const isLast = i === arr.length - 1;
 
                 return (
                   <View
@@ -1200,7 +1166,7 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
                     </Text>
 
                     {/* Show Edit button only for the latest date */}
-                    {/* {isLast && (
+                    {isLast && (
                       <TouchableOpacity
                         onPress={() => handleEditDeliveryDate(i, deliveryItem)}
                         style={{
@@ -1211,7 +1177,7 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
                         }}>
                         <Text style={{color: '#fff', fontSize: 14}}>Edit</Text>
                       </TouchableOpacity>
-                    )} */}
+                    )}
                   </View>
                 );
               })}
@@ -1226,8 +1192,6 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
     )}
   </Section>
 );
-
-
 
 const ItemsSection = ({
   dataItems,
@@ -1543,17 +1507,26 @@ export const RenderInspection = memo(
       }
     };
 
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDeliveryItem, setSelectedDeliveryItem] = useState(null);
+    const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+
+    const handleOpenSheet = () => setBottomSheetOpen(true);
+    const handleCloseSheet = () => setBottomSheetOpen(false);
+    
 
     const handleEditDeliveryDate = (index, deliveryItem) => {
-      console.log('Edit delivery date:', deliveryItem.Id);
+      //console.log('Edit delivery date:', deliveryItem);
     
-      // Assuming you want to edit the delivery date for the given item
-      const newDeliveryDate = '2025-04-05'; // Replace with the new delivery date
+      setSelectedDeliveryItem(deliveryItem);
     
-      editDeliveryDate({
-        deliveryId: deliveryItem.Id,
-        deliveryDate: newDeliveryDate, // Use the new date here
-      });
+      setDatePickerOpen(true); // Open the date picker
+    };
+    
+    const handleConfirmDate = (date) => {
+      console.log('Selected Date & Time:', date);
+      setBottomSheetOpen(false);
     };
 
     const renderInspectorImage = (uri, index) => (
@@ -1636,6 +1609,52 @@ export const RenderInspection = memo(
       </View>
     );
 
+    const DateTimeBottomSheet = ({ isOpen, onClose, onConfirm }) => {
+      const bottomSheetRef = useRef(null);
+      const snapPoints = useMemo(() => ['40%'], []);
+      const [date, setDate] = useState(new Date());
+    
+      const handleConfirm = () => {
+        onConfirm(date);
+        bottomSheetRef.current?.close();
+      };
+    
+      return (
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={isOpen ? 0 : -1}
+          snapPoints={snapPoints}
+          enablePanDownToClose
+          onClose={onClose}
+        >
+          <View style={{ padding: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
+              Pick Delivery Date & Time
+            </Text>
+            <DatePicker
+              date={date}
+              onDateChange={setDate}
+              mode="datetime"
+              androidVariant="nativeAndroid"
+            />
+    
+            <TouchableOpacity
+              onPress={handleConfirm}
+              style={{
+                marginTop: 20,
+                backgroundColor: '#5DADE2',
+                padding: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 16 }}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheet>
+      );
+    };
+
     return (
       <SafeAreaView
         style={{
@@ -1644,7 +1663,7 @@ export const RenderInspection = memo(
         <View style={{}}>
           <PaymentSection dataItems={dataItems} />
           <PODetailsSection item={item} />
-          <DeliverySection dataItems={dataItems} handleEditDeliveryDate={handleEditDeliveryDate} />
+          <DeliverySection dataItems={dataItems} handleEditDeliveryDate={handleOpenSheet} />
           <ItemsSection
             dataItems={dataItems}
             checkedItems={checkedItems}
@@ -1657,6 +1676,11 @@ export const RenderInspection = memo(
             handleUploadBottomSheet={handleUploadBottomSheet}
             renderInspectorImage={renderInspectorImage}
             item={item}
+          />
+           <DateTimeBottomSheet
+            isOpen={bottomSheetOpen}
+            onClose={handleCloseSheet}
+            onConfirm={handleConfirmDate}
           />
         </View>
       </SafeAreaView>
@@ -1691,7 +1715,6 @@ export const Footer = ({
   const totalItems = Array.isArray(dataItems.poRecord)
     ? dataItems.poRecord.length
     : 0;
-
  /*  const handleInspectItems = async () => {
     if (!Array.isArray(checkedItems) || checkedItems.length === 0) {
       showMessage({
@@ -3064,6 +3087,7 @@ const PRInspection = ({
             paddingBottom: 200,
           }}
           style={{}}>
+
           <View
             style={{
               backgroundColor: '#fff',
@@ -3071,21 +3095,23 @@ const PRInspection = ({
               marginBottom: 15,
               borderRadius: 8,
               shadowColor: '#000',
-              shadowOffset: {width: 0, height: 4},
+              shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.1,
               shadowRadius: 4,
               elevation: 3,
               borderWidth: 1,
               borderColor: '#e0e0e0',
               marginHorizontal: 10,
-            }}>
+            }}
+          >
             <Text
               style={{
                 fontSize: 18,
                 fontWeight: '600',
                 marginBottom: 12,
                 color: '#333',
-              }}>
+              }}
+            >
               PR Details
             </Text>
             <View
@@ -3095,90 +3121,198 @@ const PRInspection = ({
                 marginBottom: 10,
               }}
             />
+
+            {/* Header Section */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                paddingVertical: 5,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: moderateScale(13),
+                  fontFamily: 'Inter_28pt-Light',
+                  color: '#1A508C',
+                  width: '20%',
+                  fontWeight: 'bold',
+                }}
+              >
+                Program
+              </Text>
+              <Text
+                style={{
+                  fontSize: moderateScale(13),
+                  fontFamily: 'Inter_28pt-Light',
+                  color: '#1A508C',
+                  width: '20%',
+                  fontWeight: 'bold',
+                }}
+              >
+                Qty
+              </Text>
+              <Text
+                style={{
+                  fontSize: moderateScale(13),
+                  fontFamily: 'Inter_28pt-Light',
+                  color: '#1A508C',
+                  width: '20%',
+                  fontWeight: 'bold',
+                }}
+              >
+                Cost
+              </Text>
+              <Text
+                style={{
+                  fontSize: moderateScale(13),
+                  fontFamily: 'Inter_28pt-Light',
+                  color: '#1A508C',
+                  width: '20%',
+                  fontWeight: 'bold',
+                }}
+              >
+                Total
+              </Text>
+            </View>
+
+            {/* PR Data */}
             {prData.map((dataItem, prIndex) => {
               const prDataDetails = [
-                {label: 'TN', value: dataItem.TrackingNumber},
-                {label: 'Year', value: itemYear},
-                {label: 'Category', value: dataItem.Category},
-                {label: 'Code', value: dataItem.Code},
-                {label: 'Program', value: dataItem.ProgramCode},
-                {label: 'Cost', value: insertCommas(dataItem.Amount)},
-                {label: 'Unit', value: dataItem.Unit},
-                {label: 'Qty', value: dataItem.Qty},
-                {label: 'Total', value: insertCommas(dataItem.Total)},
-                {label: 'Description', value: dataItem.Description},
+                { label: 'TN', value: dataItem.TrackingNumber },
+                { label: 'Year', value: itemYear },
+                { label: 'Category', value: dataItem.Category },
+                { label: 'Code', value: dataItem.Code },
+                { label: 'Program', value: dataItem.ProgramCode },
+                { label: 'Cost', value: insertCommas(dataItem.Amount) },
+                { label: 'Unit', value: dataItem.Unit },
+                { label: 'Qty', value: dataItem.Qty },
+                { label: 'Total', value: insertCommas(dataItem.Total) },
+                { label: 'Description', value: dataItem.Description },
               ];
 
               return (
-                <View
-                  key={dataItem.TrackingNumber || prIndex}
-                  style={{paddingTop: 10}}>
-                  {prDataDetails.map((detail, detailIndex) => (
-                    <View
-                      key={`${
-                        dataItem.TrackingNumber || prIndex
-                      }-${detailIndex}`} // Ensure each key is unique
+                <View key={dataItem.RefTrackingNumber || prIndex} style={{ paddingTop: 10 }}>
+                  
+                  {/* Subheader Section for ProgramCode and Category */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      paddingVertical: 5,
+                    }}
+                  >
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'flex-start',
-                        paddingVertical: 5,
-                      }}>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: '500',
-                          color: '#666',
-                          width: 20,
-                        }}>
-                        {detailIndex + 1}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: moderateScale(13),
-                          fontFamily: 'Inter_28pt-Light',
-                          color: '#1A508C',
-                          width: '25%',
-                          marginRight: 10,
-                        }}>
-                        {detail.label}
-                      </Text>
-                      <View style={{flex: 1}}>
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-Light',
+                        color: '#1A508C',
+                        width: '20%',
+                      }}
+                    >
+                      {dataItem.ProgramCode} {/* Displaying the ProgramCode value */}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-Light',
+                        color: '#1A508C',
+                        width: '20%',
+                      }}
+                    >
+                      {dataItem.Category} {/* Displaying the Category value */}
+                    </Text>
+                  </View>
+
+                  {/* Displaying other PR data */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      paddingVertical: 5,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-Light',
+                        color: '#1A508C',
+                        width: '20%',
+                      }}
+                    >
+                      {dataItem.Code}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-Light',
+                        color: '#1A508C',
+                        width: '20%',
+                      }}
+                    >
+                      {dataItem.Qty}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-Light',
+                        color: '#1A508C',
+                        width: '20%',
+                      }}
+                    >
+                      {insertCommas(dataItem.Amount)}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-Light',
+                        color: '#1A508C',
+                        width: '20%',
+                      }}
+                    >
+                      {insertCommas(dataItem.Total)}
+                    </Text>
+                  </View>
+
+                  {/* Description Section */}
+                  <View
+                    style={{
+                      paddingTop: 10,
+                      paddingLeft: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: moderateScale(13),
+                        fontFamily: 'Inter_28pt-SemiBold',
+                        color: '#2C3E50',
+                      }}
+                      numberOfLines={expanded ? undefined : 3}
+                      ellipsizeMode="tail"
+                    >
+                      {dataItem.Description}
+                    </Text>
+                    {dataItem.Description.length > 50 && (
+                      <TouchableOpacity onPress={() => setExpanded(!expanded)}>
                         <Text
                           style={{
-                            fontSize: moderateScale(13),
-                            fontFamily: 'Inter_28pt-SemiBold',
-                            color: '#2C3E50',
+                            color: '#1A508C',
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                            alignSelf: 'flex-end',
                           }}
-                          numberOfLines={
-                            detail.label === 'Description' && !expanded
-                              ? 3
-                              : undefined
-                          }
-                          ellipsizeMode="tail">
-                          {detail.value}
+                        >
+                          {expanded ? 'Show Less' : 'Show More'}
                         </Text>
-                        {detail.label === 'Description' &&
-                          detail.value.length > 50 && (
-                            <TouchableOpacity
-                              onPress={() => setExpanded(!expanded)}>
-                              <Text
-                                style={{
-                                  color: '#1A508C',
-                                  fontSize: 12,
-                                  fontWeight: 'bold',
-                                  alignSelf: 'flex-end',
-                                }}>
-                                {expanded ? 'Show Less' : 'Show More'}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                      </View>
-                    </View>
-                  ))}
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               );
             })}
           </View>
+
+
 
           <View
             style={{

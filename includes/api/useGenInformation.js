@@ -402,7 +402,6 @@ const useGenInformation = (selectedItemIndex, regOfficeDelaysData) => {
     }
   };
 
-
   useEffect(() => {
     if (genInformationData && genInformationData.TrackingType) {
       fetchPaymentBreakdown(genInformationData.TrackingType);

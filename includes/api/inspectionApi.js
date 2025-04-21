@@ -41,7 +41,7 @@ export const inspectItems = async (year, employeeNumber,deliveryId, trackingNumb
 
   try {
     const { data } = await apiClient.get(
-      `/inspectItems?year=${encodeURIComponent(year)}&employeeNumber=${encodeURIComponent(employeeNumber)}&deliveryId=${encodeURIComponent(deliveryId)}&trackingNumber=${encodeURIComponent(trackingNumber)}&status=${encodeURIComponent(inspectionStatus)}&invNumber=${encodeURIComponent(invNumber || "")}&invDate=${encodeURIComponent(invDate || "")}&remarks=${encodeURIComponent(remarks || "")}`,
+      `/inspectItems?year=${encodeURIComponent(year)}&employeeNumber=${encodeURIComponent(employeeNumber)}&deliveryId=${encodeURIComponent(deliveryId)}&trackingNumber=${encodeURIComponent(trackingNumber)}&status=${encodeURIComponent(inspectionStatus)}&invNumber=${encodeURIComponent(invNumber)}&invDate=${encodeURIComponent(invDate || "")}&remarks=${encodeURIComponent(remarks || "")}`,
     );
     return data;
   } catch (error) {

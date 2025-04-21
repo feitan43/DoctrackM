@@ -78,15 +78,17 @@ const RecentActivity = ({
   const itemsPerPage = 5;
 
   const filteredData = useMemo(() => {
-    return recentActivityData && recentActivityData.length > 0
-      ? recentActivityData.filter(
-          item =>
-            item.Status.toLowerCase() === 'inspected' ||
-            item.Status.toLowerCase() === 'inspection on hold' ||
-            item.DateInspected !== null,
-        )
-      : [];
+    if (!Array.isArray(recentActivityData)) return [];
+  
+    return recentActivityData.filter(
+      item =>
+        (item.Status &&
+          (item.Status.toLowerCase() === 'inspected' ||
+           item.Status.toLowerCase() === 'inspection on hold')) ||
+        item.DateInspected !== null,
+    );
   }, [recentActivityData]);
+  
 
   const paginatedData = useMemo(() => {
     const start = (pageRef.current - 1) * itemsPerPage;
