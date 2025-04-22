@@ -171,8 +171,9 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                         <View style={{ marginTop: 10 }}>
                             <FlashList
                                 data={filteredData}
-                                keyExtractor={(item, index) => index.toString()}
+                                keyExtractor={(key, index) => index.toString()}
                                 estimatedItemSize={200}
+                                showsVerticalScrollIndicator={false}
                                 renderItem={({ item, index }) => (
                                     <View
                                         style={{

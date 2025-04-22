@@ -273,7 +273,7 @@ const QRAuto = () => {
 
         const isEligibleForReceive = (() => {
           if (TrackingType === 'PY') {
-            if (['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status))
+            if (['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status) || (Status === 'Encoded' && Fund === 'Trust Fund'))
               return true;
             if (
               Status === 'Encoded' &&

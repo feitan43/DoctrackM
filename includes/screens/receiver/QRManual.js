@@ -205,20 +205,22 @@ const QRManual = () => {
 
     const showCAOReceivedButton = (() => {
       const { TrackingType, Status, DocumentType, Fund } = item;
-  
+
       const isPY = TrackingType === 'PY';
       const isPX = TrackingType === 'PX';
       const isIP = TrackingType === 'IP';
       const isPR = TrackingType === 'PR';
 
-      if (isPY && ['CBO Released', 'Pending Released - CAO','CBO Received'].includes(Status)) {
-        return true;
-      }
-
-      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF') && (Fund === 'Trust Fund')
+      if (
+        isPY &&
+        (
+          ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status) ||
+          (Status === 'Encoded' && Fund === 'Trust Fund')
+        )
       ) {
         return true;
       }
+
 
       if (isPX && ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status)) {
         return true;
@@ -882,22 +884,6 @@ const QRManual = () => {
 
       const scannedCode = codes[0].value;
 
-      // Check if the code has already been scanned
-      /*    if (scannedCodes.includes(scannedCode)) {
-        //setCameraIsActive(false); // Deactivate the camera
-          Alert.alert(
-            'Code Already Scanned',
-            'The QR code has already been scanned.',
-            [
-              {
-                text: 'Scan Again',
-                onPress: () => setCameraIsActive(true), // Reactivate the camera to scan again
-              },
-            ]
-          );
-          return;
-      } */
-
       try {
         // Decrypt and extract the year and tracking number
         const result = decryptScannedCode(scannedCode);
@@ -936,10 +922,7 @@ const QRManual = () => {
           return;
         }
 
-        // Process the valid data
-        // console.log('QR Data:', data);
-
-        // Mark the code as scanned
+     
         setScannedCodes(prev => [...prev, scannedCode]);
         setCameraIsActive(false);
       } catch (error) {
