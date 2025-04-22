@@ -206,6 +206,8 @@ const QRAuto = () => {
     { videoResolution: { width: 1280, height: 720 } },
   ]);
 
+
+
   const decryptScannedCode = scannedCode => {
     if (!scannedCode || scannedCode.length < 6) {
       throw new Error('Invalid scanned code');
@@ -261,6 +263,7 @@ const QRAuto = () => {
         const data = await fetchQRData(year, trackingNumber);
 
         if (!Array.isArray(data) || data.length === 0) {
+          setCameraIsActive(false);
           ToastAndroid.show(
             'No data received or data is not in the expected format.',
             ToastAndroid.SHORT,
@@ -321,7 +324,7 @@ const QRAuto = () => {
 
           if (
             receiveResponse?.status === 'error' &&
-            latestData?.[0]?.Status === 'Admin Received'
+            latestData?.[0]?.Status === 'CAO Received'
           ) {
             ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
             return;
