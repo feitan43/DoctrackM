@@ -1048,6 +1048,16 @@ const DoctrackScreen = ({
                 }`,
                 screen: 'MyAccountability',
               },
+              {
+                label: 'Access',
+                count: `${
+                  accountabilityData && accountabilityData.length
+                    ? accountabilityData.length
+                    : 0
+                }`,
+                screen: 'MyAccess',
+              },
+              
             ].map((item, index, arr) => {
               if (item.condition === false) {
                 return null;

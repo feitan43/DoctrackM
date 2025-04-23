@@ -179,7 +179,6 @@ const MyAccountabilityScreen = ({navigation}) => {
   const {accountabilityData, loading, error, fetchMyAccountability} =
     useMyAccountability();
 
-    console.log(accountabilityData)
   const [selectedItems, setSelectedItems] = useState([]);
   const [visibleItems, setVisibleItems] = useState(6);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -282,9 +281,44 @@ const MyAccountabilityScreen = ({navigation}) => {
       );
     }
 
+    if (error) {
+      return (
+        <View
+          style={{
+            //flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#fff',
+            padding: 20,
+          }}>
+          <Icons name="alert-circle" size={50} color="#e11d48" />
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: '#e11d48',
+              marginTop: 10,
+            }}>
+            Something went wrong
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: 'gray',
+              textAlign: 'center',
+              marginTop: 5,
+            }}>
+            We couldn’t load your accountabilities. Please try again later.
+          </Text>
+        </View>
+      );
+    }
+
     if (!accountabilityData) {
       return null;
     }
+
+    
 
     return (
       <View style={{flex: 1}}>

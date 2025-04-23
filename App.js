@@ -20,7 +20,6 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import FlashMessage from 'react-native-flash-message';
 import { HotUpdater, useHotUpdaterStore, addListener   } from "@hot-updater/react-native";
-import UpdateFallback from './includes/utils/UpdateFallback';
 
 
 const queryClient = new QueryClient();
@@ -79,8 +78,6 @@ const App = () => {
           {isConnected ? (
             <>
               <Route />
-             {/*  <UpdateFallback progress={0.5} status="CHECKING UPDATE" /> */}
-
             </>
           ) : (
             <View style={styles.noInternetContainer}>
@@ -172,18 +169,12 @@ const styles = StyleSheet.create({
 });
 
 //export default App;
+//source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
 
 export default HotUpdater.wrap({
   source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
   //source: '',  
   requestHeaders: {
-    // Add any necessary request headers here
+    "Authorization": "Bearer <your-access-token>",
   },
-  reloadOnForceUpdate: true,
-  fallbackComponent: (props) => {
-    const updaterStore = useHotUpdaterStore();
-    return <UpdateFallback {...props} progress={updaterStore.progress} status={updaterStore.isBundleUpdated ? 'UPDATED' : 'UPDATING'} />;
-  }
-  
-}
-)(App);
+})(App);

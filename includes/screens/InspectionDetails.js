@@ -237,12 +237,11 @@ const InspectionDetails = ({route, navigation}) => {
   };
 
   const handleInvoiceSubmit = async (invoice, date) => {
-    setInvoiceNumber(invoice);
     setInvoiceBottomSheetVisible(false);
 
     const formattedDate = date
       ? date.toLocaleDateString('en-US').replace(/\//g, '-') 
-      : 'No date';
+      : '';
   
     let inspectionStatus = 'Inspected';
     const deliveryId = item?.Id;
@@ -250,7 +249,8 @@ const InspectionDetails = ({route, navigation}) => {
     const totalItems = Array.isArray(dataItems?.poRecord)
     ? dataItems.poRecord.length
     : 0;
-    console.log(invoice, formattedDate);
+
+    //console.log("inv",invoice,"invD", formattedDate);
     try {
       const result = await inspectItems({
         year: selectedYear,
@@ -385,8 +385,6 @@ const InspectionDetails = ({route, navigation}) => {
     const totalItems = Array.isArray(dataItems?.poRecord)
       ? dataItems.poRecord.length
       : 0;
-
-      console.log(trackingNumber, inspectionStatus, deliveryId)
 
     try {
       const result = await inspectItems({
@@ -1166,7 +1164,7 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
                     </Text>
 
                     {/* Show Edit button only for the latest date */}
-                    {isLast && (
+                    {/* {isLast && (
                       <TouchableOpacity
                         onPress={() => handleEditDeliveryDate(i, deliveryItem)}
                         style={{
@@ -1177,7 +1175,7 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
                         }}>
                         <Text style={{color: '#fff', fontSize: 14}}>Edit</Text>
                       </TouchableOpacity>
-                    )}
+                    )} */}
                   </View>
                 );
               })}
@@ -1677,11 +1675,11 @@ export const RenderInspection = memo(
             renderInspectorImage={renderInspectorImage}
             item={item}
           />
-           <DateTimeBottomSheet
+           {/* <DateTimeBottomSheet
             isOpen={bottomSheetOpen}
             onClose={handleCloseSheet}
             onConfirm={handleConfirmDate}
-          />
+          /> */}
         </View>
       </SafeAreaView>
     );
@@ -2416,6 +2414,30 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
             Submit
           </Text>
         </Pressable>
+
+        <View style={{alignSelf: 'center', marginVertical: 10}}>
+        <Text style={{fontSize: 16, color: '#666'}}>— or —</Text>
+      </View>
+
+
+      <TouchableOpacity
+        style={{
+          marginTop: 10,
+          padding: 10,
+          borderRadius: 5,
+          backgroundColor: '#e0e0e0',
+          alignItems: 'center',
+        }}
+        onPress={() => {
+          setInvoice('');
+          setSelectedDate('');
+          onSubmit('', '');
+        }}>
+        <Text style={{color: '#333', fontWeight: 'bold'}}>No Invoice</Text>
+      </TouchableOpacity>
+
+
+
       </View>
     </BottomSheet>
   );

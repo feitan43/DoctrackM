@@ -103,6 +103,7 @@ import EvalDaily from '../screens/evaluator/EvalDaily';
 import EvalMonthly from '../screens/evaluator/EvalMonthly';
 import EvalAnnual from '../screens/evaluator/EvalAnnual';
 import AttachmentsScreen from '../screens/AttachmentsScreen';
+import AccessScreen from '../screens/AccessScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -498,6 +499,7 @@ export function Route() {
         <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
 
         <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
+        <Stack.Screen name='MyAccess' component={AccessScreen}/>
 
 
         <Stack.Screen

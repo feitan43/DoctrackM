@@ -332,25 +332,26 @@ const MyTransactionsScreen = ({navigation}) => {
             ) : error ? (
               <View
                 style={{
-                  flex: 1,
-                  top: 80,
+                  alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
                 }}>
                 <Image
                   source={require('../../assets/images/errorState.png')}
                   style={{
-                    width: '60%',
-                    height: '25%',
-                    alignSelf: 'center',
+                    width: 200,
+                    height: 200,
+                    resizeMode: 'contain',
+                    marginBottom: 10,
                   }}
                 />
                 <Text
                   style={{
-                    fontFamily: 'Oswald-Light',
-                    alignSelf: 'center',
-                    color: 'gray',
-                    fontSize: 16,
-                    textAlign: 'center',
-                    padding: 5,
+                  alignSelf: 'center',
+                  color: 'gray',
+                  fontSize: 14,
+                  textAlign: 'center',
+                  paddingHorizontal: 10,
                   }}>
                   {typeof error === 'string'
                     ? error
@@ -365,30 +366,31 @@ const MyTransactionsScreen = ({navigation}) => {
               </View>
             ) : myTransactionsData.length === 0 ? (
               <View
-                style={{
-                  flex: 1,
-                  top: 80,
-                }}>
-                <Image
-                  source={require('../../assets/images/noresultsstate.png')}
-                  style={{
-                    width: '60%',
-                    height: '25%',
-                    alignSelf: 'center',
-                  }}
-                />
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Light',
-                    alignSelf: 'center',
-                    color: 'gray',
-                    fontSize: 16,
-                    textAlign: 'center',
-                    padding: 5,
-                  }}>
-                  NO RESULTS FOUND
-                </Text>
-              </View>
+                       style={{
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                         padding: 20,
+                       }}>
+                       <Image
+                         source={require('../../assets/images/noresultsstate.png')}
+                         style={{
+                           width: 200,
+                           height: 200,
+                           resizeMode: 'contain',
+                           marginBottom: 10,
+                         }}
+                       />
+                       <Text
+                         style={{
+                           alignSelf: 'center',
+                           color: 'gray',
+                           fontSize: 14,
+                           textAlign: 'center',
+                           paddingHorizontal: 10,
+                         }}>
+                         No Result Found
+                       </Text>
+                     </View>
             ) : (
               <View style={{height: '100%' /* paddingBottom: 55 */}}>
                 {renderContent()}

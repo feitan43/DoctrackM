@@ -734,196 +734,6 @@ const DetailScreen = ({route, navigation}) => {
           </View>
           </View>
 
-          {/* <View ref={prDetailsRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    PR DETAILS
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: 5,
-                  }}>
-                  <View style={{width: 180}}>
-                    <Text
-                      style={{
-                        flex: 1,
-                        color: 'white',
-                        fontFamily: 'Oswald-ExtraLight',
-                        marginStart: 5,
-                        fontSize: 12,
-                      }}>
-                      DESCRIPTION
-                    </Text>
-                  </View>
-                  <Text
-                    style={{
-                      flex: 2,
-                      fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'center',
-                      color: 'white',
-                      fontSize: 12,
-                    }}>
-                    QTY | COST
-                  </Text>
-                  <Text
-                    style={{
-                      flex: 3,
-                      fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'right',
-                      color: 'white',
-                      marginEnd: 5,
-                      fontSize: 12,
-                    }}>
-                    TOTAL
-                  </Text>
-                </View>
-
-                <View>
-                  {prpopxDetails &&
-                    prpopxDetails.map((detail, index) => (
-                      <View key={index}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: 5,
-                            paddingBottom: 20,
-                          }}>
-                          <View style={{width: 180}}>
-                            <TouchableOpacity
-                              onPress={() => toggleDescription(index)}>
-                              <Text
-                                style={{
-                                  flex: 1,
-                                  fontSize: 12,
-                                  fontFamily: 'Oswald-ExtraLight',
-                                  paddingRight: 10,
-                                  marginStart: 10,
-                                  color: 'silver',
-                                }}
-                                numberOfLines={
-                                  expandedIndex === index ? undefined : 3
-                                }
-                                ellipsizeMode={
-                                  expandedIndex === index ? 'clip' : 'tail'
-                                }>
-                                {detail.Description}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-
-                          <View style={{flex: 2, alignItems: 'center'}}>
-                            <View style={{flexDirection: 'row'}}>
-                              <Text
-                                style={{
-                                  fontFamily: 'Oswald-Medium',
-                                  color: 'rgb(27, 35, 39)',
-                                  fontSize: 12,
-                                  color: 'white',
-                                  textAlign: 'center',
-                                }}>
-                                {Math.floor(detail.Qty)}{' '}
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    fontFamily: 'Oswald-Medium',
-                                    color: 'white',
-                                  }}>
-                                  {detail.Unit}
-                                </Text>
-                              </Text>
-                            </View>
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}>
-                              <View
-                                style={{
-                                  borderBottomWidth: 0.8,
-                                  borderColor: 'silver',
-                                  width: 70,
-                                }}
-                              />
-                            </View>
-                            <View style={{flexDirection: 'row'}}>
-                              <Text
-                                style={{
-                                  fontFamily: 'Oswald-Medium',
-                                  textShadowRadius: 1,
-                                  color: 'white',
-                                  fontSize: 12,
-                                  textAlign: 'center',
-                                }}>
-                                {insertCommas(detail.Amount)}
-                              </Text>
-                            </View>
-                          </View>
-                          <View style={{flex: 3}}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                fontFamily: 'Oswald-Medium',
-                                color: 'white',
-                                textShadowRadius: 1,
-                                textAlign: 'right',
-                                marginEnd: 10,
-                              }}>
-                              {insertCommas(detail.Total)}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Divider
-                          width={1.9}
-                          color={'rgba(217, 217, 217, 0.1)'}
-                          borderStyle={'solid'}
-                          marginHorizontal={10}
-                          marginBottom={5}
-                          style={{bottom: 5}}
-                        />
-                      </View>
-                    ))}
-                </View>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'flex-end',
-                    paddingEnd: 10,
-                    paddingBottom: 10,
-                  }}>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontSize: 20,
-                      fontFamily: 'Oswald-Regular',
-                      textAlign: 'right',
-                    }}>
-                    {insertCommas(prpopxTotalAmount.toFixed(2))}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View> */}
-
          {genInformationData.Year === '2025' && procurement === '1' && (
           <View  style={{marginTop: 20}}>
             <View style={styles.cardContainer}>
@@ -1177,8 +987,6 @@ const DetailScreen = ({route, navigation}) => {
           </View>
         </View>
 
-
-
           <View style={{height: 500}} />
         </ScrollView>
       );
@@ -1195,888 +1003,305 @@ const DetailScreen = ({route, navigation}) => {
     if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
+
           <View ref={genInfoRef} style={{marginTop: 10}}>
-            <View style={styles.obrContainer}>
-              <View
+          <View style={styles.cardContainer}>
+                <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>GENERAL INFORMATION</Text>
+                </View>
+                <View>
+          {[
+            { label: 'Office', value: genInformationData.OfficeName?.replace(/\\/g, '') },
+            { label: 'Status', value: `${genInformationData.TrackingType} - ${genInformationData.Status}` },
+            { label: 'Supplier', value: genInformationData.Claimant },
+            { label: 'Transaction Classification', value: genInformationData.ComplexLabel },
+            { label: 'PO Number', value: genInformationData.PO_Number },
+            { label: 'PO Date', value: genInformationData.PoDate },
+            { label: 'OBR Number', value: genInformationData.OBR_Number },
+            { label: 'PR Number', value: genInformationData.PR_Number },
+            { label: 'PR Sched', value: genInformationData.PR_Sched },
+            { label: 'PR TN', value: genInformationData.PR_TrackingNumber },
+            { label: 'Fund', value: genInformationData.Fund },
+            { label: 'Nature', value: genInformationData.NatureOfPayment },
+            { label: 'Specifics', value: genInformationData.Specifics },
+            { label: 'Mode', value: genInformationData.ModeOfProcTitle },
+            { label: 'Payment Term', value: genInformationData.PaymentTermLabel },
+            { label: 'Retention TN', value: genInformationData.RetentionTN },
+            { label: 'Encoded By', value: genInformationData.EncodedBy },
+            { label: 'Date Encoded', value: genInformationData.DateEncoded },
+            { label: 'Date Updated', value: genInformationData.DateModified },
+          ].map((item, index) => (
+            <View key={index} style={{ marginVertical: 5 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                paddingVertical: 4,
+                paddingHorizontal:10
+              }}
+            >
+              <Text
                 style={{
-                  borderColor: 'gray',
-                }}>
-                <View style={styles.detailsContainer}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      padding: 10,
-                      backgroundColor: 'rgba(0,0,0,0.3)',
-                      alignItems: 'center',
-                      marginBottom: 10,
-                    }}>
-                    {/* <Icon
-                      name={'information-circle-outline'}
-                      size={28}
-                      color={'rgba(132, 218, 92, 1)'}
-                    /> */}
-                    <Text
-                      style={{
-                        fontFamily: 'Oswald-Regular',
-                        color: 'white',
-                        fontSize: 16,
-                        marginStart: 10,
-                      }}>
-                      GENERAL INFORMATION
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Office</Text>
-                    <Text style={styles.labelValue}>
-                      {/* {genInformationData.OfficeName} */}
-                      {genInformationData.OfficeName.replace(/\\/g, '')}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Status</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.TrackingType} {'-'}{' '}
-                      {genInformationData.Status}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>TN</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.TrackingNumber}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Supplier</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.Claimant}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Transact Class</Text>
-                    <Text
-                      style={{
-                        width: 230,
-                        fontFamily: 'Oswald-Regular',
-                        fontSize: 15,
-                        //color: 'rgb(22, 178, 217)',
-                        color: 'white',
-                        marginStart: 10,
-                      }}>
-                      {genInformationData.ComplexLabel}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>PO Number</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.PO_Number}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>PO Date</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.PoDate}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>OBR Number</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.OBR_Number}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>PR Sched</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.PR_Sched}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>PR TN</Text>
-                    <Text
-                      style={{
-                        width: 230,
-                        fontFamily: 'Oswald-Regular',
-                        fontSize: 15,
-                        //color: '#F93232',
-                        color: 'white',
-                        marginStart: 10,
-                      }}>
-                      {genInformationData.PR_TrackingNumber}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Fund</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.Fund}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Nature</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.NatureOfPayment}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Specifics</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.Specifics}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Mode</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.ModeOfProcTitle}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Payment Term</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.PaymentTermLabel}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Invoice Number</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.InvoiceNumber}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Invoice Date</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.InvoiceDate}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>Retention TN</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.RetentionTN}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>EncodedBy</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.EncodedBy}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>DateEncoded</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.DateEncoded}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                  <View style={styles.detailItem}>
-                    <Text style={styles.label}>DateUpdated</Text>
-                    <Text style={styles.labelValue}>
-                      {genInformationData.DateModified}
-                    </Text>
-                  </View>
-                  <Divider
-                    width={1.9}
-                    color={'rgba(217, 217, 217, 0.1)'}
-                    borderStyle={'dashed'}
-                    marginHorizontal={20}
-                    marginBottom={5}
-                    style={{bottom: 5}}
-                  />
-                </View>
-              </View>
+                  fontSize: 14,
+                  color: '#777', 
+                  fontWeight: '400', 
+                  width: '35%',
+                }}
+              >
+                {item.label}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#222', 
+                  fontWeight: 'bold',
+                  width: '65%',
+                  paddingLeft: 12,
+                }}
+              >
+                {item.value || '—'}
+              </Text>
             </View>
+            {index !== item.length - 1 && (
+              <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
+            )}
+          </View>
+                ))}
+              </View>
+          </View>
           </View>
 
-          <View ref={paymentHistoryRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    PAYMENT HISTORY
-                  </Text>
-                </View>
+          <View ref={paymentHistoryRef} style={{ marginTop: 20 }}>
+          <View style={styles.cardContainer}>
+          <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>PAYMENT HISTORY</Text>
+          </View>
 
-                <View
-                  style={{
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    padding: 10,
-                    width: '100%',
-                  }}>
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontSize: 11,
-                      fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'left',
-                      color: 'white',
-                    }}>
-                    TN
-                  </Text>
-                  <View
-                    style={{
-                      flex: 2,
-                      flexDirection: 'row',
-                      justifyContent: 'space-around',
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        //textAlign: 'center',
-                        color: 'white',
-                      }}>
-                      STATUS
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                      }}>
-                      GROSS
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                      }}>
-                      LD
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                      }}>
-                      TOTAL TAX
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                      }}>
-                      RETENTION
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                      }}>
-                      ADJUSTMENT
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 8,
-                        fontFamily: 'Oswald-ExtraLight',
-                        color: 'white',
-                      }}>
-                      NET
-                    </Text>
-                  </View>
-                </View>
-
-                {paymentHistory && paymentHistory.length > 0 ? (
-                  paymentHistory.map(payment => (
-                    <View
-                      key={payment.TrackingNumber}
-                      style={{marginBottom: 5}}>
-                      <View style={{flexDirection: 'row'}}>
-                        <View style={{width: 90}}>
-                          <Text
-                            style={{
-                              color: 'white',
-                              fontFamily: 'Oswald-Regular',
-                              paddingRight: 30,
-                              paddingStart: 5,
-                              fontSize: 12,
-                            }}>
-                            {payment.TrackingNumber}
-                          </Text>
-                        </View>
-                        <View
-                          style={{
-                            flex: 1,
-                            justifyContent: 'space-around',
-                            flexDirection: 'row',
-                          }}>
-                          <View style={{}}>
-                            <Text style={[styles.paymentText]}>
-                              {payment.Status}
-                            </Text>
-                          </View>
-                          <Text style={styles.paymentText}>
-                            {payment.Gross}
-                          </Text>
-                          <Text style={styles.paymentText}>
-                            {payment.LiquidatedDamages}
-                          </Text>
-                          <Text style={styles.paymentText}>
-                            {payment.TotalTax}
-                          </Text>
-                          <Text style={styles.paymentText}>
-                            {payment.Retention}
-                          </Text>
-                          <Text style={styles.paymentText}>
-                            {payment.AdjustmentAmount}
-                          </Text>
-                          <Text style={styles.paymentText}>
-                            {payment.NetAmount}
-                          </Text>
-                        </View>
-                      </View>
-                      <Divider
-                        width={1.9}
-                        color={'rgba(217, 217, 217, 0.1)'}
-                        borderStyle={'solid'}
-                        marginBottom={5}
-                        paddingTop={10}
-                        style={{bottom: 5}}
-                      />
+            <View style={styles.cardDetails}>
+              {paymentHistory && paymentHistory.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>TN</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`tn-${index}`} style={styles.columnValue}>
+                          {payment.TrackingNumber}
+                        </Text>
+                      ))}
                     </View>
-                  ))
-                ) : (
-                  <View style={{alignSelf: 'center', padding: 10}}>
-                    <Text
-                      style={{
-                        fontFamily: 'Oswald-Medium',
-                        fontSize: 12,
-                        color: 'silver',
-                      }}>
-                      NO RECORD FOUND
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
 
-          <View ref={obrInfoRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  {/* <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    OBR INFORMATION
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: 5,
-                    flexDirection: 'row',
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-ExtraLight',
-                      color: 'white',
-                      marginEnd: 20,
-                      marginStart: 5,
-                      flex: 1,
-                      fontSize: 12,
-                    }}>
-                    PROGRAM
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-ExtraLight',
-                      color: 'white',
-                      marginEnd: 40,
-                      flex: 1,
-                      fontSize: 12,
-                    }}>
-                    CODE
-                  </Text>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-ExtraLight',
-                      color: 'white',
-                      marginEnd: 5,
-                      flex: 1,
-                      textAlign: 'right',
-                      fontSize: 12,
-                    }}>
-                    AMOUNT
-                  </Text>
-                </View>
-
-                {OBRInformation && OBRInformation.length > 0 ? (
-                  OBRInformation.map((item, index) => (
-                    <View key={index}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          paddingVertical: 5,
-                          paddingBottom: 15,
-                          //borderBottomWidth: 1,
-                          paddingStart: 10,
-                          //borderBottomColor: 'silver',
-                        }}>
-                        <View style={{flex: 1}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: 'white',
-                              fontFamily: 'Oswald-Regular',
-                            }}>
-                            {item.PR_ProgramCode}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: 'silver',
-                              fontFamily: 'Oswald-ExtraLight',
-                            }}>
-                            {item.ProgramName}
-                          </Text>
-                        </View>
-                        <View style={{flex: 1}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: 'white',
-                              fontFamily: 'Oswald-Regular',
-                            }}>
-                            {item.PR_AccountCode}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: 'silver',
-                              fontFamily: 'Oswald-ExtraLight',
-                            }}>
-                            {item.AccountTitle}
-                          </Text>
-                        </View>
-                        <View
-                          style={{
-                            flex: 1,
-                            alignItems: 'flex-end',
-                            marginEnd: 10,
-                          }}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: 'white',
-                              fontFamily: 'Oswald-Regular',
-                            }}>
-                            {insertCommas(item.PO_Amount)}
-                          </Text>
-                        </View>
-                      </View>
-                      <Divider
-                        width={1.9}
-                        color={'rgba(217, 217, 217, 0.1)'}
-                        borderStyle={'solid'}
-                        marginHorizontal={10}
-                        marginBottom={5}
-                        style={{bottom: 5}}
-                      />
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>STATUS</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`status-${index}`} style={styles.columnValue}>
+                          {payment.Status}
+                        </Text>
+                      ))}
                     </View>
-                  ))
-                ) : (
-                  <Text style={{color: 'silver', fontFamily: 'Oswald-Regular'}}>
-                    No data available
-                  </Text>
-                )}
 
-                <View
-                  style={{
-                    alignItems: 'flex-end',
-                    paddingRight: 5,
-                    paddingBottom: 10,
-                    marginBottom: 10,
-                  }}>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontSize: 20,
-                      fontFamily: 'Oswald-Regular',
-                      paddingEnd: 5,
-                      textAlign: 'right',
-                    }}>
-                    {insertCommas(POTOTAL.toFixed(2))}
-                  </Text>
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>GROSS</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`gross-${index}`} style={styles.columnValue}>
+                          {payment.Gross}
+                        </Text>
+                      ))}
+                    </View>
+
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>LD</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`ld-${index}`} style={styles.columnValue}>
+                          {payment.LiquidatedDamages}
+                        </Text>
+                      ))}
+                    </View>
+
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>TOTAL TAX</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`tax-${index}`} style={styles.columnValue}>
+                          {payment.TotalTax}
+                        </Text>
+                      ))}
+                    </View>
+
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>RETENTION</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`ret-${index}`} style={styles.columnValue}>
+                          {payment.Retention}
+                        </Text>
+                      ))}
+                    </View>
+
+                    {/* ADJUSTMENT COLUMN */}
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>ADJUSTMENT</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`adj-${index}`} style={styles.columnValue}>
+                          {payment.AdjustmentAmount}
+                        </Text>
+                      ))}
+                    </View>
+
+                    {/* NET COLUMN */}
+                    <View style={styles.column}>
+                      <Text style={styles.columnHeader}>NET</Text>
+                      {paymentHistory.map((payment, index) => (
+                        <Text key={`net-${index}`} style={styles.columnValue}>
+                          {payment.NetAmount}
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+              ) : (
+                <View style={{ }}>
+                                 <Text style={styles.noDataText}>No record found.</Text>
+
                 </View>
+              )}
+            </View>
+          </View>
+          </View>
+
+          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
+          <View style={styles.cardContainer}>
+          <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>OBR INFORMATION</Text>
+          </View>
+
+            <View style={styles.cardTable}>
+              <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
+              <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
+                <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
+                <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
+              </View>
+
+              {OBRInformation && OBRInformation.length > 0 ? (
+            OBRInformation.map((item, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.tableRow,
+                  {
+                    flexDirection: 'row',
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#E5E7EB',
+                    paddingVertical: 5,
+                    alignItems:'baseline'
+                  },
+                ]}
+              >
+                {/* PROGRAM */}
+                <View style={{ flex: 1 }}>
+                  <View>
+                    <Text style={styles.tableRowMain}>{item.PR_ProgramCode}</Text>
+                  </View>
+                  <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
+                </View>
+
+                {/* CODE */}
+                <View style={{ flex: 1 }}>
+                  <View>
+                    <Text style={styles.tableRowMain}>{item.PR_AccountCode}</Text>
+                  </View>
+                  <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
+                </View>
+
+                {/* AMOUNT */}
+                <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <Text style={styles.tableRowMain}>{insertCommas(item.PO_Amount)}</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noDataText}>No data available</Text>
+          )}
+
+
+              <View style={styles.totalContainer}>
+                <Text style={[styles.totalAmount, {marginEnd:5}]}>
+                  {insertCommas(POTOTAL.toFixed(2))}
+                </Text>
               </View>
             </View>
           </View>
+          </View>
 
-          <View ref={prDetailsRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  {/* <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    PO DETAILS
-                  </Text>
-                </View>
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: 5,
-                  }}>
-                  <View style={{width: 180}}>
-                    <Text
-                      style={{
-                        flex: 1,
-                        color: 'white',
-                        fontFamily: 'Oswald-ExtraLight',
-                        marginStart: 5,
-                        fontSize: 12,
-                      }}>
-                      DESCRIPTION
-                    </Text>
+          <View ref={prDetailsRef} style={{ marginTop: 20 }}>
+            <View style={styles.cardContainer}>
+            <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>PO DETAILS</Text>
+          </View>
+
+              <View style={styles.cardTable}>
+                <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB', }]}>
+                  <View style={{ flex: 2 }}>
+                    <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
                   </View>
-                  <Text
-                    style={{
-                      flex: 2,
-                      fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'center',
-                      color: 'white',
-                      fontSize: 12,
-                    }}>
-                    QTY | COST
-                  </Text>
-                  <Text
-                    style={{
-                      flex: 3,
-                      fontFamily: 'Oswald-ExtraLight',
-                      textAlign: 'right',
-                      color: 'white',
-                      marginEnd: 5,
-                      fontSize: 12,
-                    }}>
-                    TOTAL
-                  </Text>
+                  <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={styles.tableHeaderText}>QTY | COST</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
+                  </View>
                 </View>
 
-                {prpopxDetails &&
+                {prpopxDetails && prpopxDetails.length > 0 ? (
                   prpopxDetails.map((detail, index) => (
                     <View key={index}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          //borderBottomWidth: 1,
-                          //borderBottomColor: 'silver',
-                          paddingVertical: 5,
-                          paddingBottom: 20,
-                        }}>
-                        <View style={{width: 180}}>
-                          <TouchableOpacity
-                            onPress={() => toggleDescription(index)}>
+                      <View style={[styles.tableRow,{  flexDirection: 'row',
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#E5E7EB',
+                      paddingVertical: 10,}]}>
+                        <View style={{ flex: 2 }}>
+                          <TouchableOpacity onPress={() => toggleDescription(index)}>
                             <Text
-                              style={{
-                                flex: 1,
-                                fontSize: 12,
-                                fontFamily: 'Oswald-ExtraLight',
-                                paddingRight: 10,
-                                marginStart: 10,
-                                color: 'silver',
-                              }}
-                              numberOfLines={
-                                expandedIndex === index ? undefined : 3
-                              }
-                              ellipsizeMode={
-                                expandedIndex === index ? 'clip' : 'tail'
-                              }>
+                              style={styles.tableRowSub}
+                              numberOfLines={expandedIndex === index ? undefined : 3}
+                              ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
                               {detail.Description}
                             </Text>
                           </TouchableOpacity>
                         </View>
 
-                        <View style={{flex: 2, alignItems: 'center'}}>
-                          <View style={{flexDirection: 'row'}}>
-                            <Text
-                              style={{
-                                fontFamily: 'Oswald-Medium',
-                                color: 'rgb(27, 35, 39)',
-                                fontSize: 12,
-                                color: 'white',
-                                textAlign: 'center',
-                              }}>
-                              {Math.floor(detail.Qty)}{' '}
-                              <Text
-                                style={{
-                                  fontSize: 12,
-                                  fontFamily: 'Oswald-Medium',
-                                  color: 'white',
-                                }}>
-                                {detail.Unit}
-                              </Text>
-                            </Text>
-                          </View>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}>
-                            <View
-                              style={{
-                                borderBottomWidth: 0.8,
-                                borderColor: 'silver',
-                                width: 70,
-                              }}
-                            />
-                          </View>
-                          <View style={{flexDirection: 'row'}}>
-                            <Text
-                              style={{
-                                fontFamily: 'Oswald-Medium',
-                                textShadowRadius: 1,
-                                color: 'white',
-                                fontSize: 12,
-                                textAlign: 'center',
-                              }}>
-                              {insertCommas(detail.Amount)}
-                            </Text>
-                          </View>
+                        {/* Qty & Cost Column */}
+                        <View style={{ flex: 1, alignItems: 'center' }}>
+                          <Text style={styles.tableRowMain}>
+                            {Math.floor(detail.Qty)}{' '}
+                            <Text style={styles.tableRowSub}>{detail.Unit}</Text>
+                          </Text>
+                          <Text style={styles.tableRowSub}>
+                            {insertCommas(detail.Amount)}
+                          </Text>
                         </View>
-                        <Text
-                          style={{
-                            flex: 3,
-                            fontSize: 12,
-                            fontFamily: 'Oswald-Medium',
-                            color: 'white',
-                            textShadowRadius: 1,
-                            textAlign: 'right',
-                            marginEnd: 10,
-                          }}>
-                          {insertCommas(detail.Total)}
-                        </Text>
-                      </View>
-                      <Divider
-                        width={1.9}
-                        color={'rgba(217, 217, 217, 0.1)'}
-                        borderStyle={'solid'}
-                        marginHorizontal={10}
-                        marginBottom={5}
-                        style={{bottom: 5}}
-                      />
-                    </View>
-                  ))}
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'flex-end',
-                    paddingEnd: 10,
-                    paddingBottom: 10,
-                  }}>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontSize: 20,
-                      fontFamily: 'Oswald-Regular',
-                      textAlign: 'right',
-                    }}>
+                        {/* Total Column */}
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                          <Text
+                            style={[
+                              styles.tableRowMain,
+                              {paddingVertical: 5 },
+                            ]}>
+                            {insertCommas(detail.Total)}
+                          </Text>
+                        </View>
+                      </View>
+
+                     {/*  {index !== prpopxDetails.length - 1 && (
+                        <View style={styles.divider} />
+                      )} */}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No data available</Text>
+                )}
+
+                <View style={styles.totalContainer}>
+                <Text style={[styles.totalAmount, {marginEnd:5}]}>
                     {insertCommas(prpopxTotalAmount.toFixed(2))}
                   </Text>
                 </View>
@@ -2084,275 +1309,167 @@ const DetailScreen = ({route, navigation}) => {
             </View>
           </View>
 
-          <View ref={remarksRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  {/* <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    REMARKS
-                  </Text>
-                </View>
+          <View ref={remarksRef} style={{marginTop: 20}}>
+          <View style={styles.cardContainer}>
 
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                    paddingBottom: 15,
-                  }}>
-                  <View style={styles.obrRow}>
-                    <View
-                      style={{
-                        flexDirection: 'column',
-                        alignItems: 'left',
-                        width: 'auto',
-                      }}>
-                      {genInformationData.Remarks1 ? (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontFamily: 'Oswald-Regular',
-                            color: 'white',
-                          }}>
-                          {removeHtmlTags(genInformationData.Remarks1)}
-                        </Text>
-                      ) : (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontFamily: 'Oswald-Regular',
-                            color: 'white',
-                          }}></Text>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
+          <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>REMARKS</Text>
           </View>
 
-          <View>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  {/*  <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    PENDING NOTE
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                    paddingBottom: 15,
-                  }}>
-                  <View style={styles.obrRow}>
-                    <View
-                      style={{
-                        flexDirection: 'column',
-                        alignItems: 'left',
-                        width: 'auto',
-                      }}>
-                      {genInformationData.Remarks ? (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontFamily: 'Oswald-Regular',
-                            color: 'white',
-                          }}>
-                          {genInformationData.Remarks}
-                        </Text>
-                      ) : (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontFamily: 'Oswald-Regular',
-                            color: 'white',
-                          }}></Text>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              </View>
+            <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+              {genInformationData?.Remarks1 ? (
+                <Text style={styles.remarksText}>
+                  {removeHtmlTags(genInformationData.Remarks1)}
+                </Text>
+              ) : (
+                <Text style={styles.noDataText}>No remarks available.</Text>
+              )}
             </View>
           </View>
+          </View>
 
-          <View ref={transactionHistoryRef}>
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}>
-                  {/* <Icon
-                    name={'information-circle-outline'}
-                    size={28}
-                    color={'rgba(132, 218, 92, 1)'}
-                  /> */}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      marginStart: 10,
-                    }}>
-                    TRANSACTION HISTORY
-                  </Text>
-                </View>
+          <View ref={remarksRef} style={{ marginTop: 20 }}>
+          <View style={styles.cardContainer}>
+          <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>PENDING NOTE</Text>
+          </View>
 
-                <View style={{flex: 1}}>
-                  {transactionHistory && transactionHistory.length > 0 ? (
-                    <DataTable
+            <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+            {genInformationData?.Remarks ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: '#92400E',
+                  lineHeight: 20,
+                }}>
+                {genInformationData.Remarks}
+              </Text>
+            ) : (
+              <Text
+              style={styles.noDataText}>
+                No pending note provided.
+              </Text>
+            )}
+            </View>
+          </View>
+          </View>
+
+          {genInformationData.Year === '2025' && /* procurement === '1' &&  */(
+          <View  style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+            <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>DIGITAL COPIES</Text>
+          </View>
+
+              <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+              {formTypeMap.PO.map((formType, index) => {
+                  const formTypeFiles =
+                    attachmentsFiles?.filter(
+                      fileUrl => fileUrl.split('~')[2] === formType,
+                    ) || [];
+
+                  const hasFiles = formTypeFiles.length > 0;
+
+                  return (
+                    <View
+                      key={formType}
                       style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                        alignSelf: 'center',
+                        marginVertical: 10,
+                        paddingBottom: 10,
+                        borderBottomWidth: 1,
+                        borderColor: '#e5e7eb',
                       }}>
                       <View
-                        style={{
-                          flexDirection: 'row',
-                          paddingVertical: 5,
-                          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        }}>
-                        <View style={{flex: 1}}></View>
-                        <View style={{flex: 3, marginEnd: 15}}>
-                          <Text
+                        style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
+                        <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
+                          {`${index + 1}. ${formType}`}
+                        </Text>
+                        {procurement === '1' && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <TouchableOpacity
+                            disabled={hasFiles}
+                            onPress={() => handleAttachFiles(formType)}
                             style={{
-                              fontFamily: 'Oswald-ExtraLight',
-                              color: 'white',
-                              fontSize: 12,
-                            }}>
-                            DATE
-                          </Text>
-                        </View>
-                        <View style={{flex: 5}}>
-                          <Text
+                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+                              paddingVertical: 6,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              marginRight: 10,
+                              opacity: hasFiles ? 0.5 : 1,
+                            }}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+                              Attach Files
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            disabled={!hasFiles}
+                            onPress={() => handleRemove(year, trackingNumber, formType)}
                             style={{
-                              fontFamily: 'Oswald-ExtraLight',
-                              color: 'white',
-                              fontSize: 12,
-                            }}>
-                            STATUS
-                          </Text>
+                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+                              paddingVertical: 4,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              opacity: !hasFiles ? 0.5 : 1,
+                            }}
+                          >
+                            <Icon name={'trash-outline'} size={20} color={'#FF6347'} />
+                          </TouchableOpacity>
                         </View>
-                        <View style={{flex: 3, marginEnd: 10}}>
-                          <Text
-                            style={{
-                              fontFamily: 'Oswald-ExtraLight',
-                              color: 'white',
-                              textAlign: 'right', // align text to the right for numeric
-                              fontSize: 12,
-                            }}>
-                            COMPLETION
-                          </Text>
-                        </View>
+                      )}
+
+                        
                       </View>
 
-                      {transactionHistory.map((item, index) => (
-                        <View
-                          key={index}
-                          style={{
-                            flexDirection: 'row',
-                            paddingVertical: 10,
-                            alignItems: 'center',
-                            //paddingTop: 10,
-                            //paddingBottom: 10,
-                            backgroundColor:
-                              index % 2 === 0
-                                ? 'rgba(0, 0, 0, 0.1)'
-                                : 'rgba(0, 0, 0, 0.2)', // Alternating background color
-                          }}>
-                          <View style={{flex: 1}}>
-                            <Text
-                              style={{
-                                textAlign: 'center',
-                                fontSize: 12,
-                                color: 'silver',
-                                fontFamily: 'Oswald-ExtraLight',
-                              }}>
-                              {index + 1}
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 15}}>
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontFamily: 'Oswald-ExtraLight',
-                                color: 'silver',
-                              }}>
-                              {item.DateModified}
-                            </Text>
-                          </View>
-                          <View style={{flex: 5}}>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                fontFamily: 'Oswald-Regular',
-                                color: 'white',
-                              }}>
-                              {item.Status}
-                            </Text>
-                          </View>
-                          <View style={{flex: 3, marginEnd: 10}}>
-                            <Text
-                              style={{
-                                fontSize: 11,
-                                fontFamily: 'Oswald-ExtraLight',
-                                textAlign: 'right',
-                                color: 'silver',
-                              }}>
-                              {removeHtmlTags(item.Completion)}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                    </DataTable>
-                  ) : (
-                    <View style={{}}>
-                      <Text>No Transaction History available</Text>
+                      <View style={{marginTop: 5}}>
+                        {hasFiles ? (
+                          formTypeFiles.map((fileUrl, fileIndex) => {
+                            const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                            const fileExtension = fileUrl.split('.').pop();
+                            const uniqueKey = `file-${formType}-${fileIndex}`;
+
+                            return (
+                              <View
+                                key={uniqueKey}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  marginTop: 5,
+                                  backgroundColor: '#f1f5f9',
+                                  padding: 10,
+                                  borderRadius: 6,
+                                }}>
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    if (fileExtension === 'pdf') {
+                                      Linking.openURL(uniqueUri);
+                                    } else {
+                                      handleImagePress(uniqueUri);
+                                    }
+                                  }}>
+                                  <Text style={{color: '#1e293b', fontSize: 12}}>
+                                    {fileUrl.split('~').slice(-2).join('~')}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            );
+                          })
+                        ) : (
+                          <Text style={{color: '#9ca3af', fontSize: 12}}>
+                            No attached files
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                  )}
-                </View>
+                  );
+                })}
               </View>
             </View>
           </View>
+          )}
 
-          {genInformationData.Year === '2025' && procurement === '1' && (
+          {/* {genInformationData.Year === '2025' && procurement === '1' && (
             <View style={styles.obrContainer}>
               <View style={styles.detailsContainer}>
                 <View
@@ -2505,7 +1622,148 @@ const DetailScreen = ({route, navigation}) => {
                 </View>
               </View>
             </View>
-          )}
+          )} */}
+
+        <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 3,
+              elevation: 2,
+              marginHorizontal: 16,
+              overflow: 'hidden',
+            }}>
+              <View style={styles.cardHeader}>
+          <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
+          </View>
+
+            <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
+              {/* Table Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  paddingBottom: 8,
+                  borderBottomWidth: 1,
+                  borderColor: '#E5E7EB',
+                  marginBottom: 6,
+                }}>
+                <View style={{ flex: 1 }} />
+                <View style={{ flex: 3 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      fontWeight: '500',
+                    }}>
+                    DATE
+                  </Text>
+                </View>
+                <View style={{ flex: 5 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      fontWeight: '500',
+                    }}>
+                    STATUS
+                  </Text>
+                </View>
+                <View style={{ flex: 3 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      fontWeight: '500',
+                      textAlign: 'right',
+                    }}>
+                    COMPLETION
+                  </Text>
+                </View>
+              </View>
+
+              {/* Table Body */}
+              {transactionHistory && transactionHistory.length > 0 ? (
+                transactionHistory.map((item, index) => (
+                  <View key={index}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
+                        borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
+                      }}>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: '#6B7280',
+                            textAlign: 'center',
+                          }}>
+                          {index + 1}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 3 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: '#4B5563',
+                          }}>
+                          {item.DateModified}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 5 }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: '#1F2937',
+                            fontWeight: '500',
+                          }}>
+                          {item.Status}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 3 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: '#6B7280',
+                            textAlign: 'right',
+                            marginEnd:10
+                          }}>
+                          {removeHtmlTags(item.Completion)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {index !== transactionHistory.length - 1 && (
+                      <View
+                        style={{
+                          height: 1,
+                          backgroundColor: '#E5E7EB',
+                          marginVertical: 6,
+                        }}
+                      />
+                    )}
+                  </View>
+                ))
+              ) : (
+                <Text
+                  style={{
+                    color: '#9CA3AF',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    marginTop: 10,
+                  }}>
+                  No Transaction History available
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
 
           <View style={{height: 500}} />
         </ScrollView>
@@ -5738,9 +4996,29 @@ const styles = StyleSheet.create({
   },
   detailItem: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    paddingBottom: 10,
     paddingStart: 10,
+  },
+  column: {
+    //marginHorizontal: 6,
+    marginRight:10,
+    //paddingHorizontal:10,
+    //borderWidth:1
+    //minWidth: 80,
+    //borderRightWidth:1,
+    borderRightColor:'silver'
+  },
+  columnHeader: {
+    fontSize: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+    paddingVertical:5,
+    borderBottomWidth:1
+  },
+  columnValue: {
+    fontSize: 11,
+    textAlign: 'center',
+    fontWeight: 'bold',
+
   },
   label: {
     width: 75,
@@ -5752,7 +5030,7 @@ const styles = StyleSheet.create({
   },
   labelValue: {
     width: '70%',
-    color: 'white',
+    color: 'rgba(0)',
     fontSize: 14,
     fontFamily: 'Oswald-Regular',
     marginStart: 10,
@@ -5860,32 +5138,32 @@ const styles = StyleSheet.create({
   cardContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: {width: 0, height: 2},
+    //overflow: 'hidden',
+    elevation: 2,
+    //shadowColor: '#000',
+    //shadowOpacity: 0.05,
+    //shadowRadius: 4,
+    //shadowOffset: {width: 0, height: 2},
     marginHorizontal: 15,
   },
   cardHeader: {
     paddingVertical: 10,
     paddingHorizontal: 15,
-    backgroundColor: '#2563EB',
+    borderBottomWidth:1,
+    borderColor:'silver'
   },
   headerText: {
-    fontFamily: 'Oswald-Regular',
-    fontSize: 17,
-    color: '#ffffff',
-    letterSpacing: 0.5,
+    fontSize: 16,
+    //color: '#ffffff',
+    fontWeight:'700',
+    color:'rgb(63,129,160)',
+    //letterSpacing: 0.5,
   },
   cardDetails: {
     paddingVertical: 16,
     paddingHorizontal: 18,
     backgroundColor: '#f9f9f9',
-  },
-  detailItem: {
-    marginBottom: 8,
+    justifyContent:'space-between'
   },
   label: {
     fontSize: 13,
@@ -5945,7 +5223,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     marginHorizontal:10,
-    alignItems:'center'
+    //alignItems:'center'
   },
 
   tableRowMain: {
