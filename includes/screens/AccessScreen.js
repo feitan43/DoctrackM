@@ -15,7 +15,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useUserAccess, useUpdateUserAccess } from '../hooks/usePersonal';
 import {showMessage} from 'react-native-flash-message';
 
-// Define the systems we want to show in the access control
 const systems = [
   { key: 'PROCUREMENT', label: 'Procurement' },
   { key: 'PAYROLL', label: 'Payroll' },
@@ -39,7 +38,6 @@ const AccessScreen = ({navigation}) => {
 
   useEffect(() => {
     if (data) {
-      // Transform the API data into our required format
       const transformedUsers = data.map(user => ({
         id: user.Id,
         name: user.Name,
@@ -91,20 +89,12 @@ const AccessScreen = ({navigation}) => {
     setModalVisible(false);
   
     try {
-      console.log(
-        selectedUser.employeeNumber,
-        selectedSystem,
-        newAccess === "access" ? "1" : "0"
-      );
-  
       const result = await updateUserAccess({
         employeeNumber: selectedUser.employeeNumber,
         system: selectedSystem,
         access: newAccess === "access" ? "1" : "0",
       });
-  
-      console.log("res", result);
-  
+    
       if (result.success) {
         showMessage({
           message: 'Update Successful',
@@ -116,15 +106,11 @@ const AccessScreen = ({navigation}) => {
           floating: true,
           duration: 3000,
         });
-  
-        console.log('User access updated successfully');
-      } else {
+        } else {
         throw new Error(result.message || 'Update failed');
       }
   
-    } catch (error) {
-      console.error('Error updating user access:', error);
-  
+    } catch (error) {  
       showMessage({
         message: 'Update Failed',
         description: error.message || 'There was an issue updating user access.',
@@ -215,9 +201,9 @@ const AccessScreen = ({navigation}) => {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Access</Text>
             <TouchableOpacity
-              onPress={handleFiltersPress}
+              //onPress={handleFiltersPress}
               style={styles.searchIcon}>
-              <Icon name="ellipsis-vertical" size={20} color="#fff" />
+              {/* <Icon name="ellipsis-vertical" size={20} color="#fff" /> */}
             </TouchableOpacity>
           </>
         </View>
@@ -245,7 +231,6 @@ const AccessScreen = ({navigation}) => {
         }
       />
 
-      {/* Role Selection Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -327,7 +312,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#fff',
   },
-  searchIcon: {marginRight: 10},
+  searchIcon: {marginRight: 10, width:40},
   backButton: {padding: 8, borderRadius: 20},
   loadingContainer: {
     flex: 1,

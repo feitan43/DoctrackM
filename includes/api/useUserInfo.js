@@ -55,6 +55,7 @@ const useUserInfo = () => {
     permission: userData?.Permission ?? null,
     procurement: userData?.PROCUREMENT ?? null,
     gsoInspection: userData?.GSOINSPECTION ?? null,
+    officeAdmin: userData?.OFFICEADMIN ?? null,
   };
 };
 

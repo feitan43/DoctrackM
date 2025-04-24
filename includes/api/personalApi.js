@@ -10,8 +10,6 @@ export const fetchUsersAccess = async (officeCode) => {
 };
 
 export const updateUserAccess = async (employeeNumber, system, access) => {
-
-    console.log("api",employeeNumber, system, access)
     if (!employeeNumber || !system || !access) {
       throw new Error('employeeNumber, system, and access are required.');
     }
@@ -21,7 +19,6 @@ export const updateUserAccess = async (employeeNumber, system, access) => {
         `/updateUserAccess?EmployeeNumber=${encodeURIComponent(employeeNumber)}&System=${encodeURIComponent(system)}&Access=${encodeURIComponent(access)}`
       );
   
-        console.log("da",data)
       if (data.success) {
         return data;
       } else {

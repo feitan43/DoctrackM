@@ -246,6 +246,7 @@ const DoctrackScreen = ({
   officeName,
   privilege,
   permission,
+  officeAdmin,
   dataPR,
   dataPO,
   dataPX,
@@ -1050,20 +1051,13 @@ const DoctrackScreen = ({
               },
               {
                 label: 'Access',
-                count: `${
-                  accountabilityData && accountabilityData.length
-                    ? accountabilityData.length
-                    : 0
-                }`,
+                icon: true, 
+                condition: officeAdmin === '1',
                 screen: 'MyAccess',
               },
-              
-            ].map((item, index, arr) => {
-              if (item.condition === false) {
-                return null;
-              }
-
-              return (
+            ]
+              .filter(item => item.condition === undefined || item.condition)
+              .map((item, index, arr) => (
                 <Pressable
                   key={index}
                   onPress={() => navigation.navigate(item.screen, item.params)}
@@ -1085,14 +1079,25 @@ const DoctrackScreen = ({
                   android_ripple={{}}>
                   {({pressed}) => (
                     <>
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#007bff',
-                          fontFamily: 'Inter_28pt-Bold',
-                          fontSize: 26,
-                        }}>
-                        {item.count || 0}
-                      </Text>
+                      {item.icon ? (
+                        <View style={{paddingVertical:5}}>
+                          <Icon
+                          name="key-outline" // Replace with any icon you want
+                          size={26}
+                          color={pressed ? 'white' : '#007bff'}
+                        />
+                        </View>
+                        
+                      ) : (
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#007bff',
+                            fontFamily: 'Inter_28pt-Bold',
+                            fontSize: 26,
+                          }}>
+                          {item.count || 0}
+                        </Text>
+                      )}
                       <Text
                         style={{
                           color: pressed ? 'white' : '#252525',
@@ -1104,8 +1109,7 @@ const DoctrackScreen = ({
                     </>
                   )}
                 </Pressable>
-              );
-            })}
+              ))}
           </View>
         </View>
       </View>
@@ -2234,7 +2238,7 @@ const DoctrackScreen = ({
   const [summaryDate, setSummaryDate] = useState('');
   const [transactionDate, setTransactionDate] = useState('');
 
-  const [selected, setSelected] = useState('Unique'); // Default to 'Unique'
+  const [selected, setSelected] = useState('Unique'); 
   const keyMapping = {Unique: 'unique', Accumulated: 'accumulated'};
   const evaluatorSummaryData = evaluatorSummary?.[keyMapping[selected]] || [];
 

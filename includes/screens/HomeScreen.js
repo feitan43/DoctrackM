@@ -84,6 +84,9 @@ const HomeScreen = ({navigation}) => {
     permission,
     accountType,
     token,
+    gsoInspection,
+    procurement,
+    officeAdmin,
   } = useUserInfo();
   const {
     recentlyUpdatedData,
@@ -291,6 +294,7 @@ const HomeScreen = ({navigation}) => {
         privilege={privilege}
         permission={permission}
         accountType={accountType}
+        officeAdmin={officeAdmin}
         liveUpdatedNowData={liveUpdatedNowData}
         updatedDateTime={updatedDateTime}
         dataPR={dataPR}

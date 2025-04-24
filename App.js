@@ -10,32 +10,24 @@ import {
   StatusBar,
   Alert,
   Linking,
-  NativeEventEmitter,
-  NativeModules,
-  LogBox,
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import FlashMessage from 'react-native-flash-message';
-import { HotUpdater, useHotUpdaterStore, addListener   } from "@hot-updater/react-native";
-
+import { HotUpdater } from "@hot-updater/react-native";
 
 const queryClient = new QueryClient();
 
-
-const App = () => {
+const AppContent = () => {
   const [isConnected, setIsConnected] = useState(true);
-  useEffect(() => {
-    LogBox.ignoreLogs(['new NativeEventEmitter() was called']);
-  }, []);
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
     return () => unsubscribe();
-    
   }, []);
 
   const openWifiSettings = () => {
@@ -61,11 +53,9 @@ const App = () => {
     });
   };
 
-
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-
-    <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
         <StatusBar
           barStyle="light-content"
           backgroundColor="transparent"
@@ -101,9 +91,8 @@ const App = () => {
             </View>
           )}
         </View>
-    </QueryClientProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
-
   );
 };
 
@@ -153,28 +142,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
   },
-  reloadButton: {
-    padding: 20,
-    backgroundColor: '#007bff',
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-    alignSelf: 'center',
-  },
-  reloadText: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
-  },
 });
 
-//export default App;
-//source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
+const FallbackComponent = ({ progress, status, message }) => (
+  <View
+    style={{
+      flex: 1,
+      padding: 24,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.6)",
+    }}
+  >
+    <View
+      style={{
+        backgroundColor: "#FFFFFF",
+        paddingVertical: 32,
+        paddingHorizontal: 24,
+        borderRadius: 20,
+        width: "90%",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 6,
+      }}
+    >
+      <Text style={{ color: "#1E1E1E", fontSize: 22, fontWeight: "bold", marginBottom: 12 }}>
+        {status === "UPDATING" ? "Updating..." : "Checking for Update..."}
+      </Text>
 
-export default HotUpdater.wrap({
+      {message && (
+        <Text style={{ color: "#444", fontSize: 16, textAlign: "center", marginBottom: 10 }}>
+          {message}
+        </Text>
+      )}
+
+      {progress > 0 && (
+        <Text style={{ color: "#1D4ED8", fontSize: 20, fontWeight: "bold" }}>
+          {Math.round(progress * 100)}%
+        </Text>
+      )}
+    </View>
+  </View>
+);
+
+const App = HotUpdater.wrap({
   source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
-  //source: '',  
   requestHeaders: {
     "Authorization": "Bearer <your-access-token>",
   },
-})(App);
+  onUpdateProcessCompleted: ({ status, shouldForceUpdate, id, message }) => {  
+    console.log("Bundle updated:", status, shouldForceUpdate, id, message);  
+    if (shouldForceUpdate) { 
+      HotUpdater.reload(); 
+    } 
+  },  
+  reloadOnForceUpdate: true,
+  fallbackComponent: FallbackComponent,
+})(AppContent);
+
+export default App;
