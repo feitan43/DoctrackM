@@ -1,0 +1,40 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import apiClient from './apiClient';
+
+async function updateQRData({ year, trackingNumber, adv1 }) {
+    const getAuthHeaders = async () => {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('Authorization token is missing');
+        return {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
+    };
+
+    const headers = await getAuthHeaders();
+    const apiUrl = `/updateAdvNumber?year=${year}&tn=${trackingNumber}&adv1=${adv1}`;
+    const response = await apiClient.get(apiUrl, { headers });
+    const data = response.data;
+
+    if (!data) {
+        throw new Error('No data returned from API');
+    }
+    return data;
+}
+
+export const useUpdateQRData = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: updateQRData,
+        onSuccess: async (_data, variables) => {
+
+            const { year, trackingNumber } = variables;
+            queryClient.invalidateQueries(['qrData', year, trackingNumber]);
+        },
+        onError: (error) => {
+         
+        },
+    });
+};

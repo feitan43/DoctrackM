@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,9 +12,12 @@ import {
   ActivityIndicator,
   Modal,
   Image,
-  TextInput,
   ImageBackground,
+  Keyboard,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView
 } from 'react-native';
+import { TextInput } from 'react-native-paper'
 import {
   Camera,
   useCameraPermission,
@@ -34,6 +37,7 @@ import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
 import { Button } from 'react-native-paper';
 import { Divider } from '@rneui/themed';
+import { useUpdateQRData } from '../../api/useUpdateQRData';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250;
@@ -46,15 +50,50 @@ const QRManual = () => {
   const cameraRef = useRef(null);
   const [scannedCodes, setScannedCodes] = useState([]);
 
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
   const [cameraIsActive, setCameraIsActive] = useState(true);
-
   const [inputParams, setInputParams] = useState('');
-
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+
+  const { mutateAsync, isPending } = useUpdateQRData();
+  const [isEditing, setIsEditing] = useState(false);
+  const [advNumber, setAdvNumber] = useState('');
+
+  const handleEdit = (item) => {
+    setAdvNumber(item?.ADV1 || '');
+    setIsEditing(true);
+  };
+
+
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setAdvNumber('');
+  };
+
+
+  const handleSubmit = async (year, trackingNumber) => {
+    try {
+      const payload = {
+        year,
+        trackingNumber,
+        adv1: advNumber,
+      };
+      await mutateAsync(payload);
+      await fetchQRData(year, trackingNumber);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update ADV Number:', error);
+      Alert.alert('Error', 'Failed to update ADV Number. Please try again.');
+    }
+  };
+
+
 
 
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
@@ -66,10 +105,14 @@ const QRManual = () => {
 
   const { autoReceive, revertReceived, isLoading } = useReceiving();
 
-
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['53%', '60%', '80%'];
+  // const snapPoints = keyboardVisible ? ['60%', '80%'] : ['60%'];
+  const snapPoints = useMemo(() => ["60%"], []);
+
+  const handleSheetChange = useCallback((index) => {
+    console.log('handleSheetChanges', index);
+  }, []);
 
   const handleReceived = async (
     year,
@@ -125,8 +168,6 @@ const QRManual = () => {
     }
   };
 
-
-
   const handleRevert = async (
     year,
     trackingNumber,
@@ -149,6 +190,9 @@ const QRManual = () => {
 
       if (response?.status === "success") {
         await fetchQRData(year, trackingNumber);
+        setModalMessage(response?.message || 'Unknown error');
+        setModalVisible(true);
+        setModalType(true);
       } else {
         console.warn("Revert failed:", response);
         Alert.alert("Warning", "Revert operation did not succeed.");
@@ -165,9 +209,6 @@ const QRManual = () => {
       }
     }
   };
-
-
-
 
   // --------- Render Item QR Manual
 
@@ -211,16 +252,14 @@ const QRManual = () => {
       const isIP = TrackingType === 'IP';
       const isPR = TrackingType === 'PR';
 
-      if (
-        isPY &&
-        (
-          ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status) ||
-          (Status === 'Encoded' && Fund === 'Trust Fund')
-        )
-      ) {
+      if (isPY && ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status)) {
         return true;
       }
 
+      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF') && (Fund === 'Trust Fund')
+      ) {
+        return true;
+      }
 
       if (isPX && ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status)) {
         return true;
@@ -235,8 +274,6 @@ const QRManual = () => {
 
     const showCAORevertButton = (() => {
       const { TrackingType, Status } = item;
-
-
       //PX
       if (TrackingType === 'PX') {
         if (Status === 'CAO Received'
@@ -244,9 +281,6 @@ const QRManual = () => {
           return true;
         }
       }
-
-
-
       //PY
       if (TrackingType === 'PY') {
         if (Status === 'CAO Received') {
@@ -415,6 +449,80 @@ const QRManual = () => {
           <Text style={styles.label}>Document Type:</Text>
           <Text style={styles.value}>{item.DocumentType}</Text>
         </View>
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{ bottom: 5 }}
+        />
+
+        <View style={styles.textRow}>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.label}>ADV Number:</Text>
+            <View style={{ flexDirection: 'column', flex: 1 }}>
+              {isEditing ? (
+                <>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="Enter number"
+                    placeholderTextColor="#aaa"
+                    keyboardType="numeric"
+                    maxLength={10}
+                    value={advNumber}
+                    onChangeText={setAdvNumber}
+                    onSubmitEditing={() => handleSubmit(item?.Year, item?.TrackingNumber)}
+                    returnKeyType="done"
+                    style={{
+                      flex: 1,
+                      borderRadius: 100,
+                      height: 35,
+                      backgroundColor: '#E5E5EA',
+                      marginVertical: 8,
+                    }}
+                    theme={{
+                      colors: {
+                        primary: '#5690FD',
+                        outline: '#ccc',
+                        text: '#000',
+                        placeholder: '#aaa',
+                      },
+                    }}
+                  />
+
+                  <View style={{ flexDirection: 'row', alignSelf: 'flex-end', gap: 5 }}>
+                    <TouchableOpacity onPress={handleCancel}>
+                      <Text style={[styles.value]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleSubmit(item?.Year, item?.TrackingNumber)}>
+                      <Text style={[styles.value]}>Submit</Text>
+                    </TouchableOpacity>
+
+                  </View>
+                </>
+              ) : (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={[styles.value]}>
+                    {item?.ADV1 === '0' ? 'n/a' : item?.ADV1 ? item.ADV1 : ''}
+                  </Text>
+
+
+                  {item?.ADV1 && item?.ADV1 && (
+                    <View style={{ alignContent: "flex-end" }}>
+                      <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
+                        <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
+                        <Icon name="create-outline" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
@@ -823,13 +931,11 @@ const QRManual = () => {
     );
   };
 
-  const handleSheetChange = useCallback(index => {
-    // handle new index
-  }, []);
+
 
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
-    console.log("Fetched Data:", data);
+    console.log("Fetched Data:", data.adv);
 
     if (!data || !data.results || data.results.length === 0) {
       console.warn("No results found.");
@@ -905,24 +1011,16 @@ const QRManual = () => {
 
         const data = await fetchQRData(year, trackingNumber);
 
-
-        if (!data?.length) {
-          // Handle invalid QR code
-          setCameraIsActive(false); // Deactivate the camera
-          Alert.alert(
-            'Invalid QR Code',
-            'The QR code you scanned is not valid.',
-            [
-              {
-                text: 'Scan Again',
-                onPress: () => setCameraIsActive(true),
-              },
-            ],
-          );
-          return;
+        if (data?.length) {
+          setScannedCodes(prev => [...prev, scannedCode]);
+          setCameraIsActive(false);
+          bottomSheetRef.current?.expand?.();
+        } else {
+          Alert.alert('Invalid QR Code', 'The QR code you scanned is not valid.', [
+            { text: 'Scan Again', onPress: () => setCameraIsActive(true) },
+          ]);
         }
 
-     
         setScannedCodes(prev => [...prev, scannedCode]);
         setCameraIsActive(false);
       } catch (error) {
@@ -934,6 +1032,11 @@ const QRManual = () => {
       }
     },
   });
+
+  const handleSheetClose = () => {
+    bottomSheetRef.current?.close();
+    setCameraIsActive(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -1028,7 +1131,7 @@ const QRManual = () => {
       <View>
         <Modal
           visible={modalVisible}
-          animationType="slide"
+          animationType='fade'
           transparent={true}
           onRequestClose={() => setModalVisible(false)}>
           <View
@@ -1071,13 +1174,13 @@ const QRManual = () => {
               <Pressable
                 onPress={() => setModalVisible(false)}
                 style={{
-                  backgroundColor: '#007bff', // Button background color
+                  backgroundColor: '#007bff',
                   paddingVertical: 10,
                   paddingHorizontal: 20,
                   borderRadius: 5,
                   marginTop: 10,
-                  alignItems: 'center', // Center the text
-                  justifyContent: 'center', // Center the text
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
                 <Text
                   style={{
@@ -1096,9 +1199,8 @@ const QRManual = () => {
       {qrData && qrData.length > 0 && (
         <BottomSheet
           ref={bottomSheetRef}
-          index={0}
-          snapPoints={snapPoints}
-          onChange={handleSheetChange}
+          snapPoints={snapPoints} s
+          keyboardBehavior="interactive"
         >
 
           <View style={styles.bottomSheetContent}>
@@ -1112,9 +1214,9 @@ const QRManual = () => {
                 }}>
                 <TouchableOpacity
                   onPress={() => {
-                    bottomSheetRef.current?.close();
-                    setCameraIsActive(true);
+                    handleSheetClose();
                   }}
+
                   style={{
                     padding: 5,
                     borderColor: 'gray',
@@ -1157,9 +1259,9 @@ const QRManual = () => {
 
           </View>
 
-        </BottomSheet>
+        </BottomSheet >
       )}
-    </View>
+    </View >
   );
 };
 
@@ -1240,7 +1342,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   value: {
-    width: '70%',
+    // width: '70%',
     color: 'white',
     fontSize: 14,
     fontFamily: 'Oswald-Regular',

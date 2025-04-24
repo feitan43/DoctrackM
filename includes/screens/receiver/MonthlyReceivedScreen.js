@@ -6,11 +6,12 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Switch } from 'react-native-paper';
 import { insertCommas } from '../../utils/insertComma';
 import useReceiving from '../../api/useReceiving';
+import { useIsFetching } from '@tanstack/react-query'
 
 const MonthlyReceivedScreen = ({ navigation, route }) => {
     const { selectedYear } = route.params || {};
-    const { receivedMonthlyData, isFetching } = useReceiving(selectedYear);
-
+    const { receivedMonthlyData } = useReceiving(selectedYear);
+    const isFetching = useIsFetching()
 
     const [isSwitchOn, setIsSwitchOn] = useState(false);
     const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
@@ -71,7 +72,7 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
     };
 
 
-    
+
 
     const renderTabs = () => {
         const { genCount, trustCount, sefCount } = getFundCounts();
@@ -306,7 +307,6 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
                         />
                     )}
                 </View>
-
             </View>
         </SafeAreaView>
     );

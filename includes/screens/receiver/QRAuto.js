@@ -39,6 +39,8 @@ const { width, height } = Dimensions.get('window');
 const squareSize = 250;
 
 const QRAuto = () => {
+  const scannedCodesRef = useRef(new Set());
+  const isProcessingRef = useRef(false);
   const navigation = useNavigation();
   //const cameraPermission = useCameraPermission();
   const cameraDevice = useCameraDevice('back');
@@ -230,17 +232,19 @@ const QRAuto = () => {
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
     onCodeScanned: async codes => {
-      if (codes.length === 0) return;
+      if (codes.length === 0 || isProcessingRef.current) return;
 
       const scannedCode = codes[0].value;
 
-      if (scannedCodes.includes(scannedCode)) {
+      if (scannedCodesRef.current.has(scannedCode)) {
         Alert.alert(
           'Code Already Scanned',
           'This QR code has already been scanned.',
         );
         return;
       }
+
+      isProcessingRef.current = true; // Lock
 
       try {
         const result = decryptScannedCode(scannedCode);
@@ -263,11 +267,7 @@ const QRAuto = () => {
         const data = await fetchQRData(year, trackingNumber);
 
         if (!Array.isArray(data) || data.length === 0) {
-          setCameraIsActive(false);
-          ToastAndroid.show(
-            'No data received or data is not in the expected format.',
-            ToastAndroid.SHORT,
-          );
+          ToastAndroid.show('No data or wrong format.', ToastAndroid.SHORT);
           return;
         }
 
@@ -276,8 +276,11 @@ const QRAuto = () => {
 
         const isEligibleForReceive = (() => {
           if (TrackingType === 'PY') {
-            if (['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status) || (Status === 'Encoded' && Fund === 'Trust Fund'))
-              return true;
+            if (
+              ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status) ||
+              (Status === 'Encoded' && Fund === 'Trust Fund')
+            ) return true;
+
             if (
               Status === 'Encoded' &&
               ['Liquidation', 'Remitance - HDMF'].includes(DocumentType) &&
@@ -286,8 +289,9 @@ const QRAuto = () => {
           }
 
           if (TrackingType === 'PX') {
-            if (['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status))
-              return true;
+            if (
+              ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status)
+            ) return true;
           }
 
           if (TrackingType === 'IP') {
@@ -295,15 +299,11 @@ const QRAuto = () => {
               return true;
           }
 
-
           return false;
         })();
 
         if (!isEligibleForReceive) {
-          ToastAndroid.show(
-            `Document is not eligible for auto-receive. (${Status})`,
-            ToastAndroid.SHORT
-          );
+          ToastAndroid.show(`Not eligible to receive. (${Status})`, ToastAndroid.SHORT);
           return;
         }
 
@@ -319,40 +319,26 @@ const QRAuto = () => {
           inputParams: '',
         });
 
-        try {
-          const latestData = await fetchQRData(year, trackingNumber);
+        const latestData = await fetchQRData(year, trackingNumber);
 
-          if (
-            receiveResponse?.status === 'error' &&
-            latestData?.[0]?.Status === 'CAO Received'
-          ) {
-            ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
-            return;
-          }
-        } catch (error) {
-          console.error('Error fetching QR data after autoReceive:', error);
-          ToastAndroid.show(
-            'An error occurred. Please try again.',
-            ToastAndroid.SHORT,
-          );
+        if (
+          receiveResponse?.status === 'error' &&
+          latestData?.[0]?.Status === 'CAO Received'
+        ) {
+          ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
+          return;
         }
 
-        setScannedCodes(prev => [...prev, result]);
+        scannedCodesRef.current.add(scannedCode);
+        setScannedCodes(prev => [...prev, scannedCode]);
         setCameraIsActive(false);
       } catch (error) {
-        if (error.message === 'Invalid scanned code') {
-          ToastAndroid.show(
-            'Invalid QR code. Please try again.',
-            ToastAndroid.SHORT,
-          );
-        } else {
-          ToastAndroid.show(
-            'Error fetching data. Please try again.',
-            ToastAndroid.SHORT,
-          );
-        }
+        ToastAndroid.show(error.message || 'Error scanning code.', ToastAndroid.SHORT);
+      } finally {
+        isProcessingRef.current = false; 
       }
-    },
+    }
+
   });
 
 

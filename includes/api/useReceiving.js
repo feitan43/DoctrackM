@@ -99,15 +99,20 @@ const useReceiving = (selectedYear) => {
       const headers = await getAuthHeaders();
       const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
       const response = await apiClient.get(apiUrl, { headers });
+
       return response.data;
     },
     enabled: !!employeeNumber && !!selectedYear,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
   });
 
 
+
   return {
-    isLoading: receivingCount.isLoading,
-    isFetching: receivingCount.isFetching,
+    isLoading: receivedMonthly.isLoading,
+    isPending: receivedMonthly.isPending,
     error,
     receivingData,
     autoReceive: autoReceiveMutation.mutateAsync,
