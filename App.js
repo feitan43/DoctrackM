@@ -10,23 +10,29 @@ import {
   StatusBar,
   Alert,
   Linking,
+  Button,
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import FlashMessage from 'react-native-flash-message';
-import { HotUpdater } from "@hot-updater/react-native";
+import {HotUpdater, useHotUpdaterStore} from '@hot-updater/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {showMessage} from 'react-native-flash-message';
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [isConnected, setIsConnected] = useState(true);
+  const { progress, isBundleUpdated } = useHotUpdaterStore();
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
+
+
     return () => unsubscribe();
   }, []);
 
@@ -67,8 +73,13 @@ const AppContent = () => {
         <View style={styles.container}>
           {isConnected ? (
             <>
-              <Route />
-            </>
+            <Route />
+           {/*  <Button
+            title="Reload"
+            onPress={() => HotUpdater.reload()}
+            //disabled={!isBundleUpdated}
+          /> */}
+          </>
           ) : (
             <View style={styles.noInternetContainer}>
               <StatusBar
@@ -144,44 +155,54 @@ const styles = StyleSheet.create({
   },
 });
 
-const FallbackComponent = ({ progress, status, message }) => (
+const FallbackComponent = ({progress, status, message}) => (
   <View
     style={{
       flex: 1,
       padding: 24,
       borderRadius: 16,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: "rgba(255, 255, 255, 0.6)",
-    }}
-  >
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    }}>
     <View
       style={{
-        backgroundColor: "#FFFFFF",
+        backgroundColor: '#FFFFFF',
         paddingVertical: 32,
         paddingHorizontal: 24,
         borderRadius: 20,
-        width: "90%",
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
+        width: '90%',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 4},
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 6,
-      }}
-    >
-      <Text style={{ color: "#1E1E1E", fontSize: 22, fontWeight: "bold", marginBottom: 12 }}>
-        {status === "UPDATING" ? "Updating..." : "Checking for Update..."}
+      }}>
+      <Text
+        style={{
+          color: '#1E1E1E',
+          fontSize: 22,
+          fontWeight: 'bold',
+          marginBottom: 12,
+        }}>
+        {status === 'UPDATING' ? 'Updating...' : 'Checking for Update...'}
       </Text>
 
       {message && (
-        <Text style={{ color: "#444", fontSize: 16, textAlign: "center", marginBottom: 10 }}>
+        <Text
+          style={{
+            color: '#444',
+            fontSize: 16,
+            textAlign: 'center',
+            marginBottom: 10,
+          }}>
           {message}
         </Text>
       )}
 
       {progress > 0 && (
-        <Text style={{ color: "#1D4ED8", fontSize: 20, fontWeight: "bold" }}>
+        <Text style={{color: '#1D4ED8', fontSize: 20, fontWeight: 'bold'}}>
           {Math.round(progress * 100)}%
         </Text>
       )}
@@ -191,16 +212,22 @@ const FallbackComponent = ({ progress, status, message }) => (
 
 const App = HotUpdater.wrap({
   source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
-  requestHeaders: {
-    "Authorization": "Bearer <your-access-token>",
+  reloadOnForceUpdate: false,
+  onUpdateProcessCompleted: async ({status, shouldForceUpdate, id, message}) => {
+    setTimeout(() => {
+      showMessage({
+        message: `Update Check: ${status}`,
+        description: `Force: ${shouldForceUpdate}\nID: ${id}\n${message ?? ''}`,
+        type: shouldForceUpdate ? 'warning' : 'info',
+        duration: 4000,
+      });
+    }, 100); // Delay a bit to ensure FlashMessage is ready
+  
+    if (shouldForceUpdate) {
+      await AsyncStorage.setItem('lastUpdatedId', id);
+      HotUpdater.reload();
+    }
   },
-  onUpdateProcessCompleted: ({ status, shouldForceUpdate, id, message }) => {  
-    console.log("Bundle updated:", status, shouldForceUpdate, id, message);  
-    if (shouldForceUpdate) { 
-      HotUpdater.reload(); 
-    } 
-  },  
-  reloadOnForceUpdate: true,
   fallbackComponent: FallbackComponent,
 })(AppContent);
 

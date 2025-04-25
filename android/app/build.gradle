@@ -82,7 +82,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "2.4"
+        versionName "2.5"
     }
        kotlinOptions {
          jvmTarget = "17"

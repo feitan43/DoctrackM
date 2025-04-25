@@ -79,6 +79,10 @@ export const fetchAttachmentFiles = async (year, trackingNumber, form) => {
     console.error('Year and Tracking Number are required');
     return [];
   }
+    if (parseInt(year) < 2025) {
+      //console.error('Year must be 2025 or later');
+      return [];
+    }
 
   try {
     const { data } = await apiClient.get(

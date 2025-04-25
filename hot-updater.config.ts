@@ -5,6 +5,9 @@ import { defineConfig } from "hot-updater";
 import "dotenv/config";
 
 export default defineConfig({
+  console: { 
+    port: 3000, 
+  }, 
   build: metro({ enableHermes: true }),
   storage: supabaseStorage({
     supabaseUrl: process.env.HOT_UPDATER_SUPABASE_URL!,
