@@ -221,8 +221,12 @@ const App = HotUpdater.wrap({
         type: shouldForceUpdate ? 'warning' : 'info',
         duration: 4000,
       });
-    }, 100); // Delay a bit to ensure FlashMessage is ready
-  
+    }, 100);
+    if (status === 'ROLLBACK') {
+      console.log('Bundle missing, rolling back...');
+      await AsyncStorage.removeItem('lastUpdatedId');
+      HotUpdater.reload();
+    }
     if (shouldForceUpdate && status === 'NEEDS_UPDATE') {
       await AsyncStorage.setItem('lastUpdatedId', id);
       HotUpdater.reload();
