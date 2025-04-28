@@ -223,10 +223,11 @@ const App = HotUpdater.wrap({
       });
     }, 100); // Delay a bit to ensure FlashMessage is ready
   
-    if (shouldForceUpdate) {
+    if (shouldForceUpdate && status === 'NEEDS_UPDATE') {
       await AsyncStorage.setItem('lastUpdatedId', id);
       HotUpdater.reload();
     }
+    
   },
   fallbackComponent: FallbackComponent,
 })(AppContent);
