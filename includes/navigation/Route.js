@@ -86,6 +86,7 @@ import InspectionOnHold from '../screens/inspector/InspectionOnHold';
 import ReceiverScreen from '../screens/receiver/ReceiverScreen';
 import SendToReceive from '../screens/sender/SendtoReceive';
 import QRManual from '../screens/receiver/QRManual';
+import EditAdvScreen from '../screens/receiver/EditAdvScreen';
 import QRAuto from '../screens/receiver/QRAuto';
 import QRRevert from '../screens/receiver/QRRevert';
 import MyAccountabilityScreen from '../screens/MyAccountabilityScreen';
@@ -479,6 +480,7 @@ export function Route() {
         <Stack.Screen name='InspectionOnHold' component={InspectionOnHold} />
 
         <Stack.Screen name='QRManual' component={QRManual} />
+        <Stack.Screen name='EditAdvScreen' component={EditAdvScreen} />
         <Stack.Screen name='QRAuto' component={QRAuto} />
         <Stack.Screen name='QRRevert' component={QRRevert} />
 
