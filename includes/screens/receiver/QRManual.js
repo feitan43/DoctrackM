@@ -60,37 +60,10 @@ const QRManual = () => {
   const [inputParams, setInputParams] = useState('');
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
 
-  const { mutateAsync, isPending } = useUpdateQRData();
-  const [isEditing, setIsEditing] = useState(false);
-  const [advNumber, setAdvNumber] = useState('');
 
   const handleEdit = (item) => {
-    setAdvNumber(item?.ADV1 || '');
-    setIsEditing(true);
-  };
-
-
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setAdvNumber('');
-  };
-
-
-  const handleSubmit = async (year, trackingNumber) => {
-    try {
-      const payload = {
-        year,
-        trackingNumber,
-        adv1: advNumber,
-      };
-      await mutateAsync(payload);
-      await fetchQRData(year, trackingNumber);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update ADV Number:', error);
-      Alert.alert('Error', 'Failed to update ADV Number. Please try again.');
-    }
+    navigation.navigate('EditAdvScreen', { item });
+    console.log('item: ', item);
   };
 
 
@@ -462,62 +435,23 @@ const QRManual = () => {
           <View style={{ flexDirection: 'row' }}>
             <Text style={styles.label}>ADV Number:</Text>
             <View style={{ flexDirection: 'column', flex: 1 }}>
-              {isEditing ? (
-                <>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="Enter number"
-                    placeholderTextColor="#aaa"
-                    keyboardType="numeric"
-                    maxLength={10}
-                    value={advNumber}
-                    onChangeText={setAdvNumber}
-                    onSubmitEditing={() => handleSubmit(item?.Year, item?.TrackingNumber)}
-                    returnKeyType="done"
-                    style={{
-                      flex: 1,
-                      borderRadius: 100,
-                      height: 35,
-                      backgroundColor: '#E5E5EA',
-                      marginVertical: 8,
-                    }}
-                    theme={{
-                      colors: {
-                        primary: '#5690FD',
-                        outline: '#ccc',
-                        text: '#000',
-                        placeholder: '#aaa',
-                      },
-                    }}
-                  />
 
-                  <View style={{ flexDirection: 'row', alignSelf: 'flex-end', gap: 5 }}>
-                    <TouchableOpacity onPress={handleCancel}>
-                      <Text style={[styles.value]}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleSubmit(item?.Year, item?.TrackingNumber)}>
-                      <Text style={[styles.value]}>Submit</Text>
-                    </TouchableOpacity>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={[styles.value]}>
+                  {item?.ADV1 === '0' ? 'n/a' : item?.ADV1 ? item.ADV1 : ''}
+                </Text>
 
+
+                {item?.ADV1 && item?.ADV1 && (
+                  <View style={{ alignContent: "flex-end" }}>
+                    <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
+                      <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
                   </View>
-                </>
-              ) : (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={[styles.value]}>
-                    {item?.ADV1 === '0' ? 'n/a' : item?.ADV1 ? item.ADV1 : ''}
-                  </Text>
+                )}
+              </View>
 
-
-                  {item?.ADV1 && item?.ADV1 && (
-                    <View style={{ alignContent: "flex-end" }}>
-                      <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
-                        <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
-                        <Icon name="create-outline" size={20} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              )}
             </View>
           </View>
         </View>
@@ -1196,7 +1130,7 @@ const QRManual = () => {
         </Modal>
       </View>
 
-      {qrData && qrData.length > 0 && (
+      {qrData && (
         <BottomSheet
           ref={bottomSheetRef}
           snapPoints={snapPoints} s

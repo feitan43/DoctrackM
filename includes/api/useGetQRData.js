@@ -43,7 +43,6 @@ export const useGetQRData = () => {
   };
 
 
-
   return {
     qrData,
     setQRData,
