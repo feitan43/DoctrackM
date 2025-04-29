@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import apiClient from './apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useUserInfo from './useUserInfo';
-
 
 const useReceiving = (selectedYear) => {
   const [error, setError] = useState(null);
@@ -22,7 +21,7 @@ const useReceiving = (selectedYear) => {
     };
   };
 
-  // === MUTATION: AUTO RECEIVE 
+  // MUTATION: AUTO RECEIVE 
   const autoReceiveMutation = useMutation({
     mutationFn: async ({
       year,
@@ -51,7 +50,7 @@ const useReceiving = (selectedYear) => {
     }
   });
 
-  // === MUTATION: REVERT RECEIVED
+  // MUTATION: REVERT RECEIVED
   const revertReceivedMutation = useMutation({
     mutationFn: async ({
       year,
@@ -77,6 +76,7 @@ const useReceiving = (selectedYear) => {
       console.error('Revert Error:', axios.isAxiosError(error) ? error.response?.status : error);
     }
   });
+
 
   // RECEIVING COUNT 
   const receivingCount = useQuery({
@@ -116,8 +116,10 @@ const useReceiving = (selectedYear) => {
     error,
     receivingData,
     autoReceive: autoReceiveMutation.mutateAsync,
+    isReceivedLoading: autoReceiveMutation.isPending,
     revertedData,
     revertReceived: revertReceivedMutation.mutateAsync,
+    isRevertLoading: revertReceivedMutation.isPending,
     refetchReceivingCount: receivingCount.refetch,
     receivingCountData: receivingCount.data,
     receivedMonthlyData: receivedMonthly.data,

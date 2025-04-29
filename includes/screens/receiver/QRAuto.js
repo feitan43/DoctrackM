@@ -24,23 +24,19 @@ import {
 } from 'react-native-vision-camera';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import useGetQRData from '../../api/useGetQRData';
+import { useGetQRData } from '../../api/useGetQRData';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import useUserInfo from '../../api/useUserInfo';
 import { insertCommas } from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import LottieView from 'lottie-react-native';
-import LinearGradient from 'react-native-linear-gradient';
+
 import { Divider } from '@rneui/base';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250;
 
 const QRAuto = () => {
-  const scannedCodesRef = useRef(new Set());
-  const isProcessingRef = useRef(false);
   const navigation = useNavigation();
   //const cameraPermission = useCameraPermission();
   const cameraDevice = useCameraDevice('back');
@@ -49,20 +45,29 @@ const QRAuto = () => {
   const cameraRef = useRef(null);
   const [scannedCodes, setScannedCodes] = useState([]);
 
+  const lastScannedRef = useRef(null);
+  const scanningLock = useRef(false);
+  const [scannedActive, setScannedActive] = useState(false);
+
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
 
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
-  const { autoReceive, receivingData, isLoading } = useReceiving();
+  const { autoReceive, isReceivedLoading } = useReceiving();
 
   const { officeCode, privilege, accountType, employeeNumber } = useUserInfo();
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = ['46%', '70%', '80%'];
+  const snapPoints = useMemo(() => ["50%"], []);
 
-  const [showCheck, setShowCheck] = useState(true);
+  const handleSheetClose = () => {
+    bottomSheetRef.current?.close();
+    setCameraIsActive(true);
+  };
+
+
 
 
 
@@ -123,8 +128,13 @@ const QRAuto = () => {
             />
             <View style={styles.textRow}>
               <Text style={styles.label}>Status:</Text>
-              <Text style={styles.value}>{item.Status}</Text>
+              {isReceivedLoading ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginLeft: 5 }} />
+              ) : (
+                <Text style={styles.value}>{item.Status}</Text>
+              )}
             </View>
+
             <Divider
               width={1.9}
               color={'rgba(217, 217, 217, 0.1)'}
@@ -219,127 +229,137 @@ const QRAuto = () => {
     const specialCode = scannedCode[2];
     const officeCode = scannedCode.slice(3, 7);
     const series = scannedCode.slice(7);
-
     const year = 2023 + (yearCode.charCodeAt(0) - 'A'.charCodeAt(0) + 1);
-
     const prSegment = specialCode === 'Y' ? 'PR-' : '';
-
     const combinedCode = `${year}-${prSegment}${officeCode}-${series}`;
-
     return combinedCode;
   };
 
+
+
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
-    onCodeScanned: async codes => {
-      if (codes.length === 0 || isProcessingRef.current) return;
+    onCodeScanned: async (codes) => {
+      if (codes.length === 0 || scanningLock.current) return;
 
       const scannedCode = codes[0].value;
 
-      if (scannedCodesRef.current.has(scannedCode)) {
-        Alert.alert(
-          'Code Already Scanned',
-          'This QR code has already been scanned.',
-        );
+      if (lastScannedRef.current === scannedCode && scannedActive) {
+        ToastAndroid.show('Already received by CAO.', ToastAndroid.SHORT);
+        scanningLock.current = false;
         return;
       }
 
-      isProcessingRef.current = true; // Lock
+      scanningLock.current = true;
 
       try {
         const result = decryptScannedCode(scannedCode);
         const [year, ...trackingParts] = result.split('-');
         const trackingNumber = trackingParts.join('-');
 
-        const isValidYear =
-          /^\d{4}$/.test(year) &&
-          parseInt(year) >= 2024 &&
-          parseInt(year) <= 2025;
-
-        const isValidTrackingNumber =
-          trackingNumber.startsWith('PR-') || trackingNumber.includes('-');
-
-        if (!isValidYear || !isValidTrackingNumber) {
-          ToastAndroid.show('Please scan a valid QR code.', ToastAndroid.SHORT);
+        if (!isValidCode(year, trackingNumber)) {
+          scanningLock.current = false;
           return;
         }
 
         const data = await fetchQRData(year, trackingNumber);
 
-        if (!Array.isArray(data) || data.length === 0) {
-          ToastAndroid.show('No data or wrong format.', ToastAndroid.SHORT);
+        if (!isValidQRData(data)) {
+          scanningLock.current = false;
           return;
         }
 
-        const qrData = data[0];
-        const { TrackingType, Status, DocumentType, Fund } = qrData;
+        const { TrackingType, Status, DocumentType, Fund } = data[0];
 
-        const isEligibleForReceive = (() => {
-          if (TrackingType === 'PY') {
-            if (
-              ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status) ||
-              (Status === 'Encoded' && Fund === 'Trust Fund')
-            ) return true;
-
-            if (
-              Status === 'Encoded' &&
-              ['Liquidation', 'Remitance - HDMF'].includes(DocumentType) &&
-              Fund === 'Trust Fund'
-            ) return true;
-          }
-
-          if (TrackingType === 'PX') {
-            if (
-              ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status)
-            ) return true;
-          }
-
-          if (TrackingType === 'IP') {
-            if (['Pending Released - CAO', 'Encoded'].includes(Status))
-              return true;
-          }
-
-          return false;
-        })();
-
-        if (!isEligibleForReceive) {
-          ToastAndroid.show(`Not eligible to receive. (${Status})`, ToastAndroid.SHORT);
+        if (Status === 'CAO Received') {
+          setTimeout(() => {
+            ToastAndroid.show('Already received by CAO.', ToastAndroid.SHORT);
+          }, 1000);
+          scanningLock.current = false;
           return;
         }
 
-        const receiveResponse = await autoReceive({
-          year,
-          trackingNumber,
-          trackingType: TrackingType,
-          documentType: DocumentType,
-          status: Status,
-          accountType,
-          privilege,
-          officeCode,
-          inputParams: '',
-        });
 
-        const latestData = await fetchQRData(year, trackingNumber);
-
-        if (
-          receiveResponse?.status === 'error' &&
-          latestData?.[0]?.Status === 'CAO Received'
-        ) {
-          ToastAndroid.show('Already Received.', ToastAndroid.SHORT);
+        if (!isEligibleForProcessing(Status, TrackingType, DocumentType, Fund)) {
+          scanningLock.current = false;
           return;
         }
 
-        scannedCodesRef.current.add(scannedCode);
-        setScannedCodes(prev => [...prev, scannedCode]);
+        await handleAutoReceive(year, trackingNumber, TrackingType, DocumentType, Status);
         setCameraIsActive(false);
+        lastScannedRef.current = scannedCode;
+        bottomSheetRef.current?.expand?.();
       } catch (error) {
-        ToastAndroid.show(error.message || 'Error scanning code.', ToastAndroid.SHORT);
+        console.error('Error during scan process:', error);
+        Alert.alert('Error', 'Something went wrong while processing the QR code.');
       } finally {
-        isProcessingRef.current = false; 
+        scanningLock.current = false;
       }
+    },
+  });
+
+
+  const isValidCode = (year, trackingNumber) => {
+    const isValidYear = /^\d{4}$/.test(year) && parseInt(year) >= 2024 && parseInt(year) <= 2025;
+    const isValidTrackingNumber = trackingNumber.startsWith('PR-') || trackingNumber.includes('-');
+    return isValidYear && isValidTrackingNumber;
+  };
+
+  const isValidQRData = (data) => {
+    return Array.isArray(data) && data.length > 0;
+  };
+
+  const isEligibleForProcessing = (status, trackingType, documentType, fund) => {
+    const isValidStatus = (() => {
+      switch (trackingType) {
+        case 'PY':
+          return ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(status) ||
+            (status === 'Encoded' && fund === 'Trust Fund') ||
+            (status === 'Encoded' && ['Liquidation', 'Remittance - HDMF'].includes(documentType) && fund === 'Trust Fund');
+        case 'PX':
+          return ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(status);
+        case 'IP':
+          return ['Pending Released - CAO', 'Encoded'].includes(status);
+        default:
+          return false;
+      }
+    })();
+
+    if (!isValidStatus) {
+      ToastAndroid.show('Status not eligible for scanning!', ToastAndroid.SHORT);
     }
 
-  });
+    return isValidStatus;
+  };
+
+  const handleAutoReceive = async (year, trackingNumber, trackingType, documentType, status) => {
+    try {
+      const response = await autoReceive({
+        year,
+        trackingNumber,
+        trackingType,
+        documentType,
+        status,
+        accountType,
+        privilege,
+        officeCode,
+        inputParams: '',
+      }, {
+        onSuccess: async (payload) => {
+          const qrData = await fetchQRData(year, trackingNumber);
+          if (payload?.status === 'success') {
+            setQRData(qrData);
+          }
+        }
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error during auto receive:', error);
+      throw new Error('Auto receive failed');
+    }
+  };
+
 
 
   return (
@@ -398,7 +418,7 @@ const QRAuto = () => {
         <View style={styles.opaqueBottom} />
       </View>
 
-      {receivingData /* && qrData.Status === 'Check Preparation - CTO' */ && (
+      {qrData /* && qrData.Status === 'Check Preparation - CTO' */ && (
         /*  qrData.length > 0 && */ <BottomSheet
           ref={bottomSheetRef}
           index={0}
@@ -416,8 +436,7 @@ const QRAuto = () => {
               }}>
                 <TouchableOpacity
                   onPress={() => {
-                    bottomSheetRef.current?.close();
-                    setCameraIsActive(true);
+                    handleSheetClose();
                   }}
                   style={{
                     padding: 5,

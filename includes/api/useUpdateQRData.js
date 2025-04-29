@@ -1,8 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { useGetQRData } from './useGetQRData';
 import apiClient from './apiClient';
-import { useState } from 'react';
 
 async function updateQRData({ year, trackingNumber, adv1 }) {
     const getAuthHeaders = async () => {
@@ -23,16 +21,15 @@ async function updateQRData({ year, trackingNumber, adv1 }) {
 export const useUpdateQRData = () => {
     const queryClient = useQueryClient();
 
-    return {
-        mutateAsync: useMutation({
-            mutationFn: updateQRData,
-            onSuccess: async (data, variables) => {
-                const { year, trackingNumber } = variables;
-                queryClient.invalidateQueries(['qrData', year, trackingNumber]);
-            },
-            onError: (error) => {
-                console.error('Error updating ADV number:', error);
-            },
-        }).mutateAsync,
-    };
+    return useMutation({
+        mutationFn: updateQRData,
+        onSuccess: (data, variables) => {
+            const { year, trackingNumber } = variables;
+            queryClient.invalidateQueries(['qrData', year, trackingNumber]);
+        },
+        onError: (error) => {
+            console.error('Error updating ADV number:', error);
+        },
+    });
 };
+

@@ -10,14 +10,12 @@ const EditAdvScreen = ({ route }) => {
     const navigation = useNavigation();
     const { item } = route.params;
 
-    const { mutateAsync } = useUpdateQRData();
+    const { mutateAsync, isPending } = useUpdateQRData();
     const advNumber = item?.ADV1 === '0' ? 'n/a' : item?.ADV1 || '';
     const year = item?.Year;
     const trackingNumber = item?.TrackingNumber;
     const [newAdvNumber, setNewAdvNumber] = useState(advNumber);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
 
     const handleSubmit = async () => {
         setError('');
@@ -27,23 +25,16 @@ const EditAdvScreen = ({ route }) => {
         }
 
         try {
-            setLoading(true);
             const payload = {
                 year,
                 trackingNumber,
                 adv1: newAdvNumber,
             };
-            console.log("val", trackingNumber, year, newAdvNumber)
-
-
             await mutateAsync(payload);
-            navigation.navigate('Receiver');
-            setLoading(false);
-            Alert.alert('Success', 'ADV Number updated successfully.');
-        } catch (error) {
-            console.error('Failed to update ADV Number:', error);
-            setLoading(false);
-            Alert.alert('Error', 'Failed to update ADV Number. Please try again.');
+            navigation.goBack();
+        } catch (err) {
+            console.error('Failed to update ADV1:', err);
+            setError('Failed to update. Please try again.');
         }
     };
 
@@ -90,8 +81,8 @@ const EditAdvScreen = ({ route }) => {
                     <Text style={{ color: 'red', fontSize: 12 }}>{error}</Text>
                 )}
 
-                <Pressable onPress={handleSubmit} disabled={loading}>
-                    <Text style={styles.saveButton}>{loading ? 'Saving...' : 'Save'}</Text>
+                <Pressable onPress={handleSubmit} disabled={isPending}>
+                    <Text style={styles.saveButton}>{isPending ? 'Saving...' : 'Save'}</Text>
                 </Pressable>
             </View>
         </View>

@@ -29,7 +29,7 @@ import {
 } from 'react-native-vision-camera';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import useGetQRData from '../../api/useGetQRData';
+import { useGetQRData } from '../../api/useGetQRData';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import useUserInfo from '../../api/useUserInfo';
 import { insertCommas } from '../../utils/insertComma';
@@ -37,7 +37,6 @@ import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
 import { Button } from 'react-native-paper';
 import { Divider } from '@rneui/themed';
-import { useUpdateQRData } from '../../api/useUpdateQRData';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250;
@@ -50,22 +49,20 @@ const QRManual = () => {
   const cameraRef = useRef(null);
   const [scannedCodes, setScannedCodes] = useState([]);
 
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
   const [cameraIsActive, setCameraIsActive] = useState(true);
   const [inputParams, setInputParams] = useState('');
+
   const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+
 
 
   const handleEdit = (item) => {
     navigation.navigate('EditAdvScreen', { item });
-    console.log('item: ', item);
   };
-
 
 
 
@@ -76,7 +73,7 @@ const QRManual = () => {
     useUserInfo();
 
 
-  const { autoReceive, revertReceived, isLoading } = useReceiving();
+  const { autoReceive, revertReceived, isRevertLoading, isReceivedLoading } = useReceiving();
 
   const bottomSheetRef = useRef(null);
 
@@ -87,101 +84,64 @@ const QRManual = () => {
     console.log('handleSheetChanges', index);
   }, []);
 
-  const handleReceived = async (
-    year,
-    trackingNumber,
-    trackingType,
-    documentType,
-    status,
-    inputParams,
-  ) => {
-    try {
-      const payload = {
-        year,
-        trackingNumber,
-        trackingType,
-        documentType,
-        status,
-        accountType,
-        officeCode,
-        employeeNumber,
-        inputParams,
-      };
 
-      const response = await autoReceive(payload);
-      // console.log('Received payload:', payload);
-      if (response?.status === 'success') {
-        console.log('Receive successful:', response);
-        await fetchQRData(year, trackingNumber);
-        setModalMessage(response?.message || 'Unknown error');
-        setModalVisible(true);
-        setModalType(true);
-      } else if (response?.status === 'error') {
-        console.warn('Receive failed:', response);
-        setModalMessage(response?.message || 'Unknown error');
-        setModalType(false);
-        setModalVisible(true);
-      } else {
-        console.warn('Unexpected response status:', response);
-        Alert.alert(
-          'Warning',
-          'Receive operation did not succeed. Please check the status.',
-        );
-        setModalType(false);
-        setModalVisible(true);
+  const handleReceived = async (year, trackingNumber, trackingType, documentType, status, inputParams) => {
+    autoReceive(
+      { year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams },
+      {
+        onSuccess: async (payload) => {
+          const qrData = await fetchQRData(year, trackingNumber);
+          if (payload?.status === 'success') {
+            console.log('SUCCESS:', payload)
+            setQRData(qrData);
+            setModalMessage(payload?.message || 'Unknown error');
+            setModalType(true);
+          } else {
+            setModalMessage(payload?.message || 'Unknown error');
+            setModalType(false);
+          }
+          setModalVisible(true);
+        },
+        onError: (error) => {
+          console.error('Auto receive failed:', error);
+          setModalMessage('An error occurred during the process');
+          setModalType(false);
+          setModalVisible(true);
+        }
       }
-    } catch (error) {
-      console.error('Error in handleReceived:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred while processing. Please try again later.',
-      );
-      setModalType(false);
-      setModalVisible(true);
-    }
+    );
   };
 
-  const handleRevert = async (
-    year,
-    trackingNumber,
-    trackingType,
-    documentType,
-    status
-  ) => {
-    try {
 
-      const response = await revertReceived({
-        year,
-        trackingNumber,
-        trackingType,
-        documentType,
-        status,
-        accountType,
-        officeCode,
-        employeeNumber,
-      });
 
-      if (response?.status === "success") {
-        await fetchQRData(year, trackingNumber);
-        setModalMessage(response?.message || 'Unknown error');
-        setModalVisible(true);
-        setModalType(true);
-      } else {
-        console.warn("Revert failed:", response);
-        Alert.alert("Warning", "Revert operation did not succeed.");
+  
+  const handleRevert = async (year, trackingNumber, trackingType, documentType, status, inputParams) => {
+    revertReceived(
+      { year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams },
+      {
+        onSuccess: async (payload) => {
+          const qrData = await fetchQRData(year, trackingNumber);
+          if (payload?.status === 'success') {
+            console.log('SUCCESS:', payload)
+            setQRData(qrData);
+            setModalMessage(payload?.message || 'Unknown error');
+            setModalType(true);
+          } else {
+            setModalMessage(payload?.message || 'Unknown error');
+            setModalType(false);
+          }
+          setModalVisible(true);
+        },
+        onError: (error) => {
+          console.error('Auto receive failed:', error);
+          setModalMessage('An error occurred during the process');
+          setModalType(false);
+          setModalVisible(true);
+        }
       }
-    } catch (error) {
-      console.error("Error in handleRevert:", error);
-
-      if (error.response) {
-        console.error("Response Data:", JSON.stringify(error.response.data, null, 2));
-        console.error("Status Code:", error.response.status);
-        console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
-      } else if (error.request) {
-        console.error("No response received:", error.request);
-      }
-    }
+    );
   };
+
 
   // --------- Render Item QR Manual
 
@@ -229,8 +189,7 @@ const QRManual = () => {
         return true;
       }
 
-      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF') && (Fund === 'Trust Fund')
-      ) {
+      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF') && (Fund === 'Trust Fund')) {
         return true;
       }
 
@@ -277,107 +236,6 @@ const QRManual = () => {
       return false;
     })();
 
-
-    const showRevertButton = (() => {
-      const { TrackingType, Status } = item;
-      //PX
-      if (TrackingType === 'PX' && officeCode === '1031') {
-        if (
-          (Status === 'Check Received - Administration') ||
-          (Status === 'Check Received - Operation')
-        ) {
-          return true;
-        }
-      }
-
-      //PO
-      if (TrackingType === 'PO' && caoReceiver === '1') {
-        if (Status === 'Check Preparation - CTO' || Status === 'Fund Control') {
-          return true;
-        }
-      }
-      if (TrackingType === 'PO' && (officeCode === '1031' || officeCode === '1071')) {
-        if (Status === 'Check Preparation - CTO' || Status === 'Fund Control') {
-          return true;
-        }
-      }
-
-
-      // if (TrackingType === 'PO' && officeCode === '1071') {
-      //   if (Status === 'Fund Control') {
-      //     return true;
-      //   }
-      // }
-
-      //PY
-      if (TrackingType === 'PY') {
-        if (Status === 'CAO Received') {
-          return true;
-        }
-      }
-
-      // if ((TrackingType === 'PY') && officeCode === '1071') {
-      //   if (Status === 'CBO Received') {
-      //     return true;
-      //   }
-      // }
-
-      //IP
-      if (TrackingType === 'IP') {
-        if (Status === 'CAO Received') {
-          return true;
-        }
-      }
-
-    })();
-
-
-    const showPendingButton =
-      officeCode === '1031' &&
-      privilege === '8' &&
-      accountType === '2' &&
-      item.TrackingType === 'PX' &&
-      item.Status === 'Admin Received';
-
-
-
-    // const showRevertButton = (() => {
-
-    //   switch (item.TrackingType) {
-    //     case 'PX':
-    //       if (officeCode === '1031') {
-    //         if (
-    //           (privilege === '8' && item.Status === 'Check Received - Administration') ||
-    //           (privilege === '5' && item.Status === 'Check Received - Operation')
-    //         ) {
-    //           return true;
-    //         }
-    //       }
-    //       break;
-
-    //     case 'PO':
-    //       if (officeCode === '1071') {
-    //         if (privilege === '9' && item.Status === 'Fund Control') {
-    //           return true;
-    //         }
-    //       }
-    //       break;
-
-    //     case 'PY':
-    //       if (
-    //         (officeCode === '1071' && privilege === '9' && item.Status === 'CBO Received') ||
-    //         (officeCode === 'TRAC' && privilege === '8' && item.Status === 'Check Received - Operation')
-    //       ) {
-    //         return true;
-    //       }
-    //       break;
-
-    //     default:
-    //       return false;
-    //   }
-
-    //   return false;
-    // })();
 
 
     return (
@@ -489,10 +347,7 @@ const QRManual = () => {
           style={{ bottom: 5 }}
         />
 
-        {/* <View style={styles.textRow}>
-          <Text style={styles.label}>OBRType:</Text>
-          <Text style={styles.value}>{item.OBRType}</Text>
-        </View> */}
+
 
         <View style={{ flexDirection: 'column' }}>
           {showReceivedButton && (
@@ -508,8 +363,8 @@ const QRManual = () => {
                   {item.OBR_Number && (
                     <Text
                       style={{
-                        marginRight: 10, // Space between the label and the TextInput
-                        color: '#000', // Label color
+                        marginRight: 10,
+                        color: '#000',
                         marginTop: 10,
                       }}>
                       OBR #
@@ -581,23 +436,7 @@ const QRManual = () => {
                 Received
               </Button>
 
-              {/* if (item.Status === 'Admin Operation Received') {
-          if (inputParams === '') {
-            Alert.alert(
-              'OBR Number Required',
-              'Please enter a valid OBR number.'
-            );
-            return; // Exit early if no inputParams
-          }
-        } 
-         
-          if {
-          Alert.alert(
-            'Action Restricted',
-            'You do not have permission to perform this action.'
-          );
-          return; // Exit if status is not valid
-        }*/}
+
             </>
           )}
 
@@ -648,15 +487,13 @@ const QRManual = () => {
               {/* Received Button */}
               <Button
                 mode="contained"
-                loading={isLoading}
-                disabled={isLoading}
+                loading={isReceivedLoading}
+                disabled={isReceivedLoading}
                 style={{
                   marginTop: 10,
                   borderRadius: 8,
-                  elevation: 1,
                   backgroundColor: "#007bff"
                 }}
-
                 onPress={() => {
                   if (item.TrackingType === 'PO') {
                     if (officeCode === '1071' && privilege === '9') {
@@ -684,8 +521,9 @@ const QRManual = () => {
                   );
                 }}
               >
-                Received
+                Receive
               </Button>
+
 
               {/* if (item.Status === 'Admin Operation Received') {
           if (inputParams === '') {
@@ -710,8 +548,8 @@ const QRManual = () => {
           {showCAORevertButton && (
             <Button
               mode="contained"
-              loading={isLoading}
-              disabled={isLoading}
+              loading={isRevertLoading}
+              disabled={isRevertLoading}
               style={{
                 marginTop: 10,
                 borderRadius: 8,
@@ -733,110 +571,6 @@ const QRManual = () => {
           )}
 
 
-          {/* {showRevertButton && (
-            <Button
-              mode="contained"
-              loading={isLoading}
-              disabled={isLoading}
-              style={{
-                marginTop: 10,
-                borderRadius: 8,
-                elevation: 1,
-                backgroundColor: "orange"
-              }}
-              onPress={() =>
-                handleRevert(
-                  item.Year,
-                  item.TrackingNumber,
-                  item.TrackingType,
-                  item.DocumentType,
-                  item.Status,
-                )
-              }
-            >
-              Revert
-            </Button>
-          )} */}
-
-
-
-          {/* {showRevertButton && (
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                marginTop: 20,
-                backgroundColor: 'orange',
-                padding: 10,
-                margin: 5,
-                borderRadius: 4,
-              }}
-              onPress={() =>
-                handleRevert(
-                  item.Year,
-                  item.TrackingNumber,
-                  item.TrackingType,
-                  item.DocumentType,
-                  item.Status,
-                )
-              }
-              disabled={isLoading}>
-              <View>
-                {isLoading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.buttonText}>Revert</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          )} */}
-
-          {/*REVERT BUTTON*/}
-          {/* <TouchableOpacity
-            style={{
-              flex: 1,
-              marginTop: 20,
-              backgroundColor: 'orange',
-              padding: 10,
-              margin: 5,
-              borderRadius: 4,
-            }}
-            onPress={() =>
-              handleRevert(
-                item.Year,
-                item.TrackingNumber,
-                item.TrackingType,
-                item.DocumentType,
-                item.Status,
-              )
-            }
-            disabled={isLoading}>
-            <View>
-              {isLoading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.buttonText}>Revert</Text>
-              )}
-            </View>
-          </TouchableOpacity> */}
-
-
-
-          {/*        {showPendingButton && (
-            <TouchableOpacity
-              style={{
-                flex: 1,
-                marginTop: 20,
-                backgroundColor: '#ffc107',
-                padding: 10,
-                margin: 5,
-                borderRadius: 4,
-              }}
-              onPress={() => handleReleasedPending(item.TrackingNumber)}>
-              <View>
-                <Text style={styles.buttonText}>Released Pending</Text>
-              </View>
-            </TouchableOpacity>
-          )} */}
         </View>
 
         <View
@@ -948,6 +682,7 @@ const QRManual = () => {
         if (data?.length) {
           setScannedCodes(prev => [...prev, scannedCode]);
           setCameraIsActive(false);
+          setQRData(data);
           bottomSheetRef.current?.expand?.();
         } else {
           Alert.alert('Invalid QR Code', 'The QR code you scanned is not valid.', [
@@ -1133,7 +868,7 @@ const QRManual = () => {
       {qrData && (
         <BottomSheet
           ref={bottomSheetRef}
-          snapPoints={snapPoints} s
+          snapPoints={snapPoints}
           keyboardBehavior="interactive"
         >
 
@@ -1181,7 +916,7 @@ const QRManual = () => {
               </View>
 
               <View style={{ flex: 1, paddingHorizontal: 10, }}>
-                <BottomSheetFlatList // Use regular FlatList here
+                <BottomSheetFlatList
                   data={qrData}
                   renderItem={renderItem}
                   keyExtractor={(item, index) => index.toString()}
