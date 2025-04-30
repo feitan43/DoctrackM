@@ -23,7 +23,8 @@ async function fetchQRDataFn({ year, trackingNumber }) {
 export function useGetQRData() {
   const [qrData, setQRData] = useState(null);
   const queryClient = useQueryClient();
-
+  // const data = useQuery(['qrData'], fetchQRDataFn)
+  // return { ...data};
   const fetchQRData = async (year, trackingNumber) => {
     return await queryClient.fetchQuery({
       queryKey: ['qrData', year, trackingNumber],

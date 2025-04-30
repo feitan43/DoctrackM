@@ -300,14 +300,14 @@ const QRManual = () => {
                 </Text>
 
 
-                {item?.ADV1 && item?.ADV1 && (
+             
                   <View style={{ alignContent: "flex-end" }}>
                     <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
                       <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
                       <Icon name="create-outline" size={20} color="#fff" />
                     </TouchableOpacity>
                   </View>
-                )}
+            
               </View>
 
             </View>
