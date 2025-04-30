@@ -4,20 +4,20 @@ import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { useUpdateQRData } from '../../api/useUpdateQRData';
 import Icon from 'react-native-vector-icons/Ionicons';
-import useGetQRData from '../../api/useGetQRData';
-
+import { useGetQRData } from '../../api/useGetQRData';
 const EditAdvScreen = ({ route }) => {
     const navigation = useNavigation();
     const { item } = route.params;
 
     const { mutateAsync, isPending } = useUpdateQRData();
+    const { data } = useGetQRData(year, trackingNumber);
     const advNumber = item?.ADV1 === '0' ? 'n/a' : item?.ADV1 || '';
     const year = item?.Year;
     const trackingNumber = item?.TrackingNumber;
     const [newAdvNumber, setNewAdvNumber] = useState(advNumber);
     const [error, setError] = useState('');
 
-    const handleSubmit = async () => {
+    const test = async () => {
         setError('');
         if (newAdvNumber === '' || newAdvNumber === 'n/a' || isNaN(newAdvNumber)) {
             setError('Please enter a valid ADV Number');
@@ -31,10 +31,43 @@ const EditAdvScreen = ({ route }) => {
                 adv1: newAdvNumber,
             };
             await mutateAsync(payload);
-            navigation.goBack();
+            // navigation.goBack();
         } catch (err) {
             console.error('Failed to update ADV1:', err);
             setError('Failed to update. Please try again.');
+        }
+    };
+
+    const handleSubmit = async () => {
+        setError('');
+
+        if (newAdvNumber === '' || newAdvNumber === 'n/a' || isNaN(newAdvNumber)) {
+            setError('Please enter a valid ADV Number');
+            return;
+        }
+
+        try {
+            const payload = await mutateAsync({
+                year,
+                trackingNumber,
+                adv1: newAdvNumber,
+            });
+
+
+        } catch (error) {
+            if (error.response) {
+                console.error('Server error:', {
+                    status: error.response.status,
+                    data: error.response.data,
+                });
+                setError(error.response.data?.message || 'Server error occurred');
+            } else if (error.request) {
+                console.error('No response received:', error.request);
+                setError('No response from server');
+            } else {
+                console.error('Error setting up request:', error.message);
+                setError(error.message);
+            }
         }
     };
 
@@ -68,7 +101,7 @@ const EditAdvScreen = ({ route }) => {
             </View>
 
             <View style={styles.contentContainer}>
-                <Text style={styles.label}>ADV Number:</Text>
+                {/* <Text style={styles.label}>ADV Number:</Text> */}
                 <TextInput
                     label="ADV Number"
                     value={newAdvNumber}

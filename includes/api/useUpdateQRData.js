@@ -24,9 +24,10 @@ export const useUpdateQRData = () => {
     return useMutation({
         mutationFn: updateQRData,
         onSuccess: (data, variables) => {
-            const { year, trackingNumber } = variables;
-            queryClient.invalidateQueries(['qrData', year, trackingNumber]);
-        },
+            queryClient.invalidateQueries({
+              queryKey: ['qrData', variables.year, variables.trackingNumber],
+            });
+          },
         onError: (error) => {
             console.error('Error updating ADV number:', error);
         },
