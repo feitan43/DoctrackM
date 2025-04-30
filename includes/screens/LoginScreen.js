@@ -340,7 +340,7 @@ const LoginScreen = ({navigation}) => {
           style={styles.backgroundImage}>
           <View style={styles.textContainer}>
             <Text style={styles.centeredText}>
-              DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.8</Text>
+              DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.5</Text>
             </Text>
 
             <View
@@ -378,7 +378,7 @@ const LoginScreen = ({navigation}) => {
                 placeholder="Password"
                 secureTextEntry={!isPasswordVisible}
                 value={password}
-                fontSize={18}
+                fontSize={20}
                 maxLength={16}
                 fontFamily="Oswald-Light"
                 onFocus={() => handleFocus('password')}

@@ -663,7 +663,7 @@ const DoctrackScreen = ({
 
         {!['10', '5', '8', '9', '11'].includes(privilege) &&
           permission !== '10' &&
-          ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC'].includes(
+          ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC',].includes(
             officeCode,
           ) && (
             <View
@@ -1081,11 +1081,14 @@ const DoctrackScreen = ({
                     <>
                       {item.icon ? (
                         <View style={{paddingVertical:5}}>
-                          <Icon
-                          name="key-outline" // Replace with any icon you want
-                          size={26}
-                          color={pressed ? 'white' : '#007bff'}
-                        />
+                          <Image
+                        source={require('../../assets/images/access.png')}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          tintColor: pressed ? 'white' : '#007bff', // Optional, to apply color if the image supports it
+                        }}
+                      />
                         </View>
                         
                       ) : (

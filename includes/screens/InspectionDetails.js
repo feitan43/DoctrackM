@@ -73,15 +73,36 @@ const InspectionDetails = ({route, navigation}) => {
   const [showUploading, setShowUploading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [imagePath, setImagePath] = useState([]);
-  const {data: inspectorImages,isLoading: inspectorImagesLoading,error: inspectorImagesError} = useInspectorImages(selectedYear, item.TrackingNumber);
-  const {data: data,isLoading: DetailsLoading,error: DetailsError} = useInspectionDetails(selectedYear, item.TrackingPartner);
-  const {data: prData,isLoading: prLoading,error: prError} = useInspectionPRDetails(selectedYear, item.RefTrackingNumber);
-  const {data: dataItems,isLoading: ItemsLoading,error: ItemsError} = useInspectionItems(selectedYear, item.TrackingPartner);
+  const {
+    data: inspectorImages,
+    isLoading: inspectorImagesLoading,
+    error: inspectorImagesError,
+  } = useInspectorImages(selectedYear, item.TrackingNumber);
+  const {
+    data: data,
+    isLoading: DetailsLoading,
+    error: DetailsError,
+  } = useInspectionDetails(selectedYear, item.TrackingPartner);
+  const {
+    data: prData,
+    isLoading: prLoading,
+    error: prError,
+  } = useInspectionPRDetails(selectedYear, item.RefTrackingNumber);
+  const {
+    data: dataItems,
+    isLoading: ItemsLoading,
+    error: ItemsError,
+  } = useInspectionItems(selectedYear, item.TrackingPartner);
   const {mutate: addSchedule, isPending: isAdding} = useAddSchedule();
-  const {mutateAsync: inspectItems, isPending: isInspecting} = useInspectItems();
-  const {mutate: uploadInspector,isPending: uploading,isLoading} = useUploadInspector();
-  const {mutate: removeInspectorImage,isPending: removing,} = useRemoveInspectorImage();
-  const { mutate : editDeliveryDate, isPending : editDeliveryDateLoading} = useEditDeliveryDate(); 
+  const {mutateAsync: inspectItems, isPending: isInspecting} =
+    useInspectItems();
+  const {
+    mutate: uploadInspector,
+    isPending: uploading,
+    isLoading,
+  } = useUploadInspector();
+  const {mutate: removeInspectorImage, isPending: removing} = useRemoveInspectorImage();
+  const {mutate: editDeliveryDate, isPending: editDeliveryDateLoading} = useEditDeliveryDate();
   const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] = useState(false);
   const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -89,6 +110,10 @@ const InspectionDetails = ({route, navigation}) => {
   const [selectedRemark, setSelectedRemark] = useState('');
   const [remarks, setRemarks] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [dateTimeBottomSheetVisible, setDateTimeBottomSheetVisible] = useState(false);
+
+  const handleOpenSheet = () => setBottomSheetOpen(true);
+  const handleCloseSheet = () => setBottomSheetOpen(false);
 
   const refreshData = async () => {
     await queryClient.invalidateQueries({
@@ -240,15 +265,15 @@ const InspectionDetails = ({route, navigation}) => {
     setInvoiceBottomSheetVisible(false);
 
     const formattedDate = date
-      ? date.toLocaleDateString('en-US').replace(/\//g, '-') 
+      ? date.toLocaleDateString('en-US').replace(/\//g, '-')
       : '';
-  
+
     let inspectionStatus = 'Inspected';
     const deliveryId = item?.Id;
     const trackingNumber = item?.TrackingNumber;
     const totalItems = Array.isArray(dataItems?.poRecord)
-    ? dataItems.poRecord.length
-    : 0;
+      ? dataItems.poRecord.length
+      : 0;
 
     //console.log("inv",invoice,"invD", formattedDate);
     try {
@@ -257,10 +282,10 @@ const InspectionDetails = ({route, navigation}) => {
         deliveryId,
         trackingNumber: trackingNumber,
         inspectionStatus,
-        invNumber: invoice, 
-        invDate: formattedDate, 
+        invNumber: invoice,
+        invDate: formattedDate,
       });
-  
+
       if (result.status === 'success') {
         showMessage({
           message: 'Inspection Successful',
@@ -272,7 +297,7 @@ const InspectionDetails = ({route, navigation}) => {
           floating: true,
           duration: 3000,
         });
-  
+
         refreshData();
         closeBottomSheet();
         setCheckedItems(Array(totalItems).fill(false));
@@ -345,6 +370,36 @@ const InspectionDetails = ({route, navigation}) => {
       },
     );
   };
+
+  const handleEditDeliveryDate = (dateTime) => {
+    const year = dateTime.getFullYear();
+    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(dateTime.getDate()).padStart(2, '0');
+  
+    let hours = dateTime.getHours();
+    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+    hours = hours % 12;
+    hours = hours === 0 ? 12 : hours;
+  
+    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
+    const deliveryId = item?.Id; 
+    const itemYear = item?.Year;
+    const trackingNumber = item?.TrackingNumber;
+
+    try {
+      editDeliveryDate({
+        deliveryId: deliveryId,
+        deliveryDate: formattedDateTime,
+        year: itemYear,
+        trackingNumber: trackingNumber,
+      });
+    } catch (error) {
+      console.error("Failed to update delivery date:", error);
+    }
+  };
+  
 
   const sanitizeInput = input => {
     if (!input || typeof input !== 'string') return ''; // Handle null, undefined, or non-string values
@@ -466,7 +521,7 @@ const InspectionDetails = ({route, navigation}) => {
         </ImageBackground>
 
         <View>
-        {item?.RefTrackingNumber ? (
+          {item?.RefTrackingNumber ? (
             <PRInspection
               item={item}
               dataItems={dataItems}
@@ -534,6 +589,7 @@ const InspectionDetails = ({route, navigation}) => {
                           queryClient={queryClient}
                           handleUploadBottomSheet={handleUploadBottomSheet}
                           editDeliveryDate={editDeliveryDate}
+                          setDateTimeBottomSheetVisible={setDateTimeBottomSheetVisible}
                         />
                       )}
                       keyExtractor={item =>
@@ -621,13 +677,25 @@ const InspectionDetails = ({route, navigation}) => {
         isAdding={isAdding}
       />
 
+         {/* {bottomSheetOpen && ( */}
+            <DateTimeBottomSheet
+              item={item}
+              dataItems={dataItems}
+              visible={dateTimeBottomSheetVisible}
+              onClose={() => setDateTimeBottomSheetVisible(false)}
+              onConfirm={handleEditDeliveryDate}
+            />
+         {/*  )} */}
+
+
+
       <RemarksBottomSheet
         visible={remarksBottomSheetVisible}
         onClose={() => setRemarksBottomSheetVisible(false)}
         remarks={remarks}
         setRemarks={setRemarks}
-        selectedRemark={selectedRemark} 
-        setSelectedRemark={setSelectedRemark} 
+        selectedRemark={selectedRemark}
+        setSelectedRemark={setSelectedRemark}
         submitRemarks={submitRemarks}
       />
 
@@ -1127,58 +1195,64 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
                 {' '}
                 Dates
               </Text>
-              {deliveryItem.DeliveryDatesHistory.split(', ').map((date, i, arr) => {
-                const isLast = i === arr.length - 1;
+              {deliveryItem.DeliveryDatesHistory.split(', ').map(
+                (date, i, arr) => {
+                  const isLast = i === arr.length - 1;
 
-                return (
-                  <View
-                    key={i}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      marginTop: 5,
-                      backgroundColor: isLast ? '#EAF2F8' : '#E5E7EB',
-                      paddingVertical: 5,
-                      paddingHorizontal: 5,
-                      borderRadius: 5,
-                    }}>
-                    <Text
+                  return (
+                    <View
+                      key={i}
                       style={{
-                        color: isLast ? 'white' : '#2C3E50',
-                        fontWeight: 'bold',
-                        marginRight: 10,
-                        backgroundColor: isLast ? '#5DADE2' : '#ccc',
-                        paddingHorizontal: 5,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginTop: 5,
+                        backgroundColor: isLast ? '#EAF2F8' : '#E5E7EB',
                         paddingVertical: 5,
-                        borderRadius: 2,
+                        paddingHorizontal: 5,
+                        borderRadius: 5,
                       }}>
-                      {i + 1}
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#2C3E50',
-                        fontSize: 14,
-                      }}>
-                      {date}
-                    </Text>
-
-                    {/* Show Edit button only for the latest date */}
-                    {/* {isLast && (
-                      <TouchableOpacity
-                        onPress={() => handleEditDeliveryDate(i, deliveryItem)}
+                      <Text
                         style={{
-                          marginLeft: 'auto',
-                          padding: 5,
-                          backgroundColor: '#5DADE2',
-                          borderRadius: 5,
+                          color: isLast ? 'white' : '#2C3E50',
+                          fontWeight: 'bold',
+                          marginRight: 10,
+                          backgroundColor: isLast ? '#5DADE2' : '#ccc',
+                          paddingHorizontal: 5,
+                          paddingVertical: 5,
+                          borderRadius: 2,
                         }}>
-                        <Text style={{color: '#fff', fontSize: 14}}>Edit</Text>
-                      </TouchableOpacity>
-                    )} */}
-                  </View>
-                );
-              })}
+                        {i + 1}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: 'Inter_28pt-SemiBold',
+                          color: '#2C3E50',
+                          fontSize: 14,
+                        }}>
+                        {date}
+                      </Text>
+
+                      {/* Show Edit button only for the latest date */}
+                      {isLast && (
+                        <TouchableOpacity
+                          onPress={() =>
+                            handleEditDeliveryDate(i, deliveryItem)
+                          }
+                          style={{
+                            marginLeft: 'auto',
+                            padding: 5,
+                            backgroundColor: '#5DADE2',
+                            borderRadius: 5,
+                          }}>
+                          <Text style={{color: '#fff', fontSize: 14}}>
+                            Edit
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                },
+              )}
             </View>
           )}
         </View>
@@ -1381,6 +1455,8 @@ const InspectionActivitySection = ({
   );
 };
 
+
+
 export const RenderInspection = memo(
   ({
     item,
@@ -1400,6 +1476,7 @@ export const RenderInspection = memo(
     queryClient,
     handleUploadBottomSheet,
     editDeliveryDate,
+    setDateTimeBottomSheetVisible,
   }) => {
     const handleCheck = index => {
       const updatedCheckedItems = [...checkedItems];
@@ -1508,21 +1585,14 @@ export const RenderInspection = memo(
     const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedDeliveryItem, setSelectedDeliveryItem] = useState(null);
-    const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
 
-    const handleOpenSheet = () => setBottomSheetOpen(true);
-    const handleCloseSheet = () => setBottomSheetOpen(false);
-    
 
     const handleEditDeliveryDate = (index, deliveryItem) => {
-      //console.log('Edit delivery date:', deliveryItem);
-    
       setSelectedDeliveryItem(deliveryItem);
-    
-      setDatePickerOpen(true); // Open the date picker
+      setDateTimeBottomSheetVisible(true);
     };
-    
-    const handleConfirmDate = (date) => {
+
+    const handleConfirmDate = date => {
       console.log('Selected Date & Time:', date);
       setBottomSheetOpen(false);
     };
@@ -1607,61 +1677,18 @@ export const RenderInspection = memo(
       </View>
     );
 
-    const DateTimeBottomSheet = ({ isOpen, onClose, onConfirm }) => {
-      const bottomSheetRef = useRef(null);
-      const snapPoints = useMemo(() => ['40%'], []);
-      const [date, setDate] = useState(new Date());
-    
-      const handleConfirm = () => {
-        onConfirm(date);
-        bottomSheetRef.current?.close();
-      };
-    
-      return (
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={isOpen ? 0 : -1}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          onClose={onClose}
-        >
-          <View style={{ padding: 20 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
-              Pick Delivery Date & Time
-            </Text>
-            <DatePicker
-              date={date}
-              onDateChange={setDate}
-              mode="datetime"
-              androidVariant="nativeAndroid"
-            />
-    
-            <TouchableOpacity
-              onPress={handleConfirm}
-              style={{
-                marginTop: 20,
-                backgroundColor: '#5DADE2',
-                padding: 12,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: 'white', fontSize: 16 }}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </BottomSheet>
-      );
-    };
-
     return (
-      <SafeAreaView
+      <View
         style={{
           paddingBottom: 400,
         }}>
         <View style={{}}>
           <PaymentSection dataItems={dataItems} />
           <PODetailsSection item={item} />
-          <DeliverySection dataItems={dataItems} handleEditDeliveryDate={handleOpenSheet} />
+          <DeliverySection
+            dataItems={dataItems}
+            handleEditDeliveryDate={handleEditDeliveryDate}
+          />
           <ItemsSection
             dataItems={dataItems}
             checkedItems={checkedItems}
@@ -1675,13 +1702,9 @@ export const RenderInspection = memo(
             renderInspectorImage={renderInspectorImage}
             item={item}
           />
-           {/* <DateTimeBottomSheet
-            isOpen={bottomSheetOpen}
-            onClose={handleCloseSheet}
-            onConfirm={handleConfirmDate}
-          /> */}
+       
         </View>
-      </SafeAreaView>
+      </View>
     );
   },
 );
@@ -1713,7 +1736,7 @@ export const Footer = ({
   const totalItems = Array.isArray(dataItems.poRecord)
     ? dataItems.poRecord.length
     : 0;
- /*  const handleInspectItems = async () => {
+  /*  const handleInspectItems = async () => {
     if (!Array.isArray(checkedItems) || checkedItems.length === 0) {
       showMessage({
         message: 'Inspection Failed',
@@ -1835,13 +1858,13 @@ export const Footer = ({
       });
       return;
     }
-  
+
     const totalItems = Array.isArray(dataItems?.poRecord)
       ? dataItems.poRecord.length
       : 0;
     const selectedItems = checkedItems.filter(Boolean).length;
     const trackingNumber = dataItems.vouchers[0]?.TrackingNumber;
-  
+
     if (selectedItems !== totalItems) {
       showMessage({
         message: 'Inspection Failed',
@@ -1855,13 +1878,13 @@ export const Footer = ({
       });
       return;
     }
-  
+
     if (voucherStatus.toLowerCase() === 'inspection on hold') {
       setInvoiceBottomSheetVisible(true);
       closeBottomSheet();
       return;
     }
-  
+
     if (voucherStatus.toLowerCase() !== 'for inspection') {
       showMessage({
         message: 'Inspection Failed',
@@ -1875,7 +1898,7 @@ export const Footer = ({
       });
       return;
     }
-  
+
     Alert.alert(
       'Confirm Inspection',
       'Are you sure you want to mark this inspection as completed?',
@@ -1889,7 +1912,7 @@ export const Footer = ({
           onPress: async () => {
             let inspectionStatus = 'Inspected';
             const deliveryId = item?.Id;
-  
+
             try {
               const result = await inspectItems({
                 year: selectedYear,
@@ -1897,7 +1920,7 @@ export const Footer = ({
                 trackingNumber,
                 inspectionStatus,
               });
-  
+
               if (result.status === 'success') {
                 showMessage({
                   message: 'Inspection Successful',
@@ -1909,7 +1932,7 @@ export const Footer = ({
                   floating: true,
                   duration: 3000,
                 });
-  
+
                 refreshData();
                 closeBottomSheet();
                 setCheckedItems(Array(totalItems).fill(false));
@@ -1941,10 +1964,10 @@ export const Footer = ({
           },
         },
       ],
-      { cancelable: false }
+      {cancelable: false},
     );
   };
-  
+
   const handleRevert = async () => {
     const selectedItems = checkedItems.filter(Boolean).length;
     const trackingNumber = dataItems.vouchers[0]?.TrackingNumber;
@@ -2416,28 +2439,24 @@ const InvoiceBottomSheet = ({visible, setCheckedItems, onClose, onSubmit}) => {
         </Pressable>
 
         <View style={{alignSelf: 'center', marginVertical: 10}}>
-        <Text style={{fontSize: 16, color: '#666'}}>— or —</Text>
-      </View>
+          <Text style={{fontSize: 16, color: '#666'}}>— or —</Text>
+        </View>
 
-
-      <TouchableOpacity
-        style={{
-          marginTop: 10,
-          padding: 10,
-          borderRadius: 5,
-          backgroundColor: '#e0e0e0',
-          alignItems: 'center',
-        }}
-        onPress={() => {
-          setInvoice('');
-          setSelectedDate('');
-          onSubmit('', '');
-        }}>
-        <Text style={{color: '#333', fontWeight: 'bold'}}>No Invoice</Text>
-      </TouchableOpacity>
-
-
-
+        <TouchableOpacity
+          style={{
+            marginTop: 10,
+            padding: 10,
+            borderRadius: 5,
+            backgroundColor: '#e0e0e0',
+            alignItems: 'center',
+          }}
+          onPress={() => {
+            setInvoice('');
+            setSelectedDate('');
+            onSubmit('', '');
+          }}>
+          <Text style={{color: '#333', fontWeight: 'bold'}}>No Invoice</Text>
+        </TouchableOpacity>
       </View>
     </BottomSheet>
   );
@@ -2675,6 +2694,148 @@ const AddSchedule = ({item, visible, onClose, onSubmit, isAdding}) => {
               Submit
             </Text>
           )}
+        </Pressable>
+      </View>
+    </BottomSheet>
+  );
+};
+
+const DateTimeBottomSheet = ({item, dataItems, visible, onClose, onConfirm}) => {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [openDate, setOpenDate] = useState(false);
+  const [openTime, setOpenTime] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(null);
+
+  const handleClose = () => {
+    setSelectedDate(null);
+    setSelectedTime(null);
+    onClose();
+  };
+
+  if (!visible) return null;
+
+  return (
+    <BottomSheet
+      index={0}
+      snapPoints={['50%', '80%']}
+      onClose={onClose}
+      backdropComponent={({style}) => (
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={[style, {backgroundColor: 'rgba(0,0,0,0.5)'}]} />
+        </TouchableWithoutFeedback>
+      )}>
+      <View style={{paddingHorizontal: 20}}>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <Text style={{flex: 1, fontSize: 20, fontWeight: 'bold'}}>
+            Set Delivery Date & Time
+          </Text>
+          <TouchableOpacity onPress={handleClose}>
+            <Icon name="close" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        <View>
+        <Text style={{ fontSize: 12 }}>
+          Prev delivery date: {
+          dataItems.delivery[0].DeliveryDatesHistory
+            .split(', ')
+            .slice(-1)[0] 
+        }
+        </Text>
+      </View>
+
+
+        {/* Date Picker */}
+        <View style={{marginTop: 20}}>
+          <Text style={{color: 'rgb(102, 102, 102)'}}>Delivery Date</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#ccc',
+              padding: 10,
+              marginTop: 10,
+              borderRadius: 5,
+              alignItems: 'center',
+            }}
+            onPress={() => setOpenDate(true)}>
+            <Text style={{color: selectedDate ? 'black' : '#ccc'}}>
+              {selectedDate
+                ? selectedDate.toLocaleDateString('en-US').replace(/\//g, '-')
+                : 'MM-DD-YYYY'}
+            </Text>
+          </TouchableOpacity>
+          <DatePicker
+            modal
+            open={openDate}
+            date={selectedDate || new Date()}
+            mode="date"
+            onConfirm={date => {
+              setOpenDate(false);
+              setSelectedDate(date);
+            }}
+            onCancel={() => setOpenDate(false)}
+          />
+        </View>
+
+        <View style={{marginTop: 20}}>
+          <Text style={{color: 'rgb(102, 102, 102)'}}>Delivery Time</Text>
+          <TouchableOpacity
+            style={{
+              borderWidth: 1,
+              borderColor: '#ccc',
+              padding: 10,
+              marginTop: 10,
+              borderRadius: 5,
+              alignItems: 'center',
+            }}
+            onPress={() => setOpenTime(true)}>
+            <Text style={{color: selectedTime ? 'black' : '#ccc'}}>
+              {selectedTime
+                ? selectedTime.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'HH:MM AM/PM'}
+            </Text>
+          </TouchableOpacity>
+          <DatePicker
+            modal
+            open={openTime}
+            date={selectedTime || new Date()}
+            mode="time"
+            onConfirm={time => {
+              setOpenTime(false);
+              setSelectedTime(time);
+            }}
+            onCancel={() => setOpenTime(false)}
+          />
+        </View>
+
+        <Pressable
+          style={({pressed}) => ({
+            backgroundColor: pressed ? '#005ecb' : '#007aff',
+            padding: 12,
+            borderRadius: 5,
+            alignItems: 'center',
+            marginTop: 20,
+            opacity: selectedDate && selectedTime ? 1 : 0.5,
+          })}
+          onPress={() => {
+            if (!selectedDate || !selectedTime) {
+              Alert.alert('Error', 'Please select both date and time.');
+              return;
+            }
+
+            const dateTime = new Date(selectedDate);
+            dateTime.setHours(selectedTime.getHours());
+            dateTime.setMinutes(selectedTime.getMinutes());
+            onConfirm(dateTime);
+            handleClose();
+          }}
+          disabled={!selectedDate || !selectedTime}>
+          <Text style={{color: 'white', fontSize: 16, fontWeight: 'bold'}}>
+            Confirm
+          </Text>
         </Pressable>
       </View>
     </BottomSheet>
@@ -3109,7 +3270,6 @@ const PRInspection = ({
             paddingBottom: 200,
           }}
           style={{}}>
-
           <View
             style={{
               backgroundColor: '#fff',
@@ -3117,23 +3277,21 @@ const PRInspection = ({
               marginBottom: 15,
               borderRadius: 8,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
+              shadowOffset: {width: 0, height: 4},
               shadowOpacity: 0.1,
               shadowRadius: 4,
               elevation: 3,
               borderWidth: 1,
               borderColor: '#e0e0e0',
               marginHorizontal: 10,
-            }}
-          >
+            }}>
             <Text
               style={{
                 fontSize: 18,
                 fontWeight: '600',
                 marginBottom: 12,
                 color: '#333',
-              }}
-            >
+              }}>
               PR Details
             </Text>
             <View
@@ -3150,8 +3308,7 @@ const PRInspection = ({
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 paddingVertical: 5,
-              }}
-            >
+              }}>
               <Text
                 style={{
                   fontSize: moderateScale(13),
@@ -3159,8 +3316,7 @@ const PRInspection = ({
                   color: '#1A508C',
                   width: '20%',
                   fontWeight: 'bold',
-                }}
-              >
+                }}>
                 Program
               </Text>
               <Text
@@ -3170,8 +3326,7 @@ const PRInspection = ({
                   color: '#1A508C',
                   width: '20%',
                   fontWeight: 'bold',
-                }}
-              >
+                }}>
                 Qty
               </Text>
               <Text
@@ -3181,8 +3336,7 @@ const PRInspection = ({
                   color: '#1A508C',
                   width: '20%',
                   fontWeight: 'bold',
-                }}
-              >
+                }}>
                 Cost
               </Text>
               <Text
@@ -3192,8 +3346,7 @@ const PRInspection = ({
                   color: '#1A508C',
                   width: '20%',
                   fontWeight: 'bold',
-                }}
-              >
+                }}>
                 Total
               </Text>
             </View>
@@ -3201,38 +3354,38 @@ const PRInspection = ({
             {/* PR Data */}
             {prData.map((dataItem, prIndex) => {
               const prDataDetails = [
-                { label: 'TN', value: dataItem.TrackingNumber },
-                { label: 'Year', value: itemYear },
-                { label: 'Category', value: dataItem.Category },
-                { label: 'Code', value: dataItem.Code },
-                { label: 'Program', value: dataItem.ProgramCode },
-                { label: 'Cost', value: insertCommas(dataItem.Amount) },
-                { label: 'Unit', value: dataItem.Unit },
-                { label: 'Qty', value: dataItem.Qty },
-                { label: 'Total', value: insertCommas(dataItem.Total) },
-                { label: 'Description', value: dataItem.Description },
+                {label: 'TN', value: dataItem.TrackingNumber},
+                {label: 'Year', value: itemYear},
+                {label: 'Category', value: dataItem.Category},
+                {label: 'Code', value: dataItem.Code},
+                {label: 'Program', value: dataItem.ProgramCode},
+                {label: 'Cost', value: insertCommas(dataItem.Amount)},
+                {label: 'Unit', value: dataItem.Unit},
+                {label: 'Qty', value: dataItem.Qty},
+                {label: 'Total', value: insertCommas(dataItem.Total)},
+                {label: 'Description', value: dataItem.Description},
               ];
 
               return (
-                <View key={dataItem.RefTrackingNumber || prIndex} style={{ paddingTop: 10 }}>
-                  
+                <View
+                  key={dataItem.RefTrackingNumber || prIndex}
+                  style={{paddingTop: 10}}>
                   {/* Subheader Section for ProgramCode and Category */}
                   <View
                     style={{
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       paddingVertical: 5,
-                    }}
-                  >
+                    }}>
                     <Text
                       style={{
                         fontSize: moderateScale(13),
                         fontFamily: 'Inter_28pt-Light',
                         color: '#1A508C',
                         width: '20%',
-                      }}
-                    >
-                      {dataItem.ProgramCode} {/* Displaying the ProgramCode value */}
+                      }}>
+                      {dataItem.ProgramCode}{' '}
+                      {/* Displaying the ProgramCode value */}
                     </Text>
                     <Text
                       style={{
@@ -3240,8 +3393,7 @@ const PRInspection = ({
                         fontFamily: 'Inter_28pt-Light',
                         color: '#1A508C',
                         width: '20%',
-                      }}
-                    >
+                      }}>
                       {dataItem.Category} {/* Displaying the Category value */}
                     </Text>
                   </View>
@@ -3252,16 +3404,14 @@ const PRInspection = ({
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       paddingVertical: 5,
-                    }}
-                  >
+                    }}>
                     <Text
                       style={{
                         fontSize: moderateScale(13),
                         fontFamily: 'Inter_28pt-Light',
                         color: '#1A508C',
                         width: '20%',
-                      }}
-                    >
+                      }}>
                       {dataItem.Code}
                     </Text>
                     <Text
@@ -3270,8 +3420,7 @@ const PRInspection = ({
                         fontFamily: 'Inter_28pt-Light',
                         color: '#1A508C',
                         width: '20%',
-                      }}
-                    >
+                      }}>
                       {dataItem.Qty}
                     </Text>
                     <Text
@@ -3280,8 +3429,7 @@ const PRInspection = ({
                         fontFamily: 'Inter_28pt-Light',
                         color: '#1A508C',
                         width: '20%',
-                      }}
-                    >
+                      }}>
                       {insertCommas(dataItem.Amount)}
                     </Text>
                     <Text
@@ -3290,8 +3438,7 @@ const PRInspection = ({
                         fontFamily: 'Inter_28pt-Light',
                         color: '#1A508C',
                         width: '20%',
-                      }}
-                    >
+                      }}>
                       {insertCommas(dataItem.Total)}
                     </Text>
                   </View>
@@ -3301,8 +3448,7 @@ const PRInspection = ({
                     style={{
                       paddingTop: 10,
                       paddingLeft: 10,
-                    }}
-                  >
+                    }}>
                     <Text
                       style={{
                         fontSize: moderateScale(13),
@@ -3310,8 +3456,7 @@ const PRInspection = ({
                         color: '#2C3E50',
                       }}
                       numberOfLines={expanded ? undefined : 3}
-                      ellipsizeMode="tail"
-                    >
+                      ellipsizeMode="tail">
                       {dataItem.Description}
                     </Text>
                     {dataItem.Description.length > 50 && (
@@ -3322,8 +3467,7 @@ const PRInspection = ({
                             fontSize: 12,
                             fontWeight: 'bold',
                             alignSelf: 'flex-end',
-                          }}
-                        >
+                          }}>
                           {expanded ? 'Show Less' : 'Show More'}
                         </Text>
                       </TouchableOpacity>
@@ -3333,8 +3477,6 @@ const PRInspection = ({
               );
             })}
           </View>
-
-
 
           <View
             style={{

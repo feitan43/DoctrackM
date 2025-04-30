@@ -10,16 +10,18 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useUserAccess, useUpdateUserAccess } from '../hooks/usePersonal';
+import {useUserAccess, useUpdateUserAccess} from '../hooks/usePersonal';
 import {showMessage} from 'react-native-flash-message';
+import {useQueryClient} from '@tanstack/react-query';
 
 const systems = [
-  { key: 'PROCUREMENT', label: 'Procurement' },
-  { key: 'PAYROLL', label: 'Payroll' },
-  { key: 'ELOGS', label: 'E-logs' },
-  { key: 'FMS', label: 'FMS' },
+  {key: 'PROCUREMENT', label: 'Procurement'},
+  {key: 'PAYROLL', label: 'Payroll'},
+  {key: 'ELOGS', label: 'E-logs'},
+  {key: 'FMS', label: 'FMS'},
   /* { key: 'GSOINVENTORY', label: 'GSO Inventory' },
   { key: 'GSOINSPECTION', label: 'GSO Inspection' },
   { key: 'BACATTACHMENT', label: 'BAC Attachment' }, */
@@ -32,36 +34,70 @@ const AccessScreen = ({navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedSystem, setSelectedSystem] = useState('');
-  
+  const [refreshing, setRefreshing] = useState(false);
+
   const {data, error, loading: userLoading} = useUserAccess();
-  const { mutateAsync : updateUserAccess } = useUpdateUserAccess();
+  const {mutateAsync: updateUserAccess} = useUpdateUserAccess();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (data) {
-      const transformedUsers = data.map(user => ({
-        id: user.Id,
-        name: user.Name,
-        employeeNumber: user.EmployeeNumber,
-        isActive: user.LoginState === "1",
-        access: {
-          PROCUREMENT: user.PROCUREMENT === "1" ? "access" : "no-access",
-          PAYROLL: user.PAYROLL === "1" ? "access" : "no-access",
-          ELOGS: user.ELOGS === "1" ? "access" : "no-access",
-          FMS: user.FMS === "1" ? "access" : "no-access",
-          GSOINVENTORY: user.GSOINVENTORY === "1" ? "access" : "no-access",
-          GSOINSPECTION: user.GSOINSPECTION === "1" ? "access" : "no-access",
-          BACATTACHMENT: user.BACATTACHMENT === "1" ? "access" : "no-access",
-        }
-      }));
-      
+    if (Array.isArray(data)) {
+      const transformedUsers = data.map(user => {
+        const getAccess = key => (user[key] === '1' ? 'access' : 'no-access');
+        return {
+          id: user.Id,
+          name: user.Name,
+          employeeNumber: user.EmployeeNumber,
+          isActive: user.RegistrationState === '1',
+          access: {
+            PROCUREMENT: getAccess('PROCUREMENT'),
+            PAYROLL: getAccess('PAYROLL'),
+            ELOGS: getAccess('ELOGS'),
+            FMS: getAccess('FMS'),
+            GSOINVENTORY: getAccess('GSOINVENTORY'),
+            GSOINSPECTION: getAccess('GSOINSPECTION'),
+            BACATTACHMENT: getAccess('BACATTACHMENT'),
+          },
+        };
+      });
+
       setUsers(transformedUsers);
       setLoading(false);
     }
   }, [data]);
 
-  const handleFiltersPress = () => {
-    alert('Filters button pressed');
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.invalidateQueries(['getUserAccess']);
+    } catch (error) {
+      console.error('Failed to refresh getUserAccess:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
+
+  const countUsersByStatus = (users = []) => {
+    let activeCount = 0;
+    let inactiveCount = 0;
+    let overallCount = users.length;
+
+    users.forEach(user => {
+      if (user.RegistrationState === '1') {
+        activeCount++;
+      } else if (user.RegistrationState === '0') {
+        inactiveCount++;
+      } else {
+        console.warn(
+          `User with ID ${user.id} has an unknown RegistrationState: ${user.RegistrationState}`,
+        );
+      }
+    });
+
+    return {activeCount, inactiveCount, overallCount};
+  };
+
+  const {activeCount, inactiveCount, overallCount} = countUsersByStatus(data);
 
   const handleRoleChange = (user, systemKey) => {
     setSelectedUser(user);
@@ -69,9 +105,9 @@ const AccessScreen = ({navigation}) => {
     setModalVisible(true);
   };
 
-  const saveRoleChange = async (newAccess) => {
+  const saveRoleChange = async newAccess => {
     if (!selectedUser || !selectedSystem) return;
-  
+
     const updatedUsers = users.map(u => {
       if (u.id === selectedUser.id) {
         return {
@@ -84,17 +120,17 @@ const AccessScreen = ({navigation}) => {
       }
       return u;
     });
-  
+
     setUsers(updatedUsers);
     setModalVisible(false);
-  
+
     try {
       const result = await updateUserAccess({
         employeeNumber: selectedUser.employeeNumber,
         system: selectedSystem,
-        access: newAccess === "access" ? "1" : "0",
+        access: newAccess === 'access' ? '1' : '0',
       });
-    
+
       if (result.success) {
         showMessage({
           message: 'Update Successful',
@@ -106,14 +142,14 @@ const AccessScreen = ({navigation}) => {
           floating: true,
           duration: 3000,
         });
-        } else {
+      } else {
         throw new Error(result.message || 'Update failed');
       }
-  
-    } catch (error) {  
+    } catch (error) {
       showMessage({
         message: 'Update Failed',
-        description: error.message || 'There was an issue updating user access.',
+        description:
+          error.message || 'There was an issue updating user access.',
         type: 'danger',
         icon: 'danger',
         backgroundColor: '#C62828',
@@ -123,11 +159,15 @@ const AccessScreen = ({navigation}) => {
       });
     }
   };
-  
-  
-  const filteredUsers = users.filter(user =>
-    user.employeeNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+  const filteredUsers = users.filter(
+    user =>
+      (user.employeeNumber &&
+        user.employeeNumber
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())) ||
+      (user.name &&
+        user.name.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   const renderSystemAccess = (user, system) => {
@@ -143,20 +183,23 @@ const AccessScreen = ({navigation}) => {
         <Text style={styles.systemAccessText}>
           {hasAccess ? 'Access' : 'No Access'}
         </Text>
-        <Icon 
-          name={hasAccess ? 'checkmark-circle' : 'close-circle'} 
-          size={16} 
-          color="#fff" 
-          style={styles.accessIcon} 
+        <Icon
+          name={hasAccess ? 'checkmark-circle' : 'close-circle'}
+          size={16}
+          color="#fff"
+          style={styles.accessIcon}
         />
       </TouchableOpacity>
     );
   };
 
-  const renderItem = ({item}) => (
+  const renderItem = ({item, index}) => (
     <View style={styles.userCard}>
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{/* Employee # */}{item.employeeNumber}</Text>
+        <View style={styles.userHeaderRow}>
+          <Text style={styles.userIndex}>{index + 1}.</Text>
+          <Text style={styles.userName}>{item.employeeNumber}</Text>
+        </View>
         <Text style={styles.userFullName}>{item.name}</Text>
         <Text style={styles.userStatus}>
           {'Status: '}
@@ -164,7 +207,7 @@ const AccessScreen = ({navigation}) => {
             {item.isActive ? 'Active' : 'Inactive'}
           </Text>
         </Text>
-      
+
         <View style={styles.systemsContainer}>
           {systems.map(system => (
             <View key={system.key} style={styles.systemRow}>
@@ -216,14 +259,33 @@ const AccessScreen = ({navigation}) => {
           placeholder="Search by name or employee number..."
           value={searchQuery}
           onChangeText={setSearchQuery}
+          numberOfLines={1}
         />
+      </View>
+
+      <View style={styles.legendContainer}>
+        <View style={styles.legendItem}>
+          <View style={styles.activeLegend}></View>
+          <Text style={styles.legendText}>Active: {activeCount}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={styles.inactiveLegend}></View>
+          <Text style={styles.legendText}>Inactive: {inactiveCount}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={styles.overallLegend}></View>
+          <Text style={styles.legendText}>Overall: {overallCount}</Text>
+        </View>
       </View>
 
       <FlatList
         data={filteredUsers}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No users found</Text>
@@ -239,17 +301,21 @@ const AccessScreen = ({navigation}) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              Change {systems.find(s => s.key === selectedSystem)?.label || selectedSystem} Access
+              Change{' '}
+              {systems.find(s => s.key === selectedSystem)?.label ||
+                selectedSystem}{' '}
+              Access
             </Text>
             <Text style={styles.modalSubtitle}>
               for {selectedUser?.name} {/* (#{selectedUser?.employeeNumber}) */}
             </Text>
-            
+
             <View style={styles.roleOptionsContainer}>
               <TouchableOpacity
                 style={[
                   styles.roleOption,
-                  selectedUser?.access[selectedSystem] === 'access' && styles.selectedRoleOption,
+                  selectedUser?.access[selectedSystem] === 'access' &&
+                    styles.selectedRoleOption,
                   styles.accessOption,
                 ]}
                 onPress={() => saveRoleChange('access')}>
@@ -263,7 +329,8 @@ const AccessScreen = ({navigation}) => {
               <TouchableOpacity
                 style={[
                   styles.roleOption,
-                  selectedUser?.access[selectedSystem] === 'no-access' && styles.selectedRoleOption,
+                  selectedUser?.access[selectedSystem] === 'no-access' &&
+                    styles.selectedRoleOption,
                   styles.noAccessOption,
                 ]}
                 onPress={() => saveRoleChange('no-access')}>
@@ -312,7 +379,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#fff',
   },
-  searchIcon: {marginRight: 10, width:40},
+  searchIcon: {marginRight: 10, width: 30},
   backButton: {padding: 8, borderRadius: 20},
   loadingContainer: {
     flex: 1,
@@ -329,7 +396,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 40,
+    height: 50,
     paddingLeft: 10,
     fontSize: 16,
     color: '#333',
@@ -356,6 +423,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
+  },
+  userIndex: {
+    fontSize: 14,
+    color: '#999',
+    marginRight: 6,
   },
   userFullName: {
     fontSize: 14,
@@ -484,6 +556,43 @@ const styles = StyleSheet.create({
   inactiveIcon: {
     color: '#F44336',
     fontWeight: 'bold',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activeLegend: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#4CAF50', // Green for active
+    marginRight: 5,
+  },
+  inactiveLegend: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#F44336', // Red for inactive
+    marginRight: 5,
+  },
+  overallLegend: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#2196F3', // Blue for overall
+    marginRight: 5,
+  },
+  legendText: {
+    fontSize: 14,
+    color: '#333',
   },
 });
 

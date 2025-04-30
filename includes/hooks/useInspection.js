@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchInspection,fetchInspectionDetails, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage, fetchInspectionPRDetails, fetchInspectionRecentActivity, fetchEditDeliveryDate  } from '../api/inspectionApi.js';
 import useUserInfo from '../api/useUserInfo.js';
+import { showMessage } from 'react-native-flash-message';
 
 export const useInspection = () => {
   const { employeeNumber } = useUserInfo();
@@ -148,7 +149,6 @@ export const useInspectionPRDetails = (year, trackingNumber) => {
   });
 };
 
-
 export const useInspectionRecentActivity = () => {
   const { employeeNumber } = useUserInfo();
   console.log("recent", employeeNumber)
@@ -170,21 +170,30 @@ export const useEditDeliveryDate = () => {
       if (!deliveryId || !deliveryDate) {
         return Promise.reject(new Error('Delivery ID and Delivery Date are required'));
       }
-      // Call the function to update the delivery date
-      return await fetchEditDeliveryDate(deliveryId, deliveryDate);
+       return await fetchEditDeliveryDate(deliveryId, deliveryDate);
     },
-    onSuccess: () => {
-      // After success, invalidate the relevant query (e.g., 'inspection')
-      queryClient.invalidateQueries(['inspection']);
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries(["inspectionItems", variables.year, variables.trackingNumber]);
+
+      showMessage({
+        message: "Delivery date updated successfully!",
+        type: "success",
+        duration: 3000,
+        icon: 'success',
+        floating: true,
+      });
     },
     onError: (error) => {
       console.error('Mutation error:', error.message);
+      showMessage({
+        message: "Failed to update delivery date.",
+        description: error.message,
+        type: "danger",
+      });
     },
-    onSettled: () => {
-      // Optionally run any action after the mutation has finished (success or error)
-    },
-    retry: 2, // Retry the mutation 2 times in case of failure
+    retry: 2,
   });
 
   return mutation;
 };
+

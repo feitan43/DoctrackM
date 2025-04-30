@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, memo} from 'react';
 import {
   View,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   Alert,
   Linking,
   Button,
+  Modal
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
@@ -23,16 +24,15 @@ import {showMessage} from 'react-native-flash-message';
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
+const App = () => {
   const [isConnected, setIsConnected] = useState(true);
+
   const { progress, isBundleUpdated } = useHotUpdaterStore();
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
-
-
     return () => unsubscribe();
   }, []);
 
@@ -59,6 +59,21 @@ const AppContent = () => {
     });
   };
 
+  function extractFormatDateFromUUIDv7(uuid) {
+    const timestampHex = uuid.split("-").join("").slice(0, 12);
+    const timestamp = parseInt(timestampHex, 16);
+  
+    const date = new Date(timestamp);
+    const year = date.getFullYear().toString().slice(2);
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+  
+    return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+  }
+
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <QueryClientProvider client={queryClient}>
@@ -73,12 +88,7 @@ const AppContent = () => {
         <View style={styles.container}>
           {isConnected ? (
             <>
-            <Route />
-           {/*  <Button
-            title="Reload"
-            onPress={() => HotUpdater.reload()}
-            //disabled={!isBundleUpdated}
-          /> */}
+            <Route />      
           </>
           ) : (
             <View style={styles.noInternetContainer}>
@@ -155,85 +165,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const FallbackComponent = ({progress, status, message}) => (
-  <View
-    style={{
-      flex: 1,
-      padding: 24,
-      borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    }}>
-    <View
-      style={{
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 32,
-        paddingHorizontal: 24,
-        borderRadius: 20,
-        width: '90%',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 4},
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 6,
-      }}>
-      <Text
-        style={{
-          color: '#1E1E1E',
-          fontSize: 22,
-          fontWeight: 'bold',
-          marginBottom: 12,
-        }}>
-        {status === 'UPDATING' ? 'Updating...' : 'Checking for Update...'}
-      </Text>
-
-      {message && (
-        <Text
-          style={{
-            color: '#444',
-            fontSize: 16,
-            textAlign: 'center',
-            marginBottom: 10,
-          }}>
-          {message}
-        </Text>
-      )}
-
-      {progress > 0 && (
-        <Text style={{color: '#1D4ED8', fontSize: 20, fontWeight: 'bold'}}>
-          {Math.round(progress * 100)}%
-        </Text>
-      )}
-    </View>
-  </View>
-);
-
-const App = HotUpdater.wrap({
+export default HotUpdater.wrap({
   source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
-  reloadOnForceUpdate: false,
-  onUpdateProcessCompleted: async ({status, shouldForceUpdate, id, message}) => {
-    setTimeout(() => {
-      showMessage({
-        message: `Update Check: ${status}`,
-        description: `Force: ${shouldForceUpdate}\nID: ${id}\n${message ?? ''}`,
-        type: shouldForceUpdate ? 'warning' : 'info',
-        duration: 4000,
-      });
-    }, 100);
-    if (status === 'ROLLBACK') {
-      console.log('Bundle missing, rolling back...');
-      await AsyncStorage.removeItem('lastUpdatedId');
-      HotUpdater.reload();
-    }
-    if (shouldForceUpdate && status === 'NEEDS_UPDATE') {
-      await AsyncStorage.setItem('lastUpdatedId', id);
-      HotUpdater.reload();
-    }
-    
-  },
-  fallbackComponent: FallbackComponent,
-})(AppContent);
-
-export default App;
+  reloadOnForceUpdate: true, 
+})(App); 
