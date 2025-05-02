@@ -178,8 +178,8 @@ export const useEditDeliveryDate = () => {
       showMessage({
         message: "Delivery date updated successfully!",
         type: "success",
-        duration: 3000,
         icon: 'success',
+        duration: 3000,
         floating: true,
       });
     },
@@ -189,6 +189,9 @@ export const useEditDeliveryDate = () => {
         message: "Failed to update delivery date.",
         description: error.message,
         type: "danger",
+        icon: 'danger',
+        duration: 3000,
+        floating: true,
       });
     },
     retry: 2,

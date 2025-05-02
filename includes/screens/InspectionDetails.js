@@ -2864,7 +2864,6 @@ const PRInspection = ({
   const [images, setImages] = useState(inspectorImages || []);
   const [fetchTimestamp, setFetchTimestamp] = useState(Date.now());
 
-  // Simulate data loading
   useEffect(() => {
     if (prData && prData.length > 0) {
       setLoading(false);

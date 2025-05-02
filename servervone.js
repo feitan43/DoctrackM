@@ -1764,7 +1764,6 @@ app.get('/read', async (req, res) => {
   }
 });
 
-
 app.get('/transactionSummary', async (req, res) => {
   const {Year, TrackingType, OfficeCode} = req.query;
 
@@ -2006,7 +2005,6 @@ app.get('/getInspectorImage', async (req, res) => {
       res.status(500).json({ error: 'An error occurred while fetching images.' });
   }
 });
-
 
 app.get('/getInspectionList', async (req, res) => {
   const { employeeNumber } = req.query; 
@@ -2660,6 +2658,8 @@ app.get('/projectCleansingDetails', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
+
+
 
 
 

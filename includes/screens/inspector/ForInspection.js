@@ -74,7 +74,6 @@ const ForInspection = ({navigation}) => {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    console.log('refresh');
     queryClient.invalidateQueries({
       queryKey: ['inspection'],
     });
