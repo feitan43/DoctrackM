@@ -48,8 +48,12 @@ const QRAuto = () => {
   const lastScannedRef = useRef(null);
   const scanningLock = useRef(false);
   const [scannedActive, setScannedActive] = useState(false);
-
-  const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const { data: qrData, isLoading: qrLoading, error: qrError, refetch } = useGetQRData({
+    year,
+    trackingNumber,
+  });
 
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
@@ -256,13 +260,17 @@ const QRAuto = () => {
         const result = decryptScannedCode(scannedCode);
         const [year, ...trackingParts] = result.split('-');
         const trackingNumber = trackingParts.join('-');
+        const scannedYear = parseInt(year);
 
-        if (!isValidCode(year, trackingNumber)) {
+        if (!isValidCode(scannedYear, trackingNumber)) {
           scanningLock.current = false;
           return;
         }
 
-        const data = await fetchQRData(year, trackingNumber);
+        setYear(scannedYear);
+        setTrackingNumber(trackingNumber);
+
+        const { data } = await refetch();
 
         if (!isValidQRData(data)) {
           scanningLock.current = false;
@@ -284,9 +292,8 @@ const QRAuto = () => {
           scanningLock.current = false;
           return;
         }
-
-        await handleAutoReceive(year, trackingNumber, TrackingType, DocumentType, Status);
         setCameraIsActive(false);
+        await handleAutoReceive(year, trackingNumber, TrackingType, DocumentType, Status);
         lastScannedRef.current = scannedCode;
         bottomSheetRef.current?.expand?.();
       } catch (error) {
@@ -344,13 +351,6 @@ const QRAuto = () => {
         privilege,
         officeCode,
         inputParams: '',
-      }, {
-        onSuccess: async (payload) => {
-          const qrData = await fetchQRData(year, trackingNumber);
-          if (payload?.status === 'success') {
-            setQRData(qrData);
-          }
-        }
       });
 
       return response;
@@ -359,6 +359,7 @@ const QRAuto = () => {
       throw new Error('Auto receive failed');
     }
   };
+
 
 
 

@@ -1,42 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
-import { TextInput } from 'react-native-paper';
+import { TextInput, Button } from 'react-native-paper';
 import { useUpdateQRData } from '../../api/useUpdateQRData';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useGetQRData } from '../../api/useGetQRData';
 const EditAdvScreen = ({ route }) => {
     const navigation = useNavigation();
     const { item } = route.params;
 
     const { mutateAsync, isPending } = useUpdateQRData();
-    const { data } = useGetQRData(year, trackingNumber);
     const advNumber = item?.ADV1 === '0' ? 'n/a' : item?.ADV1 || '';
     const year = item?.Year;
     const trackingNumber = item?.TrackingNumber;
     const [newAdvNumber, setNewAdvNumber] = useState(advNumber);
     const [error, setError] = useState('');
 
-    const test = async () => {
-        setError('');
-        if (newAdvNumber === '' || newAdvNumber === 'n/a' || isNaN(newAdvNumber)) {
-            setError('Please enter a valid ADV Number');
-            return;
-        }
-
-        try {
-            const payload = {
-                year,
-                trackingNumber,
-                adv1: newAdvNumber,
-            };
-            await mutateAsync(payload);
-            // navigation.goBack();
-        } catch (err) {
-            console.error('Failed to update ADV1:', err);
-            setError('Failed to update. Please try again.');
-        }
-    };
 
     const handleSubmit = async () => {
         setError('');
@@ -52,7 +30,7 @@ const EditAdvScreen = ({ route }) => {
                 trackingNumber,
                 adv1: newAdvNumber,
             });
-
+            navigation.goBack();
 
         } catch (error) {
             if (error.response) {
@@ -96,13 +74,13 @@ const EditAdvScreen = ({ route }) => {
                     <Icon name="arrow-back" size={24} color="gray" />
                 </Pressable>
                 <Text style={styles.title}>
-                    Edit - {newAdvNumber === '0' ? 'n/a' : newAdvNumber}
+                    TrackingNumber - {trackingNumber === '0' ? 'n/a' : trackingNumber}
                 </Text>
             </View>
 
             <View style={styles.contentContainer}>
-                {/* <Text style={styles.label}>ADV Number:</Text> */}
                 <TextInput
+                    mode='outlined'
                     label="ADV Number"
                     value={newAdvNumber}
                     onChangeText={setNewAdvNumber}
@@ -113,10 +91,19 @@ const EditAdvScreen = ({ route }) => {
                 {error !== '' && (
                     <Text style={{ color: 'red', fontSize: 12 }}>{error}</Text>
                 )}
+                <Button
+                    mode="contained"
+                    loading={isPending}
+                    disabled={isPending}
+                    onPress={handleSubmit} style={{
+                        marginTop: 10,
+                        borderRadius: 8,
+                        backgroundColor: "#007bff"
+                    }}>
+                    Save
+                </Button>
 
-                <Pressable onPress={handleSubmit} disabled={isPending}>
-                    <Text style={styles.saveButton}>{isPending ? 'Saving...' : 'Save'}</Text>
-                </Pressable>
+
             </View>
         </View>
     );

@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './apiClient';
-import { useState } from 'react';
 
 async function fetchQRDataFn({ year, trackingNumber }) {
   if (!year || !trackingNumber) return null;
@@ -20,19 +19,30 @@ async function fetchQRDataFn({ year, trackingNumber }) {
   return response.data;
 }
 
-export function useGetQRData() {
-  const [qrData, setQRData] = useState(null);
-  const queryClient = useQueryClient();
-  // const data = useQuery(['qrData'], fetchQRDataFn)
-  // return { ...data};
-  const fetchQRData = async (year, trackingNumber) => {
-    return await queryClient.fetchQuery({
-      queryKey: ['qrData', year, trackingNumber],
-      queryFn: () => fetchQRDataFn({ year, trackingNumber }),
-    });
-  };
-
-  return { fetchQRData, qrData, setQRData };
+export function useGetQRData({ year, trackingNumber }) {
+  return useQuery({
+    queryKey: ['qrData', year, trackingNumber],
+    queryFn: () => fetchQRDataFn({ year, trackingNumber }),
+    enabled: !!year && !!trackingNumber,
+    staleTime: 1000 * 60 * 5,
+  });
 }
 
+// export function useGetQRData() {
+//   const [qrData, setQRData] = useState(null);
+//   const queryClient = useQueryClient();
+//   // const data = useQuery(['qrData'], fetchQRDataFn)
+//   // return { ...data};
+//   const fetchQRData = async (year, trackingNumber) => {
+//     return await queryClient.fetchQuery({
+//       queryKey: ['qrData', year, trackingNumber],
+//       queryFn: () => fetchQRDataFn({ year, trackingNumber }),
+//     });
+//   };
+
+//   return { fetchQRData, qrData, setQRData };
+// }
+
 export default useGetQRData;
+
+

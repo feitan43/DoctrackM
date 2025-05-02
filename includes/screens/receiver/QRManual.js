@@ -55,16 +55,16 @@ const QRManual = () => {
 
   const [cameraIsActive, setCameraIsActive] = useState(true);
   const [inputParams, setInputParams] = useState('');
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [trackingNumber, setTrackingNumber] = useState('');
 
-  const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
-
-
-
+  const { data: qrData, isLoading: qrLoading, error: qrError, refetch } = useGetQRData({
+    year,
+    trackingNumber,
+  });
   const handleEdit = (item) => {
     navigation.navigate('EditAdvScreen', { item });
   };
-
-
 
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
@@ -90,10 +90,7 @@ const QRManual = () => {
       { year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams },
       {
         onSuccess: async (payload) => {
-          const qrData = await fetchQRData(year, trackingNumber);
           if (payload?.status === 'success') {
-            console.log('SUCCESS:', payload)
-            setQRData(qrData);
             setModalMessage(payload?.message || 'Unknown error');
             setModalType(true);
           } else {
@@ -113,17 +110,13 @@ const QRManual = () => {
   };
 
 
-
-  
   const handleRevert = async (year, trackingNumber, trackingType, documentType, status, inputParams) => {
     revertReceived(
       { year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams },
       {
         onSuccess: async (payload) => {
-          const qrData = await fetchQRData(year, trackingNumber);
+
           if (payload?.status === 'success') {
-            console.log('SUCCESS:', payload)
-            setQRData(qrData);
             setModalMessage(payload?.message || 'Unknown error');
             setModalType(true);
           } else {
@@ -300,14 +293,14 @@ const QRManual = () => {
                 </Text>
 
 
-             
-                  <View style={{ alignContent: "flex-end" }}>
-                    <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
-                      <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
-                      <Icon name="create-outline" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-            
+
+                <View style={{ alignContent: "flex-end" }}>
+                  <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
+                    <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
+                    <Icon name="create-outline" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+
               </View>
 
             </View>
@@ -653,54 +646,44 @@ const QRManual = () => {
 
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
-    onCodeScanned: async codes => {
+    onCodeScanned: async (codes) => {
       if (codes.length === 0) return;
 
       const scannedCode = codes[0].value;
 
       try {
-        // Decrypt and extract the year and tracking number
         const result = decryptScannedCode(scannedCode);
-        const [year, ...trackingParts] = result.split('-');
-        const trackingNumber = trackingParts.join('-');
+        const [yearStr, ...trackingParts] = result.split('-');
+        const scannedTrackingNumber = trackingParts.join('-');
+        const scannedYear = parseInt(yearStr);
 
-        // Validate the year and tracking number
-        const isValidYear =
-          /^\d{4}$/.test(year) &&
-          parseInt(year) >= 2024 &&
-          parseInt(year) <= 2025;
+        const isValidYear = scannedYear >= 2024 && scannedYear <= 2025;
         const isValidTrackingNumber =
-          trackingNumber.startsWith('PR-') || trackingNumber.includes('-');
+          scannedTrackingNumber.startsWith('PR-') || scannedTrackingNumber.includes('-');
 
         if (!isValidYear || !isValidTrackingNumber) {
           ToastAndroid.show('Please scan a valid QR code.', ToastAndroid.SHORT);
           return;
         }
 
-        const data = await fetchQRData(year, trackingNumber);
+        setYear(scannedYear);
+        setTrackingNumber(scannedTrackingNumber);
 
-        if (data?.length) {
-          setScannedCodes(prev => [...prev, scannedCode]);
+        const { data } = await refetch();
+  
+        if (data && data.length && data[0]?.TrackingNumber) {
+          setScannedCodes((prev) => [...prev, scannedCode]);
           setCameraIsActive(false);
-          setQRData(data);
           bottomSheetRef.current?.expand?.();
-        } else {
-          Alert.alert('Invalid QR Code', 'The QR code you scanned is not valid.', [
-            { text: 'Scan Again', onPress: () => setCameraIsActive(true) },
-          ]);
         }
 
-        setScannedCodes(prev => [...prev, scannedCode]);
-        setCameraIsActive(false);
       } catch (error) {
         console.error('Error fetching QR data:', error);
-        Alert.alert(
-          'Error',
-          'Something went wrong while fetching the QR data.',
-        );
+        Alert.alert('Error', 'Something went wrong while fetching the QR data.');
       }
     },
   });
+
 
   const handleSheetClose = () => {
     bottomSheetRef.current?.close();
