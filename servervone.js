@@ -25,8 +25,12 @@ app.use(
     credentials: true,
   }),
 );
-app.use(bodyParser.json({ type: 'application/json' }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({
+  type: 'application/json'
+}));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 
 
 var serviceAccount = require('./nodejs/doctracknotif-firebase-adminsdk-l5hyw-4ecbd3cc3b.json');
@@ -39,7 +43,7 @@ admin.initializeApp({
 //const ServerIp = "http://192.168.203.13";
 //const ServerIp = "http://192.168.254.111";
 
-const ServerIp = "http://192.168.254.195";
+const ServerIp = "http://192.168.50.86";
 //const ServerIp = "http://192.168.8.24";
 
 
@@ -57,14 +61,21 @@ async function sendNotifForNonRegulatory() {
 
     const data = await response.json();
 
-    const tokens = data.map(item => ({ PushToken: item.PushToken, TransactionDelay: item.TransactionDelay, EmployeeNumber: item.EmployeeNumber }));
+    const tokens = data.map(item => ({
+      PushToken: item.PushToken,
+      TransactionDelay: item.TransactionDelay,
+      EmployeeNumber: item.EmployeeNumber
+    }));
 
     //console.log('Fetched tokens:', tokens);
 
     const delayed = 0;
 
     for (let i = 0; i < tokens.length; i++) {
-      const { PushToken, TransactionDelay: delay } = tokens[i]; // Corrected destructuring
+      const {
+        PushToken,
+        TransactionDelay: delay
+      } = tokens[i]; // Corrected destructuring
 
 
       // Skip sending notification if TransactionDelay is 0
@@ -81,14 +92,12 @@ async function sendNotifForNonRegulatory() {
         data: {
           screens: 'OfficeDelays',
           channelId: 'nonregulatorydelays',
-          actions: JSON.stringify([
-            {
-              title: 'Mark as Read',
-              pressAction: {
-                id: 'read',
-              },
+          actions: JSON.stringify([{
+            title: 'Mark as Read',
+            pressAction: {
+              id: 'read',
             },
-          ]),
+          }, ])
         },
         groupId: 'NonRegDelays',
       };
@@ -140,12 +149,19 @@ async function sendNotifForRegulatory() {
 
     const data = await response.json();
 
-    const tokens = data.map(item => ({ PushToken: item.PushToken, TransactionDelay: item.TransactionDelay, EmployeeNumber: item.EmployeeNumber }));
+    const tokens = data.map(item => ({
+      PushToken: item.PushToken,
+      TransactionDelay: item.TransactionDelay,
+      EmployeeNumber: item.EmployeeNumber
+    }));
 
     //console.log('Fetched tokens:', tokens);
 
     for (let i = 0; i < tokens.length; i++) {
-      const { PushToken, TransactionDelay: delay } = tokens[i]; // Corrected destructuring
+      const {
+        PushToken,
+        TransactionDelay: delay
+      } = tokens[i]; // Corrected destructuring
 
       // Skip sending notification if TransactionDelay is 0
       if (delay === 0) {
@@ -160,14 +176,12 @@ async function sendNotifForRegulatory() {
         data: {
           screens: 'Summary',
           channelId: 'regulatorydelays',
-          actions: JSON.stringify([
-            {
-              title: 'Mark as Read',
-              pressAction: {
-                id: 'read',
-              },
+          actions: JSON.stringify([{
+            title: 'Mark as Read',
+            pressAction: {
+              id: 'read',
             },
-          ]),
+          }, ]),
         },
         groupId: 'RegDelays',
       };
@@ -504,7 +518,9 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
       '::ffff:192.168.254.134',
     ];
     if (!allowedIps.includes(ip)) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({
+        error: 'Forbidden'
+      });
     }
 
 
@@ -520,7 +536,11 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
     //     const doctype = decodeURIComponent(req.params.doctype).replace(/\+/g, ' ');
     //     console.log('DT:', doctype);
 
-    const { office: officeCode, tn, doctype } = req.params;
+    const {
+      office: officeCode,
+      tn,
+      doctype
+    } = req.params;
     console.log('Office Code:', officeCode);
     console.log('TN:', tn);
     console.log('DT:', decodeURIComponent(doctype).replace(/\+/g, ' '));
@@ -548,7 +568,10 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
         const data = await fetchWithRetry(apiUrl, {}, 3, 2000); // Retry 3 times with 2 seconds delay
 
         if (!decodedDoctype.startsWith('SLP')) {
-          io.to(officeCode).emit('updatedNowData', { Count: data, officeCode });
+          io.to(officeCode).emit('updatedNowData', {
+            Count: data,
+            officeCode
+          });
         }
 
         return res.json({
@@ -560,14 +583,20 @@ app.get('/julien/:office/:tn/:doctype', async (req, res) => {
         });
       } catch (error) {
         console.error('Error occurred:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({
+          error: 'Internal server error'
+        });
       }
     } else {
-      return res.status(400).json({ error: 'Invalid office code' });
+      return res.status(400).json({
+        error: 'Invalid office code'
+      });
     }
   } catch (error) {
     console.error('Error occurred:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
   }
 });
 
@@ -769,7 +798,11 @@ async function sendNotifRealtime(officeCode, retryCount = 3, delayMs = 5000) {
         .filter(item => item.PushToken); // Filter out items without a PushToken
 
       for (let i = 0; i < tokens.length; i++) {
-        const { PushToken, TransactionCountperOffice: count, EmployeeNumber } = tokens[i];
+        const {
+          PushToken,
+          TransactionCountperOffice: count,
+          EmployeeNumber
+        } = tokens[i];
 
         if (!count) {
           continue;
@@ -785,14 +818,12 @@ async function sendNotifRealtime(officeCode, retryCount = 3, delayMs = 5000) {
             channelId: 'recentlyupdated',
             groupId: 'Updated',
             officeCode: officeCode,
-            actions: JSON.stringify([
-              {
-                title: 'Mark as Read',
-                pressAction: {
-                  id: 'read',
-                },
+            actions: JSON.stringify([{
+              title: 'Mark as Read',
+              pressAction: {
+                id: 'read',
               },
-            ]),
+            }, ]),
           },
         };
 
@@ -985,7 +1016,9 @@ async function sendNotifMyTransaction(tn) {
       }
 
       for (let i = 0; i < tokens.length; i++) {
-        const { PushToken } = tokens[i];
+        const {
+          PushToken
+        } = tokens[i];
 
         if (!PushToken) {
           continue;
@@ -1000,14 +1033,12 @@ async function sendNotifMyTransaction(tn) {
           data: {
             screens: 'MyTransactions',
             channelId: 'mypersonal',
-            actions: JSON.stringify([
-              {
-                title: 'Mark as Read',
-                pressAction: {
-                  id: 'read',
-                },
+            actions: JSON.stringify([{
+              title: 'Mark as Read',
+              pressAction: {
+                id: 'read',
               },
-            ]),
+            }, ]),
           },
           groupId: 'MyTransactions',
           channelId: 'MyPersonal'
@@ -1058,14 +1089,12 @@ async function sendNotifInspector(TrackingNumber, Inspector) {
       data: {
         screens: 'ForInspection',
         channelId: 'forinspection',
-        actions: JSON.stringify([
-          {
-            title: 'Mark as Read',
-            pressAction: {
-              id: 'read',
-            },
+        actions: JSON.stringify([{
+          title: 'Mark as Read',
+          pressAction: {
+            id: 'read',
           },
-        ]),
+        }, ]),
       },
       groupId: 'ForInspection',
     };
@@ -1088,7 +1117,10 @@ async function sendNotifInspector(TrackingNumber, Inspector) {
 }
 
 app.post('/sendNotifInspector', async (req, res) => {
-  const { TrackingNumber, Inspector } = req.body;
+  const {
+    TrackingNumber,
+    Inspector
+  } = req.body;
 
   if (!TrackingNumber || !Inspector) {
     return res.status(400).send('TrackingNumber and Inspector are required');
@@ -1114,7 +1146,9 @@ console.log(latestVersion.version);
 console.log(latestVersion); */
 
 app.get('/get-latest-version', (req, res) => {
-  res.json({ latestVersion });
+  res.json({
+    latestVersion
+  });
 });
 /*-------------------API -----------------------*/
 
@@ -1193,56 +1227,216 @@ function verifyToken(req, res, next) {
 
 
 app.post('/loginApi', async (req, res) => {
-  const { EmployeeNumber, Password, PushToken, UserDevice } = req.body;
+  const {
+    EmployeeNumber,
+    Password,
+    PushToken,
+    UserDevice
+  } = req.body;
 
   console.log(EmployeeNumber, Password, PushToken, UserDevice);
 
   if (!EmployeeNumber || !Password || !PushToken || !UserDevice) {
-    return res.status(400).json({ error: 'Missing credentials' });
+    return res.status(400).json({
+      error: 'Missing credentials'
+    });
   }
 
   const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?ark=1&user=${EmployeeNumber}&pass=${encodeURIComponent(hashedPassword)}&pushToken=${PushToken}&userDevice=${encodeURIComponent(UserDevice)}`;
-
+  console.log('LOGIN API: ', apiUrl);
   try {
     const apiResponse = await fetch(apiUrl);
 
     if (!apiResponse.ok) {
-      return res.status(apiResponse.status).json({ error: `API request failed with status: ${apiResponse.status}` });
+      return res.status(apiResponse.status).json({
+        error: `API request failed with status: ${apiResponse.status}`
+      });
     }
 
     const data = await apiResponse.json();
     console.log(data);
 
     if (!data || !Array.isArray(data) || data.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
     }
 
     const employeeNumber = data[0].EmployeeNumber;
     const password = data[0].Password;
 
     if (EmployeeNumber !== employeeNumber || hashedPassword !== password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
     }
 
-    const token = jwt.sign({ data }, 'feitan');
-    return res.json({ token });
+    const token = jwt.sign({
+      data
+    }, 'feitan');
+    return res.json({
+      token
+    });
 
   } catch (error) {
     console.error('Something went wrong!', error);
     //return res.status(500).json({ error: 'Error fetching data from external API' });
-    return res.status(500).json({ error: 'Something went wrong!' });
+    return res.status(500).json({
+      error: 'Something went wrong!'
+    });
 
   }
 });
 
+app.post('/empLoginApi', async (req, res) => {
+  const {
+    EmployeeNumber,
+    Password,
+    PushToken = '',
+    UserDevice = ''
+  } = req.body;
+
+
+  if (!EmployeeNumber || !Password) {
+    console.error('Missing EmployeeNumber or Password');
+    return res.status(400).json({
+      error: 'Missing EmployeeNumber or Password'
+    });
+  }
+
+  const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php`;
+
+  const body = new URLSearchParams({
+    empLogin: '1',
+    user: EmployeeNumber,
+    pass: hashedPassword,
+    pushToken: PushToken,
+    userDevice: UserDevice
+  });
+
+  try {
+   
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body
+    });
+
+   
+    const result = await response.json();
+    if (!result) {
+      throw new Error('Invalid JSON response');
+    }
+   
+    if (Array.isArray(result) && result.length > 0) {
+      const user = result[0];
+      const token = jwt.sign({
+        user
+      }, 'feitan');
+      return res.json({
+        token,
+        user
+      });
+    }
+
+    const errorMsg = result?.message || 'Invalid credentials';
+    console.error(`Login failed: ${errorMsg}`);
+    return res.status(401).json({
+      error: errorMsg
+    });
+
+  } catch (err) {
+    
+    console.error('Login error:', err);
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.post('/empSignupApi', async (req, res) => {
+  const {
+    EmployeeNumber,
+    Password,
+    PushToken = '',
+    UserDevice = '',
+    LastName,
+    FirstName,
+    MiddleName,
+    OfficeCode
+  } = req.body;
+
+
+  try {
+    const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
+
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php`;
+    const body = new URLSearchParams({
+      empSignup: '1',
+      user: EmployeeNumber,
+      pass: hashedPassword, 
+      pushToken: PushToken,
+      userDevice: UserDevice,
+      lastName: LastName,
+      firstName: FirstName,
+      middleName: MiddleName,
+      officeCode: OfficeCode
+    });
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body
+    });
+ 
+    const result = await response.json();
+
+
+    if (result.status === 'success') {
+      const user = {
+        EmployeeNumber,
+        FullName: result.FullName || '',
+        OfficeName: result.OfficeName || ''
+      };
+
+      const token = jwt.sign({
+        user
+      }, 'feitan');
+
+      return res.json({
+        token,
+        user
+      });
+    }
+
+    return res.status(400).json({
+      error: result.message || 'Signup failed'
+    });
+
+  } catch (err) {
+    console.error('Signup error:', err);
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
 
 app.post('/logoutApi', async (req, res) => {
-  const { EmployeeNumber } = req.body;
+  const {
+    EmployeeNumber
+  } = req.body;
   //console.log(EmployeeNumber);
 
   if (!EmployeeNumber) {
-    return res.status(400).json({ error: 'Missing credentials' });
+    return res.status(400).json({
+      error: 'Missing credentials'
+    });
 
   }
 
@@ -1262,10 +1456,14 @@ app.post('/logoutApi', async (req, res) => {
     // If you do, you need to handle it accordingly
     // const data = await apiResponse.json();
 
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({
+      message: 'Logged out successfully'
+    });
   } catch (error) {
     console.error('Error updating LoginState and PushToken:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
@@ -1274,7 +1472,9 @@ app.get('/userInfo', async (req, res) => {
     const token = req.headers.authorization;
 
     if (!token || !token.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({
+        error: 'Unauthorized'
+      });
     }
 
     const tokenString = token.split(' ')[1];
@@ -1284,12 +1484,16 @@ app.get('/userInfo', async (req, res) => {
       /^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/.test(tokenString);
 
     if (!isValidTokenFormat) {
-      return res.status(401).json({ error: 'Invalid token format' });
+      return res.status(401).json({
+        error: 'Invalid token format'
+      });
     }
 
     jwt.verify(tokenString, process.env.JWT_SECRET || 'defaultSecret', async (err, decoded) => {
       if (err) {
-        return res.status(401).json({ error: 'Invalid token' });
+        return res.status(401).json({
+          error: 'Invalid token'
+        });
       }
       //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?ark=1&user=${decoded.EmployeeNumber}&pass=${decoded.hashedPassword}`;
 
@@ -1308,7 +1512,9 @@ app.get('/userInfo', async (req, res) => {
 
   } catch (error) {
     console.error('Internal server error:', error.message);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
   }
 });
 
@@ -1316,7 +1522,9 @@ app.get('/userInfo', async (req, res) => {
 app.get('/regOfficeDelays', async (req, res) => {
 
   try {
-    const { OfficeCode } = req.query;
+    const {
+      OfficeCode
+    } = req.query;
 
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}` // live
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}`  //localhost
@@ -1337,7 +1545,10 @@ app.get('/regOfficeDelays', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in regOfficeDelays:', error.message);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    res.status(500).json({
+      error: 'Internal Server Error',
+      details: error.message
+    });
   }
 });
 
@@ -1345,13 +1556,15 @@ app.get('/regOfficeDelays', async (req, res) => {
 app.get('/officeDelays', async (req, res) => {
 
   try {
-    const { OfficeCode } = req.query;
+    const {
+      OfficeCode
+    } = req.query;
 
     //console.log(OfficeCode);
 
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?leomord=1&office=${OfficeCode}` // live
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?silvana=1&office=${OfficeCode}`  //localhost
-    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?silvana=1&office=${OfficeCode}`  //localhost
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?silvana=1&office=${OfficeCode}` //localhost
 
 
     const apiResponse = await fetchRetry(apiUrl);
@@ -1369,12 +1582,20 @@ app.get('/officeDelays', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in officeDelays:', error.message);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    res.status(500).json({
+      error: 'Internal Server Error',
+      details: error.message
+    });
   }
 });
 
 app.get('/genInformation', async (req, res) => {
-  const { TrackingNumber, Year, accountType, officeCode } = req.query;
+  const {
+    TrackingNumber,
+    Year,
+    accountType,
+    officeCode
+  } = req.query;
 
   // console.log(TrackingNumber, Year, accountType, officeCode);
 
@@ -1400,12 +1621,17 @@ app.get('/genInformation', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in genInformation:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/obrInformation', async (req, res) => {
-  const { TrackingNumber, Year } = req.query;
+  const {
+    TrackingNumber,
+    Year
+  } = req.query;
 
   try {
     // Existing code remains the same
@@ -1428,12 +1654,17 @@ app.get('/obrInformation', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in genInformation:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/salaryList', async (req, res) => {
-  const { TrackingNumber, Year } = req.query;
+  const {
+    TrackingNumber,
+    Year
+  } = req.query;
 
   try {
     // Existing code remains the same
@@ -1454,13 +1685,19 @@ app.get('/salaryList', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in SalaryList:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 // PR, PO, PX DETAILS
 app.get('/prpopxDetails', async (req, res) => {
-  const { TrackingNumber, Year, TrackingType } = req.query;
+  const {
+    TrackingNumber,
+    Year,
+    TrackingType
+  } = req.query;
   //console.log(TrackingNumber, Year, TrackingType);
 
 
@@ -1485,12 +1722,18 @@ app.get('/prpopxDetails', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in prpopxDetails:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/paymentBreakdown', async (req, res) => {
-  const { TrackingNumber, TrackingType, Year } = req.query;
+  const {
+    TrackingNumber,
+    TrackingType,
+    Year
+  } = req.query;
 
   try {
     // Existing code remains the same
@@ -1513,12 +1756,17 @@ app.get('/paymentBreakdown', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in payementBreakdown:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/paymentHistory', async (req, res) => {
-  const { TrackingNumber, Year } = req.query;
+  const {
+    TrackingNumber,
+    Year
+  } = req.query;
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?horizon=1&year=${Year}&tn=${TrackingNumber}`;
@@ -1538,12 +1786,17 @@ app.get('/paymentHistory', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in payementHistory:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/computationBreakdown', async (req, res) => {
-  const { TrackingNumber, Year } = req.query;
+  const {
+    TrackingNumber,
+    Year
+  } = req.query;
 
   try {
     // Existing code remains the same
@@ -1567,12 +1820,17 @@ app.get('/computationBreakdown', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in payementBreakdown:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/transactionHistory', async (req, res) => {
-  const { TrackingNumber, Year } = req.query;
+  const {
+    TrackingNumber,
+    Year
+  } = req.query;
 
   try {
     // Existing code remains the same
@@ -1596,12 +1854,17 @@ app.get('/transactionHistory', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in genInformation:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/myTransactions', async (req, res) => {
-  const { EmployeeNumber, Year } = req.query;
+  const {
+    EmployeeNumber,
+    Year
+  } = req.query;
 
   //console.log("Year-- Server",Year, EmployeeNumber);
 
@@ -1632,12 +1895,16 @@ app.get('/myTransactions', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in myTransactions:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/recentlyUpdated', async (req, res) => {
-  const { OfficeCode } = req.query;
+  const {
+    OfficeCode
+  } = req.query;
 
   //console.log("Year-- Server",Year);
 
@@ -1662,7 +1929,9 @@ app.get('/recentlyUpdated', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in recentlyUpdated:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
@@ -1683,7 +1952,9 @@ io.on('connection', (socket) => {
 });
 
 app.get('/updatedNow', async (req, res) => {
-  const { OfficeCode } = req.query;
+  const {
+    OfficeCode
+  } = req.query;
 
   //http://192.168.100.217/gord/ajax/dataprocessor.php?killua=1&office=
   try {
@@ -1707,12 +1978,17 @@ app.get('/updatedNow', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in updated now:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/transactionUpdate', async (req, res) => {
-  const { Office, Year } = req.query;
+  const {
+    Office,
+    Year
+  } = req.query;
 
   //http://192.168.100.217/gord/ajax/dataprocessor.php?killua=1&office=
   try {
@@ -1736,12 +2012,16 @@ app.get('/transactionUpdate', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in updated now:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/read', async (req, res) => {
-  const { OfficeCode } = req.query;
+  const {
+    OfficeCode
+  } = req.query;
   try {
 
 
@@ -1765,13 +2045,19 @@ app.get('/read', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in reading notification:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 
 app.get('/transactionSummary', async (req, res) => {
-  const { Year, TrackingType, OfficeCode } = req.query;
+  const {
+    Year,
+    TrackingType,
+    OfficeCode
+  } = req.query;
 
   //console.log(Year, TrackingType, OfficeCode);
 
@@ -1798,12 +2084,17 @@ app.get('/transactionSummary', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in transactionSummary:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/othersVouchers', async (req, res) => {
-  const { year, office } = req.query; // Use lower case to match the frontend query parameters
+  const {
+    year,
+    office
+  } = req.query; // Use lower case to match the frontend query parameters
 
   //console.log(year, office);
 
@@ -1825,12 +2116,17 @@ app.get('/othersVouchers', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in othersVouchers:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/othersOthers', async (req, res) => {
-  const { year, office } = req.query; // Use lower case to match the frontend query parameters
+  const {
+    year,
+    office
+  } = req.query; // Use lower case to match the frontend query parameters
 
   //console.log(year, office);
 
@@ -1850,12 +2146,19 @@ app.get('/othersOthers', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in othersothers:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/searchTrackingNumber', async (req, res) => {
-  const { year, office, accountType, key } = req.query;
+  const {
+    year,
+    office,
+    accountType,
+    key
+  } = req.query;
 
   console.log(year, office, accountType, key);
 
@@ -1878,12 +2181,19 @@ app.get('/searchTrackingNumber', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in searchTrackingNumber:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/searchPayroll', async (req, res) => {
-  const { year, office, accountType, key } = req.query;
+  const {
+    year,
+    office,
+    accountType,
+    key
+  } = req.query;
 
   //console.log(year, office, accountType, key);
 
@@ -1905,12 +2215,18 @@ app.get('/searchPayroll', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in searchPayroll:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getInspectionItems', async (req, res) => {
-  const { year, trackingNumber, accountType } = req.query;
+  const {
+    year,
+    trackingNumber,
+    accountType
+  } = req.query;
 
   //console.log(year, trackingNumber,  accountType);
 
@@ -1932,12 +2248,21 @@ app.get('/getInspectionItems', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in searchPayroll:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/inspectItems', async (req, res) => {
-  const { year, employeeNumber, trackingNumber, accountType, status, remarks } = req.query;
+  const {
+    year,
+    employeeNumber,
+    trackingNumber,
+    accountType,
+    status,
+    remarks
+  } = req.query;
 
   console.log(year, employeeNumber, trackingNumber, accountType, status, remarks);
 
@@ -1959,13 +2284,18 @@ app.get('/inspectItems', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in inspect items:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getInspectorImage', async (req, res) => {
   try {
-    const { year, trackingNumber } = req.query;
+    const {
+      year,
+      trackingNumber
+    } = req.query;
     // console.log(year, trackingNumber);
 
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?getInspectorImage=1&year=${year}&tn=${trackingNumber}`;
@@ -1979,19 +2309,28 @@ app.get('/getInspectorImage', async (req, res) => {
 
     if (data.success) {
       const images = data.images;
-      res.json({ success: data.success, images });
+      res.json({
+        success: data.success,
+        images
+      });
     } else {
-      res.json({ error: data.error });
+      res.json({
+        error: data.error
+      });
     }
   } catch (error) {
     console.error('Error fetching inspector images:', error);
-    res.status(500).json({ error: 'An error occurred while fetching images.' });
+    res.status(500).json({
+      error: 'An error occurred while fetching images.'
+    });
   }
 });
 
 
 app.get('/getInspectionList', async (req, res) => {
-  const { employeeNumber } = req.query;
+  const {
+    employeeNumber
+  } = req.query;
 
   //console.log(employeeNumber);
 
@@ -2013,12 +2352,16 @@ app.get('/getInspectionList', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in getInspectList:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getRecentActivity', async (req, res) => {
-  const { employeeNumber } = req.query;
+  const {
+    employeeNumber
+  } = req.query;
 
   //console.log(employeeNumber);
 
@@ -2040,12 +2383,17 @@ app.get('/getRecentActivity', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in getInspectList:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getQRData', async (req, res) => {
-  const { Year, TrackingNumber } = req.query;
+  const {
+    Year,
+    TrackingNumber
+  } = req.query;
 
   //console.log(Year, TrackingNumber);
 
@@ -2067,14 +2415,27 @@ app.get('/getQRData', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in getInspectList:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 //NEW 1-22-2025 below
 
 app.get('/receiverReceived', async (req, res) => {
-  const { Year, TrackingNumber, TrackingType, DocumentType, Status, AccountType, Privilege, OfficeCode, EmployeeNumber, inputParams } = req.query;
+  const {
+    Year,
+    TrackingNumber,
+    TrackingType,
+    DocumentType,
+    Status,
+    AccountType,
+    Privilege,
+    OfficeCode,
+    EmployeeNumber,
+    inputParams
+  } = req.query;
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receiverReceived=1&year=${Year}&tn=${TrackingNumber}&tt=${TrackingType}&documentType=${DocumentType}&status=${Status}&accountType=${AccountType}&privilege=${Privilege}&officeCode=${OfficeCode}&empNum=${EmployeeNumber}&inputParams=${inputParams}`;
 
@@ -2090,12 +2451,23 @@ app.get('/receiverReceived', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in receiverReceived:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/receiverReverted', async (req, res) => {
-  const { Year, TrackingNumber, TrackingType, DocumentType, Status, AccountType, OfficeCode, EmployeeNumber } = req.query;
+  const {
+    Year,
+    TrackingNumber,
+    TrackingType,
+    DocumentType,
+    Status,
+    AccountType,
+    OfficeCode,
+    EmployeeNumber
+  } = req.query;
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receiverReverted=1&year=${Year}&tn=${TrackingNumber}&tt=${TrackingType}&documentType=${DocumentType}&status=${Status}&accountType=${AccountType}&officeCode=${OfficeCode}&empNum=${EmployeeNumber}`;
@@ -2121,13 +2493,18 @@ app.get('/receiverReverted', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching data in /receiverReverted:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 
 app.get('/receivingCount', async (req, res) => {
-  const { EmployeeNumber, Year } = req.query;
+  const {
+    EmployeeNumber,
+    Year
+  } = req.query;
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?tobio=1&empnum=${EmployeeNumber}&year=${Year}`;
     const apiResponse = await fetch(apiUrl);
@@ -2142,11 +2519,16 @@ app.get('/receivingCount', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching data in receivingCount:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 app.get('/receivedMonthly', async (req, res) => {
-  const { EmployeeNumber, Year } = req.query;
+  const {
+    EmployeeNumber,
+    Year
+  } = req.query;
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receivedMonthly=1&empnum=${EmployeeNumber}&year=${Year}`;
     const apiResponse = await fetch(apiUrl);
@@ -2158,17 +2540,23 @@ app.get('/receivedMonthly', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching data in receivingCount:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 
 
 app.get('/myAccountability', async (req, res) => {
-  const { EmployeeNumber } = req.query;
+  const {
+    EmployeeNumber
+  } = req.query;
 
   if (!EmployeeNumber) {
-    return res.status(400).json({ error: 'EmployeeNumber is required' });
+    return res.status(400).json({
+      error: 'EmployeeNumber is required'
+    });
   }
 
   try {
@@ -2180,20 +2568,31 @@ app.get('/myAccountability', async (req, res) => {
     console.error('Error fetching data in myAccountability:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/trackingSummary', async (req, res) => {
-  const { Year, OfficeCode } = req.query;
+  const {
+    Year,
+    OfficeCode
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
   if (!OfficeCode) {
-    return res.status(400).json({ error: 'OfficeCode is required' });
+    return res.status(400).json({
+      error: 'OfficeCode is required'
+    });
   }
 
   try {
@@ -2205,20 +2604,31 @@ app.get('/trackingSummary', async (req, res) => {
     console.error('Error fetching data in tracking summary:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/regTrackingSummary', async (req, res) => {
-  const { Year, OfficeCode } = req.query;
+  const {
+    Year,
+    OfficeCode
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
   if (!OfficeCode) {
-    return res.status(400).json({ error: 'OfficeCode is required' });
+    return res.status(400).json({
+      error: 'OfficeCode is required'
+    });
   }
 
   try {
@@ -2230,23 +2640,37 @@ app.get('/regTrackingSummary', async (req, res) => {
     console.error('Error fetching data in reg tracking summary:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/trackingSummaryList', async (req, res) => {
-  const { Year, OfficeCode, Status } = req.query;
+  const {
+    Year,
+    OfficeCode,
+    Status
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
   if (!OfficeCode) {
-    return res.status(400).json({ error: 'OfficeCode is required' });
+    return res.status(400).json({
+      error: 'OfficeCode is required'
+    });
   }
   if (!Status) {
-    return res.status(400).json({ error: 'Status is required' });
+    return res.status(400).json({
+      error: 'Status is required'
+    });
   }
 
   try {
@@ -2258,23 +2682,37 @@ app.get('/trackingSummaryList', async (req, res) => {
     console.error('Error fetching data in tracking summary list:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/regTrackingSummaryList', async (req, res) => {
-  const { Year, OfficeCode, Status } = req.query;
+  const {
+    Year,
+    OfficeCode,
+    Status
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
   if (!OfficeCode) {
-    return res.status(400).json({ error: 'OfficeCode is required' });
+    return res.status(400).json({
+      error: 'OfficeCode is required'
+    });
   }
   if (!Status) {
-    return res.status(400).json({ error: 'Status is required' });
+    return res.status(400).json({
+      error: 'Status is required'
+    });
   }
 
   try {
@@ -2286,9 +2724,13 @@ app.get('/regTrackingSummaryList', async (req, res) => {
     console.error('Error fetching data in tracking summary list:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
@@ -2304,9 +2746,13 @@ app.get('/requestForInspection', async (req, res) => {
     console.error('Error fetching data in request Inspection:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
@@ -2320,9 +2766,13 @@ app.get('/inspectionInspectors', async (req, res) => {
     console.error('Error fetching data in inspection inspectors:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
@@ -2336,17 +2786,27 @@ app.get('/onSchedule', async (req, res) => {
     console.error('Error fetching data in on Schedule:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/assignInspector', async (req, res) => {
-  const { id, inspectorEmp, inspectorName } = req.query;
+  const {
+    id,
+    inspectorEmp,
+    inspectorName
+  } = req.query;
 
   if (!id || !inspectorEmp || !inspectorName) {
-    return res.status(400).json({ error: 'requestId and inspectorId are required' });
+    return res.status(400).json({
+      error: 'requestId and inspectorId are required'
+    });
   }
 
   try {
@@ -2358,25 +2818,39 @@ app.get('/assignInspector', async (req, res) => {
     console.error('Error fetching data:', error.message);
 
     if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.statusText });
+      return res.status(error.response.status).json({
+        error: error.response.statusText
+      });
     }
 
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getEvaluation', async (req, res) => {
-  const { Year, EmployeeNumber, Status } = req.query;
+  const {
+    Year,
+    EmployeeNumber,
+    Status
+  } = req.query;
 
   //console.log(Year, EmployeeNumber, Status);
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluation=1&year=${Year}&empnum=${EmployeeNumber}&status=${Status}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
@@ -2384,121 +2858,198 @@ app.get('/getEvaluation', async (req, res) => {
     //io.emit('evaluationUpdated', data);
   } catch (error) {
     console.error('Error fetching evaluation data:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+    });
   }
 });
 
 app.get('/evaluatorEvaluate', async (req, res) => {
-  const { Year, TrackingNumber, EmployeeNumber, Status } = req.query;
+  const {
+    Year,
+    TrackingNumber,
+    EmployeeNumber,
+    Status
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluatorEvaluate=1&year=${Year}&tn=${TrackingNumber}&empnum=${EmployeeNumber}&status=${Status}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching evaluation data:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+    });
   }
 });
 
 app.get('/evaluatorRevert', async (req, res) => {
-  const { Year, TrackingNumber, EmployeeNumber, Status } = req.query;
+  const {
+    Year,
+    TrackingNumber,
+    EmployeeNumber,
+    Status
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluatorRevert=1&year=${Year}&tn=${TrackingNumber}&empnum=${EmployeeNumber}&status=${Status}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching evaluation data:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+
+    });
   }
 });
 
 app.get('/getEvaluatorSummary', async (req, res) => {
-  const { Year, EmployeeNumber } = req.query;
+  const {
+    Year,
+    EmployeeNumber
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluatorSummary=1&year=${Year}&empnum=${EmployeeNumber}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getEvaluatorAnnualSummary', async (req, res) => {
-  const { Year, EmployeeNumber } = req.query;
+  const {
+    Year,
+    EmployeeNumber
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluatorAnnualSummary=1&year=${Year}&empnum=${EmployeeNumber}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+    });
   }
 });
 
 app.get('/getEvaluatorMonthlySummary', async (req, res) => {
-  const { Year, EmployeeNumber } = req.query;
+  const {
+    Year,
+    EmployeeNumber
+  } = req.query;
 
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluatorMonthlySummary=1&year=${Year}&empnum=${EmployeeNumber}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+
+    });
   }
 });
 
 app.get('/getEvaluatorMonthlyDetails', async (req, res) => {
-  const { Year, EmployeeNumber, Status, Month } = req.query;
+  const {
+    Year,
+    EmployeeNumber,
+    Status,
+    Month
+  } = req.query;
   //console.log(Year,EmployeeNumber,Status, Month);
   if (!Year) {
-    return res.status(400).json({ error: 'Year is required' });
+    return res.status(400).json({
+      error: 'Year is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?evaluatorMonthlyDetails=1&year=${Year}&empnum=${EmployeeNumber}&status=${Status}&month=${Month}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+
+    });
   }
 });
 
@@ -2531,17 +3082,25 @@ app.get('/getEvaluatorMonthlyDetails', async (req, res) => {
 }); */
 
 app.get('/getInspection', async (req, res) => {
-  const { EmployeeNumber } = req.query;
+  const {
+    EmployeeNumber
+  } = req.query;
 
   //console.log(Year, EmployeeNumber, Status);
 
   if (!EmployeeNumber) {
-    return res.status(400).json({ error: 'EmployeeNumber is required' });
+    return res.status(400).json({
+      error: 'EmployeeNumber is required'
+    });
   }
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?inspection=1&empnum=${EmployeeNumber}`;
-    const { data } = await axios.get(apiUrl, { timeout: 5000 });
+    const {
+      data
+    } = await axios.get(apiUrl, {
+      timeout: 5000
+    });
 
     res.json(data);
 
@@ -2549,7 +3108,9 @@ app.get('/getInspection', async (req, res) => {
     //io.emit('evaluationUpdated', data);
   } catch (error) {
     console.error('Error fetching inspection data:', error.message);
-    res.status(500).json({ error: error.response?.data?.error || 'Internal Server Error' });
+    res.status(500).json({
+      error: error.response ?.data ?.error || 'Internal Server Error'
+    });
   }
 });
 
@@ -2576,12 +3137,21 @@ app.get('/projectCleansing', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in project cleansing:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
 app.get('/projectCleansingDetails', async (req, res) => {
-  const { Barangay, Title, Office, Status, Inspected, Fund } = req.query;
+  const {
+    Barangay,
+    Title,
+    Office,
+    Status,
+    Inspected,
+    Fund
+  } = req.query;
   //console.log(Barangay, Title, Office, Status, Inspected, Fund);
 
   try {
@@ -2604,7 +3174,9 @@ app.get('/projectCleansingDetails', async (req, res) => {
     // Remaining code remains the same
   } catch (error) {
     console.error('Error fetching data in project cleansing details:', error.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({
+      error: 'Internal Server Error'
+    });
   }
 });
 
@@ -2621,7 +3193,9 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage
+});
 
 // Create the uploads folder if it doesn't exist
 const fs = require('fs');
