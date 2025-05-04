@@ -38,20 +38,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 const squareSize = 250; // Size of the transparent square
-
+const currentYear = new Date().getFullYear().toString();
 const ReceiverScreen = () => {
   const [scannedCodes, setScannedCodes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredCodes, setFilteredCodes] = useState([]);
   const [showCamera, setShowCamera] = useState(false);
-  const [selectedYear, setSelectedYear] = useState('2024');
+  const [year, setSelectedYear] = useState(new Date().getFullYear());
   const [dataError, setDataError] = useState(false);
   const { officeCode, privilege, permission, accountType } = useUserInfo();
 
   const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
     useSearchReceiver();
 
-  const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+  // const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
+  const { data: qrData, isLoading: qrLoading, error: qrError, refetch } = useGetQRData({
+    year
+  });
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -214,7 +217,7 @@ const ReceiverScreen = () => {
         }
 
         const data = await fetchQRData(year, trackingNumber);
-        
+
 
         /*  if (!data || data.error) {
           ToastAndroid.show('No data found or invalid code.', ToastAndroid.SHORT);

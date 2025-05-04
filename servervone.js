@@ -1255,7 +1255,7 @@ app.post('/loginApi', async (req, res) => {
     }
 
     const data = await apiResponse.json();
-    console.log(data);
+    console.log('Data:', data);
 
     if (!data || !Array.isArray(data) || data.length === 0) {
       return res.status(401).json({
@@ -2423,7 +2423,7 @@ app.get('/getQRData', async (req, res) => {
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?frieren=1&year=${Year}&tn=${TrackingNumber}`;
-
+    console.log('QR DATA: ', apiUrl)
     const apiResponse = await fetch(apiUrl);
 
     //console.log(apiUrl);
@@ -2532,7 +2532,7 @@ app.get('/receivingCount', async (req, res) => {
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?tobio=1&empnum=${EmployeeNumber}&year=${Year}`;
     const apiResponse = await fetch(apiUrl);
-    console.log('RECEIVING COUNT API: ', apiUrl)
+    console.log('RECEIVING COUNT TOBIO API: ', apiUrl)
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
@@ -2585,8 +2585,8 @@ app.get('/myAccountability', async (req, res) => {
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?dabi=1&empnum=${EmployeeNumber}`;
+    console.log(apiUrl)
     const apiResponse = await axios.get(apiUrl);
-
     res.json(apiResponse.data);
   } catch (error) {
     console.error('Error fetching data in myAccountability:', error.message);

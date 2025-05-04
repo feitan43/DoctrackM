@@ -28,8 +28,8 @@ import ProjectCleansingScreen from './ProjectCleansingScreen';
 import { Image } from 'react-native-ui-lib';
 import useGetImage from '../api/useGetImage';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { DataTable, Card } from 'react-native-paper';
-import { Calendar } from 'react-native-calendars';
+import { Card } from 'react-native-paper';
+import { Shimmer } from '../utils/useShimmer';
 import { useQueryClient } from '@tanstack/react-query';
 
 const currentYear = new Date().getFullYear();
@@ -420,6 +420,7 @@ const DoctrackScreen = ({
   receivingCount,
   receivingCountData,
   receivedMonthly,
+  loadingReceiving,
   trackSumData,
   trackSumError,
   trackSumLoading,
@@ -444,13 +445,13 @@ const DoctrackScreen = ({
   const [showPRStatus, setShowPRStatus] = useState(false);
   const [showPOStatus, setShowPOStatus] = useState(false);
   const [showPXStatus, setShowPXStatus] = useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [isModalVisible, setModalVisible] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isModalVisible, setModalVisible] = useState(false);
   const queryClient = useQueryClient();
-
   const [selectedDate, setSelectedDate] = useState('');
 
   const navigation = useNavigation();
+
 
   const YearDropdown = ({ selectedYear, setSelectedYear }) => {
     const years = Array.from(
@@ -862,6 +863,7 @@ const DoctrackScreen = ({
         fetchMyPersonal(),
         fetchMyAccountability(),
         refetchDataOthers(),
+        receivingCountData,
       ]);
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -3484,33 +3486,28 @@ const DoctrackScreen = ({
             {[
               {
                 label: 'Total Received',
-                count: receivingCountData?.TotalReceived ?? 0,
+                count: receivingCountData?.TotalReceived,
               },
+
               {
                 label: 'Received Today',
-                count: receivingCountData?.ReceivedToday ?? 0,
+                count: receivingCountData?.ReceivedToday,
               },
               {
                 label: 'Received This Month',
-                count: receivedMonthly?.ReceivedPerMonth?.[0]?.Count ?? 0,
+                count: receivingCountData?.ReceivedPerMonth?.[0]?.Count,
                 screen: 'MonthlyReceivedScreen',
               }
-
-
             ].map((item, index) => (
               <Pressable
                 key={index}
                 onPress={() => {
                   if (item.screen) {
                     navigation.navigate(item.screen, {
-                      receivedMonthly: receivedMonthly?.ReceivedPerMonth ?? [],
-                      allMonthsData: receivedMonthly?.AllMonthsData ?? {},
-                      allMonthsUniqueData: receivedMonthly?.AllUniqueMonthsData ?? {},
-                      selectedYear
+                      selectedYear,
                     });
                   }
                 }}
-
                 style={({ pressed }) => ({
                   width: '30%',
                   alignItems: 'center',
@@ -3533,13 +3530,15 @@ const DoctrackScreen = ({
                         fontFamily: 'Inter_28pt-Bold',
                         fontSize: 30,
                       }}>
-                      {item.count}
+                      {item.count ?? 0}
                     </Text>
+
                     <Text
                       style={{
                         color: pressed ? 'white' : '#252525',
                         fontFamily: 'Oswald-Light',
                         fontSize: 10,
+                        marginTop: 5,
                       }}>
                       {item.label}
                     </Text>
@@ -3547,6 +3546,7 @@ const DoctrackScreen = ({
                 )}
               </Pressable>
             ))}
+
           </View>
         </View>
 
