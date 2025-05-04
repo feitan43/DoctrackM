@@ -1317,7 +1317,7 @@ app.post('/empLoginApi', async (req, res) => {
   });
 
   try {
-   
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -1326,37 +1326,61 @@ app.post('/empLoginApi', async (req, res) => {
       body
     });
 
-   
+
     const result = await response.json();
     if (!result) {
       throw new Error('Invalid JSON response');
     }
-   
+
     if (Array.isArray(result) && result.length > 0) {
       const user = result[0];
-      const token = jwt.sign({
-        user
-      }, 'feitan');
+      const token = jwt.sign({ user }, 'feitan');
+    
+      console.log('Generated Token:', token); 
+    
       return res.json({
         token,
         user
       });
     }
+    
 
-    const errorMsg = result?.message || 'Invalid credentials';
+    const errorMsg = result ?.message || 'Invalid credentials';
     console.error(`Login failed: ${errorMsg}`);
     return res.status(401).json({
       error: errorMsg
     });
 
   } catch (err) {
-    
+
     console.error('Login error:', err);
     return res.status(500).json({
       error: 'Internal server error'
     });
   }
 });
+
+app.get('/empFetchOfficeCode', async (req, res) => {
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?empFetchOfficeCode=1`;
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error fetching data in empFetchOfficeCode:', error.message);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      details: error.message
+    });
+  }
+});
+
 
 app.post('/empSignupApi', async (req, res) => {
   const {
@@ -1378,7 +1402,7 @@ app.post('/empSignupApi', async (req, res) => {
     const body = new URLSearchParams({
       empSignup: '1',
       user: EmployeeNumber,
-      pass: hashedPassword, 
+      pass: hashedPassword,
       pushToken: PushToken,
       userDevice: UserDevice,
       lastName: LastName,
@@ -1394,7 +1418,7 @@ app.post('/empSignupApi', async (req, res) => {
       },
       body
     });
- 
+
     const result = await response.json();
 
 
@@ -1618,7 +1642,7 @@ app.get('/genInformation', async (req, res) => {
 
     res.json(data);
 
-    // Remaining code remains the same
+   
   } catch (error) {
     console.error('Error fetching data in genInformation:', error.message);
     res.status(500).json({
