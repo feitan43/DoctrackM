@@ -289,10 +289,8 @@ const QRManual = () => {
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Text style={[styles.value]}>
-                  {item?.ADV1 === '0' ? 'n/a' : item?.ADV1 ? item.ADV1 : ''}
+                  {item?.ADV1 ? item.ADV1 : ''}
                 </Text>
-
-
 
                 <View style={{ alignContent: "flex-end" }}>
                   <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
@@ -300,9 +298,7 @@ const QRManual = () => {
                     <Icon name="create-outline" size={20} color="#fff" />
                   </TouchableOpacity>
                 </View>
-
               </View>
-
             </View>
           </View>
         </View>
@@ -670,7 +666,7 @@ const QRManual = () => {
         setTrackingNumber(scannedTrackingNumber);
 
         const { data } = await refetch();
-  
+
         if (data && data.length && data[0]?.TrackingNumber) {
           setScannedCodes((prev) => [...prev, scannedCode]);
           setCameraIsActive(false);

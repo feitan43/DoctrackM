@@ -14,8 +14,16 @@ async function updateQRData({ year, trackingNumber, adv1 }) {
 
     const headers = await getAuthHeaders();
     const apiUrl = `/updateAdvNumber?year=${year}&tn=${trackingNumber}&adv1=${adv1}`;
-    const response = await apiClient.get(apiUrl, { headers });
-    return response.data;
+
+    try {
+        const response = await apiClient.get(apiUrl, { headers });
+        return response.data;
+    } catch (error) {
+        // ✅ Extract validation message from server response
+        const message = error?.response?.data?.message || 'Failed to update ADV number.';
+        // Re-throw with proper message to be caught in `onError`
+        throw new Error(message);
+    }
 }
 
 export const useUpdateQRData = () => {
@@ -29,10 +37,6 @@ export const useUpdateQRData = () => {
             });
 
             queryClient.refetchQueries(['qrData', variables.year, variables.trackingNumber]);
-        },
-        onError: (error) => {
-            console.error('Error updating ADV number:', error);
-        },
+        }
     });
 };
-

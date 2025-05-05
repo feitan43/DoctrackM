@@ -43,7 +43,7 @@ admin.initializeApp({
 //const ServerIp = "http://192.168.203.13";
 //const ServerIp = "http://192.168.254.111";
 
-const ServerIp = "http://192.168.50.86";
+const ServerIp = "http://192.168.254.131";
 //const ServerIp = "http://192.168.8.24";
 
 
@@ -97,7 +97,7 @@ async function sendNotifForNonRegulatory() {
             pressAction: {
               id: 'read',
             },
-          }, ])
+          },])
         },
         groupId: 'NonRegDelays',
       };
@@ -181,7 +181,7 @@ async function sendNotifForRegulatory() {
             pressAction: {
               id: 'read',
             },
-          }, ]),
+          },]),
         },
         groupId: 'RegDelays',
       };
@@ -823,7 +823,7 @@ async function sendNotifRealtime(officeCode, retryCount = 3, delayMs = 5000) {
               pressAction: {
                 id: 'read',
               },
-            }, ]),
+            },]),
           },
         };
 
@@ -1038,7 +1038,7 @@ async function sendNotifMyTransaction(tn) {
               pressAction: {
                 id: 'read',
               },
-            }, ]),
+            },]),
           },
           groupId: 'MyTransactions',
           channelId: 'MyPersonal'
@@ -1094,7 +1094,7 @@ async function sendNotifInspector(TrackingNumber, Inspector) {
           pressAction: {
             id: 'read',
           },
-        }, ]),
+        },]),
       },
       groupId: 'ForInspection',
     };
@@ -1335,17 +1335,17 @@ app.post('/empLoginApi', async (req, res) => {
     if (Array.isArray(result) && result.length > 0) {
       const user = result[0];
       const token = jwt.sign({ user }, 'feitan');
-    
-      console.log('Generated Token:', token); 
-    
+
+      console.log('Generated Token:', token);
+
       return res.json({
         token,
         user
       });
     }
-    
 
-    const errorMsg = result ?.message || 'Invalid credentials';
+
+    const errorMsg = result?.message || 'Invalid credentials';
     console.error(`Login failed: ${errorMsg}`);
     return res.status(401).json({
       error: errorMsg
@@ -1642,7 +1642,7 @@ app.get('/genInformation', async (req, res) => {
 
     res.json(data);
 
-   
+
   } catch (error) {
     console.error('Error fetching data in genInformation:', error.message);
     res.status(500).json({
@@ -1938,7 +1938,6 @@ app.get('/recentlyUpdated', async (req, res) => {
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?beatrix=1&office=${OfficeCode}`;
-
     const apiResponse = await fetch(apiUrl);
 
 
@@ -2423,11 +2422,8 @@ app.get('/getQRData', async (req, res) => {
 
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?frieren=1&year=${Year}&tn=${TrackingNumber}`;
-    console.log('QR DATA: ', apiUrl)
+
     const apiResponse = await fetch(apiUrl);
-
-    //console.log(apiUrl);
-
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
@@ -2468,9 +2464,7 @@ app.get('/receiverReceived', async (req, res) => {
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
-
     const data = await apiResponse.json();
-
     res.json(data);
 
   } catch (error) {
@@ -2480,6 +2474,33 @@ app.get('/receiverReceived', async (req, res) => {
     });
   }
 });
+
+
+app.get('/updateAdvNumber', async (req, res) => {
+  const { year, tn, adv1 } = req.query;
+
+  if (!year || !tn || !adv1) {
+    return res.status(400).json({ success: false, message: 'Missing required parameters.' });
+  }
+
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?updateAdvNumber=1&year=${year}&tn=${tn}&adv1=${adv1}`;
+  try {
+    const apiResponse = await fetch(apiUrl);
+    const data = await apiResponse.json();
+
+    if (data.status === 'error') {
+      return res.status(400).json({ message: data.message });
+    }
+
+  
+    res.json(data);
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 
 app.get('/receiverReverted', async (req, res) => {
   const {
@@ -2531,15 +2552,30 @@ app.get('/receivingCount', async (req, res) => {
   } = req.query;
   try {
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?tobio=1&empnum=${EmployeeNumber}&year=${Year}`;
+    console.log('apiURL', apiUrl);
     const apiResponse = await fetch(apiUrl);
-    console.log('RECEIVING COUNT TOBIO API: ', apiUrl)
     if (!apiResponse.ok) {
       throw new Error(`API request failed with status: ${apiResponse.status}`);
     }
 
     const data = await apiResponse.json();
 
-    // Ensure the response contains MonthlyReceived data (array of objects)
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching data in receivingCount:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/receivedMonthly', async (req, res) => {
+  const { EmployeeNumber, Year } = req.query;
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?receivedMonthly=1&empnum=${EmployeeNumber}&year=${Year}`;
+    const apiResponse = await fetch(apiUrl);
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+    const data = await apiResponse.json();
     res.json(data);
   } catch (error) {
     console.error('Error fetching data in receivingCount:', error.message);
@@ -2570,6 +2606,166 @@ app.get('/receivedMonthly', async (req, res) => {
   }
 });
 
+app.post('/empLoginApi', async (req, res) => {
+  const {
+    EmployeeNumber,
+    Password,
+    PushToken = '',
+    UserDevice = ''
+  } = req.body;
+
+
+  if (!EmployeeNumber || !Password) {
+    console.error('Missing EmployeeNumber or Password');
+    return res.status(400).json({
+      error: 'Missing EmployeeNumber or Password'
+    });
+  }
+
+  const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php`;
+
+  const body = new URLSearchParams({
+    empLogin: '1',
+    user: EmployeeNumber,
+    pass: hashedPassword,
+    pushToken: PushToken,
+    userDevice: UserDevice
+  });
+
+  try {
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body
+    });
+
+
+    const result = await response.json();
+    if (!result) {
+      throw new Error('Invalid JSON response');
+    }
+
+    if (Array.isArray(result) && result.length > 0) {
+      const user = result[0];
+      const token = jwt.sign({ user }, 'feitan');
+
+      console.log('Generated Token:', token);
+
+      return res.json({
+        token,
+        user
+      });
+    }
+
+
+    const errorMsg = result?.message || 'Invalid credentials';
+    console.error(`Login failed: ${errorMsg}`);
+    return res.status(401).json({
+      error: errorMsg
+    });
+
+  } catch (err) {
+
+    console.error('Login error:', err);
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.post('/empSignupApi', async (req, res) => {
+  const {
+    EmployeeNumber,
+    Password,
+    PushToken = '',
+    UserDevice = '',
+    LastName,
+    FirstName,
+    MiddleName,
+    OfficeCode
+  } = req.body;
+
+
+  try {
+    const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
+
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php`;
+    const body = new URLSearchParams({
+      empSignup: '1',
+      user: EmployeeNumber,
+      pass: hashedPassword,
+      pushToken: PushToken,
+      userDevice: UserDevice,
+      lastName: LastName,
+      firstName: FirstName,
+      middleName: MiddleName,
+      officeCode: OfficeCode
+    });
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body
+    });
+
+    const result = await response.json();
+
+
+    if (result.status === 'success') {
+      const user = {
+        EmployeeNumber,
+        FullName: result.FullName || '',
+        OfficeName: result.OfficeName || ''
+      };
+
+      const token = jwt.sign({
+        user
+      }, 'feitan');
+
+      return res.json({
+        token,
+        user
+      });
+    }
+
+    return res.status(400).json({
+      error: result.message || 'Signup failed'
+    });
+
+  } catch (err) {
+    console.error('Signup error:', err);
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.get('/empFetchOfficeCode', async (req, res) => {
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?empFetchOfficeCode=1`;
+    const apiResponse = await fetch(apiUrl);
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error fetching data in empFetchOfficeCode:', error.message);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      details: error.message
+    });
+  }
+});
 
 
 app.get('/myAccountability', async (req, res) => {
@@ -2883,7 +3079,7 @@ app.get('/getEvaluation', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluation data:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
     });
   }
 });
@@ -2915,7 +3111,7 @@ app.get('/evaluatorEvaluate', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluation data:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
     });
   }
 });
@@ -2947,7 +3143,7 @@ app.get('/evaluatorRevert', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluation data:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
 
     });
   }
@@ -2978,7 +3174,7 @@ app.get('/getEvaluatorSummary', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
     });
   }
 });
@@ -3008,7 +3204,7 @@ app.get('/getEvaluatorAnnualSummary', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
     });
   }
 });
@@ -3038,7 +3234,7 @@ app.get('/getEvaluatorMonthlySummary', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
 
     });
   }
@@ -3071,7 +3267,7 @@ app.get('/getEvaluatorMonthlyDetails', async (req, res) => {
   } catch (error) {
     console.error('Error fetching evaluator summary:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
 
     });
   }
@@ -3133,7 +3329,7 @@ app.get('/getInspection', async (req, res) => {
   } catch (error) {
     console.error('Error fetching inspection data:', error.message);
     res.status(500).json({
-      error: error.response ?.data ?.error || 'Internal Server Error'
+      error: error.response?.data?.error || 'Internal Server Error'
     });
   }
 });

@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { useUpdateQRData } from '../../api/useUpdateQRData';
 import Icon from 'react-native-vector-icons/Ionicons';
+
 const EditAdvScreen = ({ route }) => {
     const navigation = useNavigation();
     const { item } = route.params;
 
     const { mutateAsync, isPending } = useUpdateQRData();
-    const advNumber = item?.ADV1 === '0' ? 'n/a' : item?.ADV1 || '';
+    const advNumber = item?.ADV1 || '';
     const year = item?.Year;
     const trackingNumber = item?.TrackingNumber;
     const [newAdvNumber, setNewAdvNumber] = useState(advNumber);
     const [error, setError] = useState('');
-
 
     const handleSubmit = async () => {
         setError('');
@@ -25,31 +25,22 @@ const EditAdvScreen = ({ route }) => {
         }
 
         try {
-            const payload = await mutateAsync({
+           
+            await mutateAsync({
                 year,
                 trackingNumber,
                 adv1: newAdvNumber,
             });
-            navigation.goBack();
-
+            navigation.goBack(); 
         } catch (error) {
-            if (error.response) {
-                console.error('Server error:', {
-                    status: error.response.status,
-                    data: error.response.data,
-                });
-                setError(error.response.data?.message || 'Server error occurred');
-            } else if (error.request) {
-                console.error('No response received:', error.request);
-                setError('No response from server');
-            } else {
-                console.error('Error setting up request:', error.message);
+           
+            if (error.message) {
                 setError(error.message);
+            } else {
+                setError('An unknown error occurred');
             }
         }
     };
-
-
 
     return (
         <View style={styles.container}>
@@ -80,7 +71,7 @@ const EditAdvScreen = ({ route }) => {
 
             <View style={styles.contentContainer}>
                 <TextInput
-                    mode='outlined'
+                    mode="outlined"
                     label="ADV Number"
                     value={newAdvNumber}
                     onChangeText={setNewAdvNumber}
@@ -89,26 +80,22 @@ const EditAdvScreen = ({ route }) => {
                     error={error !== ''}
                 />
                 {error !== '' && (
-                    <Text style={{ color: 'red', fontSize: 12 }}>{error}</Text>
+                    <Text style={styles.errorText}>{error}</Text>
                 )}
+
                 <Button
                     mode="contained"
                     loading={isPending}
                     disabled={isPending}
-                    onPress={handleSubmit} style={{
-                        marginTop: 10,
-                        borderRadius: 8,
-                        backgroundColor: "#007bff"
-                    }}>
+                    onPress={handleSubmit}
+                    style={styles.saveButton}
+                >
                     Save
                 </Button>
-
-
             </View>
         </View>
     );
 };
-
 
 const styles = StyleSheet.create({
     container: {
@@ -135,18 +122,20 @@ const styles = StyleSheet.create({
     contentContainer: {
         padding: 20,
     },
-    label: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
     textInput: {
         marginVertical: 10,
         backgroundColor: 'transparent',
     },
+    errorText: {
+        color: 'red',
+        fontSize: 12,
+        marginTop: 4,
+        marginBottom: 8,
+    },
     saveButton: {
-        color: '#0A3480',
-        fontWeight: 'bold',
-        marginTop: 20,
+        marginTop: 10,
+        borderRadius: 8,
+        backgroundColor: '#007bff',
     },
 });
 
