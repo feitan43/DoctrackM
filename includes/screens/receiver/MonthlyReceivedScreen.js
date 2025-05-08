@@ -23,8 +23,6 @@ const MonthlyReceivedScreen = ({ navigation, route }) => {
             : receivedMonthlyData?.accumulatedFundsData;
     }, [isSwitchOn, receivedMonthlyData]);
 
-
-
     const receivedData = useMemo(() => {
         const dataSource = receivedMonthlyData?.ReceivedPerMonth || [];
         return dataSource.reduce((acc, item) => {

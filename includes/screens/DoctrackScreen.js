@@ -31,6 +31,7 @@ import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Card } from 'react-native-paper';
 import { Shimmer } from '../utils/useShimmer';
 import { useQueryClient } from '@tanstack/react-query';
+import CustomModal from '../components/CustomModal';
 
 const currentYear = new Date().getFullYear();
 
@@ -138,7 +139,7 @@ const RecentActivity = ({
     <View
       style={{
         padding: 10,
-        marginHorizontal: 10,
+        marginBottom: 10,
         backgroundColor: 'white',
         borderRadius: 5,
         shadowColor: '#000',
@@ -419,6 +420,7 @@ const DoctrackScreen = ({
   fetchRecentActivity,
   receivingCount,
   receivingCountData,
+  isReceivedLoading,
   receivedMonthly,
   loadingReceiving,
   trackSumData,
@@ -447,10 +449,18 @@ const DoctrackScreen = ({
   const [showPXStatus, setShowPXStatus] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isSetModalVisible, setSetModalVisible] = useState(false);
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState('');
-
   const navigation = useNavigation();
+
+  const openModal = () => {
+    setSetModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setSetModalVisible(false);
+  };
 
 
   const YearDropdown = ({ selectedYear, setSelectedYear }) => {
@@ -983,7 +993,7 @@ const DoctrackScreen = ({
       ? regTrackSumData
       : regTrackSumData?.slice(0, 5);
     return (
-      <View style={{ marginBottom: 100 }}>
+      <View style={{ marginBottom: 100, backgroundColor: 'red', flex: 1 }}>
         {/* TRACKING SUMMARY */}
 
         {!['10', '5', '8', '9', '11'].includes(privilege) &&
@@ -1013,7 +1023,7 @@ const DoctrackScreen = ({
                     fontSize: 15,
                     paddingHorizontal: 10,
                   }}>
-                  Tracking Summary
+                  Tracking Summary - Default
                 </Text>
               </View>
 
@@ -1123,7 +1133,7 @@ const DoctrackScreen = ({
                               selectedItem: item,
                             });
                           }}
-                          android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}>
+                          android_ripple={{ color: 'rgba(35, 24, 24, 0.2)' }}>
                           <View
                             style={{
                               flexDirection: 'row',
@@ -2152,12 +2162,7 @@ const DoctrackScreen = ({
   });
 
   const renderInspector = () => (
-    <View
-      style={
-        {
-          /* backgroundColor:'#004ab1' */
-        }
-      }>
+    <View>
       <View
         style={{
           padding: 10,
@@ -2187,7 +2192,7 @@ const DoctrackScreen = ({
               fontSize: 15,
               paddingHorizontal: 10,
             }}>
-            Inspection Status
+            Inspection Status - Inspector
           </Text>
         </View>
 
@@ -2543,61 +2548,13 @@ const DoctrackScreen = ({
         />
       </View>
 
-      {/* <View style={{marginTop: 5}}>
-          {recentActivityData.map((item, index) => (
-            <Pressable
-              key={index}
-              style={({pressed}) => [
-                {
-                  marginHorizontal: 10,
-                  marginBottom: 5,
-                  shadowColor: '#000',
-                  shadowOffset: {width: 0, height: 2},
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  backgroundColor: pressed
-                    ? 'rgba(255, 255, 255, 0.1)'
-                    : 'rgba(0,0,0, 0.05)',
-                },
-              ]}
-              android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-              <View
-                style={{paddingHorizontal: 20, paddingVertical: 10, gap: -5}}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    fontSize: 14,
-                    color: 'white',
-                  }}>
-                  {item.Status}{' '}
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 12,
-                      color: 'silver',
-                    }}>
-                    TN#: {item.TrackingNumber}
-                  </Text>
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    fontSize: 10,
-                    color: 'silver',
-                    marginTop: 5,
-                  }}>
-                  {item.DateInspected}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View> */}
+
     </View>
   );
   const [summaryDate, setSummaryDate] = useState('');
   const [transactionDate, setTransactionDate] = useState('');
 
-  const [selected, setSelected] = useState('Unique'); // Default to 'Unique'
+  const [selected, setSelected] = useState('Unique');
   const keyMapping = { Unique: 'unique', Accumulated: 'accumulated' };
   const evaluatorSummaryData = evaluatorSummary?.[keyMapping[selected]] || [];
 
@@ -2635,249 +2592,10 @@ const DoctrackScreen = ({
       <View
         style={
           {
-            /* backgroundColor:'#004ab1' */
+            backgroundColor: 'yellow'
           }
         }>
-        {/* <View style={{marginBottom: 10}}>
-          <View
-            style={{
-              padding: 15,
-              marginHorizontal: 10,
-              marginTop: 10,
-              backgroundColor: '#fff',
-              borderRadius: 10,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.1,
-              shadowRadius: 5,
-              elevation: 5,
-              borderBottomWidth: 1,
-              borderBottomColor: '#E0E0E0',
-              borderRightWidth: 1,
-              borderRightColor: '#E0E0E0',
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#ddd',
-                paddingBottom: 8,
-                marginBottom: 10,
-                justifyContent: 'space-between',
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#1E1E1E',
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  paddingHorizontal: 10,
-                }}>
-                Summary
-              </Text>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  backgroundColor: '#eee',
-                  borderRadius: 20,
-                  overflow: 'hidden',
-                  padding: 2,
-                }}>
-                {['Unique', 'Accumulated'].map(type => (
-                  <TouchableOpacity
-                    key={type}
-                    onPress={() => setSelected(type)}
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor:
-                        selected === type ? '#007BFF' : 'transparent',
-                      alignItems: 'center',
-                    }}
-                    activeOpacity={0.7}>
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        color: selected === type ? '#fff' : '#000',
-                      }}>
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            <View style={{flex: 1}}>
-              <ScrollView horizontal>
-                <DataTable style={{width: 320}}>
-                  <DataTable.Header
-                    style={{backgroundColor: 'rgba(0, 123, 255, 0.2)'}}>
-                    {['Month', 'On Eval', 'Evaluated', 'Pending', 'Total'].map(
-                      (col, i) => (
-                        <DataTable.Title
-                          key={i}
-                          numeric={i > 0}
-                          style={{flex: 1}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 'bold',
-                              color: '#000',
-                              textAlign: 'center',
-                            }}>
-                            {col}
-                          </Text>
-                        </DataTable.Title>
-                      ),
-                    )}
-                  </DataTable.Header>
-
-                  {sortedData.map((item, i) => (
-                    <DataTable.Row
-                      key={i}
-                      style={{
-                        backgroundColor: i % 2 === 0 ? '#F5F5F5' : '#FFF',
-                        minHeight: 30,
-                      }}>
-                      <DataTable.Cell>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            color: '#000',
-                            textAlign: 'center',
-                          }}>
-                          {item.Month}{' '}
-                        </Text>
-                      </DataTable.Cell>
-                      {[
-                        item.OnEvaluationAccounting,
-                        item.EvaluatedAccounting,
-                        item.PendingAtCAO,
-                        item.TotalCount,
-                      ].map((val, j) => (
-                        <DataTable.Cell
-                          key={j}
-                          numeric
-                          style={{flex: 1, alignItems: 'center'}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color:
-                                item.Month === 'Total' ? '#D9534F' : '#333',
-                              textAlign: 'center',
-                            }}>
-                            {val}
-                          </Text>
-                        </DataTable.Cell>
-                      ))}
-                    </DataTable.Row>
-                  ))}
-
-                  <DataTable.Row
-                    style={{
-                      backgroundColor: '#rgba(0, 123, 255, 0.76)',
-                      minHeight: 30,
-                    }}>
-                    <DataTable.Cell>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 'bold',
-                          color: '#FFF',
-                          textAlign: 'center',
-                        }}>
-                        Total
-                      </Text>
-                    </DataTable.Cell>
-                    {[
-                      'OnEvaluationAccounting',
-                      'EvaluatedAccounting',
-                      'PendingAtCAO',
-                      'TotalCount',
-                    ].map((key, j) => (
-                      <DataTable.Cell
-                        key={j}
-                        numeric
-                        style={{flex: 1, alignItems: 'center'}}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            color: '#FFF',
-                            textAlign: 'center',
-                          }}>
-                          {evaluatorSummaryData.reduce(
-                            (sum, item) => sum + (parseInt(item[key]) || 0),
-                            0,
-                          )}
-                        </Text>
-                      </DataTable.Cell>
-                    ))}
-                  </DataTable.Row>
-                </DataTable>
-              </ScrollView>
-            </View>
-          </View>
-        </View> */}
-
-        {/* 
-        <View style={{ marginBottom: 5 }}>
-        <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            marginHorizontal: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 6,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver',
-          }}>
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-              paddingBottom: 5,
-              marginBottom: 5,
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Bold',
-                color: '#252525',
-                fontSize: 16,
-                paddingHorizontal: 10,
-              }}>
-              Daily Transaction
-            </Text>
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Calendar
-              onDayPress={onTransactionDayPress}
-              markedDates={{
-                [transactionDate]: { selected: true, selectedColor: '#007BFF' },
-              }}
-              style={{ marginBottom: 10 }}
-            />
-            <Text style={styles.subHeader}>
-              {transactionDate
-                ? `Transactions for ${transactionDate}`
-                : 'Select a Date'}
-            </Text>
-             
-            </View>
-          </View>
-        </View> */}
 
         <View style={{ marginBottom: 5 }}>
           <View
@@ -2911,7 +2629,7 @@ const DoctrackScreen = ({
                   fontSize: 16,
                   paddingHorizontal: 10,
                 }}>
-                Current Counter
+                Transaction Counter -  Evaluator
               </Text>
             </View>
 
@@ -2963,7 +2681,7 @@ const DoctrackScreen = ({
                   return hasResults ? (
                     items.map(
                       (item, index, arr) =>
-                        item.length > 0 && ( // Only show Pressable if length > 0
+                        item.length > 0 && (
                           <Pressable
                             key={index}
                             onPress={() =>
@@ -3039,111 +2757,6 @@ const DoctrackScreen = ({
           </View>
         </View>
 
-        {/*         <View style={{marginBottom: 5}}>
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 6,
-              borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
-                  paddingHorizontal: 10,
-                }}>
-                Actions
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-start',
-                gap: 10,
-                marginEnd: 10,
-                paddingHorizontal: 10,
-                marginTop: 5,
-                paddingTop: 10,
-              }}>
-              {[
-                {
-                  label: 'Evaluate',
-                  icon: `laptop`,
-                  screen: 'Evaluate',
-                },
-              
-              ].map((item, index, arr) => {
-                if (item.condition === false) {
-                  return null;
-                }
-
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={() =>
-                      navigation.navigate(item.screen, item.params)
-                    }
-                    style={({pressed}) => [
-                      {
-                        width: arr.length === 3 ? '32%' : '32%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        marginBottom: 10,
-                        borderRadius: 5,
-                        elevation: 1,
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 2,
-                        borderRightColor: 'silver',
-                      },
-                    ]}
-                    android_ripple={{}}>
-                    {({pressed}) => (
-                      <>
-                        <Icons
-                          name="file-document-edit"
-                          size={30}
-                          color={pressed ? 'white' : '#0c0c0c'}
-                          paddingVertical={5}
-                        />
-
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#252525',
-                            fontFamily: 'Inter_28pt-Regular',
-                            fontSize: 10,
-                          }}>
-                          {item.label}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </View> */}
 
         <View style={{ marginBottom: 10 }}>
           {/* Personal */}
@@ -3433,7 +3046,7 @@ const DoctrackScreen = ({
 
 
   const renderReceiver = () => (
-    <View>
+    <View style={{ backgroundColor: 'pink' }}>
       <View style={{ marginBottom: 20 }}>
         <View
           style={{
@@ -3468,7 +3081,7 @@ const DoctrackScreen = ({
                 fontSize: 16,
                 paddingHorizontal: 10,
               }}>
-              Transaction Counter
+              Transaction Counter - Receiver
             </Text>
           </View>
 
@@ -3501,13 +3114,14 @@ const DoctrackScreen = ({
             ].map((item, index) => (
               <Pressable
                 key={index}
-                onPress={() => {
-                  if (item.screen) {
-                    navigation.navigate(item.screen, {
-                      selectedYear,
-                    });
-                  }
-                }}
+                onPress={item.label === 'Received This Month' ? openModal : undefined}
+                // onPress={() => {
+                //   if (item.screen) {
+                //     navigation.navigate(item.screen, {
+                //       selectedYear,
+                //     });
+                //   }
+                // }}
                 style={({ pressed }) => ({
                   width: '30%',
                   alignItems: 'center',
@@ -3528,7 +3142,7 @@ const DoctrackScreen = ({
                       style={{
                         color: pressed ? 'white' : '#007bff',
                         fontFamily: 'Inter_28pt-Bold',
-                        fontSize: 30,
+                        fontSize: 24,
                       }}>
                       {item.count ?? 0}
                     </Text>
@@ -3664,254 +3278,988 @@ const DoctrackScreen = ({
             })}
           </View>
         </View>
-        {/* <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            marginTop: 20,
-            marginBottom: 10,
-          }}>
-          <Pressable
-            onPress={() => navigation.navigate('Receiver')}
-            android_ripple={{
-              color: 'rgba(255, 255, 255, 0.4)',
-              borderless: false,
-            }}
-            style={{
-              backgroundColor: 'rgba(13, 85, 199, 0.8)',
-              borderRadius: 5,
-              height: 100,
-              width: '48%',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 10,
-            }}>
-            <Image
-              source={require('../../assets/images/search1.png')}
-              style={{
-                tintColor: '#F8F8F8',
-                width: 36,
-                height: 40,
-                alignSelf: 'center',
-              }}
-            />
-            <Text
-              style={{
-                alignSelf: 'center',
-                textAlign: 'center',
-                color: 'white',
-                fontFamily: 'Inter_24pt-Bold',
-                fontSize: 10,
-                marginTop: 10,
-              }}>
-              Receive
-            </Text>
-          </Pressable>
 
-          <Pressable
-            onPress={handleMyTransactions}
-            android_ripple={{
-              color: 'rgba(255, 255, 255, 0.4)',
-              borderless: false,
-            }}
-            style={{
-              backgroundColor: 'rgba(13, 85, 199, 0.8)',
-              borderRadius: 5,
-              height: 100,
-              width: '48%',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 10,
-            }}>
-            <Image
-              source={require('../../assets/images/user1.png')}
-              style={{
-                tintColor: '#F8F8F8',
-                width: 36,
-                height: 40,
-                alignSelf: 'center',
-              }}
-            />
-            <Text
-              style={{
-                alignSelf: 'center',
-                textAlign: 'center',
-                color: '#ffffff',
-                fontFamily: 'Inter_24pt-Bold',
-                fontSize: 10,
-                marginTop: 10,
-              }}>
-              My Personal
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={handleMyAccountability}
-            android_ripple={{
-              color: 'rgba(255, 255, 255, 0.4)',
-              borderless: false,
-            }}
-            style={{
-              backgroundColor: 'rgba(13, 85, 199, 0.8)',
-              borderRadius: 5,
-              height: 100,
-              width: '48%',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 10,
-            }}>
-            <Image
-              source={require('../../assets/images/user1.png')}
-              style={{
-                tintColor: '#F8F8F8',
-                width: 36,
-                height: 40,
-                alignSelf: 'center',
-              }}
-            />
-            <Text
-              style={{
-                alignSelf: 'center',
-                textAlign: 'center',
-                color: '#ffffff',
-                fontFamily: 'Inter_24pt-Bold',
-                fontSize: 10,
-                marginTop: 10,
-              }}>
-              My Accountability
-            </Text>
-          </Pressable>
-        </View> */}
-
-        {/*  <View
-          style={{
-            flexDirection: 'row',
-            columnGap: 20,
-            justifyContent: 'center',
-            marginTop: 20,
-          }}>
-          <TouchableOpacity
-            onPress={handleMyTransactions}
-            style={{
-              backgroundColor: 'rgba(0,0,0, 0.1)',
-              borderRadius: 5,
-              height: 100,
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            <Image
-              source={require('../../assets/images/user1.png')}
-              style={{
-                tintColor: '#F8F8F8',
-                width: 36,
-                height: 40,
-                //alignSelf: 'flex-end',
-                alignSelf: 'center',
-                //marginEnd: 10,
-              }}
-            />
-            <Text
-              style={{
-                alignSelf: 'center',
-                textAlign: 'center',
-                color: '#ffffff',
-                fontFamily: 'Oswald-Regular',
-                fontSize: 12,
-                marginTop: 10,
-              }}>
-              My Personal
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSender}
-            style={{
-              backgroundColor: 'rgba(0,0,0, 0.1)',
-              borderRadius: 5,
-              height: 100,
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            <Icon name="send" size={30} color={'white'} />
-            <Text
-              style={{
-                alignSelf: 'center',
-                textAlign: 'center',
-                color: '#ffffff',
-                fontFamily: 'Oswald-Regular',
-                fontSize: 12,
-                marginTop: 10,
-              }}>
-              Send for receiving
-            </Text>
-          </TouchableOpacity>
-        </View> */}
       </View>
     </View>
   );
 
+
+
+  const renderUI = useCallback(() => {
+    const itemsToShowTrackSum = showAll
+      ? trackSumData
+      : trackSumData?.slice(0, 5);
+
+    const itemsToShowRegTrackSum = showAll
+      ? regTrackSumData
+      : regTrackSumData?.slice(0, 5);
+
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 10,
+
+        }}
+      >
+
+        {/*TRANSACTIONS VIEW*/}
+        {(caoReceiver === '1' || accountType === '4') && (
+          <View style={{
+            padding: 10,
+            marginTop: 10,
+            backgroundColor: 'white',
+            borderRadius: 5,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: 'silver',
+            borderRightWidth: 1,
+            borderRightColor: 'silver',
+          }}>
+
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 5,
+              }}>
+
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-SemiBold',
+                  color: '#252525',
+                  fontSize: 16,
+                }}>
+                Transaction Counter
+              </Text>
+            </View>
+
+
+
+            {isReceivedLoading || requestsLoading ? (
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
+              </View>
+            ) : (
+              <>
+                {/* RECEIVER VIEW */}
+                {caoReceiver === '1' && (
+                  <View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      {[
+                        {
+                          label: 'Total Received',
+                          count: receivingCountData?.TotalReceived,
+                        },
+                        {
+                          label: 'Received Today',
+                          count: receivingCountData?.ReceivedToday,
+                        },
+                        {
+                          label: 'Received This Month',
+                          count: receivingCountData?.ReceivedPerMonth?.[0]?.Count,
+                        }
+                      ].map((item, index) => {
+                        const isReceivedThisMonth = item.label === 'Received This Month';
+                        return (
+                          <Pressable
+                            key={index}
+                            onPress={isReceivedThisMonth ? openModal : undefined}
+                            android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
+                            style={({ pressed }) => ({
+                              width: '30%',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              marginBottom: 10,
+                              borderRadius: 5,
+                              elevation: 1,
+                              backgroundColor: pressed ? '#007bff' : '#ffffff',
+                              borderBottomWidth: 2,
+                              borderBottomColor: 'silver',
+                              borderRightWidth: 2,
+                              borderRightColor: 'silver',
+                            })}
+                          >
+                            {({ pressed }) => (
+                              <>
+                                <Text
+                                  style={{
+                                    color: pressed ? 'white' : '#007bff',
+                                    fontFamily: 'Inter_28pt-Bold',
+                                    fontSize: 22,
+                                  }}
+                                >
+                                  {item.count ?? 0}
+                                </Text>
+                                <Text
+                                  style={{
+                                    color: pressed ? 'white' : '#252525',
+                                    fontFamily: 'Oswald-Light',
+                                    fontSize: 12,
+                                    marginTop: 0,
+                                  }}
+                                >
+                                  {item.label}
+                                </Text>
+                              </>
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                )}
+
+                {/* EVALUATION VIEW */}
+                {accountType === '4' && (
+                  <View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      {[
+                        {
+                          label: 'On Evaluation',
+                          screen: 'OnEvaluation',
+                          length: onEvalDataCount,
+                        },
+                        {
+                          label: 'Evaluated',
+                          screen: 'Evaluated',
+                          length: evaluatedDataCount,
+                        },
+                        {
+                          label: 'Pending',
+                          screen: 'EvalPending',
+                          length: evalPendingDataCount,
+                        },
+                        {
+                          label: 'Pending Released',
+                          screen: 'EvalPendingReleased',
+                          length: evalPendingReleasedCount,
+                        },
+                      ].map((item, index) => (
+                        <Pressable
+                          key={index}
+                          onPress={() =>
+                            navigation.navigate(item.screen, {
+                              ...item,
+                              selectedYear,
+                            })
+                          }
+                          style={({ pressed }) => ({
+                            width: '30%',
+                            alignItems: 'center',
+                            paddingVertical: 10,
+                            marginBottom: 10,
+                            borderRadius: 5,
+                            elevation: 1,
+                            backgroundColor: pressed ? '#007bff' : '#ffffff',
+                            borderBottomWidth: 2,
+                            borderBottomColor: 'silver',
+                            borderRightWidth: 2,
+                            borderRightColor: 'silver',
+                          })}
+                          android_ripple={{}}
+                        >
+                          {({ pressed }) => (
+                            <>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#007bff',
+                                  fontFamily: 'Inter_28pt-Bold',
+                                  fontSize: 22,
+                                }}
+                              >
+                                {item.length}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#252525',
+                                  fontFamily: 'Oswald-Light',
+                                  fontSize: 10,
+                                  marginTop: 0,
+                                }}
+                              >
+                                {item.label}
+                              </Text>
+                            </>
+                          )}
+                        </Pressable>
+                      ))}
+                    </View>
+
+
+                  </View>
+                )}
+              </>
+            )}
+
+          </View>
+        )}
+
+        {/*INSPECTOR VIEW*/}
+        {permission === '10' && (
+          <View>
+            <View style={{
+              padding: 10,
+              marginVertical: 10,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 8,
+              borderBottomWidth: 1,
+              borderBottomColor: 'silver',
+              borderRightWidth: 1,
+              borderRightColor: 'silver',
+            }}>
+              <View
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#eee',
+                  paddingBottom: 5,
+                  marginBottom: 5,
+                }}>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_28pt-SemiBold',
+                    color: '#252525',
+                    fontSize: 16,
+                  }}>
+                  Inspection Status
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                {requestsLoading ? (
+                  <View style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                    <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
+                  </View>
+                ) : (
+                  <>
+                    {[
+                      {
+                        label: 'For Inspection',
+                        screen: 'ForInspection',
+                        length: `${forInspection ?? 0}`,
+                      },
+                      {
+                        label: 'Inspected',
+                        screen: 'Inspected',
+                        length: `${inspected ?? 0}`,
+                      },
+                      {
+                        label: 'On Hold',
+                        screen: 'InspectionOnHold',
+                        length: `${inspectionOnHold ?? 0}`,
+                      },
+                    ].map((item, index, arr) => (
+                      <Pressable
+                        key={index}
+                        onPress={() => navigation.navigate(item.screen, item.params)}
+                        style={({ pressed }) => [
+                          {
+                            width: '30%',
+                            alignItems: 'center',
+                            paddingVertical: 10,
+                            marginBottom: 10,
+                            borderRadius: 5,
+                            elevation: 1,
+                            backgroundColor: pressed ? '#007bff' : '#ffffff',
+                            borderBottomWidth: 2,
+                            borderBottomColor: 'silver',
+                            borderRightWidth: 2,
+                            borderRightColor: 'silver',
+                          },
+                        ]}
+                        android_ripple={{}}>
+                        {({ pressed }) => (
+                          <>
+                            <Text
+                              style={{
+                                color: pressed ? 'white' : '#007bff',
+                                fontFamily: 'Inter_28pt-Bold',
+                                fontSize: 26,
+                              }}>
+                              {item.length || 0}
+                            </Text>
+                            <Text
+                              style={{
+                                color: pressed ? 'white' : '#252525',
+                                fontFamily: 'Oswald-Light',
+                                fontSize: 12,
+                              }}>
+                              {item.label}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    ))}
+                  </>
+                )}
+              </View>
+
+            </View>
+            <View>
+              <RecentActivity
+                recentActivityData={recentActivityData}
+                recentActivityError={recentActivityError}
+                recentActivityLoading={recentActivityLoading}
+                navigation={navigation}
+              />
+            </View>
+          </View>
+        )}
+
+        {/*INSPECTOR SCHEDULER VIEW*/}
+        {privilege === '10' && (
+          <View
+            style={{
+              padding: 10,
+              marginBottom: 10,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 8,
+              borderBottomWidth: 1,
+              borderBottomColor: 'silver',
+              borderRightWidth: 1,
+              borderRightColor: 'silver',
+            }}>
+
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 5,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-SemiBold',
+                  color: '#252525',
+                  fontSize: 16,
+                }}>
+                Scheduler
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 15
+              }}>
+              {requestsLoading ? (
+                <View
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
+                </View>
+              ) : (
+                <>
+                  {[
+                    {
+                      label: 'Request',
+                      screen: 'RequestScreen',
+                      length: `${requestsLength}`,
+                    },
+                    {
+                      label: 'On Schedule',
+                      screen: 'OnScheduleScreen',
+                      length: `${OnScheduleLength}`,
+                    },
+                  ].map((item, index, arr) => (
+                    <Pressable
+                      key={index}
+                      onPress={() =>
+                        navigation.navigate(item.screen, item.params)
+                      }
+                      style={({ pressed }) => [
+                        {
+                          width: '30%',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          marginBottom: 10,
+                          borderRadius: 5,
+                          elevation: 1,
+                          backgroundColor: pressed ? '#007bff' : '#ffffff',
+                          borderBottomWidth: 2,
+                          borderBottomColor: 'silver',
+                          borderRightWidth: 2,
+                          borderRightColor: 'silver',
+                        },
+                      ]}
+                      android_ripple={{}}>
+                      {({ pressed }) => (
+                        <>
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#007bff',
+                              fontFamily: 'Inter_28pt-Bold',
+                              fontSize: 26,
+                            }}>
+                            {item.length || 0}
+                          </Text>
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#252525',
+                              fontFamily: 'Inter_28pt-Regular',
+                              fontSize: 10,
+                            }}>
+                            {item.label}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  ))}
+                </>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/*DEFAULT CONTENT VIEW */}
+        {!['10', '5', '8', '9', '11'].includes(privilege) &&
+          permission !== '10' &&
+          ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC',].includes(
+            officeCode,
+          ) && (
+            <View>
+              <View
+                style={{
+                  padding: 10,
+                  marginVertical: 10,
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'silver',
+                  borderRightWidth: 1,
+                  borderRightColor: 'silver',
+                }}
+              >
+                <View
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                    paddingBottom: 5,
+                    marginBottom: 5,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_28pt-SemiBold',
+                      color: '#252525',
+                      fontSize: 16,
+                    }}
+                  >
+                    Tracking Summary
+                  </Text>
+                </View>
+
+                {accountType === '1' ? (
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingTop: 10,
+                      paddingBottom: 10,
+                      marginStart: 5,
+                    }}
+                  >
+                    {trackSumLoading ? (
+                      <Text style={{ textAlign: 'center' }}>Loading...</Text>
+                    ) : trackSumError ? (
+                      <Text style={{ textAlign: 'center', color: 'red' }}>
+                        Error loading data
+                      </Text>
+                    ) : itemsToShowTrackSum?.length === 0 ? (
+                      <Text style={{ textAlign: 'center' }}>No results found</Text>
+                    ) : (
+                      <>
+                        {itemsToShowTrackSum?.map((item, index) => (
+                          <Pressable
+                            key={index}
+                            onPress={() =>
+                              navigation.navigate('TrackingSummaryScreen', {
+                                selectedItem: item,
+                              })
+                            }
+                            android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}
+                          >
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontFamily: 'Inter_28pt-Bold',
+                                  fontSize: 16,
+                                  color: item.Status.includes('Pending')
+                                    ? 'rgb(248, 12, 12)'
+                                    : 'rgb(8, 112, 231)',
+                                  width: '20%',
+                                  textAlign: 'right',
+                                  paddingRight: 10,
+                                  alignSelf: 'center',
+                                }}
+                              >
+                                {item.Count}
+                              </Text>
+                              <View style={{ width: '80%' }}>
+                                <Text
+                                  style={{
+                                    fontFamily: 'Inter_28pt-Light',
+                                    fontSize: 14,
+                                  }}
+                                >
+                                  {item.Status}
+                                </Text>
+                              </View>
+                            </View>
+                          </Pressable>
+                        ))}
+
+                        {trackSumData?.length > 5 && (
+                          <View style={{ alignSelf: 'flex-end' }}>
+                            <Pressable
+                              onPress={() => setShowAll((prev) => !prev)}
+                              style={{
+                                padding: 10,
+                                marginTop: 10,
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: 'rgb(8, 112, 231)',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                {showAll ? 'Show Less' : 'Show More'}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
+                ) : (
+                  <View>
+                    {regTrackSumLoading ? (
+                      <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
+                        Loading...
+                      </Text>
+                    ) : regTrackSumError ? (
+                      <Text style={{ textAlign: 'center', color: 'red', fontSize: 16 }}>
+                        Error loading data
+                      </Text>
+                    ) : itemsToShowRegTrackSum?.length === 0 ? (
+                      <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
+                        No results found
+                      </Text>
+                    ) : (
+                      <>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                            gap: 15,
+                            marginBottom: 5
+                          }}
+                        >
+                          {itemsToShowRegTrackSum?.map((item, index) => {
+                            console.log(`Item ${index} - Status: ${item.Status}, Count: ${item.Count}`);
+
+                            return (
+                              <Pressable
+                                key={index}
+                                onPress={() =>
+                                  navigation.navigate('RegTrackingSummaryScreen', {
+                                    selectedItem: item,
+                                  })
+                                }
+                                android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+                                style={({ pressed }) => [
+                                  {
+                                    width: '30%',
+                                    alignItems: 'center',
+                                    paddingVertical: 10,
+                                    borderRadius: 5,
+                                    elevation: 1,
+                                    backgroundColor: pressed ? '#007bff' : '#ffffff',
+                                    borderBottomWidth: 2,
+                                    borderBottomColor: 'silver',
+                                    borderRightWidth: 2,
+                                    borderRightColor: 'silver',
+                                  },
+                                ]}
+                              >
+                                {({ pressed }) => (
+                                  <>
+                                    <Text
+                                      style={{
+                                        fontFamily: 'Inter_28pt-Bold',
+                                        fontSize: 22,
+                                        fontWeight: '700',
+                                        color:
+                                          pressed && item.Status.includes('Pending')
+                                            ? 'white' : '#007bff',
+                                        textAlign: 'center',
+                                      }}
+                                    >
+                                      {item.Count}
+                                    </Text>
+                                    <Text
+                                      style={{
+                                        color: item.Status.includes('Pending')
+                                          ? 'rgb(248, 12, 12)'
+                                          : '#252525',
+                                        fontFamily: 'Oswald-Light',
+                                        fontSize: 10,
+                                        textAlign: 'center',
+                                      }}
+                                    >
+                                      {item.Status}
+                                    </Text>
+                                  </>
+                                )}
+                              </Pressable>
+                            );
+                          })}
+
+                        </View>
+
+                        {regTrackSumData?.length > 5 && (
+                          <Pressable
+                            onPress={() => setShowAll((prev) => !prev)}
+                            style={{
+                              marginTop: 10,
+                              alignItems: 'center',
+                              paddingVertical: 8,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: '#0870E7',
+                                fontWeight: '600',
+                                fontSize: 14,
+                              }}
+                            >
+                              {showAll ? 'Show Less' : 'Show More'}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </>
+                    )}
+                  </View>
+                )}
+              </View>
+
+
+            </View>
+
+          )}
+
+
+        <View
+          style={{
+            padding: 10,
+            marginTop: 10,
+            backgroundColor: 'white',
+            borderRadius: 5,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 6,
+            /* borderBottomWidth: 1,
+            borderBottomColor: 'silver',
+            borderRightWidth: 1,
+            borderRightColor: 'silver', */
+          }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: '#eee',
+              paddingBottom: 5,
+              marginBottom: 5,
+            }}>
+            <Text
+              style={{
+                fontFamily: 'Inter_28pt-SemiBold',
+                color: '#252525',
+                fontSize: 16,
+              }}>
+              Transaction Summary
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              alignSelf: 'center',
+              marginTop: 5,
+              gap: 10,
+            }}>
+            {requestsLoading ? (
+              <View
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                <Text style={{ fontSize: 16, color: '#252525' }}>
+                  Loading...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {[
+                  {
+                    label: 'Daily',
+                    screen: 'EvalDaily',
+                    icon: 'calendar-today', // MaterialCommunityIcons icon name
+                  },
+                  {
+                    label: 'Monthly',
+                    screen: 'EvalMonthly',
+                    icon: 'calendar-month', // Monthly icon
+                  },
+                  {
+                    label: 'Annual',
+                    screen: 'EvalAnnual',
+                    icon: 'calendar',
+                  },
+                ].map((item, index, arr) => (
+                  <Pressable
+                    key={index}
+                    onPress={() =>
+                      navigation.navigate(item.screen, {
+                        ...item,
+                        selectedYear,
+                      })
+                    }
+                    style={({ pressed }) => [
+                      {
+                        width: arr.length === 3 ? '31%' : '31%',
+                        width: '30%',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        borderRadius: 5,
+                        elevation: 1,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{}}>
+                    {({ pressed }) => (
+                      <>
+                        <Icons
+                          name={item.icon}
+                          size={35}
+                          //color={pressed ? 'white' : '#0c0c0c'}
+                          color={pressed ? 'white' : '#007bff'}
+                        />
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                ))}
+              </>
+            )}
+          </View>
+        </View>
+
+        {/*PERSONAL VIEW */}
+        <View style={{
+          padding: 10,
+          marginTop: 10,
+          marginBottom: 60,
+          backgroundColor: 'white',
+          borderRadius: 5,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+          elevation: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: 'silver',
+          borderRightWidth: 1,
+          borderRightColor: 'silver',
+        }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: '#eee',
+              paddingBottom: 5,
+              marginBottom: 5,
+            }}>
+            <Text
+              style={{
+                fontFamily: 'Inter_28pt-SemiBold',
+                color: '#252525',
+                fontSize: 16,
+              }}>
+              Personal
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              gap: 15,
+            }}>
+            {[
+              {
+                label: 'Salaries',
+                count: `${myTransactionsLength ? myTransactionsLength : 0}`,
+                screen: 'MyTransactions',
+              },
+              {
+                label: 'ARE',
+                count: `${accountabilityData ? accountabilityData.length : 0}`,
+                screen: 'MyAccountability',
+              },
+            ].map((item, index) => {
+              if (item.condition === false) {
+                return null;
+              }
+
+              return (
+                <Pressable
+                  key={index}
+                  style={({ pressed }) => [
+                    {
+                      width: '30%',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      marginBottom: 10,
+                      borderRadius: 5,
+                      elevation: 1,
+                      backgroundColor: pressed ? '#007bff' : '#ffffff',
+                      borderBottomWidth: 2,
+                      borderBottomColor: 'silver',
+                      borderRightWidth: 2,
+                      borderRightColor: 'silver',
+                    },
+                  ]}
+                  android_ripple={{ color: 'rgba(200, 200, 200, 0.5)' }}
+                  onPress={() => {
+                    if (item.screen) {
+                      navigation.navigate(item.screen);
+                    } else {
+                      console.log(`${item.label} card pressed`);
+                    }
+                  }}>
+                  {({ pressed }) => (
+                    <>
+                      <Text
+                        style={{
+                          color: pressed ? 'white' : '#007bff',
+                          fontFamily: 'Inter_28pt-Bold',
+                          fontSize: 26,
+                        }}>
+                        {item.count}
+                      </Text>
+
+                      <Text
+                        style={{
+                          color: pressed ? 'white' : '#252525',
+                          fontFamily: 'Oswald-Light',
+                          fontSize: 12,
+                        }}>
+                        {item.label}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+
+        </View>
+      </View>
+    );
+  });
+
+
+
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: 'white' /* paddingTop: 40 */ }}>
+      style={{ flex: 1, backgroundColor: 'white' }}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="transparent"
         translucent={true}
       />
-      <View style={styles.container}>
-        <View>
-          {permission === '10' ? (
-            <ScrollView
-              contentContainerStyle={styles.scrollViewContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={selectedOnRefresh}
-                />
-              }>
-              {renderInspector()}
-            </ScrollView>
-          ) : accountType === '4' ? (
-            <ScrollView
-              contentContainerStyle={styles.scrollViewContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={selectedOnRefresh}
-                />
-              }>
-              {renderEvaluator()}
-            </ScrollView>
-          ) : caoReceiver === '1' ? (
-            <ScrollView
-              contentContainerStyle={styles.scrollViewContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={selectedOnRefresh}
-                />
-              }>
-              <View style={{ flex: 1, justifyContent: 'center' }}>
-                {renderReceiver()}
-              </View>
-            </ScrollView>
-          ) : (
-            <ScrollView
-              contentContainerStyle={styles.scrollViewContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={selectedOnRefresh}
-                />
-              }>
-              {renderContent()}
-            </ScrollView>
-          )}
-        </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={selectedOnRefresh}
+          />
+        }>
+    
+
+        {renderUI()}
         <LoadingModal visible={isModalVisible} />
-      </View>
+        <CustomModal visible={isSetModalVisible} onRequestClose={closeModal}>
+          <Text>This feature is currently under development.</Text>
+        </CustomModal>
+
+      </ScrollView>
     </SafeAreaView>
   );
 };

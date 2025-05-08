@@ -145,6 +145,7 @@ const HomeScreen = ({ navigation }) => {
   const {
     receivingCountData,
     receivedMonthly,
+    isReceivedLoading,
     isLoading: loadingReceiving,
     error: receivingError,
     receivingCount,
@@ -378,6 +379,7 @@ const HomeScreen = ({ navigation }) => {
           receivingCountData={receivingCountData}
           // receivedMonthly={receivedMonthly}
           loadingReceiving={loadingReceiving}
+          isReceivedLoading={isReceivedLoading}
           receivingError={receivingError}
           trackSumData={trackSumData}
           trackSumError={trackSumError}
