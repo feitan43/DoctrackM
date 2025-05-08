@@ -24,13 +24,14 @@ import { useNavigation } from '@react-navigation/native';
 import OfficeDelaysScreen from './OfficeDelaysScreen';
 import { Dropdown } from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {Image} from 'react-native-ui-lib';
+import { Image } from 'react-native-ui-lib';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {useQueryClient} from '@tanstack/react-query';
-import {useInspectorImages, useInspection} from '../hooks/useInspection';
-import {useRequestInspection, useOnSchedule} from '../hooks/useInspectionScheduler';
+import { useQueryClient } from '@tanstack/react-query';
+import { useInspectorImages, useInspection } from '../hooks/useInspection';
+import { useRequestInspection, useOnSchedule } from '../hooks/useInspectionScheduler';
+import CustomModal from '../components/CustomModal';
 
-const InspectionImage = React.memo(({year, trackingNumber}) => {
+const InspectionImage = React.memo(({ year, trackingNumber }) => {
   const {
     data: inspectorImages,
     loading: isLoading,
@@ -39,11 +40,11 @@ const InspectionImage = React.memo(({year, trackingNumber}) => {
 
   if (isLoading) {
     return (
-      <View style={{backgroundColor: 'transparent'}}>
+      <View style={{ backgroundColor: 'transparent' }}>
         <ActivityIndicator
           size="small"
           color="white"
-          style={{width: 60, height: 60}}
+          style={{ width: 60, height: 60 }}
         />
       </View>
     );
@@ -53,7 +54,7 @@ const InspectionImage = React.memo(({year, trackingNumber}) => {
     return (
       <Image
         source={require('../../assets/images/noImage.jpg')}
-        style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
+        style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
       />
     );
   }
@@ -65,7 +66,7 @@ const InspectionImage = React.memo(({year, trackingNumber}) => {
         priority: FastImage.priority.high,
         cache: 'web',
       }}
-      style={{width: 60, height: 60, borderWidth: 1, borderColor: 'silver'}}
+      style={{ width: 60, height: 60, borderWidth: 1, borderColor: 'silver' }}
       resizeMode={FastImage.resizeMode.cover}
     />
   );
@@ -82,16 +83,16 @@ const RecentActivity = ({
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(recentActivityData)) return [];
-  
+
     return recentActivityData.filter(
       item =>
         (item.Status &&
           (item.Status.toLowerCase() === 'inspected' ||
-           item.Status.toLowerCase() === 'inspection on hold')) ||
+            item.Status.toLowerCase() === 'inspection on hold')) ||
         item.DateInspected !== null,
     );
   }, [recentActivityData]);
-  
+
 
   const paginatedData = useMemo(() => {
     const start = (pageRef.current - 1) * itemsPerPage;
@@ -111,7 +112,7 @@ const RecentActivity = ({
   };
 
   const onPressItem = item => {
-    navigation.navigate('InspectionDetails', {item});
+    navigation.navigate('InspectionDetails', { item });
   };
 
   return (
@@ -144,7 +145,7 @@ const RecentActivity = ({
             }}>
             Recent Activity
           </Text>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity
               onPress={prevPage}
               disabled={pageRef.current === 1}>
@@ -181,7 +182,7 @@ const RecentActivity = ({
         <ActivityIndicator
           size="large"
           color="gray"
-          style={{marginVertical: 10}}
+          style={{ marginVertical: 10 }}
         />
       ) : recentActivityError ? (
         <View
@@ -327,10 +328,13 @@ const DoctrackScreen = ({
   officeCode,
   accountType,
   caoReceiver,
+  caoEvaluator,
   officeName,
   privilege,
   permission,
   officeAdmin,
+  gsoInspection,
+  procurement,
   dataPR,
   dataPO,
   dataPX,
@@ -388,9 +392,9 @@ const DoctrackScreen = ({
   const [isSetModalVisible, setSetModalVisible] = useState(false);
   const queryClient = useQueryClient();
 
-  const {data: requestInspectionData} = useRequestInspection();
-  const {data: onScheduleData} = useOnSchedule();
-  const {data: recentActivityData, error: recentActivityError, loading: recentActivityLoading} = useInspection();
+  const { data: requestInspectionData } = useRequestInspection();
+  const { data: onScheduleData } = useOnSchedule();
+  const { data: recentActivityData, error: recentActivityError, loading: recentActivityLoading } = useInspection();
 
   const [selectedDate, setSelectedDate] = useState('');
   const navigation = useNavigation();
@@ -829,10 +833,10 @@ const DoctrackScreen = ({
         fetchRequests(),
       ]);
 
-      queryClient.invalidateQueries({queryKey: ['inspection']});
-      queryClient.invalidateQueries({queryKey: ['inspectionRequest']});
-      queryClient.invalidateQueries({queryKey: ['onSchedule']});
-      queryClient.invalidateQueries({queryKey: ['inspectionRecentActivity']});
+      queryClient.invalidateQueries({ queryKey: ['inspection'] });
+      queryClient.invalidateQueries({ queryKey: ['inspectionRequest'] });
+      queryClient.invalidateQueries({ queryKey: ['onSchedule'] });
+      queryClient.invalidateQueries({ queryKey: ['inspectionRecentActivity'] });
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -869,1188 +873,1188 @@ const DoctrackScreen = ({
 
   const [showAll, setShowAll] = useState(false);
 
-  const renderContent = useCallback(() => {
-    const itemsToShowTrackSum = showAll
-      ? trackSumData
-      : trackSumData?.slice(0, 5);
-    const itemsToShowRegTrackSum = showAll
-      ? regTrackSumData
-      : regTrackSumData?.slice(0, 5);
-    return (
-      <View style={{ marginBottom: 100, backgroundColor: 'red', flex: 1 }}>
-        {/* TRACKING SUMMARY */}
+  // const renderContent = useCallback(() => {
+  //   const itemsToShowTrackSum = showAll
+  //     ? trackSumData
+  //     : trackSumData?.slice(0, 5);
+  //   const itemsToShowRegTrackSum = showAll
+  //     ? regTrackSumData
+  //     : regTrackSumData?.slice(0, 5);
+  //   return (
+  //     <View style={{ marginBottom: 100, backgroundColor: 'red', flex: 1 }}>
+  //       {/* TRACKING SUMMARY */}
 
-        {!['10', '5', '8', '9', '11'].includes(privilege) &&
-          permission !== '10' &&
-          ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC',].includes(
-            officeCode,
-          ) && (
-            <View
-              style={{
-                padding: 10,
-                marginTop: 10,
-                marginHorizontal: 10,
-                backgroundColor: 'white',
-                borderRadius: 5,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-                elevation: 8,
-                borderBottomWidth: 1,
-                borderBottomColor: 'silver',
-                borderRightWidth: 1,
-                borderRightColor: 'silver',
-              }}>
-              <View style={{ borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_28pt-Bold',
-                    color: '#252525',
-                    fontSize: 15,
-                    paddingHorizontal: 10,
-                  }}>
-                  Tracking Summary - Default
-                </Text>
-              </View>
+  //       {!['10', '5', '8', '9', '11'].includes(privilege) &&
+  //         permission !== '10' &&
+  //         ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC',].includes(
+  //           officeCode,
+  //         ) && (
+  //           <View
+  //             style={{
+  //               padding: 10,
+  //               marginTop: 10,
+  //               marginHorizontal: 10,
+  //               backgroundColor: 'white',
+  //               borderRadius: 5,
+  //               shadowColor: '#000',
+  //               shadowOffset: { width: 0, height: 2 },
+  //               shadowOpacity: 0.25,
+  //               shadowRadius: 3.84,
+  //               elevation: 8,
+  //               borderBottomWidth: 1,
+  //               borderBottomColor: 'silver',
+  //               borderRightWidth: 1,
+  //               borderRightColor: 'silver',
+  //             }}>
+  //             <View style={{ borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+  //               <Text
+  //                 style={{
+  //                   fontFamily: 'Inter_28pt-Bold',
+  //                   color: '#252525',
+  //                   fontSize: 15,
+  //                   paddingHorizontal: 10,
+  //                 }}>
+  //                 Tracking Summary - Default
+  //               </Text>
+  //             </View>
 
-              {accountType === '1' ? (
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingTop: 10,
-                    paddingBottom: 10,
-                    marginStart: 5,
-                  }}>
-                  {trackSumLoading ? (
-                    <Text style={{ textAlign: 'center' }}>Loading...</Text>
-                  ) : trackSumError ? (
-                    <Text style={{ textAlign: 'center', color: 'red' }}>
-                      Error loading data
-                    </Text>
-                  ) : itemsToShowTrackSum?.length === 0 ? (
-                    <Text style={{ textAlign: 'center' }}>No results found</Text>
-                  ) : (
-                    <>
-                      {itemsToShowTrackSum?.map((item, index) => (
-                        <Pressable
-                          key={index}
-                          onPress={() => {
-                            navigation.navigate('TrackingSummaryScreen', {
-                              selectedItem: item,
-                            });
-                          }}
-                          android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                            }}>
-                            <Text
-                              style={{
-                                fontFamily: 'Inter_28pt-Bold',
-                                fontSize: 16,
-                                color: item.Status.includes('Pending')
-                                  ? 'rgb(248, 12, 12)'
-                                  : 'rgb(8, 112, 231)',
-                                width: '20%',
-                                textAlign: 'right',
-                                paddingRight: 10,
-                                alignSelf: 'center',
-                              }}>
-                              {item.Count}
-                            </Text>
-                            <View style={{ width: '80%' }}>
-                              <Text
-                                style={{
-                                  fontFamily: 'Inter_28pt-Light',
-                                  fontSize: 14,
-                                }}>
-                                {item.Status}
-                              </Text>
-                            </View>
-                          </View>
-                        </Pressable>
-                      ))}
-                      {trackSumData?.length > 5 && (
-                        <View style={{ alignSelf: 'flex-end' }}>
-                          <Pressable
-                            onPress={() => setShowAll(prev => !prev)}
-                            style={{
-                              padding: 10,
-                              marginTop: 10,
-                              alignItems: 'center',
-                            }}>
-                            <Text
-                              style={{
-                                color: 'rgb(8, 112, 231)',
-                                fontWeight: 'bold',
-                              }}>
-                              {showAll ? 'Show Less' : 'Show More'}
-                            </Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-              ) : (
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingTop: 10,
-                    paddingBottom: 10,
-                    marginStart: 5,
-                  }}>
-                  {regTrackSumLoading ? (
-                    <Text style={{ textAlign: 'center' }}>Loading...</Text>
-                  ) : regTrackSumError ? (
-                    <Text style={{ textAlign: 'center', color: 'red' }}>
-                      Error loading data
-                    </Text>
-                  ) : itemsToShowRegTrackSum?.length === 0 ? (
-                    <Text style={{ textAlign: 'center' }}>No results found</Text>
-                  ) : (
-                    <>
-                      {itemsToShowRegTrackSum?.map((item, index) => (
-                        <Pressable
-                          key={index}
-                          onPress={() => {
-                            navigation.navigate('RegTrackingSummaryScreen', {
-                              selectedItem: item,
-                            });
-                          }}
-                          android_ripple={{ color: 'rgba(35, 24, 24, 0.2)' }}>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                            }}>
-                            <Text
-                              style={{
-                                fontFamily: 'Inter_28pt-Bold',
-                                fontSize: 16,
-                                color: item.Status.includes('Pending')
-                                  ? 'rgb(248, 12, 12)'
-                                  : 'rgb(8, 112, 231)',
-                                width: '20%',
-                                textAlign: 'right',
-                                paddingRight: 10,
-                                alignSelf: 'center',
-                              }}>
-                              {item.Count}
-                            </Text>
-                            <View style={{ width: '80%' }}>
-                              <Text
-                                style={{
-                                  fontFamily: 'Inter_28pt-Regular',
-                                  fontSize: 14,
-                                }}>
-                                {item.Status}
-                              </Text>
-                            </View>
-                          </View>
-                        </Pressable>
-                      ))}
-                      {regTrackSumData?.length > 5 && (
-                        <View style={{ alignSelf: 'flex-end' }}>
-                          <Pressable
-                            onPress={() => setShowAll(prev => !prev)}
-                            style={{
-                              padding: 10,
-                              marginTop: 10,
-                              alignItems: 'center',
-                            }}>
-                            <Text
-                              style={{
-                                color: 'rgb(8, 112, 231)',
-                                fontWeight: 'bold',
-                              }}>
-                              {showAll ? 'Show Less' : 'Show More'}
-                            </Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+  //             {accountType === '1' ? (
+  //               <View
+  //                 style={{
+  //                   paddingHorizontal: 10,
+  //                   paddingTop: 10,
+  //                   paddingBottom: 10,
+  //                   marginStart: 5,
+  //                 }}>
+  //                 {trackSumLoading ? (
+  //                   <Text style={{ textAlign: 'center' }}>Loading...</Text>
+  //                 ) : trackSumError ? (
+  //                   <Text style={{ textAlign: 'center', color: 'red' }}>
+  //                     Error loading data
+  //                   </Text>
+  //                 ) : itemsToShowTrackSum?.length === 0 ? (
+  //                   <Text style={{ textAlign: 'center' }}>No results found</Text>
+  //                 ) : (
+  //                   <>
+  //                     {itemsToShowTrackSum?.map((item, index) => (
+  //                       <Pressable
+  //                         key={index}
+  //                         onPress={() => {
+  //                           navigation.navigate('TrackingSummaryScreen', {
+  //                             selectedItem: item,
+  //                           });
+  //                         }}
+  //                         android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}>
+  //                         <View
+  //                           style={{
+  //                             flexDirection: 'row',
+  //                             alignItems: 'center',
+  //                           }}>
+  //                           <Text
+  //                             style={{
+  //                               fontFamily: 'Inter_28pt-Bold',
+  //                               fontSize: 16,
+  //                               color: item.Status.includes('Pending')
+  //                                 ? 'rgb(248, 12, 12)'
+  //                                 : 'rgb(8, 112, 231)',
+  //                               width: '20%',
+  //                               textAlign: 'right',
+  //                               paddingRight: 10,
+  //                               alignSelf: 'center',
+  //                             }}>
+  //                             {item.Count}
+  //                           </Text>
+  //                           <View style={{ width: '80%' }}>
+  //                             <Text
+  //                               style={{
+  //                                 fontFamily: 'Inter_28pt-Light',
+  //                                 fontSize: 14,
+  //                               }}>
+  //                               {item.Status}
+  //                             </Text>
+  //                           </View>
+  //                         </View>
+  //                       </Pressable>
+  //                     ))}
+  //                     {trackSumData?.length > 5 && (
+  //                       <View style={{ alignSelf: 'flex-end' }}>
+  //                         <Pressable
+  //                           onPress={() => setShowAll(prev => !prev)}
+  //                           style={{
+  //                             padding: 10,
+  //                             marginTop: 10,
+  //                             alignItems: 'center',
+  //                           }}>
+  //                           <Text
+  //                             style={{
+  //                               color: 'rgb(8, 112, 231)',
+  //                               fontWeight: 'bold',
+  //                             }}>
+  //                             {showAll ? 'Show Less' : 'Show More'}
+  //                           </Text>
+  //                         </Pressable>
+  //                       </View>
+  //                     )}
+  //                   </>
+  //                 )}
+  //               </View>
+  //             ) : (
+  //               <View
+  //                 style={{
+  //                   paddingHorizontal: 10,
+  //                   paddingTop: 10,
+  //                   paddingBottom: 10,
+  //                   marginStart: 5,
+  //                 }}>
+  //                 {regTrackSumLoading ? (
+  //                   <Text style={{ textAlign: 'center' }}>Loading...</Text>
+  //                 ) : regTrackSumError ? (
+  //                   <Text style={{ textAlign: 'center', color: 'red' }}>
+  //                     Error loading data
+  //                   </Text>
+  //                 ) : itemsToShowRegTrackSum?.length === 0 ? (
+  //                   <Text style={{ textAlign: 'center' }}>No results found</Text>
+  //                 ) : (
+  //                   <>
+  //                     {itemsToShowRegTrackSum?.map((item, index) => (
+  //                       <Pressable
+  //                         key={index}
+  //                         onPress={() => {
+  //                           navigation.navigate('RegTrackingSummaryScreen', {
+  //                             selectedItem: item,
+  //                           });
+  //                         }}
+  //                         android_ripple={{ color: 'rgba(35, 24, 24, 0.2)' }}>
+  //                         <View
+  //                           style={{
+  //                             flexDirection: 'row',
+  //                             alignItems: 'center',
+  //                           }}>
+  //                           <Text
+  //                             style={{
+  //                               fontFamily: 'Inter_28pt-Bold',
+  //                               fontSize: 16,
+  //                               color: item.Status.includes('Pending')
+  //                                 ? 'rgb(248, 12, 12)'
+  //                                 : 'rgb(8, 112, 231)',
+  //                               width: '20%',
+  //                               textAlign: 'right',
+  //                               paddingRight: 10,
+  //                               alignSelf: 'center',
+  //                             }}>
+  //                             {item.Count}
+  //                           </Text>
+  //                           <View style={{ width: '80%' }}>
+  //                             <Text
+  //                               style={{
+  //                                 fontFamily: 'Inter_28pt-Regular',
+  //                                 fontSize: 14,
+  //                               }}>
+  //                               {item.Status}
+  //                             </Text>
+  //                           </View>
+  //                         </View>
+  //                       </Pressable>
+  //                     ))}
+  //                     {regTrackSumData?.length > 5 && (
+  //                       <View style={{ alignSelf: 'flex-end' }}>
+  //                         <Pressable
+  //                           onPress={() => setShowAll(prev => !prev)}
+  //                           style={{
+  //                             padding: 10,
+  //                             marginTop: 10,
+  //                             alignItems: 'center',
+  //                           }}>
+  //                           <Text
+  //                             style={{
+  //                               color: 'rgb(8, 112, 231)',
+  //                               fontWeight: 'bold',
+  //                             }}>
+  //                             {showAll ? 'Show Less' : 'Show More'}
+  //                           </Text>
+  //                         </Pressable>
+  //                       </View>
+  //                     )}
+  //                   </>
+  //                 )}
+  //               </View>
+  //             )}
+  //           </View>
+  //         )}
 
-        {/*TRANSACTION COUNTER*/}
-        <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            marginHorizontal: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver',
-          }}>
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Bold',
-                color: '#252525',
-                fontSize: 15,
-                paddingHorizontal: 10,
-              }}>
-              Transaction Counter
-            </Text>
-          </View>
+  //       {/*TRANSACTION COUNTER*/}
+  //       <View
+  //         style={{
+  //           padding: 10,
+  //           marginTop: 10,
+  //           marginHorizontal: 10,
+  //           backgroundColor: 'white',
+  //           borderRadius: 5,
+  //           shadowColor: '#000',
+  //           shadowOffset: { width: 0, height: 2 },
+  //           shadowOpacity: 0.25,
+  //           shadowRadius: 3.84,
+  //           elevation: 8,
+  //           borderBottomWidth: 1,
+  //           borderBottomColor: 'silver',
+  //           borderRightWidth: 1,
+  //           borderRightColor: 'silver',
+  //         }}>
+  //         <View
+  //           style={{
+  //             borderBottomWidth: 1,
+  //             borderBottomColor: '#eee',
+  //           }}>
+  //           <Text
+  //             style={{
+  //               fontFamily: 'Inter_28pt-Bold',
+  //               color: '#252525',
+  //               fontSize: 15,
+  //               paddingHorizontal: 10,
+  //             }}>
+  //             Transaction Counter
+  //           </Text>
+  //         </View>
 
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              gap: 10,
-              paddingHorizontal: 10,
-              marginTop: 5,
-              paddingTop: 10,
-            }}>
-            {[
-              {
-                label: 'Delays',
-                count: `${officeDelaysLength ? officeDelaysLength : 0}`,
-                screen: 'OfficeDelays',
-                condition: accountType === '1',
-              },
-              {
-                label: 'Updated',
-                count: `${updatedNowData ? updatedNowData : 0}`,
-                screen: 'RecentUpdated',
-              },
-              /* {
-                label: 'Attachments',
-                icon: 'document-attach',
-                screen: 'PDF',
-              }, */
-              {
-                label: 'RegDelays',
-                count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
-                screen: 'Summary',
-                condition:
-                  accountType > '1' &&
-                  [
-                    '8751',
-                    '1031',
-                    'BAAC',
-                    'BACN',
-                    '1071',
-                    '1081',
-                    '1061',
-                    '1091',
-                  ].includes(officeCode),
-              },
-            ].map((item, index, arr) => {
-              if (item.condition === false) {
-                return null;
-              }
+  //         <View
+  //           style={{
+  //             flexDirection: 'row',
+  //             justifyContent: 'flex-start',
+  //             gap: 10,
+  //             paddingHorizontal: 10,
+  //             marginTop: 5,
+  //             paddingTop: 10,
+  //           }}>
+  //           {[
+  //             {
+  //               label: 'Delays',
+  //               count: `${officeDelaysLength ? officeDelaysLength : 0}`,
+  //               screen: 'OfficeDelays',
+  //               condition: accountType === '1',
+  //             },
+  //             {
+  //               label: 'Updated',
+  //               count: `${updatedNowData ? updatedNowData : 0}`,
+  //               screen: 'RecentUpdated',
+  //             },
+  //             /* {
+  //               label: 'Attachments',
+  //               icon: 'document-attach',
+  //               screen: 'PDF',
+  //             }, */
+  //             {
+  //               label: 'RegDelays',
+  //               count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
+  //               screen: 'Summary',
+  //               condition:
+  //                 accountType > '1' &&
+  //                 [
+  //                   '8751',
+  //                   '1031',
+  //                   'BAAC',
+  //                   'BACN',
+  //                   '1071',
+  //                   '1081',
+  //                   '1061',
+  //                   '1091',
+  //                 ].includes(officeCode),
+  //             },
+  //           ].map((item, index, arr) => {
+  //             if (item.condition === false) {
+  //               return null;
+  //             }
 
-              return (
-                <Pressable
-                  key={index}
-                  onPress={() => navigation.navigate(item.screen, item.params)}
-                  style={({ pressed }) => [
-                    {
-                      width: arr.length === 3 ? '32%' : '32%',
-                      alignItems: 'center',
-                      paddingVertical: 10,
-                      marginBottom: 10,
-                      borderRadius: 5,
-                      elevation: 1,
-                      backgroundColor: pressed ? '#007bff' : '#ffffff',
-                      borderBottomWidth: 2,
-                      borderBottomColor: 'silver',
-                      borderRightWidth: 2,
-                      borderRightColor: 'silver',
-                    },
-                  ]}
-                  android_ripple={{}}>
-                  {({ pressed }) => (
-                    <>
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#007bff',
-                          fontFamily: 'Inter_28pt-Bold',
-                          fontSize: 26,
-                        }}>
-                        {item.count || 0}
-                      </Text>
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#252525',
-                          fontFamily: 'Inter_28pt-Regular',
-                          fontSize: 10,
-                        }}>
-                        {item.label}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+  //             return (
+  //               <Pressable
+  //                 key={index}
+  //                 onPress={() => navigation.navigate(item.screen, item.params)}
+  //                 style={({ pressed }) => [
+  //                   {
+  //                     width: arr.length === 3 ? '32%' : '32%',
+  //                     alignItems: 'center',
+  //                     paddingVertical: 10,
+  //                     marginBottom: 10,
+  //                     borderRadius: 5,
+  //                     elevation: 1,
+  //                     backgroundColor: pressed ? '#007bff' : '#ffffff',
+  //                     borderBottomWidth: 2,
+  //                     borderBottomColor: 'silver',
+  //                     borderRightWidth: 2,
+  //                     borderRightColor: 'silver',
+  //                   },
+  //                 ]}
+  //                 android_ripple={{}}>
+  //                 {({ pressed }) => (
+  //                   <>
+  //                     <Text
+  //                       style={{
+  //                         color: pressed ? 'white' : '#007bff',
+  //                         fontFamily: 'Inter_28pt-Bold',
+  //                         fontSize: 26,
+  //                       }}>
+  //                       {item.count || 0}
+  //                     </Text>
+  //                     <Text
+  //                       style={{
+  //                         color: pressed ? 'white' : '#252525',
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         fontSize: 10,
+  //                       }}>
+  //                       {item.label}
+  //                     </Text>
+  //                   </>
+  //                 )}
+  //               </Pressable>
+  //             );
+  //           })}
+  //         </View>
+  //       </View>
 
-        <View style={{ marginBottom: 10 }}>
-          {/*Personal*/}
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8,
-              borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#252525',
-                  fontSize: 15,
-                  paddingHorizontal: 10,
-                }}>
-                Personal
-              </Text>
-            </View>
+  //       <View style={{ marginBottom: 10 }}>
+  //         {/*Personal*/}
+  //         <View
+  //           style={{
+  //             padding: 10,
+  //             marginTop: 10,
+  //             marginHorizontal: 10,
+  //             backgroundColor: 'white',
+  //             borderRadius: 5,
+  //             shadowColor: '#000',
+  //             shadowOffset: { width: 0, height: 2 },
+  //             shadowOpacity: 0.25,
+  //             shadowRadius: 3.84,
+  //             elevation: 8,
+  //             borderBottomWidth: 1,
+  //             borderBottomColor: 'silver',
+  //             borderRightWidth: 1,
+  //             borderRightColor: 'silver',
+  //           }}>
+  //           <View
+  //             style={{
+  //               borderBottomWidth: 1,
+  //               borderBottomColor: '#eee',
+  //             }}>
+  //             <Text
+  //               style={{
+  //                 fontFamily: 'Inter_28pt-Bold',
+  //                 color: '#252525',
+  //                 fontSize: 15,
+  //                 paddingHorizontal: 10,
+  //               }}>
+  //               Personal
+  //             </Text>
+  //           </View>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-start',
-                gap: 10,
-                paddingHorizontal: 10,
-                marginTop: 5,
-                paddingTop: 10,
-              }}>
-              {[
-                {
-                  label: 'SLRY',
-                  count: `${myTransactionsLength && myTransactionsLength
-                    ? myTransactionsLength
-                    : 0
-                    }`,
-                  screen: 'MyTransactions',
-                },
-                {
-                  label: 'ARE',
-                  count: `${accountabilityData && accountabilityData.length
-                    ? accountabilityData.length
-                    : 0
-                    }`,
-                  screen: 'MyAccountability',
-                },
-              ].map((item, index, arr) => {
-                if (item.condition === false) {
-                  return null;
-                }
+  //           <View
+  //             style={{
+  //               flexDirection: 'row',
+  //               justifyContent: 'flex-start',
+  //               gap: 10,
+  //               paddingHorizontal: 10,
+  //               marginTop: 5,
+  //               paddingTop: 10,
+  //             }}>
+  //             {[
+  //               {
+  //                 label: 'SLRY',
+  //                 count: `${myTransactionsLength && myTransactionsLength
+  //                   ? myTransactionsLength
+  //                   : 0
+  //                   }`,
+  //                 screen: 'MyTransactions',
+  //               },
+  //               {
+  //                 label: 'ARE',
+  //                 count: `${accountabilityData && accountabilityData.length
+  //                   ? accountabilityData.length
+  //                   : 0
+  //                   }`,
+  //                 screen: 'MyAccountability',
+  //               },
+  //             ].map((item, index, arr) => {
+  //               if (item.condition === false) {
+  //                 return null;
+  //               }
 
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={() =>
-                      navigation.navigate(item.screen, item.params)
-                    }
-                    style={({ pressed }) => [
-                      {
-                        width: arr.length === 3 ? '32%' : '32%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        marginBottom: 10,
-                        borderRadius: 5,
-                        elevation: 1,
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 2,
-                        borderRightColor: 'silver',
-                      },
-                    ]}
-                    android_ripple={{}}>
-                    {({ pressed }) => (
-                      <>
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#007bff',
-                            fontFamily: 'Inter_28pt-Bold',
-                            fontSize: 26,
-                          }}>
-                          {item.count || 0}
-                        </Text>
-                      )}
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#252525',
-                          fontFamily: 'Inter_28pt-Regular',
-                          fontSize: 10,
-                        }}>
-                        {item.label}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              ))}
-          </View>
-        </View>
-      </View>
+  //               return (
+  //                 <Pressable
+  //                   key={index}
+  //                   onPress={() =>
+  //                     navigation.navigate(item.screen, item.params)
+  //                   }
+  //                   style={({ pressed }) => [
+  //                     {
+  //                       width: arr.length === 3 ? '32%' : '32%',
+  //                       alignItems: 'center',
+  //                       paddingVertical: 10,
+  //                       marginBottom: 10,
+  //                       borderRadius: 5,
+  //                       elevation: 1,
+  //                       backgroundColor: pressed ? '#007bff' : '#ffffff',
+  //                       borderBottomWidth: 2,
+  //                       borderBottomColor: 'silver',
+  //                       borderRightWidth: 2,
+  //                       borderRightColor: 'silver',
+  //                     },
+  //                   ]}
+  //                   android_ripple={{}}>
+  //                   {({ pressed }) => (
+  //                     <>
+  //                       <Text
+  //                         style={{
+  //                           color: pressed ? 'white' : '#007bff',
+  //                           fontFamily: 'Inter_28pt-Bold',
+  //                           fontSize: 26,
+  //                         }}>
+  //                         {item.count || 0}
+  //                       </Text>
+  //                     )}
+  //                     <Text
+  //                       style={{
+  //                         color: pressed ? 'white' : '#252525',
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         fontSize: 10,
+  //                       }}>
+  //                       {item.label}
+  //                     </Text>
+  //                   </>
+  //                 )}
+  //               </Pressable>
+  //             ))}
+  //         </View>
+  //       </View>
+  //     </View>
 
-        {accountType === '1' ? (
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000', // Shadow color for iOS
-              shadowOffset: { width: 0, height: 2 }, // Shadow offset for iOS
-              shadowOpacity: 0.25, // Shadow opacity for iOS
-              shadowRadius: 3.84, // Shadow radius for iOS
-              elevation: 8, // Shadow for Android
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#252525',
-                  fontSize: 15,
-                  paddingHorizontal: 10,
-                }}>
-                Transaction Progress
-              </Text>
-            </View>
-            {loadingTransSum || loadingUseOthers ? (
-              <View style={{ alignItems: 'center', marginVertical: 20 }}>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_28pt-Regular',
-                    fontSize: 16,
-                    color: '#888',
-                  }}>
-                  Loading...
-                </Text>
-              </View>
-            ) : (
-              <>
-                <View style={{ paddingVertical: 10 }}>
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-evenly',
-                        alignItems: 'center',
-                        paddingHorizontal: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          width: 60,
-                          textAlign: 'center',
-                        }}>
-                        PR
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          //paddingVertical: 10,
-                          flex: 1,
-                          marginVertical: 10,
-                        }}
-                        onPress={handlePRStatus}>
-                        <ProgressBar
-                          percentage={PRPercentage}
-                          color="rgba(42, 126, 216, 0.75)"
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontFamily: 'Inter_28pt-Bold',
-                          paddingHorizontal: 5,
-                          textAlign: 'right',
-                          width: 50,
-                        }}>
-                        {Math.round(PRPercentage)}%
-                      </Text>
-                    </View>
+  //       {accountType === '1' ? (
+  //         <View
+  //           style={{
+  //             padding: 10,
+  //             marginTop: 10,
+  //             marginHorizontal: 10,
+  //             backgroundColor: 'white',
+  //             borderRadius: 5,
+  //             shadowColor: '#000', // Shadow color for iOS
+  //             shadowOffset: { width: 0, height: 2 }, // Shadow offset for iOS
+  //             shadowOpacity: 0.25, // Shadow opacity for iOS
+  //             shadowRadius: 3.84, // Shadow radius for iOS
+  //             elevation: 8, // Shadow for Android
+  //           }}>
+  //           <View
+  //             style={{
+  //               borderBottomWidth: 1,
+  //               borderBottomColor: '#eee',
+  //               flexDirection: 'row',
+  //               justifyContent: 'space-between',
+  //             }}>
+  //             <Text
+  //               style={{
+  //                 fontFamily: 'Inter_28pt-Bold',
+  //                 color: '#252525',
+  //                 fontSize: 15,
+  //                 paddingHorizontal: 10,
+  //               }}>
+  //               Transaction Progress
+  //             </Text>
+  //           </View>
+  //           {loadingTransSum || loadingUseOthers ? (
+  //             <View style={{ alignItems: 'center', marginVertical: 20 }}>
+  //               <Text
+  //                 style={{
+  //                   fontFamily: 'Inter_28pt-Regular',
+  //                   fontSize: 16,
+  //                   color: '#888',
+  //                 }}>
+  //                 Loading...
+  //               </Text>
+  //             </View>
+  //           ) : (
+  //             <>
+  //               <View style={{ paddingVertical: 10 }}>
+  //                 <View>
+  //                   <View
+  //                     style={{
+  //                       flexDirection: 'row',
+  //                       justifyContent: 'space-evenly',
+  //                       alignItems: 'center',
+  //                       paddingHorizontal: 10,
+  //                     }}>
+  //                     <Text
+  //                       style={{
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         width: 60,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       PR
+  //                     </Text>
+  //                     <TouchableOpacity
+  //                       style={{
+  //                         //paddingVertical: 10,
+  //                         flex: 1,
+  //                         marginVertical: 10,
+  //                       }}
+  //                       onPress={handlePRStatus}>
+  //                       <ProgressBar
+  //                         percentage={PRPercentage}
+  //                         color="rgba(42, 126, 216, 0.75)"
+  //                       />
+  //                     </TouchableOpacity>
+  //                     <Text
+  //                       style={{
+  //                         fontSize: 14,
+  //                         fontFamily: 'Inter_28pt-Bold',
+  //                         paddingHorizontal: 5,
+  //                         textAlign: 'right',
+  //                         width: 50,
+  //                       }}>
+  //                       {Math.round(PRPercentage)}%
+  //                     </Text>
+  //                   </View>
 
-                    <View style={{}}>
-                      <AnimatedStatusView
-                        showStatus={showPRStatus}
-                        data={dataPR}
-                        slideAnim={slideAnimPR}
-                      />
-                    </View>
-                  </View>
+  //                   <View style={{}}>
+  //                     <AnimatedStatusView
+  //                       showStatus={showPRStatus}
+  //                       data={dataPR}
+  //                       slideAnim={slideAnimPR}
+  //                     />
+  //                   </View>
+  //                 </View>
 
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-evenly',
-                        alignItems: 'center',
-                        paddingHorizontal: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          width: 60,
-                          textAlign: 'center',
-                        }}>
-                        PO
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          //paddingVertical: 10,
-                          flex: 1,
-                          marginVertical: 10,
-                        }}
-                        onPress={handlePOStatus}>
-                        <ProgressBar
-                          percentage={POPercentage}
-                          color="rgba(42, 126, 216, 0.50)"
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontFamily: 'Inter_28pt-Bold',
-                          paddingHorizontal: 5,
-                          textAlign: 'right',
-                          width: 50,
-                        }}>
-                        {Math.round(POPercentage)}%
-                      </Text>
-                    </View>
+  //                 <View>
+  //                   <View
+  //                     style={{
+  //                       flexDirection: 'row',
+  //                       justifyContent: 'space-evenly',
+  //                       alignItems: 'center',
+  //                       paddingHorizontal: 10,
+  //                     }}>
+  //                     <Text
+  //                       style={{
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         width: 60,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       PO
+  //                     </Text>
+  //                     <TouchableOpacity
+  //                       style={{
+  //                         //paddingVertical: 10,
+  //                         flex: 1,
+  //                         marginVertical: 10,
+  //                       }}
+  //                       onPress={handlePOStatus}>
+  //                       <ProgressBar
+  //                         percentage={POPercentage}
+  //                         color="rgba(42, 126, 216, 0.50)"
+  //                       />
+  //                     </TouchableOpacity>
+  //                     <Text
+  //                       style={{
+  //                         fontSize: 14,
+  //                         fontFamily: 'Inter_28pt-Bold',
+  //                         paddingHorizontal: 5,
+  //                         textAlign: 'right',
+  //                         width: 50,
+  //                       }}>
+  //                       {Math.round(POPercentage)}%
+  //                     </Text>
+  //                   </View>
 
-                    <View style={{}}>
-                      <AnimatedStatusView
-                        showStatus={showPOStatus}
-                        data={dataPO}
-                        slideAnim={slideAnimPO}
-                      />
-                    </View>
-                  </View>
+  //                   <View style={{}}>
+  //                     <AnimatedStatusView
+  //                       showStatus={showPOStatus}
+  //                       data={dataPO}
+  //                       slideAnim={slideAnimPO}
+  //                     />
+  //                   </View>
+  //                 </View>
 
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-evenly',
-                        alignItems: 'center',
-                        paddingHorizontal: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          width: 60,
-                          textAlign: 'center',
-                        }}>
-                        PX
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          //paddingVertical: 10,
-                          flex: 1,
-                          marginVertical: 10,
-                        }}
-                        onPress={handlePXStatus}>
-                        <ProgressBar
-                          percentage={PXPercentage}
-                          color="rgba(42, 126, 216, 0.25)"
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontFamily: 'Inter_28pt-Bold',
-                          paddingHorizontal: 5,
-                          textAlign: 'right',
-                          width: 50,
-                        }}>
-                        {Math.round(PXPercentage)}%
-                      </Text>
-                    </View>
+  //                 <View>
+  //                   <View
+  //                     style={{
+  //                       flexDirection: 'row',
+  //                       justifyContent: 'space-evenly',
+  //                       alignItems: 'center',
+  //                       paddingHorizontal: 10,
+  //                     }}>
+  //                     <Text
+  //                       style={{
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         width: 60,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       PX
+  //                     </Text>
+  //                     <TouchableOpacity
+  //                       style={{
+  //                         //paddingVertical: 10,
+  //                         flex: 1,
+  //                         marginVertical: 10,
+  //                       }}
+  //                       onPress={handlePXStatus}>
+  //                       <ProgressBar
+  //                         percentage={PXPercentage}
+  //                         color="rgba(42, 126, 216, 0.25)"
+  //                       />
+  //                     </TouchableOpacity>
+  //                     <Text
+  //                       style={{
+  //                         fontSize: 14,
+  //                         fontFamily: 'Inter_28pt-Bold',
+  //                         paddingHorizontal: 5,
+  //                         textAlign: 'right',
+  //                         width: 50,
+  //                       }}>
+  //                       {Math.round(PXPercentage)}%
+  //                     </Text>
+  //                   </View>
 
-                    <View style={{}}>
-                      <AnimatedStatusView
-                        showStatus={showPXStatus}
-                        data={dataPX}
-                        slideAnim={slideAnimPX}
-                      />
-                    </View>
-                  </View>
+  //                   <View style={{}}>
+  //                     <AnimatedStatusView
+  //                       showStatus={showPXStatus}
+  //                       data={dataPX}
+  //                       slideAnim={slideAnimPX}
+  //                     />
+  //                   </View>
+  //                 </View>
 
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-evenly',
-                        alignItems: 'center',
-                        paddingHorizontal: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          width: 60,
-                          textAlign: 'center',
-                        }}>
-                        Vouchers
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          //paddingVertical: 10,
-                          flex: 1,
-                          marginVertical: 10,
-                        }}
-                        onPress={() =>
-                          setVisibleDocuments(prevState => !prevState)
-                        }>
-                        <ProgressBar
-                          percentage={Math.round(percentage)}
-                          color="rgba(42, 126, 216, 0.15)"
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontFamily: 'Inter_28pt-Bold',
-                          paddingHorizontal: 5,
-                          textAlign: 'right',
-                          width: 50,
-                        }}>
-                        {Math.round(percentage)}%
-                      </Text>
-                    </View>
+  //                 <View>
+  //                   <View
+  //                     style={{
+  //                       flexDirection: 'row',
+  //                       justifyContent: 'space-evenly',
+  //                       alignItems: 'center',
+  //                       paddingHorizontal: 10,
+  //                     }}>
+  //                     <Text
+  //                       style={{
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         width: 60,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       Vouchers
+  //                     </Text>
+  //                     <TouchableOpacity
+  //                       style={{
+  //                         //paddingVertical: 10,
+  //                         flex: 1,
+  //                         marginVertical: 10,
+  //                       }}
+  //                       onPress={() =>
+  //                         setVisibleDocuments(prevState => !prevState)
+  //                       }>
+  //                       <ProgressBar
+  //                         percentage={Math.round(percentage)}
+  //                         color="rgba(42, 126, 216, 0.15)"
+  //                       />
+  //                     </TouchableOpacity>
+  //                     <Text
+  //                       style={{
+  //                         fontSize: 14,
+  //                         fontFamily: 'Inter_28pt-Bold',
+  //                         paddingHorizontal: 5,
+  //                         textAlign: 'right',
+  //                         width: 50,
+  //                       }}>
+  //                       {Math.round(percentage)}%
+  //                     </Text>
+  //                   </View>
 
-                    <View style={{ width: '100%', alignSelf: 'flex-end' }}>
-                      {visibleDocuments &&
-                        othersVouchersData.map((item, index) => (
-                          <View
-                            key={index}
-                            style={{
-                              backgroundColor: 'white',
-                              paddingBottom: 10,
-                              width: '75%',
-                              alignSelf: 'flex-end',
-                            }}>
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                //backgroundColor: 'rgba(0,0,0,0.1)',
-                                backgroundColor: 'rgba(223, 231, 248, 1)',
-                              }}>
-                              <View
-                                style={{
-                                  justifyContent: 'center',
-                                  paddingVertical: 3,
-                                  margin: 2,
-                                  paddingStart: 15,
-                                }}>
-                                <Text
-                                  style={{
-                                    color: 'rgba(42, 42, 42, 1)',
-                                    fontFamily: 'Inter_28pt-Regular',
-                                    fontSize: 12,
-                                    textAlign: 'left',
-                                    alignItems: 'center',
-                                    alignContent: 'center',
-                                    textTransform: 'capitalize',
-                                  }}>
-                                  {item.DocumentType}
-                                </Text>
-                              </View>
-                            </View>
-                            <View
-                              style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 10,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                              }}>
-                              <Text
-                                style={{
-                                  //color: 'white',
-                                  color: 'black',
-                                  fontSize: 14,
-                                  fontFamily: 'Inter_28pt-Regular',
-                                  textAlign: 'right',
-                                }}>
-                                {item.DocumentTypeCount}
-                              </Text>
+  //                   <View style={{ width: '100%', alignSelf: 'flex-end' }}>
+  //                     {visibleDocuments &&
+  //                       othersVouchersData.map((item, index) => (
+  //                         <View
+  //                           key={index}
+  //                           style={{
+  //                             backgroundColor: 'white',
+  //                             paddingBottom: 10,
+  //                             width: '75%',
+  //                             alignSelf: 'flex-end',
+  //                           }}>
+  //                           <View
+  //                             style={{
+  //                               flexDirection: 'row',
+  //                               //backgroundColor: 'rgba(0,0,0,0.1)',
+  //                               backgroundColor: 'rgba(223, 231, 248, 1)',
+  //                             }}>
+  //                             <View
+  //                               style={{
+  //                                 justifyContent: 'center',
+  //                                 paddingVertical: 3,
+  //                                 margin: 2,
+  //                                 paddingStart: 15,
+  //                               }}>
+  //                               <Text
+  //                                 style={{
+  //                                   color: 'rgba(42, 42, 42, 1)',
+  //                                   fontFamily: 'Inter_28pt-Regular',
+  //                                   fontSize: 12,
+  //                                   textAlign: 'left',
+  //                                   alignItems: 'center',
+  //                                   alignContent: 'center',
+  //                                   textTransform: 'capitalize',
+  //                                 }}>
+  //                                 {item.DocumentType}
+  //                               </Text>
+  //                             </View>
+  //                           </View>
+  //                           <View
+  //                             style={{
+  //                               paddingHorizontal: 10,
+  //                               paddingVertical: 10,
+  //                               flexDirection: 'row',
+  //                               alignItems: 'center',
+  //                             }}>
+  //                             <Text
+  //                               style={{
+  //                                 //color: 'white',
+  //                                 color: 'black',
+  //                                 fontSize: 14,
+  //                                 fontFamily: 'Inter_28pt-Regular',
+  //                                 textAlign: 'right',
+  //                               }}>
+  //                               {item.DocumentTypeCount}
+  //                             </Text>
 
-                              <View
-                                style={{
-                                  flex: 1,
-                                }}>
-                                <TouchableOpacity
-                                  style={{ marginVertical: 10 }}
-                                  onPress={() =>
-                                    toggleVisibility(item.DocumentType)
-                                  }>
-                                  <ProgressBarOthers
-                                    percentage={
-                                      ((item.StatusCounts.find(
-                                        status =>
-                                          status.Status === 'Check Released',
-                                      )?.StatusCount || 0) /
-                                        parseInt(item.DocumentTypeCount, 10)) *
-                                      100
-                                    }
-                                    color={
-                                      ((item.StatusCounts.find(
-                                        status =>
-                                          status.Status === 'Check Released',
-                                      )?.StatusCount || 0) /
-                                        parseInt(item.DocumentTypeCount, 10)) *
-                                        100 ===
-                                        100
-                                        ? 'orange'
-                                        : '#448eed'
-                                    }
-                                  />
-                                </TouchableOpacity>
-                              </View>
-                              <Text
-                                style={{
-                                  fontSize: 14,
-                                  fontFamily: 'Inter_28pt-Bold',
-                                  paddingHorizontal: 5,
-                                  textAlign: 'right',
-                                  width: 50,
-                                }}>
-                                {Math.round(
-                                  ((item.StatusCounts.find(
-                                    status =>
-                                      status.Status === 'Check Released',
-                                  )?.StatusCount || 0) /
-                                    parseInt(item.DocumentTypeCount, 10)) *
-                                  100,
-                                )}
-                                %
-                              </Text>
-                            </View>
+  //                             <View
+  //                               style={{
+  //                                 flex: 1,
+  //                               }}>
+  //                               <TouchableOpacity
+  //                                 style={{ marginVertical: 10 }}
+  //                                 onPress={() =>
+  //                                   toggleVisibility(item.DocumentType)
+  //                                 }>
+  //                                 <ProgressBarOthers
+  //                                   percentage={
+  //                                     ((item.StatusCounts.find(
+  //                                       status =>
+  //                                         status.Status === 'Check Released',
+  //                                     )?.StatusCount || 0) /
+  //                                       parseInt(item.DocumentTypeCount, 10)) *
+  //                                     100
+  //                                   }
+  //                                   color={
+  //                                     ((item.StatusCounts.find(
+  //                                       status =>
+  //                                         status.Status === 'Check Released',
+  //                                     )?.StatusCount || 0) /
+  //                                       parseInt(item.DocumentTypeCount, 10)) *
+  //                                       100 ===
+  //                                       100
+  //                                       ? 'orange'
+  //                                       : '#448eed'
+  //                                   }
+  //                                 />
+  //                               </TouchableOpacity>
+  //                             </View>
+  //                             <Text
+  //                               style={{
+  //                                 fontSize: 14,
+  //                                 fontFamily: 'Inter_28pt-Bold',
+  //                                 paddingHorizontal: 5,
+  //                                 textAlign: 'right',
+  //                                 width: 50,
+  //                               }}>
+  //                               {Math.round(
+  //                                 ((item.StatusCounts.find(
+  //                                   status =>
+  //                                     status.Status === 'Check Released',
+  //                                 )?.StatusCount || 0) /
+  //                                   parseInt(item.DocumentTypeCount, 10)) *
+  //                                 100,
+  //                               )}
+  //                               %
+  //                             </Text>
+  //                           </View>
 
-                            {visibleStatusCounts[item.DocumentType] && (
-                              <View
-                                style={{
-                                  width: '100%',
-                                  backgroundColor: 'rgba(221, 221, 221, 0.23)',
-                                  paddingEnd: 20,
-                                  paddingVertical: 10,
-                                }}>
-                                <View style={{}}>
-                                  <View style={{ marginBottom: 10 }}>
-                                    {item.StatusCounts.map(
-                                      (statusItem, statusIndex) => (
-                                        <View
-                                          key={statusIndex} // Moved key here
-                                          style={{
-                                            flexDirection: 'row',
-                                            paddingStart: 20,
-                                            paddingBottom: 10,
-                                            justifyContent: 'flex-end',
-                                            alignItems: 'center',
-                                            //borderRightWidth: 1,
-                                            borderColor:
-                                              'rgba(224, 225, 228, 0.69)',
-                                          }}>
-                                          <TouchableOpacity
-                                            activeOpacity={0.5}
-                                            //underlayColor="rgba(223, 231, 248, 0.3)"
-                                            style={{ paddingHorizontal: 10 }}
-                                            onPress={() => {
-                                              navigation.navigate('Others', {
-                                                selectedItem: item.DocumentType,
-                                                details:
-                                                  item.Details[
-                                                  statusItem.Status
-                                                  ],
-                                                loadingDetails,
-                                              });
-                                            }}>
-                                            <View
-                                              style={{
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                              }}>
-                                              <Text
-                                                style={{
-                                                  color: '#252525',
-                                                  fontSize: 11,
-                                                  fontFamily:
-                                                    'Inter_28pt-Regular',
-                                                  letterSpacing: 1,
-                                                  opacity: 0.5,
-                                                  textAlign: 'right',
-                                                }}>
-                                                {statusItem.Status}
-                                              </Text>
-                                              <Text
-                                                style={{
-                                                  width: 30,
-                                                  color: '#252525',
-                                                  fontSize: 13,
-                                                  fontFamily:
-                                                    'Inter_28pt-Regular',
-                                                  textAlign: 'right',
-                                                  letterSpacing: 1,
-                                                }}>
-                                                {statusItem.StatusCount}
-                                              </Text>
-                                            </View>
-                                          </TouchableOpacity>
-                                        </View>
-                                      ),
-                                    )}
-                                  </View>
-                                </View>
-                              </View>
-                            )}
-                          </View>
-                        ))}
-                    </View>
-                  </View>
+  //                           {visibleStatusCounts[item.DocumentType] && (
+  //                             <View
+  //                               style={{
+  //                                 width: '100%',
+  //                                 backgroundColor: 'rgba(221, 221, 221, 0.23)',
+  //                                 paddingEnd: 20,
+  //                                 paddingVertical: 10,
+  //                               }}>
+  //                               <View style={{}}>
+  //                                 <View style={{ marginBottom: 10 }}>
+  //                                   {item.StatusCounts.map(
+  //                                     (statusItem, statusIndex) => (
+  //                                       <View
+  //                                         key={statusIndex} // Moved key here
+  //                                         style={{
+  //                                           flexDirection: 'row',
+  //                                           paddingStart: 20,
+  //                                           paddingBottom: 10,
+  //                                           justifyContent: 'flex-end',
+  //                                           alignItems: 'center',
+  //                                           //borderRightWidth: 1,
+  //                                           borderColor:
+  //                                             'rgba(224, 225, 228, 0.69)',
+  //                                         }}>
+  //                                         <TouchableOpacity
+  //                                           activeOpacity={0.5}
+  //                                           //underlayColor="rgba(223, 231, 248, 0.3)"
+  //                                           style={{ paddingHorizontal: 10 }}
+  //                                           onPress={() => {
+  //                                             navigation.navigate('Others', {
+  //                                               selectedItem: item.DocumentType,
+  //                                               details:
+  //                                                 item.Details[
+  //                                                 statusItem.Status
+  //                                                 ],
+  //                                               loadingDetails,
+  //                                             });
+  //                                           }}>
+  //                                           <View
+  //                                             style={{
+  //                                               flexDirection: 'row',
+  //                                               alignItems: 'center',
+  //                                             }}>
+  //                                             <Text
+  //                                               style={{
+  //                                                 color: '#252525',
+  //                                                 fontSize: 11,
+  //                                                 fontFamily:
+  //                                                   'Inter_28pt-Regular',
+  //                                                 letterSpacing: 1,
+  //                                                 opacity: 0.5,
+  //                                                 textAlign: 'right',
+  //                                               }}>
+  //                                               {statusItem.Status}
+  //                                             </Text>
+  //                                             <Text
+  //                                               style={{
+  //                                                 width: 30,
+  //                                                 color: '#252525',
+  //                                                 fontSize: 13,
+  //                                                 fontFamily:
+  //                                                   'Inter_28pt-Regular',
+  //                                                 textAlign: 'right',
+  //                                                 letterSpacing: 1,
+  //                                               }}>
+  //                                               {statusItem.StatusCount}
+  //                                             </Text>
+  //                                           </View>
+  //                                         </TouchableOpacity>
+  //                                       </View>
+  //                                     ),
+  //                                   )}
+  //                                 </View>
+  //                               </View>
+  //                             </View>
+  //                           )}
+  //                         </View>
+  //                       ))}
+  //                   </View>
+  //                 </View>
 
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-evenly',
-                        alignItems: 'center',
-                        paddingHorizontal: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_28pt-Regular',
-                          width: 60,
-                          textAlign: 'center',
-                        }}>
-                        Others
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          //paddingVertical: 10,
-                          flex: 1,
-                          marginVertical: 10,
-                        }}
-                        onPress={() =>
-                          setVisibleDocumentsOthers(prevState => !prevState)
-                        }>
-                        <ProgressBar
-                          percentage={percentageOthers}
-                          color="rgba(42, 126, 216, 0.15)"
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontFamily: 'Inter_28pt-Bold',
-                          paddingHorizontal: 5,
-                          textAlign: 'right',
-                          width: 50,
-                        }}>
-                        {Math.round(percentageOthers)}%
-                      </Text>
-                    </View>
+  //                 <View>
+  //                   <View
+  //                     style={{
+  //                       flexDirection: 'row',
+  //                       justifyContent: 'space-evenly',
+  //                       alignItems: 'center',
+  //                       paddingHorizontal: 10,
+  //                     }}>
+  //                     <Text
+  //                       style={{
+  //                         fontFamily: 'Inter_28pt-Regular',
+  //                         width: 60,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       Others
+  //                     </Text>
+  //                     <TouchableOpacity
+  //                       style={{
+  //                         //paddingVertical: 10,
+  //                         flex: 1,
+  //                         marginVertical: 10,
+  //                       }}
+  //                       onPress={() =>
+  //                         setVisibleDocumentsOthers(prevState => !prevState)
+  //                       }>
+  //                       <ProgressBar
+  //                         percentage={percentageOthers}
+  //                         color="rgba(42, 126, 216, 0.15)"
+  //                       />
+  //                     </TouchableOpacity>
+  //                     <Text
+  //                       style={{
+  //                         fontSize: 14,
+  //                         fontFamily: 'Inter_28pt-Bold',
+  //                         paddingHorizontal: 5,
+  //                         textAlign: 'right',
+  //                         width: 50,
+  //                       }}>
+  //                       {Math.round(percentageOthers)}%
+  //                     </Text>
+  //                   </View>
 
-                    {visibleDocumentsOthers &&
-                      othersOthersData.map((item, index) => (
-                        <View
-                          key={index}
-                          style={{
-                            backgroundColor: 'white',
-                            paddingBottom: 10,
-                            width: '75%',
-                            alignSelf: 'flex-end',
-                          }}>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              //backgroundColor: 'rgba(0,0,0,0.1)',
-                              backgroundColor: 'rgba(223, 231, 248, 1)',
-                            }}>
-                            <View
-                              style={{
-                                justifyContent: 'center',
-                                paddingVertical: 3,
-                                margin: 2,
-                                paddingStart: 15,
-                              }}>
-                              <Text
-                                style={{
-                                  color: 'rgba(42, 42, 42, 1)',
-                                  fontFamily: 'Inter_28pt-Regular',
-                                  fontSize: 12,
-                                  textAlign: 'left',
-                                  alignItems: 'center',
-                                  alignContent: 'center',
-                                  textTransform: 'capitalize',
-                                }}>
-                                {item.DocumentType}
-                              </Text>
-                            </View>
-                          </View>
-                          <View
-                            style={{
-                              paddingHorizontal: 10,
-                              paddingVertical: 10,
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                            }}>
-                            <Text
-                              style={{
-                                //color: 'white',
-                                color: 'black',
-                                fontSize: 14,
-                                fontFamily: 'Inter_28pt-Regular',
-                                textAlign: 'right',
-                              }}>
-                              {item.DocumentTypeCount}
-                            </Text>
+  //                   {visibleDocumentsOthers &&
+  //                     othersOthersData.map((item, index) => (
+  //                       <View
+  //                         key={index}
+  //                         style={{
+  //                           backgroundColor: 'white',
+  //                           paddingBottom: 10,
+  //                           width: '75%',
+  //                           alignSelf: 'flex-end',
+  //                         }}>
+  //                         <View
+  //                           style={{
+  //                             flexDirection: 'row',
+  //                             //backgroundColor: 'rgba(0,0,0,0.1)',
+  //                             backgroundColor: 'rgba(223, 231, 248, 1)',
+  //                           }}>
+  //                           <View
+  //                             style={{
+  //                               justifyContent: 'center',
+  //                               paddingVertical: 3,
+  //                               margin: 2,
+  //                               paddingStart: 15,
+  //                             }}>
+  //                             <Text
+  //                               style={{
+  //                                 color: 'rgba(42, 42, 42, 1)',
+  //                                 fontFamily: 'Inter_28pt-Regular',
+  //                                 fontSize: 12,
+  //                                 textAlign: 'left',
+  //                                 alignItems: 'center',
+  //                                 alignContent: 'center',
+  //                                 textTransform: 'capitalize',
+  //                               }}>
+  //                               {item.DocumentType}
+  //                             </Text>
+  //                           </View>
+  //                         </View>
+  //                         <View
+  //                           style={{
+  //                             paddingHorizontal: 10,
+  //                             paddingVertical: 10,
+  //                             flexDirection: 'row',
+  //                             alignItems: 'center',
+  //                           }}>
+  //                           <Text
+  //                             style={{
+  //                               //color: 'white',
+  //                               color: 'black',
+  //                               fontSize: 14,
+  //                               fontFamily: 'Inter_28pt-Regular',
+  //                               textAlign: 'right',
+  //                             }}>
+  //                             {item.DocumentTypeCount}
+  //                           </Text>
 
-                            <View
-                              style={{
-                                flex: 5,
-                                justifyContent: 'flex-end',
-                                marginEnd: 5,
-                              }}>
-                              <TouchableOpacity
-                                style={{ paddingVertical: 10 }}
-                                onPress={() =>
-                                  toggleVisibility(item.DocumentType)
-                                }>
-                                <ProgressBarOthers
-                                  percentage={
-                                    item.DocumentType === 'Liquidation'
-                                      ? ((item.StatusCounts.find(
-                                        status =>
-                                          status.Status === 'CAO Released',
-                                      )?.StatusCount || 0) /
-                                        parseInt(
-                                          item.DocumentTypeCount,
-                                          10,
-                                        )) *
-                                      100
-                                      : ((item.StatusCounts.find(
-                                        status =>
-                                          status.Status === 'Check Released',
-                                      )?.StatusCount || 0) /
-                                        parseInt(
-                                          item.DocumentTypeCount,
-                                          10,
-                                        )) *
-                                      100
-                                  }
-                                  color={
-                                    item.DocumentType === 'Liquidation'
-                                      ? ((item.StatusCounts.find(
-                                        status =>
-                                          status.Status === 'CAO Released',
-                                      )?.StatusCount || 0) /
-                                        parseInt(
-                                          item.DocumentTypeCount,
-                                          10,
-                                        )) *
-                                        100 ===
-                                        100
-                                        ? 'orange'
-                                        : '#448eed'
-                                      : ((item.StatusCounts.find(
-                                        status =>
-                                          status.Status === 'Check Released',
-                                      )?.StatusCount || 0) /
-                                        parseInt(
-                                          item.DocumentTypeCount,
-                                          10,
-                                        )) *
-                                        100 ===
-                                        100
-                                        ? 'orange'
-                                        : '#448eed'
-                                  }
-                                />
-                              </TouchableOpacity>
-                            </View>
-                            <Text
-                              style={{
-                                fontSize: 14,
-                                fontFamily: 'Inter_28pt-Bold',
-                                paddingHorizontal: 5,
-                                textAlign: 'right',
-                                width: 50,
-                              }}>
-                              {Math.round(
-                                item.DocumentType === 'Liquidation'
-                                  ? ((item.StatusCounts.find(
-                                    status =>
-                                      status.Status === 'CAO Released',
-                                  )?.StatusCount || 0) /
-                                    parseInt(item.DocumentTypeCount, 10)) *
-                                  100
-                                  : ((item.StatusCounts.find(
-                                    status =>
-                                      status.Status === 'Check Released',
-                                  )?.StatusCount || 0) /
-                                    parseInt(item.DocumentTypeCount, 10)) *
-                                  100,
-                              )}
-                              %
-                            </Text>
-                          </View>
+  //                           <View
+  //                             style={{
+  //                               flex: 5,
+  //                               justifyContent: 'flex-end',
+  //                               marginEnd: 5,
+  //                             }}>
+  //                             <TouchableOpacity
+  //                               style={{ paddingVertical: 10 }}
+  //                               onPress={() =>
+  //                                 toggleVisibility(item.DocumentType)
+  //                               }>
+  //                               <ProgressBarOthers
+  //                                 percentage={
+  //                                   item.DocumentType === 'Liquidation'
+  //                                     ? ((item.StatusCounts.find(
+  //                                       status =>
+  //                                         status.Status === 'CAO Released',
+  //                                     )?.StatusCount || 0) /
+  //                                       parseInt(
+  //                                         item.DocumentTypeCount,
+  //                                         10,
+  //                                       )) *
+  //                                     100
+  //                                     : ((item.StatusCounts.find(
+  //                                       status =>
+  //                                         status.Status === 'Check Released',
+  //                                     )?.StatusCount || 0) /
+  //                                       parseInt(
+  //                                         item.DocumentTypeCount,
+  //                                         10,
+  //                                       )) *
+  //                                     100
+  //                                 }
+  //                                 color={
+  //                                   item.DocumentType === 'Liquidation'
+  //                                     ? ((item.StatusCounts.find(
+  //                                       status =>
+  //                                         status.Status === 'CAO Released',
+  //                                     )?.StatusCount || 0) /
+  //                                       parseInt(
+  //                                         item.DocumentTypeCount,
+  //                                         10,
+  //                                       )) *
+  //                                       100 ===
+  //                                       100
+  //                                       ? 'orange'
+  //                                       : '#448eed'
+  //                                     : ((item.StatusCounts.find(
+  //                                       status =>
+  //                                         status.Status === 'Check Released',
+  //                                     )?.StatusCount || 0) /
+  //                                       parseInt(
+  //                                         item.DocumentTypeCount,
+  //                                         10,
+  //                                       )) *
+  //                                       100 ===
+  //                                       100
+  //                                       ? 'orange'
+  //                                       : '#448eed'
+  //                                 }
+  //                               />
+  //                             </TouchableOpacity>
+  //                           </View>
+  //                           <Text
+  //                             style={{
+  //                               fontSize: 14,
+  //                               fontFamily: 'Inter_28pt-Bold',
+  //                               paddingHorizontal: 5,
+  //                               textAlign: 'right',
+  //                               width: 50,
+  //                             }}>
+  //                             {Math.round(
+  //                               item.DocumentType === 'Liquidation'
+  //                                 ? ((item.StatusCounts.find(
+  //                                   status =>
+  //                                     status.Status === 'CAO Released',
+  //                                 )?.StatusCount || 0) /
+  //                                   parseInt(item.DocumentTypeCount, 10)) *
+  //                                 100
+  //                                 : ((item.StatusCounts.find(
+  //                                   status =>
+  //                                     status.Status === 'Check Released',
+  //                                 )?.StatusCount || 0) /
+  //                                   parseInt(item.DocumentTypeCount, 10)) *
+  //                                 100,
+  //                             )}
+  //                             %
+  //                           </Text>
+  //                         </View>
 
-                          {visibleStatusCounts[item.DocumentType] && (
-                            <View style={[styles.table, {}]}>
-                              <View style={styles.column}></View>
+  //                         {visibleStatusCounts[item.DocumentType] && (
+  //                           <View style={[styles.table, {}]}>
+  //                             <View style={styles.column}></View>
 
-                              <View style={styles.column}></View>
+  //                             <View style={styles.column}></View>
 
-                              <View style={[styles.column, { flexGrow: 5 }]}>
-                                <View style={{ marginBottom: 10 }}>
-                                  {item.StatusCounts.map(
-                                    (statusItem, statusIndex) => (
-                                      <View
-                                        key={statusIndex} // Moved key here
-                                        style={{
-                                          flexDirection: 'row',
-                                          paddingStart: 20,
-                                          paddingBottom: 10,
-                                          justifyContent: 'flex-end',
-                                          alignItems: 'center',
-                                          borderRightWidth: 1,
-                                          borderColor: 'silver',
-                                        }}>
-                                        <TouchableHighlight
-                                          activeOpacity={0.5}
-                                          underlayColor="rgba(223, 231, 248, 0.3)"
-                                          style={{ paddingHorizontal: 10 }}
-                                          onPress={() => {
-                                            navigation.navigate('Others', {
-                                              selectedItem: item.DocumentType,
-                                              details:
-                                                item.Details[statusItem.Status],
-                                              loadingDetails,
-                                            });
-                                          }}>
-                                          <View
-                                            style={{
-                                              flexDirection: 'row',
-                                              alignItems: 'center',
-                                            }}>
-                                            <Text
-                                              style={{
-                                                color: '#252525',
-                                                fontSize: 11,
-                                                fontFamily:
-                                                  'Inter_28pt-Regular',
-                                                letterSpacing: 1,
-                                                opacity: 0.5,
-                                                textAlign: 'right',
-                                              }}>
-                                              {statusItem.Status}
-                                            </Text>
-                                            <Text
-                                              style={{
-                                                width: 30,
-                                                color: '#252525',
-                                                fontSize: 13,
-                                                fontFamily:
-                                                  'Inter_28pt-Regular',
-                                                textAlign: 'right',
-                                                letterSpacing: 1,
-                                              }}>
-                                              {statusItem.StatusCount}
-                                            </Text>
-                                          </View>
-                                        </TouchableHighlight>
-                                      </View>
-                                    ),
-                                  )}
-                                </View>
-                              </View>
-                            </View>
-                          )}
-                        </View>
-                      ))}
-                  </View>
-                </View>
-              </>
-            )}
-          </View>
-        ) : (
-          <>
-            <View></View>
-          </>
-        )}
+  //                             <View style={[styles.column, { flexGrow: 5 }]}>
+  //                               <View style={{ marginBottom: 10 }}>
+  //                                 {item.StatusCounts.map(
+  //                                   (statusItem, statusIndex) => (
+  //                                     <View
+  //                                       key={statusIndex} // Moved key here
+  //                                       style={{
+  //                                         flexDirection: 'row',
+  //                                         paddingStart: 20,
+  //                                         paddingBottom: 10,
+  //                                         justifyContent: 'flex-end',
+  //                                         alignItems: 'center',
+  //                                         borderRightWidth: 1,
+  //                                         borderColor: 'silver',
+  //                                       }}>
+  //                                       <TouchableHighlight
+  //                                         activeOpacity={0.5}
+  //                                         underlayColor="rgba(223, 231, 248, 0.3)"
+  //                                         style={{ paddingHorizontal: 10 }}
+  //                                         onPress={() => {
+  //                                           navigation.navigate('Others', {
+  //                                             selectedItem: item.DocumentType,
+  //                                             details:
+  //                                               item.Details[statusItem.Status],
+  //                                             loadingDetails,
+  //                                           });
+  //                                         }}>
+  //                                         <View
+  //                                           style={{
+  //                                             flexDirection: 'row',
+  //                                             alignItems: 'center',
+  //                                           }}>
+  //                                           <Text
+  //                                             style={{
+  //                                               color: '#252525',
+  //                                               fontSize: 11,
+  //                                               fontFamily:
+  //                                                 'Inter_28pt-Regular',
+  //                                               letterSpacing: 1,
+  //                                               opacity: 0.5,
+  //                                               textAlign: 'right',
+  //                                             }}>
+  //                                             {statusItem.Status}
+  //                                           </Text>
+  //                                           <Text
+  //                                             style={{
+  //                                               width: 30,
+  //                                               color: '#252525',
+  //                                               fontSize: 13,
+  //                                               fontFamily:
+  //                                                 'Inter_28pt-Regular',
+  //                                               textAlign: 'right',
+  //                                               letterSpacing: 1,
+  //                                             }}>
+  //                                             {statusItem.StatusCount}
+  //                                           </Text>
+  //                                         </View>
+  //                                       </TouchableHighlight>
+  //                                     </View>
+  //                                   ),
+  //                                 )}
+  //                               </View>
+  //                             </View>
+  //                           </View>
+  //                         )}
+  //                       </View>
+  //                     ))}
+  //                 </View>
+  //               </View>
+  //             </>
+  //           )}
+  //         </View>
+  //       ) : (
+  //         <>
+  //           <View></View>
+  //         </>
+  //       )}
 
-        {/*FOOTER*/}
-        <View
-          style={{
-            flex: 1,
-            marginTop: 15,
-            //backgroundColor: 'white',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingEnd: 20,
-            paddingTop: 20,
-            paddingBottom: 20,
-            //borderTopWidth: 1,
-            //borderTopColor: 'rgba(0, 0, 0, 0.05)',
-          }}>
-          <Image
-            source={require('../../assets/images/logodavao.png')}
-            style={{
-              width: 38,
-              height: 38,
-              opacity: 0.8,
-              marginRight: 10,
-            }}
-          />
-          <Image
-            source={require('../../assets/images/dcplinado.png')}
-            style={{
-              width: 80,
-              height: 21,
-              opacity: 0.8,
-            }}
-          />
-        </View>
-      </View>
-    );
-  });
+  //       {/*FOOTER*/}
+  //       <View
+  //         style={{
+  //           flex: 1,
+  //           marginTop: 15,
+  //           //backgroundColor: 'white',
+  //           flexDirection: 'row',
+  //           alignItems: 'center',
+  //           justifyContent: 'center',
+  //           paddingEnd: 20,
+  //           paddingTop: 20,
+  //           paddingBottom: 20,
+  //           //borderTopWidth: 1,
+  //           //borderTopColor: 'rgba(0, 0, 0, 0.05)',
+  //         }}>
+  //         <Image
+  //           source={require('../../assets/images/logodavao.png')}
+  //           style={{
+  //             width: 38,
+  //             height: 38,
+  //             opacity: 0.8,
+  //             marginRight: 10,
+  //           }}
+  //         />
+  //         <Image
+  //           source={require('../../assets/images/dcplinado.png')}
+  //           style={{
+  //             width: 80,
+  //             height: 21,
+  //             opacity: 0.8,
+  //           }}
+  //         />
+  //       </View>
+  //     </View>
+  //   );
+  // });
 
   const renderInspector = () => (
     <View>
@@ -2473,689 +2477,17 @@ const DoctrackScreen = ({
     );
   });
 
-  const renderEvaluator = () => {
-    return (
-      <View
-        style={
-          {
-            /* backgroundColor:'#004ab1' */
-          }
-        }>
-        <View style={{marginBottom: 5}}>
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 2},
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 6,
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
-                  paddingHorizontal: 10,
-                }}>
-                Transaction Counter -  Evaluator
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                alignSelf: 'center',
-                marginTop: 5,
-                gap: 10,
-              }}>
-              {requestsLoading ? (
-                <View
-                  style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 16, color: '#252525' }}>
-                    Loading...
-                  </Text>
-                </View>
-              ) : (
-                (() => {
-                  const items = [
-                    {
-                      label: 'On Evaluation',
-                      screen: 'OnEvaluation',
-                      length: onEvalDataCount,
-                    },
-                    {
-                      label: 'Evaluated',
-                      screen: 'Evaluated',
-                      length: evaluatedDataCount,
-                    },
-                    {
-                      label: 'Pending',
-                      screen: 'EvalPending',
-                      length: evalPendingDataCount,
-                    },
-                    {
-                      label: 'Pending Released',
-                      screen: 'EvalPendingReleased',
-                      length: evalPendingReleasedCount,
-                    },
-                  ];
-
-                  const hasResults = items.some(item => item.length > 0);
-
-                  return hasResults ? (
-                    items.map(
-                      (item, index, arr) =>
-                        item.length > 0 && (
-                          <Pressable
-                            key={index}
-                            onPress={() =>
-                              navigation.navigate(item.screen, {
-                                ...item,
-                                selectedYear,
-                              })
-                            }
-                            style={({ pressed }) => [
-                              {
-                                width: arr.length === 3 ? '31%' : '31%',
-                                alignItems: 'center',
-                                paddingVertical: 10,
-                                marginBottom: 10,
-                                borderRadius: 5,
-                                elevation: 5, // Android shadow
-                                backgroundColor: pressed
-                                  ? '#007bff'
-                                  : '#ffffff',
-
-                                // iOS shadow properties
-                                shadowColor: '#000',
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.2,
-                                shadowRadius: 3,
-                              },
-                            ]}
-                            android_ripple={{}}>
-                            {({ pressed }) => (
-                              <>
-                                <Text
-                                  style={{
-                                    color: pressed ? 'white' : '#007bff',
-                                    fontFamily: 'Inter_28pt-Bold',
-                                    fontSize: 26,
-                                  }}>
-                                  {item.length}
-                                </Text>
-                                <Text
-                                  style={{
-                                    color: pressed ? 'white' : '#252525',
-                                    fontFamily: 'Inter_28pt-Regular',
-                                    fontSize: 10,
-                                  }}>
-                                  {item.label}
-                                </Text>
-                              </>
-                            )}
-                          </Pressable>
-                        ),
-                    )
-                  ) : (
-                    <View
-                      style={{
-                        flex: 1,
-                        alignItems: 'center',
-                        backgroundColor: 'rgb(241, 239, 239)',
-                        paddingVertical: 10,
-                        borderRadius: 5,
-                      }}>
-                      <Text style={{ fontSize: 14, color: '#252525' }}>
-                        No Result Found
-                      </Text>
-                    </View>
-                  );
-                })()
-              )}
-            </View>
-          </View>
-        </View>
-
-        <View style={{marginBottom: 10}}>
-          {/* Personal */}
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8,             
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
-                  paddingHorizontal: 10,
-                }}>
-                Personal
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                alignSelf: 'flex-start',
-                marginTop: 5,
-                gap: 10,
-              }}>
-              {[
-                {
-                  label: 'SLRY',
-                  count: myTransactionsLength ? myTransactionsLength : 0,
-                  screen: 'MyTransactions',
-                },
-                {
-                  label: 'ARE',
-                  count: accountabilityData?.length || 0,
-                  screen: 'MyAccountability',
-                },
-              ].map((item, index, arr) => {
-                if (item.condition === false) {
-                  return null;
-                }
-
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={() =>
-                      navigation.navigate(item.screen, item.params)
-                    }
-                    style={({ pressed }) => [
-                      {
-                        width: arr.length === 3 ? '31%' : '31%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        marginBottom: 10,
-                        borderRadius: 5,
-                        elevation: 5, // Android shadow
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        //borderBottomWidth: 1,
-                        //borderBottomColor: 'silver',
-                        //borderRightWidth: 1,
-                        //borderRightColor: 'silver',
-
-                        // iOS shadow properties
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 3,
-                      },
-                    ]}
-                    android_ripple={{}}>
-                    {({ pressed }) => (
-                      <>
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#007bff',
-                            fontFamily: 'Inter_28pt-Bold',
-                            fontSize: 26,
-                            textShadowColor: 'rgba(0, 0, 0, 0.25)', // Shadow color (black with opacity)
-                            textShadowOffset: { width: 1, height: 1 }, // Offset of the shadow
-                            textShadowRadius: 1, // Blur radius
-                          }}>
-                          {item.count}
-                        </Text>
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#252525',
-                            fontFamily: 'Inter_28pt-Regular',
-                            fontSize: 10,
-                          }}>
-                          {item.label}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-
-        <View style={{ marginBottom: 5 }}>
-          <View
-            style={{
-              padding: 10,
-              marginTop: 10,
-              marginHorizontal: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 6,
-              /* borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver', */
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
-                  paddingHorizontal: 10,
-                }}>
-                Transaction Summary
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                alignSelf: 'center',
-                marginTop: 5,
-                gap: 10,
-              }}>
-              {requestsLoading ? (
-                <View
-                  style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 16, color: '#252525' }}>
-                    Loading...
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  {[
-                    {
-                      label: 'Daily',
-                      screen: 'EvalDaily',
-                      icon: 'calendar-today', // MaterialCommunityIcons icon name
-                    },
-                    {
-                      label: 'Monthly',
-                      screen: 'EvalMonthly',
-                      icon: 'calendar-month', // Monthly icon
-                    },
-                    {
-                      label: 'Annual',
-                      screen: 'EvalAnnual',
-                      icon: 'calendar',
-                    },
-                  ].map((item, index, arr) => (
-                    <Pressable
-                      key={index}
-                      onPress={() =>
-                        navigation.navigate(item.screen, {
-                          ...item,
-                          selectedYear,
-                        })
-                      }
-                      style={({ pressed }) => [
-                        {
-                          width: arr.length === 3 ? '31%' : '31%',
-                          alignItems: 'center',
-                          paddingVertical: 10,
-                          marginBottom: 10,
-                          borderRadius: 5,
-                          elevation: 5, // Android shadow
-                          backgroundColor: pressed ? '#007bff' : '#ffffff',
-                          // iOS shadow properties
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.5,
-                          shadowRadius: 1,
-                        },
-                      ]}
-                      android_ripple={{}}>
-                      {({ pressed }) => (
-                        <>
-                          <Icons
-                            name={item.icon}
-                            size={35}
-                            color={pressed ? 'white' : '#007bff'}
-                          />
-                          <Text
-                            style={{
-                              color: pressed ? 'white' : '#252525',
-                              fontFamily: 'Inter_28pt-Regular',
-                              fontSize: 10,
-                            }}>
-                            {item.label}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
-                  ))}
-                </>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/*FOOTER*/}
-        <View
-          style={{
-            flex: 1,
-            marginTop: 15,
-            //backgroundColor: 'white',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingEnd: 20,
-            paddingTop: 20,
-            paddingBottom: 100,
-            //borderTopWidth: 1,
-            //borderTopColor: 'rgba(0, 0, 0, 0.05)',
-          }}>
-          <Image
-            source={require('../../assets/images/logodavao.png')}
-            style={{
-              width: 38,
-              height: 38,
-              opacity: 0.8,
-              marginRight: 10,
-            }}
-          />
-          <Image
-            source={require('../../assets/images/dcplinado.png')}
-            style={{
-              width: 80,
-              height: 21,
-              opacity: 0.8,
-            }}
-          />
-        </View>
-      </View>
-    );
-  };
-
-
-  const renderReceiver = () => (
-    <View style={{ backgroundColor: 'pink' }}>
-      <View style={{ marginBottom: 20 }}>
-        <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            marginHorizontal: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver',
-          }}>
-          {/*TRANSACTION COUNTER*/}
-
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-              paddingBottom: 5,
-              marginBottom: 5,
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-SemiBold',
-                color: '#252525',
-                fontSize: 16,
-                paddingHorizontal: 10,
-              }}>
-              Transaction Counter - Receiver
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              marginTop: 5,
-              paddingHorizontal: 10,
-              gap: 15,
-            }}>
-            {[
-              {
-                label: 'Total Received',
-                count: receivingCountData?.TotalReceived,
-              },
-
-              {
-                label: 'Received Today',
-                count: receivingCountData?.ReceivedToday,
-              },
-              {
-                label: 'Received This Month',
-                count: receivingCountData?.ReceivedPerMonth?.[0]?.Count,
-                screen: 'MonthlyReceivedScreen',
-              }
-            ].map((item, index) => (
-              <Pressable
-                key={index}
-                onPress={item.label === 'Received This Month' ? openModal : undefined}
-                // onPress={() => {
-                //   if (item.screen) {
-                //     navigation.navigate(item.screen, {
-                //       selectedYear,
-                //     });
-                //   }
-                // }}
-                style={({ pressed }) => ({
-                  width: '30%',
-                  alignItems: 'center',
-                  paddingVertical: 10,
-                  marginBottom: 10,
-                  borderRadius: 5,
-                  elevation: 1,
-                  backgroundColor: pressed ? '#007bff' : '#ffffff',
-                  borderBottomWidth: 2,
-                  borderBottomColor: 'silver',
-                  borderRightWidth: 2,
-                  borderRightColor: 'silver',
-                })}
-                android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}>
-                {({ pressed }) => (
-                  <>
-                    <Text
-                      style={{
-                        color: pressed ? 'white' : '#007bff',
-                        fontFamily: 'Inter_28pt-Bold',
-                        fontSize: 24,
-                      }}>
-                      {item.count ?? 0}
-                    </Text>
-
-                    <Text
-                      style={{
-                        color: pressed ? 'white' : '#252525',
-                        fontFamily: 'Oswald-Light',
-                        fontSize: 10,
-                        marginTop: 5,
-                      }}>
-                      {item.label}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            ))}
-
-          </View>
-        </View>
-
-        <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            marginHorizontal: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 8,
-          }}>
-          {/*PERSONAL*/}
-
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-              paddingBottom: 5,
-              marginBottom: 5,
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-SemiBold',
-                color: '#252525',
-                fontSize: 16,
-                paddingHorizontal: 10,
-              }}>
-              Personal
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              marginTop: 5,
-              paddingHorizontal: 10,
-              gap: 15,
-            }}>
-            {[
-              {
-                label: 'Salaries',
-                count: `${myTransactionsLength ? myTransactionsLength : 0}`,
-                screen: 'MyTransactions',
-              },
-              {
-                label: 'ARE',
-                count: `${accountabilityData ? accountabilityData.length : 0}`,
-                screen: 'MyAccountability',
-              },
-            ].map((item, index) => {
-              if (item.condition === false) {
-                return null;
-              }
-
-              return (
-                <Pressable
-                  key={index}
-                  style={({ pressed }) => [
-                    {
-                      width: '32%',
-                      alignItems: 'center',
-                      paddingVertical: 10,
-                      marginBottom: 10,
-                      borderRadius: 5,
-                      elevation: 1,
-                      backgroundColor: pressed ? '#007bff' : '#ffffff',
-                      borderBottomWidth: 2,
-                      borderBottomColor: 'silver',
-                      borderRightWidth: 2,
-                      borderRightColor: 'silver',
-                    },
-                  ]}
-                  android_ripple={{ color: 'rgba(200, 200, 200, 0.5)' }}
-                  onPress={() => {
-                    if (item.screen) {
-                      navigation.navigate(item.screen);
-                    } else {
-                    }
-                  }}>
-                  {({ pressed }) => (
-                    <>
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#007bff',
-                          fontFamily: 'Inter_28pt-Bold',
-                          fontSize: 26,
-                        }}>
-                        {item.count}
-                      </Text>
-
-                      <Text
-                        style={{
-                          color: pressed ? 'white' : '#252525',
-                          marginTop: 5,
-                          textAlign: 'center',
-                          fontSize: 14,
-                          fontFamily: 'Inter_28pt-Regular',
-                        }}>
-                        {item.label}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-      </View>
-    </View>
-  );
 
 
 
   const renderUI = useCallback(() => {
     const itemsToShowTrackSum = showAll
       ? trackSumData
-      : trackSumData?.slice(0, 5);
+      : trackSumData?.slice(0, 6);
 
     const itemsToShowRegTrackSum = showAll
       ? regTrackSumData
-      : regTrackSumData?.slice(0, 5);
+      : regTrackSumData?.slice(0, 6);
 
     return (
       <View
@@ -3166,53 +2498,45 @@ const DoctrackScreen = ({
 
         }}
       >
+        {/*PROCUREMENT UI*/}
 
-        {/*TRANSACTIONS VIEW*/}
-        {(caoReceiver === '1' || accountType === '4') && (
-          <View style={{
-            padding: 10,
-            marginTop: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver',
-          }}>
-
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
+        <View>
+          {(caoReceiver === '1' || caoEvaluator === '1') ? (
+            <>
+              {caoReceiver === '1' &&
+                <View style={{
+                  padding: 10,
+                  marginTop: 10,
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'silver',
+                  borderRightWidth: 1,
+                  borderRightColor: 'silver',
                 }}>
-                Transaction Counter
-              </Text>
-            </View>
+                  <View
+                    style={{
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#eee',
+                      paddingBottom: 5,
+                      marginBottom: 5,
+                    }}>
 
+                    <Text
+                      style={{
+                        fontFamily: 'Inter_28pt-SemiBold',
+                        color: '#252525',
+                        fontSize: 16,
+                      }}>
+                      Transaction Counter
+                    </Text>
+                  </View>
 
-
-            {isReceivedLoading || requestsLoading ? (
-              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
-              </View>
-            ) : (
-              <>
-                {/* RECEIVER VIEW */}
-                {caoReceiver === '1' && (
                   <View>
                     <View
                       style={{
@@ -3258,6 +2582,7 @@ const DoctrackScreen = ({
                           >
                             {({ pressed }) => (
                               <>
+
                                 <Text
                                   style={{
                                     color: pressed ? 'white' : '#007bff',
@@ -3284,697 +2609,16 @@ const DoctrackScreen = ({
                       })}
                     </View>
                   </View>
-
-                )}
-
-                {/* EVALUATOR VIEW */}
-                {accountType === '4' && (
-                  <View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      {[
-                        {
-                          label: 'On Evaluation',
-                          screen: 'OnEvaluation',
-                          length: onEvalDataCount,
-                        },
-                        {
-                          label: 'Evaluated',
-                          screen: 'Evaluated',
-                          length: evaluatedDataCount,
-                        },
-                        {
-                          label: 'Pending',
-                          screen: 'EvalPending',
-                          length: evalPendingDataCount,
-                        },
-                        {
-                          label: 'Pending Released',
-                          screen: 'EvalPendingReleased',
-                          length: evalPendingReleasedCount,
-                        },
-                      ].map((item, index) => (
-                        <Pressable
-                          key={index}
-                          onPress={() =>
-                            navigation.navigate(item.screen, {
-                              ...item,
-                              selectedYear,
-                            })
-                          }
-                          style={({ pressed }) => ({
-                            width: '30%',
-                            alignItems: 'center',
-                            paddingVertical: 10,
-                            marginBottom: 10,
-                            borderRadius: 5,
-                            elevation: 1,
-                            backgroundColor: pressed ? '#007bff' : '#ffffff',
-                            borderBottomWidth: 2,
-                            borderBottomColor: 'silver',
-                            borderRightWidth: 2,
-                            borderRightColor: 'silver',
-                          })}
-                          android_ripple={{}}
-                        >
-                          {({ pressed }) => (
-                            <>
-                              <Text
-                                style={{
-                                  color: pressed ? 'white' : '#007bff',
-                                  fontFamily: 'Inter_28pt-Bold',
-                                  fontSize: 22,
-                                }}
-                              >
-                                {item.length}
-                              </Text>
-                              <Text
-                                style={{
-                                  color: pressed ? 'white' : '#252525',
-                                  fontFamily: 'Oswald-Light',
-                                  fontSize: 10,
-                                  marginTop: 0,
-                                }}
-                              >
-                                {item.label}
-                              </Text>
-                            </>
-                          )}
-                        </Pressable>
-                      ))}
-                    </View>
-
-                    <View
-                      style={{
-                        padding: 10,
-                        marginTop: 10,
-                        backgroundColor: 'white',
-                        borderRadius: 5,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.25,
-                        shadowRadius: 3.84,
-                        elevation: 6,
-                        /* borderBottomWidth: 1,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 1,
-                        borderRightColor: 'silver', */
-                      }}>
-                      <View
-                        style={{
-                          borderBottomWidth: 1,
-                          borderBottomColor: '#eee',
-                          paddingBottom: 5,
-                          marginBottom: 5,
-                        }}>
-                        <Text
-                          style={{
-                            fontFamily: 'Inter_28pt-SemiBold',
-                            color: '#252525',
-                            fontSize: 16,
-                          }}>
-                          Transaction Summary
-                        </Text>
-                      </View>
-
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          flexWrap: 'wrap',
-                          justifyContent: 'flex-start',
-                          alignItems: 'center',
-                          alignSelf: 'center',
-                          marginTop: 5,
-                          gap: 10,
-                        }}>
-                        {requestsLoading ? (
-                          <View
-                            style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
-                            <Text style={{ fontSize: 16, color: '#252525' }}>
-                              Loading...
-                            </Text>
-                          </View>
-                        ) : (
-                          <>
-                            {[
-                              {
-                                label: 'Daily',
-                                screen: 'EvalDaily',
-                                icon: 'calendar-today', // MaterialCommunityIcons icon name
-                              },
-                              {
-                                label: 'Monthly',
-                                screen: 'EvalMonthly',
-                                icon: 'calendar-month', // Monthly icon
-                              },
-                              {
-                                label: 'Annual',
-                                screen: 'EvalAnnual',
-                                icon: 'calendar',
-                              },
-                            ].map((item, index, arr) => (
-                              <Pressable
-                                key={index}
-                                onPress={() =>
-                                  navigation.navigate(item.screen, {
-                                    ...item,
-                                    selectedYear,
-                                  })
-                                }
-                                style={({ pressed }) => [
-                                  {
-                                    width: arr.length === 3 ? '31%' : '31%',
-                                    width: '30%',
-                                    alignItems: 'center',
-                                    paddingVertical: 10,
-                                    borderRadius: 5,
-                                    elevation: 1,
-                                    backgroundColor: pressed ? '#007bff' : '#ffffff',
-                                    borderBottomWidth: 2,
-                                    borderBottomColor: 'silver',
-                                    borderRightWidth: 2,
-                                    borderRightColor: 'silver',
-                                  },
-                                ]}
-                                android_ripple={{}}>
-                                {({ pressed }) => (
-                                  <>
-                                    <Icons
-                                      name={item.icon}
-                                      size={35}
-                                      //color={pressed ? 'white' : '#0c0c0c'}
-                                      color={pressed ? 'white' : '#007bff'}
-                                    />
-                                    <Text
-                                      style={{
-                                        color: pressed ? 'white' : '#252525',
-                                        fontFamily: 'Inter_28pt-Regular',
-                                        fontSize: 10,
-                                      }}>
-                                      {item.label}
-                                    </Text>
-                                  </>
-                                )}
-                              </Pressable>
-                            ))}
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                )}
-              </>
-            )}
-
-          </View>
-        )}
-
-        {/*INSPECTOR VIEW*/}
-        {permission === '10' && (
-          <View>
-            <View style={{
-              padding: 10,
-              marginVertical: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8,
-              borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
-            }}>
-              <View
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#eee',
-                  paddingBottom: 5,
-                  marginBottom: 5,
-                }}>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_28pt-SemiBold',
-                    color: '#252525',
-                    fontSize: 16,
-                  }}>
-                  Inspection Status
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                {requestsLoading ? (
-                  <View style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
-                    <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
-                  </View>
-                ) : (
-                  <>
-                    {[
-                      {
-                        label: 'For Inspection',
-                        screen: 'ForInspection',
-                        length: `${forInspection ?? 0}`,
-                      },
-                      {
-                        label: 'Inspected',
-                        screen: 'Inspected',
-                        length: `${inspected ?? 0}`,
-                      },
-                      {
-                        label: 'On Hold',
-                        screen: 'InspectionOnHold',
-                        length: `${inspectionOnHold ?? 0}`,
-                      },
-                    ].map((item, index, arr) => (
-                      <Pressable
-                        key={index}
-                        onPress={() => navigation.navigate(item.screen, item.params)}
-                        style={({ pressed }) => [
-                          {
-                            width: '30%',
-                            alignItems: 'center',
-                            paddingVertical: 10,
-                            marginBottom: 10,
-                            borderRadius: 5,
-                            elevation: 1,
-                            backgroundColor: pressed ? '#007bff' : '#ffffff',
-                            borderBottomWidth: 2,
-                            borderBottomColor: 'silver',
-                            borderRightWidth: 2,
-                            borderRightColor: 'silver',
-                          },
-                        ]}
-                        android_ripple={{}}>
-                        {({ pressed }) => (
-                          <>
-                            <Text
-                              style={{
-                                color: pressed ? 'white' : '#007bff',
-                                fontFamily: 'Inter_28pt-Bold',
-                                fontSize: 26,
-                              }}>
-                              {item.length || 0}
-                            </Text>
-                            <Text
-                              style={{
-                                color: pressed ? 'white' : '#252525',
-                                fontFamily: 'Oswald-Light',
-                                fontSize: 12,
-                              }}>
-                              {item.label}
-                            </Text>
-                          </>
-                        )}
-                      </Pressable>
-                    ))}
-                  </>
-                )}
-              </View>
-
-            </View>
-            <View>
-              <RecentActivity
-                recentActivityData={recentActivityData}
-                recentActivityError={recentActivityError}
-                recentActivityLoading={recentActivityLoading}
-                navigation={navigation}
-              />
-            </View>
-          </View>
-        )}
-
-        {/*INSPECTOR SCHEDULER VIEW*/}
-        {privilege === '10' && (
-          <View
-            style={{
-              padding: 10,
-              marginBottom: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8,
-              borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
-            }}>
-
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 5,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
-                  fontSize: 16,
-                }}>
-                Scheduler
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: 15
-              }}>
-              {requestsLoading ? (
-                <View
-                  style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
                 </View>
-              ) : (
-                <>
-                  {[
-                    {
-                      label: 'Request',
-                      screen: 'RequestScreen',
-                      length: `${requestsLength}`,
-                    },
-                    {
-                      label: 'On Schedule',
-                      screen: 'OnScheduleScreen',
-                      length: `${OnScheduleLength}`,
-                    },
-                  ].map((item, index, arr) => (
-                    <Pressable
-                      key={index}
-                      onPress={() =>
-                        navigation.navigate(item.screen, item.params)
-                      }
-                      style={({ pressed }) => [
-                        {
-                          width: '30%',
-                          alignItems: 'center',
-                          paddingVertical: 10,
-                          marginBottom: 10,
-                          borderRadius: 5,
-                          elevation: 1,
-                          backgroundColor: pressed ? '#007bff' : '#ffffff',
-                          borderBottomWidth: 2,
-                          borderBottomColor: 'silver',
-                          borderRightWidth: 2,
-                          borderRightColor: 'silver',
-                        },
-                      ]}
-                      android_ripple={{}}>
-                      {({ pressed }) => (
-                        <>
-                          <Text
-                            style={{
-                              color: pressed ? 'white' : '#007bff',
-                              fontFamily: 'Inter_28pt-Bold',
-                              fontSize: 26,
-                            }}>
-                            {item.length || 0}
-                          </Text>
-                          <Text
-                            style={{
-                              color: pressed ? 'white' : '#252525',
-                              fontFamily: 'Inter_28pt-Regular',
-                              fontSize: 10,
-                            }}>
-                            {item.label}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
-                  ))}
-                </>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/*DEFAULT CONTENT VIEW */}
-        {!['10', '5', '8', '9', '11'].includes(privilege) &&
-          permission !== '10' &&
-          ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC',].includes(
-            officeCode,
-          ) && (
-            <View>
-              <View
-                style={{
-                  padding: 10,
-                  marginVertical: 10,
-                  backgroundColor: 'white',
-                  borderRadius: 5,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 3.84,
-                  elevation: 8,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'silver',
-                  borderRightWidth: 1,
-                  borderRightColor: 'silver',
-                }}
-              >
-                <View
-                  style={{
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#eee',
-                    paddingBottom: 5,
-                    marginBottom: 5,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: 'Inter_28pt-SemiBold',
-                      color: '#252525',
-                      fontSize: 16,
-                    }}
-                  >
-                    Tracking Summary
-                  </Text>
-                </View>
-
-                {accountType === '1' ? (
-                  <View
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingTop: 10,
-                      paddingBottom: 10,
-                      marginStart: 5,
-                    }}
-                  >
-                    {trackSumLoading ? (
-                      <Text style={{ textAlign: 'center' }}>Loading...</Text>
-                    ) : trackSumError ? (
-                      <Text style={{ textAlign: 'center', color: 'red' }}>
-                        Error loading data
-                      </Text>
-                    ) : itemsToShowTrackSum?.length === 0 ? (
-                      <Text style={{ textAlign: 'center' }}>No results found</Text>
-                    ) : (
-                      <>
-                        {itemsToShowTrackSum?.map((item, index) => (
-                          <Pressable
-                            key={index}
-                            onPress={() =>
-                              navigation.navigate('TrackingSummaryScreen', {
-                                selectedItem: item,
-                              })
-                            }
-                            android_ripple={{ color: 'rgba(0, 0, 0, 0.2)' }}
-                          >
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  fontFamily: 'Inter_28pt-Bold',
-                                  fontSize: 16,
-                                  color: item.Status.includes('Pending')
-                                    ? 'rgb(248, 12, 12)'
-                                    : 'rgb(8, 112, 231)',
-                                  width: '20%',
-                                  textAlign: 'right',
-                                  paddingRight: 10,
-                                  alignSelf: 'center',
-                                }}
-                              >
-                                {item.Count}
-                              </Text>
-                              <View style={{ width: '80%' }}>
-                                <Text
-                                  style={{
-                                    fontFamily: 'Inter_28pt-Light',
-                                    fontSize: 14,
-                                  }}
-                                >
-                                  {item.Status}
-                                </Text>
-                              </View>
-                            </View>
-                          </Pressable>
-                        ))}
-
-                        {trackSumData?.length > 5 && (
-                          <View style={{ alignSelf: 'flex-end' }}>
-                            <Pressable
-                              onPress={() => setShowAll((prev) => !prev)}
-                              style={{
-                                padding: 10,
-                                marginTop: 10,
-                                alignItems: 'center',
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  color: 'rgb(8, 112, 231)',
-                                  fontWeight: 'bold',
-                                }}
-                              >
-                                {showAll ? 'Show Less' : 'Show More'}
-                              </Text>
-                            </Pressable>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </View>
-                ) : (
-                  <View>
-                    {regTrackSumLoading ? (
-                      <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
-                        Loading...
-                      </Text>
-                    ) : regTrackSumError ? (
-                      <Text style={{ textAlign: 'center', color: 'red', fontSize: 16 }}>
-                        Error loading data
-                      </Text>
-                    ) : itemsToShowRegTrackSum?.length === 0 ? (
-                      <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
-                        No results found
-                      </Text>
-                    ) : (
-                      <>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            alignItems: 'center',
-                            gap: 15,
-                            marginBottom: 5
-                          }}
-                        >
-                          {itemsToShowRegTrackSum?.map((item, index) => {
-                      
-                            return (
-                              <Pressable
-                                key={index}
-                                onPress={() =>
-                                  navigation.navigate('RegTrackingSummaryScreen', {
-                                    selectedItem: item,
-                                  })
-                                }
-                                android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
-                                style={({ pressed }) => [
-                                  {
-                                    width: '30%',
-                                    alignItems: 'center',
-                                    paddingVertical: 10,
-                                    borderRadius: 5,
-                                    elevation: 1,
-                                    backgroundColor: pressed ? '#007bff' : '#ffffff',
-                                    borderBottomWidth: 2,
-                                    borderBottomColor: 'silver',
-                                    borderRightWidth: 2,
-                                    borderRightColor: 'silver',
-                                  },
-                                ]}
-                              >
-                                {({ pressed }) => (
-                                  <>
-                                    <Text
-                                      style={{
-                                        fontFamily: 'Inter_28pt-Bold',
-                                        fontSize: 22,
-                                        fontWeight: '700',
-                                        color:
-                                          pressed && item.Status.includes('Pending')
-                                            ? 'white' : '#007bff',
-                                        textAlign: 'center',
-                                      }}
-                                    >
-                                      {item.Count}
-                                    </Text>
-                                    <Text
-                                      style={{
-                                        color: item.Status.includes('Pending')
-                                          ? 'rgb(248, 12, 12)'
-                                          : '#252525',
-                                        fontFamily: 'Oswald-Light',
-                                        fontSize: 10,
-                                        textAlign: 'center',
-                                      }}
-                                    >
-                                      {item.Status}
-                                    </Text>
-                                  </>
-                                )}
-                              </Pressable>
-                            );
-                          })}
-
-                        </View>
-
-                        {regTrackSumData?.length > 5 && (
-                          <Pressable
-                            onPress={() => setShowAll((prev) => !prev)}
-                            style={{
-                              marginTop: 10,
-                              alignItems: 'center',
-                              paddingVertical: 8,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                color: '#0870E7',
-                                fontWeight: '600',
-                                fontSize: 14,
-                              }}
-                            >
-                              {showAll ? 'Show Less' : 'Show More'}
-                            </Text>
-                          </Pressable>
-                        )}
-                      </>
-                    )}
-                  </View>
-                )}
-              </View>
-
-
-            </View>
-
+              }
+              {caoEvaluator === '1' &&
+                <Text>CAO EVALUATOR UI</Text>
+              }
+            </>
+          ) : procurement === '1' && (
+            <Text>Procurement UI</Text>
           )}
+        </View>
 
 
         {/*PERSONAL VIEW */}
@@ -4088,6 +2732,34 @@ const DoctrackScreen = ({
             })}
           </View>
 
+        </View>
+
+        {/*FOOTER*/}
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+
+          }}>
+          <Image
+            source={require('../../assets/images/logodavao.png')}
+            style={{
+              width: 38,
+              height: 38,
+              opacity: 0.8,
+              marginRight: 10,
+            }}
+          />
+          <Image
+            source={require('../../assets/images/dcplinado.png')}
+            style={{
+              width: 80,
+              height: 21,
+              opacity: 0.8,
+            }}
+          />
         </View>
       </View>
     );

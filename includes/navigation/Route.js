@@ -105,6 +105,7 @@ import EvalMonthly from '../screens/evaluator/EvalMonthly';
 import EvalAnnual from '../screens/evaluator/EvalAnnual';
 import AttachmentsScreen from '../screens/AttachmentsScreen';
 import AccessScreen from '../screens/AccessScreen';
+import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
