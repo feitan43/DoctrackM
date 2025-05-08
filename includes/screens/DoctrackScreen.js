@@ -3424,7 +3424,7 @@ const DoctrackScreen = ({
 
                 )}
 
-                {/* EVALUATION VIEW */}
+                {/* EVALUATOR VIEW */}
                 {accountType === '4' && (
                   <View>
                     <View
@@ -3507,7 +3507,123 @@ const DoctrackScreen = ({
                       ))}
                     </View>
 
+                    <View
+                      style={{
+                        padding: 10,
+                        marginTop: 10,
+                        backgroundColor: 'white',
+                        borderRadius: 5,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
+                        elevation: 6,
+                        /* borderBottomWidth: 1,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 1,
+                        borderRightColor: 'silver', */
+                      }}>
+                      <View
+                        style={{
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#eee',
+                          paddingBottom: 5,
+                          marginBottom: 5,
+                        }}>
+                        <Text
+                          style={{
+                            fontFamily: 'Inter_28pt-SemiBold',
+                            color: '#252525',
+                            fontSize: 16,
+                          }}>
+                          Transaction Summary
+                        </Text>
+                      </View>
 
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          justifyContent: 'flex-start',
+                          alignItems: 'center',
+                          alignSelf: 'center',
+                          marginTop: 5,
+                          gap: 10,
+                        }}>
+                        {requestsLoading ? (
+                          <View
+                            style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                            <Text style={{ fontSize: 16, color: '#252525' }}>
+                              Loading...
+                            </Text>
+                          </View>
+                        ) : (
+                          <>
+                            {[
+                              {
+                                label: 'Daily',
+                                screen: 'EvalDaily',
+                                icon: 'calendar-today', // MaterialCommunityIcons icon name
+                              },
+                              {
+                                label: 'Monthly',
+                                screen: 'EvalMonthly',
+                                icon: 'calendar-month', // Monthly icon
+                              },
+                              {
+                                label: 'Annual',
+                                screen: 'EvalAnnual',
+                                icon: 'calendar',
+                              },
+                            ].map((item, index, arr) => (
+                              <Pressable
+                                key={index}
+                                onPress={() =>
+                                  navigation.navigate(item.screen, {
+                                    ...item,
+                                    selectedYear,
+                                  })
+                                }
+                                style={({ pressed }) => [
+                                  {
+                                    width: arr.length === 3 ? '31%' : '31%',
+                                    width: '30%',
+                                    alignItems: 'center',
+                                    paddingVertical: 10,
+                                    borderRadius: 5,
+                                    elevation: 1,
+                                    backgroundColor: pressed ? '#007bff' : '#ffffff',
+                                    borderBottomWidth: 2,
+                                    borderBottomColor: 'silver',
+                                    borderRightWidth: 2,
+                                    borderRightColor: 'silver',
+                                  },
+                                ]}
+                                android_ripple={{}}>
+                                {({ pressed }) => (
+                                  <>
+                                    <Icons
+                                      name={item.icon}
+                                      size={35}
+                                      //color={pressed ? 'white' : '#0c0c0c'}
+                                      color={pressed ? 'white' : '#007bff'}
+                                    />
+                                    <Text
+                                      style={{
+                                        color: pressed ? 'white' : '#252525',
+                                        fontFamily: 'Inter_28pt-Regular',
+                                        fontSize: 10,
+                                      }}>
+                                      {item.label}
+                                    </Text>
+                                  </>
+                                )}
+                              </Pressable>
+                            ))}
+                          </>
+                        )}
+                      </View>
+                    </View>
                   </View>
                 )}
               </>
@@ -3906,8 +4022,7 @@ const DoctrackScreen = ({
                           }}
                         >
                           {itemsToShowRegTrackSum?.map((item, index) => {
-                            console.log(`Item ${index} - Status: ${item.Status}, Count: ${item.Count}`);
-
+                      
                             return (
                               <Pressable
                                 key={index}
@@ -3998,124 +4113,6 @@ const DoctrackScreen = ({
 
           )}
 
-
-        <View
-          style={{
-            padding: 10,
-            marginTop: 10,
-            backgroundColor: 'white',
-            borderRadius: 5,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 6,
-            /* borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver', */
-          }}>
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: '#eee',
-              paddingBottom: 5,
-              marginBottom: 5,
-            }}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-SemiBold',
-                color: '#252525',
-                fontSize: 16,
-              }}>
-              Transaction Summary
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              alignSelf: 'center',
-              marginTop: 5,
-              gap: 10,
-            }}>
-            {requestsLoading ? (
-              <View
-                style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
-                <Text style={{ fontSize: 16, color: '#252525' }}>
-                  Loading...
-                </Text>
-              </View>
-            ) : (
-              <>
-                {[
-                  {
-                    label: 'Daily',
-                    screen: 'EvalDaily',
-                    icon: 'calendar-today', // MaterialCommunityIcons icon name
-                  },
-                  {
-                    label: 'Monthly',
-                    screen: 'EvalMonthly',
-                    icon: 'calendar-month', // Monthly icon
-                  },
-                  {
-                    label: 'Annual',
-                    screen: 'EvalAnnual',
-                    icon: 'calendar',
-                  },
-                ].map((item, index, arr) => (
-                  <Pressable
-                    key={index}
-                    onPress={() =>
-                      navigation.navigate(item.screen, {
-                        ...item,
-                        selectedYear,
-                      })
-                    }
-                    style={({ pressed }) => [
-                      {
-                        width: arr.length === 3 ? '31%' : '31%',
-                        width: '30%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        borderRadius: 5,
-                        elevation: 1,
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 2,
-                        borderRightColor: 'silver',
-                      },
-                    ]}
-                    android_ripple={{}}>
-                    {({ pressed }) => (
-                      <>
-                        <Icons
-                          name={item.icon}
-                          size={35}
-                          //color={pressed ? 'white' : '#0c0c0c'}
-                          color={pressed ? 'white' : '#007bff'}
-                        />
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#252525',
-                            fontFamily: 'Inter_28pt-Regular',
-                            fontSize: 10,
-                          }}>
-                          {item.label}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                ))}
-              </>
-            )}
-          </View>
-        </View>
 
         {/*PERSONAL VIEW */}
         <View style={{
@@ -4251,7 +4248,7 @@ const DoctrackScreen = ({
             onRefresh={selectedOnRefresh}
           />
         }>
-    
+
 
         {renderUI()}
         <LoadingModal visible={isModalVisible} />
