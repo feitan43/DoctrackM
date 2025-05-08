@@ -2502,68 +2502,154 @@ const DoctrackScreen = ({
 
         <View>
           {(caoReceiver === '1' || caoEvaluator === '1') ? (
-            <View style={{
-              padding: 10,
-              marginTop: 10,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8,
-              borderBottomWidth: 1,
-              borderBottomColor: 'silver',
-              borderRightWidth: 1,
-              borderRightColor: 'silver',
-            }}>
-              <View
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#eee',
-                  paddingBottom: 5,
-                  marginBottom: 5,
-                }}>
-
-                <Text
+            <>
+              <View style={{
+                padding: 10,
+                marginTop: 10,
+                backgroundColor: 'white',
+                borderRadius: 5,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 8,
+                borderBottomWidth: 1,
+                borderBottomColor: 'silver',
+                borderRightWidth: 1,
+                borderRightColor: 'silver',
+              }}>
+                <View
                   style={{
-                    fontFamily: 'Inter_28pt-SemiBold',
-                    color: '#252525',
-                    fontSize: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                    paddingBottom: 5,
+                    marginBottom: 5,
                   }}>
-                  Transaction Counter
-                </Text>
-              </View>
-              {caoReceiver === '1' &&
-                <View>
-                  <View
+
+                  <Text
                     style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    {[
-                      {
-                        label: 'Total Received',
-                        count: receivingCountData?.TotalReceived,
-                      },
-                      {
-                        label: 'Received Today',
-                        count: receivingCountData?.ReceivedToday,
-                      },
-                      {
-                        label: 'Received This Month',
-                        count: receivingCountData?.ReceivedPerMonth?.[0]?.Count,
-                      }
-                    ].map((item, index) => {
-                      const isReceivedThisMonth = item.label === 'Received This Month';
-                      return (
+                      fontFamily: 'Inter_28pt-SemiBold',
+                      color: '#252525',
+                      fontSize: 16,
+                    }}>
+                    Transaction Counter
+                  </Text>
+                </View>
+
+                {caoReceiver === '1' &&
+                  <View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      {[
+                        {
+                          label: 'Total Received',
+                          count: receivingCountData?.TotalReceived,
+                        },
+                        {
+                          label: 'Received Today',
+                          count: receivingCountData?.ReceivedToday,
+                        },
+                        {
+                          label: 'Received This Month',
+                          count: receivingCountData?.ReceivedPerMonth?.[0]?.Count,
+                        }
+                      ].map((item, index) => {
+                        const isReceivedThisMonth = item.label === 'Received This Month';
+                        return (
+                          <Pressable
+                            key={index}
+                            onPress={isReceivedThisMonth ? openModal : undefined}
+                            android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
+                            style={({ pressed }) => ({
+                              width: '30%',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              marginBottom: 10,
+                              borderRadius: 5,
+                              elevation: 1,
+                              backgroundColor: pressed ? '#007bff' : '#ffffff',
+                              borderBottomWidth: 2,
+                              borderBottomColor: 'silver',
+                              borderRightWidth: 2,
+                              borderRightColor: 'silver',
+                            })}
+                          >
+                            {({ pressed }) => (
+                              <>
+
+                                <Text
+                                  style={{
+                                    color: pressed ? 'white' : '#007bff',
+                                    fontFamily: 'Inter_28pt-Bold',
+                                    fontSize: 22,
+                                  }}
+                                >
+                                  {item.count ?? 0}
+                                </Text>
+                                <Text
+                                  style={{
+                                    color: pressed ? 'white' : '#252525',
+                                    fontFamily: 'Oswald-Light',
+                                    fontSize: 12,
+                                    marginTop: 0,
+                                  }}
+                                >
+                                  {item.label}
+                                </Text>
+                              </>
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                }
+                {caoEvaluator === '1' &&
+                  <View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      {[
+                        {
+                          label: 'On Evaluation',
+                          screen: 'OnEvaluation',
+                          length: onEvalDataCount,
+                        },
+                        {
+                          label: 'Evaluated',
+                          screen: 'Evaluated',
+                          length: evaluatedDataCount,
+                        },
+                        {
+                          label: 'Pending',
+                          screen: 'EvalPending',
+                          length: evalPendingDataCount,
+                        },
+                        {
+                          label: 'Pending Released',
+                          screen: 'EvalPendingReleased',
+                          length: evalPendingReleasedCount,
+                        },
+                      ].map((item, index) => (
                         <Pressable
                           key={index}
-                          onPress={isReceivedThisMonth ? openModal : undefined}
-                          android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
+                          onPress={() =>
+                            navigation.navigate(item.screen, {
+                              ...item,
+                              selectedYear,
+                            })
+                          }
                           style={({ pressed }) => ({
                             width: '30%',
                             alignItems: 'center',
@@ -2577,10 +2663,10 @@ const DoctrackScreen = ({
                             borderRightWidth: 2,
                             borderRightColor: 'silver',
                           })}
+                          android_ripple={{}}
                         >
                           {({ pressed }) => (
                             <>
-
                               <Text
                                 style={{
                                   color: pressed ? 'white' : '#007bff',
@@ -2588,13 +2674,13 @@ const DoctrackScreen = ({
                                   fontSize: 22,
                                 }}
                               >
-                                {item.count ?? 0}
+                                {item.length}
                               </Text>
                               <Text
                                 style={{
                                   color: pressed ? 'white' : '#252525',
                                   fontFamily: 'Oswald-Light',
-                                  fontSize: 12,
+                                  fontSize: 10,
                                   marginTop: 0,
                                 }}
                               >
@@ -2603,99 +2689,142 @@ const DoctrackScreen = ({
                             </>
                           )}
                         </Pressable>
-                      );
-                    })}
+                      ))}
+                    </View>
+
+
                   </View>
-                </View>
-              }
-              {caoEvaluator === '1' &&
-                <View>
-                  <View
+                }
+              </View>
+
+              <View
+                style={{
+                  padding: 10,
+                  marginTop: 10,
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'silver',
+                  borderRightWidth: 1,
+                  borderRightColor: 'silver',
+                }}>
+                <View
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                    paddingBottom: 5,
+                    marginBottom: 5,
+                  }}>
+                  <Text
                     style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    {[
-                      {
-                        label: 'On Evaluation',
-                        screen: 'OnEvaluation',
-                        length: onEvalDataCount,
-                      },
-                      {
-                        label: 'Evaluated',
-                        screen: 'Evaluated',
-                        length: evaluatedDataCount,
-                      },
-                      {
-                        label: 'Pending',
-                        screen: 'EvalPending',
-                        length: evalPendingDataCount,
-                      },
-                      {
-                        label: 'Pending Released',
-                        screen: 'EvalPendingReleased',
-                        length: evalPendingReleasedCount,
-                      },
-                    ].map((item, index) => (
-                      <Pressable
-                        key={index}
-                        onPress={() =>
-                          navigation.navigate(item.screen, {
-                            ...item,
-                            selectedYear,
-                          })
-                        }
-                        style={({ pressed }) => ({
-                          width: '30%',
-                          alignItems: 'center',
-                          paddingVertical: 10,
-                          marginBottom: 10,
-                          borderRadius: 5,
-                          elevation: 1,
-                          backgroundColor: pressed ? '#007bff' : '#ffffff',
-                          borderBottomWidth: 2,
-                          borderBottomColor: 'silver',
-                          borderRightWidth: 2,
-                          borderRightColor: 'silver',
-                        })}
-                        android_ripple={{}}
-                      >
-                        {({ pressed }) => (
-                          <>
-                            <Text
-                              style={{
-                                color: pressed ? 'white' : '#007bff',
-                                fontFamily: 'Inter_28pt-Bold',
-                                fontSize: 22,
-                              }}
-                            >
-                              {item.length}
-                            </Text>
-                            <Text
-                              style={{
-                                color: pressed ? 'white' : '#252525',
-                                fontFamily: 'Oswald-Light',
-                                fontSize: 10,
-                                marginTop: 0,
-                              }}
-                            >
-                              {item.label}
-                            </Text>
-                          </>
-                        )}
-                      </Pressable>
-                    ))}
-                  </View>
-
-          
+                      fontFamily: 'Inter_28pt-SemiBold',
+                      color: '#252525',
+                      fontSize: 16,
+                      paddingHorizontal: 10,
+                    }}>
+                    Transaction Summary
+                  </Text>
                 </View>
-              }
-            </View>
 
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    justifyContent: 'flex-start',
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                    marginTop: 5,
+                    gap: 10,
+                  }}>
+                  {requestsLoading ? (
+                    <View
+                      style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                      <Text style={{ fontSize: 16, color: '#252525' }}>
+                        Loading...
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      {[
+                        {
+                          label: 'Daily',
+                          screen: 'EvalDaily',
+                          icon: 'calendar-today', // MaterialCommunityIcons icon name
+                        },
+                        {
+                          label: 'Monthly',
+                          screen: 'EvalMonthly',
+                          icon: 'calendar-month', // Monthly icon
+                        },
+                        {
+                          label: 'Annual',
+                          screen: 'EvalAnnual',
+                          icon: 'calendar',
+                        },
+                      ].map((item, index, arr) => (
+                        <Pressable
+                          key={index}
+                          onPress={() =>
+                            navigation.navigate(item.screen, {
+                              ...item,
+                              selectedYear,
+                            })
+                          }
+                          style={({ pressed }) => [
+                            {
+                              width: arr.length === 3 ? '31%' : '31%',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              marginBottom: 10,
+                              borderRadius: 5,
+                              elevation: 5, // Android shadow
+                              backgroundColor: pressed ? '#007bff' : '#ffffff',
+                              //borderBottomWidth: 1,
+                              //borderBottomColor: 'silver',
+                              //borderRightWidth: 1,
+                              //borderRightColor: 'silver',
 
+                              // iOS shadow properties
+                              shadowColor: '#000',
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.5,
+                              shadowRadius: 1,
+                            },
+                          ]}
+                          android_ripple={{}}>
+                          {({ pressed }) => (
+                            <>
+                              <Icons
+                                name={item.icon}
+                                size={35}
+                                //color={pressed ? 'white' : '#0c0c0c'}
+                                color={pressed ? 'white' : '#007bff'}
+                              />
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#252525',
+                                  fontFamily: 'Inter_28pt-Regular',
+                                  fontSize: 10,
+                                }}>
+                                {item.label}
+                              </Text>
+                            </>
+                          )}
+                        </Pressable>
+                      ))}
+                    </>
+                  )}
+                </View>
+              </View>
+            </>
+
+          ) : (caoReceiver !== '1' && caoEvaluator !== '1' && gsoInspection === '1') ? (
+            <Text>GSO Inspector UI</Text>
           ) : procurement === '1' && (
             <Text>Procurement UI</Text>
           )}
