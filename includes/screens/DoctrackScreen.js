@@ -376,8 +376,11 @@ const DoctrackScreen = ({
   regTrackSumLoading,
   accountabilityData,
   fetchMyAccountability,
+  requestsLength,
   requestsLoading,
   fetchRequests,
+  OnScheduleLength,
+  myTransactionsLoading,
   onEvalDataCount,
   evaluatedDataCount,
   evalPendingDataCount,
@@ -2824,8 +2827,225 @@ const DoctrackScreen = ({
             </>
 
           ) : (caoReceiver !== '1' && caoEvaluator !== '1' && gsoInspection === '1') ? (
-            <Text>GSO Inspector UI</Text>
-          ) : procurement === '1' && (
+            <>
+              <View
+                style={{
+                  padding: 10,
+                  marginTop: 10,
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'silver',
+                  borderRightWidth: 1,
+                  borderRightColor: 'silver',
+                }}>
+                <View
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                    paddingBottom: 5,
+                    marginBottom: 5,
+                  }}>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_28pt-Bold',
+                      color: '#252525',
+                      fontSize: 15,
+                      paddingHorizontal: 10,
+                    }}>
+                    Inspection Status
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                  {requestsLoading ? (
+                    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                      <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
+                    </View>
+                  ) : (
+                    <>
+                      {[
+                        {
+                          label: 'For Inspection',
+                          screen: 'ForInspection',
+                          length: `${forInspection ?? 0}`,
+                        },
+                        {
+                          label: 'Inspected',
+                          screen: 'Inspected',
+                          length: `${inspected ?? 0}`,
+                        },
+                        {
+                          label: 'On Hold',
+                          screen: 'InspectionOnHold',
+                          length: `${inspectionOnHold ?? 0}`,
+                        },
+                      ].map((item, index, arr) => (
+                        <Pressable
+                          key={index}
+                          onPress={() => navigation.navigate(item.screen, item.params)}
+                          style={({ pressed }) => [
+                            {
+                              width: '30%',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              marginBottom: 10,
+                              borderRadius: 5,
+                              elevation: 1,
+                              backgroundColor: pressed ? '#007bff' : '#ffffff',
+                              borderBottomWidth: 2,
+                              borderBottomColor: 'silver',
+                              borderRightWidth: 2,
+                              borderRightColor: 'silver',
+                            },
+                          ]}
+                          android_ripple={{}}>
+                          {({ pressed }) => (
+                            <>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#007bff',
+                                  fontFamily: 'Inter_28pt-Bold',
+                                  fontSize: 26,
+                                }}>
+                                {item.length || 0}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#252525',
+                                  fontFamily: 'Inter_28pt-Regular',
+                                  fontSize: 10,
+                                }}>
+                                {item.label}
+                              </Text>
+                            </>
+                          )}
+                        </Pressable>
+                      ))}
+                    </>
+                  )}
+                </View>
+              </View>
+              <View
+                style={{
+                  padding: 10,
+                  marginTop: 10,
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'silver',
+                  borderRightWidth: 1,
+                  borderRightColor: 'silver',
+                }}>
+                <View
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                  }}>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_28pt-Bold',
+                      color: '#252525',
+                      fontSize: 15,
+                      paddingHorizontal: 10,
+                    }}>
+                    Scheduler
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    marginTop: 5,
+                    gap: 15,
+
+                  }}>
+                  {requestsLoading ? (
+                    <View
+                      style={{ flex: 1, alignItems: 'center', paddingVertical: 10 }}>
+                      <Text style={{ fontSize: 16, color: '#252525' }}>Loading...</Text>
+                    </View>
+                  ) : (
+                    <>
+                      {[
+                        {
+                          label: 'Request',
+                          screen: 'RequestScreen',
+                          length: `${requestsLength}`,
+                        },
+                        {
+                          label: 'On Schedule',
+                          screen: 'OnScheduleScreen',
+                          length: `${OnScheduleLength}`,
+                        },
+                      ].map((item, index, arr) => (
+                        <Pressable
+                          key={index}
+                          onPress={() =>
+                            navigation.navigate(item.screen, item.params)
+                          }
+                          style={({ pressed }) => [
+                            {
+                              width: '30%',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              marginBottom: 10,
+                              borderRadius: 5,
+                              elevation: 1,
+                              backgroundColor: pressed ? '#007bff' : '#ffffff',
+                              borderBottomWidth: 2,
+                              borderBottomColor: 'silver',
+                              borderRightWidth: 2,
+                              borderRightColor: 'silver',
+                            },
+                          ]}
+                          android_ripple={{}}>
+                          {({ pressed }) => (
+                            <>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#007bff',
+                                  fontFamily: 'Inter_28pt-Bold',
+                                  fontSize: 26,
+                                }}>
+                                {item.length || 0}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#252525',
+                                  fontFamily: 'Inter_28pt-Regular',
+                                  fontSize: 10,
+                                }}>
+                                {item.label}
+                              </Text>
+                            </>
+                          )}
+                        </Pressable>
+                      ))}
+                    </>
+                  )}
+                </View>
+              </View></>
+
+          ) : (procurement === '1' || accountType === '1') && (
             <Text>Procurement UI</Text>
           )}
         </View>
