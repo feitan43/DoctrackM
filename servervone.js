@@ -1606,7 +1606,7 @@ app.get('/myTransactions', async (req, res) => {
     //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`;
     //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`;
     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`; //
-
+    console.log(apiUrl);
     const apiResponse = await fetch(apiUrl);
 
 
@@ -2658,6 +2658,157 @@ app.get('/projectCleansingDetails', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   } 
 });
+
+app.post('/empLoginApi', async (req, res) => {
+  const {
+    EmployeeNumber,
+    Password,
+    PushToken = '',
+    UserDevice = ''
+  } = req.body;
+
+  console.log(EmployeeNumber, Password, PushToken, UserDevice);
+  if (!EmployeeNumber || !Password) {
+    return res.status(400).json({
+      error: 'Missing EmployeeNumber or Password'
+    });
+  }
+
+  const hashedPassword = crypto.createHash('md5').update(Password).digest('hex');
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php`;
+  const body = new URLSearchParams({
+    empLogin: '1',
+    user: EmployeeNumber,
+    pass: hashedPassword,
+    pushToken: PushToken,
+    userDevice: UserDevice
+  });
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body
+    });
+
+    const result = await response.json();
+    console.log('Login result:', result);
+
+    if (Array.isArray(result) && result.length > 0) {
+      const user = result[0];
+      const token = jwt.sign({
+        user
+      }, 'feitan');
+      return res.json({
+        token,
+        user
+      });
+    }
+
+    const errorMsg = result ?.message || 'Invalid credentials';
+    return res.status(401).json({
+      error: errorMsg
+    });
+
+  } catch (err) {
+    console.error('Login error:', err);
+    return res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.get('/myPayroll', async (req, res) => {
+  const {EmployeeNumber, Year} = req.query;
+  
+  console.log("Year-- Server",Year, EmployeeNumber);
+  
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?lesley=1&year=${Year}&empnum=${EmployeeNumber}`; //
+    console.log(apiUrl);
+    const apiResponse = await fetch(apiUrl);
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+
+    //console.log(data);
+
+   // io.emit('myTransactionData', data);
+
+    
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in myTransactions:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/myPayrollDetails', async (req, res) => {
+  const { TrackingNumber, Year } = req.query;
+
+  try {
+    // Existing code remains the same
+    //const apiUrl = `https://www.davaocityportal.com/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
+    //const apiUrl = `http://localhost/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?riptide=1&year=${Year}&tn=${TrackingNumber}`;
+    
+    const apiResponse = await fetch(apiUrl);
+    //console.log(apiUrl)
+
+
+    if (!apiResponse.ok) {
+      throw new Error(`API request failed with status: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
+   // console.log(data)
+
+    res.json(data);
+
+    // Remaining code remains the same
+  } catch (error) {
+    console.error('Error fetching data in genInformation:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/myAccountabilities', async (req, res) => {
+  const { EmployeeNumber } = req.query;
+
+  if (!EmployeeNumber) {
+    return res.status(400).json({ error: 'EmployeeNumber is required' });
+  }
+
+  try {
+    const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?dabi=1&empnum=${EmployeeNumber}`;
+    const apiResponse = await axios.get(apiUrl);
+
+    res.json(apiResponse.data);
+  } catch (error) {
+    console.error('Error fetching data in myAccountability:', error.message);
+
+    if (error.response) {
+      return res.status(error.response.status).json({ error: error.response.statusText });
+    }
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
 
 
 
