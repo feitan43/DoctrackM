@@ -1,6 +1,6 @@
-import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import BASE_URL from '../../config';
-import {createDrawerNavigator} from '@react-navigation/drawer';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import {
   View,
   StyleSheet,
@@ -18,9 +18,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import {Dropdown} from 'react-native-element-dropdown';
-import notifee, {AuthorizationStatus} from '@notifee/react-native';
-import {HStack, Banner} from '@react-native-material/core';
+import { Dropdown } from 'react-native-element-dropdown';
+import notifee, { AuthorizationStatus } from '@notifee/react-native';
+import { HStack, Banner } from '@react-native-material/core';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DoctrackScreen from './DoctrackScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,7 +38,7 @@ import useMyTransactions from '../api/useMyTransactions';
 import useUserInfo from '../api/useUserInfo';
 import useRecentlyUpdated from '../api/useRecentlyUpdated';
 import useOthers from '../api/useOthers';
-import {useBackButtonHandler} from '../utils/useBackButtonHandler';
+import { useBackButtonHandler } from '../utils/useBackButtonHandler';
 import useTransactionSummary from '../api/useTransactionSummary';
 import SearchScreen from './SearchScreen';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -49,26 +49,27 @@ import useMyAccountability from '../api/useMyAccountabilty';
 import useRequestInspection from '../api/useRequestInspection';
 import useOnSchedule from '../api/useOnSchedule';
 import useRecentActivity from '../api/useRecentActivity';
-import {useEvaluationByStatus} from '../hooks/useEvaluationByStatus';
+import { useEvaluationByStatus } from '../hooks/useEvaluationByStatus';
 import {
   Menu,
   Divider,
   Provider as PaperProvider,
   Button,
 } from 'react-native-paper';
-import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useEvaluatorSummary } from '../hooks/useEvaluatorSummary';
 import { useInspection } from '../hooks/useInspection';
+import DocTrackReceiverScreen from './DocTrackReceiverScreen';
 
 const Drawer = createDrawerNavigator();
 
 const Tab = createBottomTabNavigator();
 const currentYear = new Date().getFullYear();
 
-const HomeScreen = ({navigation}) => {
-  const {officeDelaysData, officeDelaysLength, fetchOfficeDelays} =
+const HomeScreen = ({ navigation }) => {
+  const { officeDelaysData, officeDelaysLength, fetchOfficeDelays } =
     useOfficeDelays();
-  const {regOfficeDelaysLength, fetchDataRegOfficeDelays} =
+  const { regOfficeDelaysLength, fetchDataRegOfficeDelays } =
     useDelaysRegOffice();
   const {
     myTransactionsLength,
@@ -87,6 +88,7 @@ const HomeScreen = ({navigation}) => {
     gsoInspection,
     procurement,
     officeAdmin,
+    caoReceiver,
   } = useUserInfo();
   const {
     recentlyUpdatedData,
@@ -98,6 +100,7 @@ const HomeScreen = ({navigation}) => {
   const [loading, setLoading] = useState();
   const [showReminder, setShowReminder] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
+
   const {
     dataPR,
     dataPO,
@@ -138,6 +141,8 @@ const HomeScreen = ({navigation}) => {
 
   const {
     receivingCountData,
+    receivedMonthly,
+    isReceivedLoading,
     isLoading: loadingReceiving,
     error: receivingError,
     receivingCount,
@@ -175,7 +180,7 @@ const HomeScreen = ({navigation}) => {
   : 0;
 
   const years = Array.from(
-    {length: Math.max(0, currentYear - 2023 + 1)},
+    { length: Math.max(0, currentYear - 2023 + 1) },
     (_, index) => ({
       label: `${currentYear - index}`,
       value: currentYear - index,
@@ -185,7 +190,7 @@ const HomeScreen = ({navigation}) => {
   const [visible, setVisible] = useState(false);
   const openMenu = useCallback(() => setVisible(true), []);
   const closeMenu = useCallback(() => setVisible(false), []);
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [progressModalVisible, setProgressModalVisible] = useState(false);
 
@@ -217,14 +222,14 @@ const HomeScreen = ({navigation}) => {
     setLoading(true);
     setSelectedYear(year);
     bottomSheetRef.current?.dismiss();
-  
+
     setTimeout(() => {
       setLoading(false); 
     }, 1500); 
   
     console.log('Selected Year:', year);
   };
-  
+
   const handleNotification = async () => {
     await notifee.openNotificationSettings();
     setShowReminder(false);
@@ -254,7 +259,7 @@ const HomeScreen = ({navigation}) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({EmployeeNumber: employeeNumber}),
+        body: JSON.stringify({ EmployeeNumber: employeeNumber }),
       };
 
       const response = await fetch(`${BASE_URL}/logoutApi`, requestOptions);
@@ -276,92 +281,98 @@ const HomeScreen = ({navigation}) => {
     }
   };
 
-  const DoctrackScreenComponent = ({}) => {
+  const DoctrackScreenComponent = () => {
     return (
-      <DoctrackScreen
-        navigation={navigation}
-        officeDelaysLength={officeDelaysLength}
-        officeDelaysData={officeDelaysData}
-        myTransactionsLength={myTransactionsLength}
-        regOfficeDelaysLength={regOfficeDelaysLength}
-        recentlyUpdatedLength={recentlyUpdatedLength}
-        recentlyUpdatedData={recentlyUpdatedData}
-        updatedNowData={updatedNowData}
-        fullName={fullName}
-        employeeNumber={employeeNumber}
-        officeCode={officeCode}
-        officeName={officeName}
-        privilege={privilege}
-        permission={permission}
-        accountType={accountType}
+      <>
+        <DoctrackScreen
+          navigation={navigation}
+          officeDelaysLength={officeDelaysLength}
+          officeDelaysData={officeDelaysData}
+          myTransactionsLength={myTransactionsLength}
+          regOfficeDelaysLength={regOfficeDelaysLength}
+          recentlyUpdatedLength={recentlyUpdatedLength}
+          recentlyUpdatedData={recentlyUpdatedData}
+          updatedNowData={updatedNowData}
+          fullName={fullName}
+          employeeNumber={employeeNumber}
+          officeCode={officeCode}
+          officeName={officeName}
+          privilege={privilege}
+          permission={permission}
+          caoReceiver={caoReceiver}
+          accountType={accountType}
         officeAdmin={officeAdmin}
-        liveUpdatedNowData={liveUpdatedNowData}
-        updatedDateTime={updatedDateTime}
-        dataPR={dataPR}
-        dataPO={dataPO}
-        dataPX={dataPX}
-        PRPercentage={PRPercentage}
-        POPercentage={POPercentage}
-        PXPercentage={PXPercentage}
-        loadingTransSum={loadingTransSum}
-        selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear}
-        fetchDataRegOfficeDelays={fetchDataRegOfficeDelays}
-        fetchOfficeDelays={fetchOfficeDelays}
-        fetchMyPersonal={fetchMyPersonal}
-        myTransactionsLoading={myTransactionsLoading}
-        fetchTransactionSummary={fetchTransactionSummary}
-        othersVouchersData={othersVouchersData}
-        othersOthersData={othersOthersData}
-        loadingUseOthers={loadingUseOthers}
-        refetchDataOthers={refetchDataOthers}
-        setDataPR={setDataPR}
-        setPRPercentage={setPRPercentage}
-        calculatePRPercentage={calculatePRPercentage}
-        setDataPO={setDataPO}
-        setPOPercentage={setPOPercentage}
-        calculatePOPercentage={calculatePOPercentage}
-        setDataPX={setDataPX}
-        setPXPercentage={setPXPercentage}
-        calculatePXPercentage={calculatePXPercentage}
-        forInspection={forInspection}
-        inspected={inspected}
-        inspectionOnHold={inspectionOnHold}
-        //inspectionList={inspectionList}
-        inspectionLoading={inspectionLoading}
-        inspectionError={inspectionError}
-        recentActivityData={recentActivityData}
-        recentActivityError={recentActivityError}
-        recentActivityLoading={recentActivityLoading}
-        fetchRecentActivity={fetchRecentActivity}
-        receivingCount={receivingCount}
-        receivingCountData={receivingCountData}
-        loadingReceiving={loadingReceiving}
-        receivingError={receivingError}
-        trackSumData={trackSumData}
-        trackSumError={trackSumError}
-        trackSumLoading={trackSumLoading}
-        refetchTrackSum={refetchTrackSum}
-        regTrackSumData={regTrackSumData}
-        regTrackSumError={regTrackSumError}
-        regTrackSumLoading={regTrackSumLoading}
-        refetchRegTrackSum={refetchRegTrackSum}
-        accountabilityData={accountabilityData}
-        fetchMyAccountability={fetchMyAccountability}
-        requestsLength={requestsLength}
-        requestsLoading={requestsLoading}
-        fetchRequests={fetchRequests}
-        OnScheduleLength={OnScheduleLength}
-        onEvalDataCount={onEvalDataCount}
-        evaluatedDataCount={evaluatedDataCount}
-        evalPendingDataCount={evalPendingDataCount}
-        evalPendingReleasedCount={evalPendingReleasedCount}
-        evaluatorSummary={evaluatorSummary}
-      />
+          liveUpdatedNowData={liveUpdatedNowData}
+          updatedDateTime={updatedDateTime}
+          dataPR={dataPR}
+          dataPO={dataPO}
+          dataPX={dataPX}
+          PRPercentage={PRPercentage}
+          POPercentage={POPercentage}
+          PXPercentage={PXPercentage}
+          loadingTransSum={loadingTransSum}
+          selectedYear={selectedYear}
+          setSelectedYear={setSelectedYear}
+          fetchDataRegOfficeDelays={fetchDataRegOfficeDelays}
+          fetchOfficeDelays={fetchOfficeDelays}
+          fetchMyPersonal={fetchMyPersonal}
+          myTransactionsLoading={myTransactionsLoading}
+          fetchTransactionSummary={fetchTransactionSummary}
+          othersVouchersData={othersVouchersData}
+          othersOthersData={othersOthersData}
+          loadingUseOthers={loadingUseOthers}
+          refetchDataOthers={refetchDataOthers}
+          setDataPR={setDataPR}
+          setPRPercentage={setPRPercentage}
+          calculatePRPercentage={calculatePRPercentage}
+          setDataPO={setDataPO}
+          setPOPercentage={setPOPercentage}
+          calculatePOPercentage={calculatePOPercentage}
+          setDataPX={setDataPX}
+          setPXPercentage={setPXPercentage}
+          calculatePXPercentage={calculatePXPercentage}
+          forInspection={forInspection}
+          inspected={inspected}
+          inspectionOnHold={inspectionOnHold}
+          //inspectionList={inspectionList}
+          inspectionLoading={inspectionLoading}
+          inspectionError={inspectionError}
+          recentActivityData={recentActivityData}
+          recentActivityError={recentActivityError}
+          recentActivityLoading={recentActivityLoading}
+          fetchRecentActivity={fetchRecentActivity}
+          receivingCount={receivingCount}
+          receivingCountData={receivingCountData}
+          // receivedMonthly={receivedMonthly}
+          loadingReceiving={loadingReceiving}
+          isReceivedLoading={isReceivedLoading}
+          receivingError={receivingError}
+          trackSumData={trackSumData}
+          trackSumError={trackSumError}
+          trackSumLoading={trackSumLoading}
+          refetchTrackSum={refetchTrackSum}
+          regTrackSumData={regTrackSumData}
+          regTrackSumError={regTrackSumError}
+          regTrackSumLoading={regTrackSumLoading}
+          refetchRegTrackSum={refetchRegTrackSum}
+          accountabilityData={accountabilityData}
+          fetchMyAccountability={fetchMyAccountability}
+          requestsLength={requestsLength}
+          requestsLoading={requestsLoading}
+          fetchRequests={fetchRequests}
+          OnScheduleLength={OnScheduleLength}
+          onEvalDataCount={onEvalDataCount}
+          evaluatedDataCount={evaluatedDataCount}
+          evalPendingDataCount={evalPendingDataCount}
+          evalPendingReleasedCount={evalPendingReleasedCount}
+          evaluatorSummary={evaluatorSummary}
+        />
+
+      </>
     );
   };
 
-  const SettingsScreenComponent = ({}) => {
+  const SettingsScreenComponent = ({ }) => {
     return (
       <SettingsScreen
         navigation={navigation}
@@ -381,9 +392,9 @@ const HomeScreen = ({navigation}) => {
   const layout = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const [routes] = useState([
-    {key: 'doctrack', title: 'Home', icon: 'home-outline'},
-    {key: 'search', title: 'Search', icon: 'search-outline'},
-    {key: 'settings', title: 'More', icon: 'menu-outline'},
+    { key: 'doctrack', title: 'Home', icon: 'home-outline' },
+    { key: 'search', title: 'Search', icon: 'search-outline' },
+    { key: 'settings', title: 'More', icon: 'menu-outline' },
   ]);
 
   const renderScene = SceneMap({
@@ -490,7 +501,7 @@ const HomeScreen = ({navigation}) => {
                     animationType="fade"
                     transparent={true}
                     visible={progressModalVisible}
-                    onRequestClose={() => {}}>
+                    onRequestClose={() => { }}>
                     <View style={styles.modalOverlay}>
                       <View style={styles.modalContainer}>
                         <ActivityIndicator
@@ -516,7 +527,7 @@ const HomeScreen = ({navigation}) => {
                         keyExtractor={item => item.value.toString()}
                         contentContainerStyle={styles.scrollableList} // Makes it scrollable
                         showsVerticalScrollIndicator={false} // Hides the scrollbar
-                        renderItem={({item}) => (
+                        renderItem={({ item }) => (
                           <Pressable
                             style={styles.yearItem}
                             onPress={() => handleYearSelect(item.value)}>
@@ -524,7 +535,7 @@ const HomeScreen = ({navigation}) => {
                               style={[
                                 styles.yearText,
                                 selectedYear === item.value &&
-                                  styles.selectedYear,
+                                styles.selectedYear,
                               ]}>
                               {item.label}
                             </Text>
@@ -545,35 +556,35 @@ const HomeScreen = ({navigation}) => {
                           variant="contained"
                           title="Enable Notifications"
                           onPress={handleNotification}
-                          titleStyle={{fontSize: 12}}
-                          style={{backgroundColor: '#1a508c'}}
+                          titleStyle={{ fontSize: 12 }}
+                          style={{ backgroundColor: '#1a508c' }}
                         />
                         <Button
                           key="learn-more"
                           variant="text"
                           onPress={() => setShowReminder(false)}
                           title="Dismiss"
-                          titleStyle={{fontSize: 12, color: '#1a508c'}}
+                          titleStyle={{ fontSize: 12, color: '#1a508c' }}
                         />
                       </HStack>
                     }
                   />
                 )}
                 <TabView
-                  navigationState={{index, routes}}
+                  navigationState={{ index, routes }}
                   renderScene={renderScene}
                   onIndexChange={setIndex}
-                  initialLayout={{width: layout.width}}
+                  initialLayout={{ width: layout.width }}
                   tabBarPosition="bottom"
                   transitionStyle="scroll"
-                  style={{backgroundColor: 'pink'}}
+                  // style={{backgroundColor: 'pink'}}
                   renderTabBar={props => (
                     <ImageBackground
                       source={require('../../assets/images/CirclesBG2.png')}
                       style={styles.tabBarBackground}>
                       <TabBar
                         {...props}
-                        renderIcon={({route, focused}) => (
+                        renderIcon={({ route, focused }) => (
                           <Icon
                             name={route.icon}
                             size={focused ? 22 : 20}
@@ -582,9 +593,9 @@ const HomeScreen = ({navigation}) => {
                           />
                         )}
                         style={styles.tabBar}
-                        indicatorStyle={[styles.indicator, {top: 0}]}
+                        indicatorStyle={[styles.indicator, { top: 0 }]}
                         labelStyle={styles.tabLabel}
-                        getLabelText={({route}) => route.title}
+                        getLabelText={({ route }) => route.title}
                         android_ripple={false}
                         pressColor="transparent"
                       />
@@ -594,7 +605,7 @@ const HomeScreen = ({navigation}) => {
                 />
                 {loading && (
                   <View style={styles.loadingContainer}>
-                    <Text style={{color: 'white'}}>
+                    <Text style={{ color: 'white' }}>
                       Changing year to {selectedYear}...
                     </Text>
                   </View>
@@ -666,7 +677,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   header: {
-    paddingTop:35,
+    paddingTop: 35,
     height: 80,
     backgroundColor: '#1a508c',
     flexDirection: 'row',
@@ -733,7 +744,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: {width: 0, height: -2},
+    shadowOffset: { width: 0, height: -2 },
   },
   handleIndicator: {
     width: 40,
@@ -743,10 +754,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 8,
   },
-  bottomSheetContent: {flex: 1, padding: 20, alignItems: 'center'},
+  bottomSheetContent: { flex: 1, padding: 20, alignItems: 'center' },
 
   // Title Styling
-  title: {fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15},
+  title: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
 
   // Year Item Styling
   yearItem: {
@@ -756,7 +767,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-  yearText: {fontSize: 20, fontWeight: 'bold', color: '#333'},
+  yearText: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   selectedYear: {
     fontWeight: 'bold',
     color: '#007AFF',

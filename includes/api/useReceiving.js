@@ -1,208 +1,132 @@
-import {useState, useEffect, useCallback} from 'react';
+import { useState } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import BASE_URL from '../../config';
+import apiClient from './apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useUserInfo from './useUserInfo';
 
-const useReceiving = () => {
-  const [isLoading, setIsLoading] = useState(false);
+const useReceiving = (selectedYear) => {
   const [error, setError] = useState(null);
   const [receivingData, setReceivingData] = useState(null);
   const [revertedData, setRevertedData] = useState(null);
-  const [receivingCountData, setReceivingCountData] = useState(null);
-  const [controller, setController] = useState(null);
-  const {employeeNumber} = useUserInfo();
+  const queryClient = useQueryClient();
+  const { employeeNumber } = useUserInfo();
 
-
-  const autoReceive = useCallback(async (year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, employeeNumber,inputParams) => {
-    if (!year || !trackingNumber) {
-      setError('Year and TrackingNumber are required');
-      return;
-    }
-    
-    if (controller) {
-      controller.abort();
-    }
-
-    const newController = new AbortController();
-    setController(newController);
-
-    setIsLoading(true);
-    setError(null);
-    setReceivingData(null);
-
-    try {
-      const storedToken = await AsyncStorage.getItem('token');
-      if (!storedToken) {
-        setError('Authorization token is missing');
-        setIsLoading(false);
-        return null; // Return null if token is missing
-      }
-
-      const apiUrl = `${BASE_URL}/receiverReceived?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&AccountType=${accountType}&Privilege=${privilege}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}&inputParams=${inputParams}`;
-      const response = await axios.get(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-          'Content-Type': 'application/json',
-        },
-        signal: newController.signal, 
-      });
-      setReceivingData(response.data);
-      return response.data;
-    } catch (err) {
-      if (axios.isCancel(err)) {
-        console.log('Request canceled:', err.message);
-      } else if (err.response) {
-        if (err.response.status === 404) {
-          setError('QR data not found');
-        } else {
-          setError(err.response?.data?.message || 'Server error');
-        }
-      } else if (err.request) {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError('Unexpected error occurred');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  });
-
-  const revertReceived = useCallback(async (year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, employeeNumber) => {
-
-    console.log(year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, employeeNumber);
-    if (!year || !trackingNumber) {
-      setError('Year and TrackingNumber are required');
-      return;
-    }
-    
-    if (controller) {
-      controller.abort();
-    }
-
-    const newController = new AbortController();
-    setController(newController);
-
-    setIsLoading(true);
-    setError(null);
-    setRevertedData(null);
-
-    try {
-      const storedToken = await AsyncStorage.getItem('token');
-      if (!storedToken) {
-        setError('Authorization token is missing');
-        setIsLoading(false);
-        return;
-      }
-
-      const apiUrl = `${BASE_URL}/receiverReverted?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&AccountType=${accountType}&Privilege=${privilege}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}`;
-      const response = await axios.get(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-          'Content-Type': 'application/json',
-        },
-        signal: newController.signal, 
-      });
-      setRevertedData(response.data);
-      return response.data;
-    } catch (err) {
-      if (axios.isCancel(err)) {
-        console.log('Request canceled:', err.message);
-      } else if (err.response) {
-        if (err.response.status === 404) {
-          setError('QR data not found');
-        } else {
-          setError(err.response?.data?.message || 'Server error');
-        }
-      } else if (err.request) {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError('Unexpected error occurred');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  });
-
-  const receivingCount = async () => {
-    if (!employeeNumber) {
-      setError('Employee Number is required');
-      return;
-    }
-
-    if (controller) {
-      controller.abort();
-    }
-
-    const newController = new AbortController();
-    setController(newController);
-
-    setIsLoading(true);
-    setError(null);
-    setReceivingCountData(null);
-
-    try {
-      const storedToken = await AsyncStorage.getItem('token');
-      if (!storedToken) {
-        setError('Authorization token is missing');
-        setIsLoading(false);
-        return;
-      }
-
-      const apiUrl = `${BASE_URL}/receivingCount?EmployeeNumber=${employeeNumber}`;
-      const response = await axios.get(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-          'Content-Type': 'application/json',
-        },
-        signal: newController.signal,
-      });
-
-      setReceivingCountData(response.data);
-      return response.data;
-    } catch (err) {
-      if (axios.isCancel(err)) {
-        console.log('Request canceled:', err.message);
-      } else if (err.response) {
-        if (err.response.status === 404) {
-          setError('QR data not found');
-        } else {
-          setError(err.response?.data?.message || 'Server error');
-        }
-      } else if (err.request) {
-        setError('Network error. Please check your connection.');
-      } else {
-        setError('Unexpected error occurred');
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) throw new Error('Authorization token is missing');
+    return {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
   };
 
+  // MUTATION: AUTO RECEIVE 
+  const autoReceiveMutation = useMutation({
+    mutationFn: async ({
+      year,
+      trackingNumber,
+      trackingType,
+      documentType,
+      status,
+      accountType,
+      privilege,
+      officeCode,
+      inputParams
+    }) => {
+      if (!year || !trackingNumber) throw new Error('Year and TrackingNumber are required');
+      const headers = await getAuthHeaders();
 
-  useEffect(() => {
-    receivingCount();
-  }, [employeeNumber]);
+      const apiUrl = `/receiverReceived?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&AccountType=${accountType}&Privilege=${privilege}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}&inputParams=${inputParams}`;
+      const { data } = await apiClient.get(apiUrl, {}, { headers });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['receivingCount', employeeNumber]);
+      setReceivingData(data);
+    },
+    onError: (err) => {
+      setError(err.message || 'Something went wrong');
+    }
+  });
 
-  useEffect(() => {
-    return () => {
-      if (controller) {
-        controller.abort();
-      }
-    };
-  }, [controller]);
+  // MUTATION: REVERT RECEIVED
+  const revertReceivedMutation = useMutation({
+    mutationFn: async ({
+      year,
+      trackingNumber,
+      trackingType,
+      documentType,
+      status,
+      accountType,
+      officeCode
+    }) => {
+      if (!year || !trackingNumber) throw new Error('Year and TrackingNumber are required');
+      const headers = await getAuthHeaders();
+
+      const apiUrl = `/receiverReverted?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&AccountType=${accountType}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}`;
+      const { data } = await apiClient.get(apiUrl, {}, { headers });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['receivingCount', employeeNumber]);
+      setRevertedData(data);
+    },
+    onError: (error) => {
+      console.error('Revert Error:', axios.isAxiosError(error) ? error.response?.status : error);
+    }
+  });
+
+
+  // RECEIVING COUNT 
+  const receivingCount = useQuery({
+    queryKey: ['receivingCount', employeeNumber, selectedYear],
+    queryFn: async () => {
+      if (!employeeNumber || !selectedYear) return null;
+      const headers = await getAuthHeaders();
+      const apiUrl = `/receivingCount?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
+      const response = await apiClient.get(apiUrl, { headers });
+      return response.data;
+    },
+    enabled: !!employeeNumber && !!selectedYear,
+  });
+
+  //RECEIVED MONTHLY 
+  const receivedMonthly = useQuery({
+    queryKey: ['receivedMonthly', employeeNumber, selectedYear],
+    queryFn: async () => {
+      if (!employeeNumber || !selectedYear) return null;
+      const headers = await getAuthHeaders();
+      const apiUrl = `/receivedMonthly?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
+      const response = await apiClient.get(apiUrl, { headers });
+
+      return response.data;
+    },
+    enabled: !!employeeNumber && !!selectedYear,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+
 
 
   return {
-    isLoading,
+    isLoading: receivedMonthly.isLoading,
+    isPending: receivedMonthly.isPending,
     error,
     receivingData,
-    autoReceive,
+    autoReceive: autoReceiveMutation.mutateAsync,
+    isReceivedLoading: autoReceiveMutation.isPending,
     revertedData,
-    revertReceived,
-    receivingCount,
-    receivingCountData,
+    revertReceived: revertReceivedMutation.mutateAsync,
+    isRevertLoading: revertReceivedMutation.isPending,
+    refetchReceivingCount: receivingCount.refetch,
+    receivingCountData: receivingCount.data,
+    receivedMonthlyData: receivedMonthly.data,
   };
 };
 
 export default useReceiving;
+
+
+
