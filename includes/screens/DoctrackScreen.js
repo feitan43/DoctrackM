@@ -3045,7 +3045,8 @@ const DoctrackScreen = ({
                 </View>
               </View></>
 
-          ) : (procurement === '1' || accountType === '1') && (
+          ) : ((procurement === '1' || accountType === '1') &&
+            ['1071', '1081', '1061', '1091', '8751', '1031', 'BAAC', 'TRAC'].includes(officeCode)) && (
             <Text>Procurement UI</Text>
           )}
         </View>
