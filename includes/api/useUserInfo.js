@@ -8,6 +8,15 @@ const useUserInfo = () => {
   const [userData, setUserData] = useState(null);
   const [token, setToken] = useState(null);
   const [error, setError] = useState(null);
+  const [officeCode, setOfficeCode] = useState(null);
+  const [fullName, setFullName] = useState(null);
+  const [officeName, setOfficeName] = useState(null);
+  const [employeeNumber, setEmployeeNumber] = useState(null);
+  const [privilege, setPrivilege] = useState(null)
+  const [accountType, setAccountType] = useState(null);
+  const [permission, setPermission] = useState(null);
+  const [caoReceiver, setCaoReceiver] = useState(null);
+  const [caoEvaluator, setcaoEvaluator] = useState(null);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -16,16 +25,21 @@ const useUserInfo = () => {
         if (!storedToken) return;
 
         setToken(storedToken);
-        const decoded = decodeToken(storedToken);
-        if (!decoded || !decoded.data || !decoded.data[0]) {
-          throw new Error('Invalid token data');
-        }
+        const decodedResult = decodeToken(storedToken);
 
-        const user = decoded.data[0];
-        setUserData(user);
-      } catch (err) {
-        console.error('Error fetching user info:', err);
-        setError(err.message);
+        setUserData(decodedResult.data[0]);
+        setOfficeCode(decodedResult.data[0].OfficeCode);
+        setFullName(decodedResult.data[0].FullName);
+        setOfficeName(decodedResult.data[0].OfficeName);
+        setEmployeeNumber(decodedResult.data[0].EmployeeNumber);
+        setPrivilege(decodedResult.data[0].Privilege);
+        setAccountType(decodedResult.data[0].AccountType);
+        setPermission(decodedResult.data[0].Permission);
+        setCaoReceiver(decodedResult.data[0].CAORECEIVER);
+        setcaoEvaluator(decodedResult.data[0].CAOEVALUATOR);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        setError(error.message);
       }
     };
 
@@ -44,6 +58,15 @@ const useUserInfo = () => {
 
   return {
     userData,
+    officeCode,
+    fullName,
+    officeName,
+    employeeNumber,
+    privilege,
+    accountType,
+    permission,
+    caoReceiver: userData?.CAORECEIVER ?? null,
+    caoEvaluator: userData?.CAOEVALUATOR ?? null,
     token,
     error,
     officeCode: userData?.OfficeCode ?? null,

@@ -17,11 +17,12 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
-import Icons from 'react-native-vector-icons/FontAwesome6';
+import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Dropdown} from 'react-native-element-dropdown';
 import {Menu, Divider, IconButton, PaperProvider} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
+import useUserInfo from '../api/useUserInfo';
 
 
 
@@ -182,6 +183,7 @@ const SearchScreen = () => {
       value: currentYear - index,
     }),
   );
+  const {caoReceiver} = useUserInfo();
 
   const [searchText, setSearchText] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
@@ -457,7 +459,7 @@ const SearchScreen = () => {
   const renderContent = () => {
     if (selectedView === 'DocumentSearch') {
       return (
-        <>
+        <View>
           <View
             style={{
               flexDirection: 'row',
@@ -548,7 +550,13 @@ const SearchScreen = () => {
               </View>
             </TouchableOpacity>
           </View>
-        </>
+          <View style={{padding: 8}}>
+            {/* <Text>Select Type</Text> */}
+            {/* <TouchableOpacity onPress={() => navigation.navigate('Receiver')}>
+              <Icon name="chevron-back" size={24} />
+            </TouchableOpacity> */}
+          </View>
+        </View>
       );
     } else if (selectedView === 'SearchName') {
       return (
@@ -906,19 +914,19 @@ const SearchScreen = () => {
   );
 
   return (
-    <PaperProvider>
-      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-        <View
-          style={{
-            marginTop: 10,
-            flexDirection: 'row',
-            paddingStart: 10,
-            marginHorizontal: 5,
-            marginBottom: 10,
-            alignItems: 'center', // Aligns items vertically in the row
-            //justifyContent: 'space-between', // Distributes items evenly in the row
-          }}>
-          {/* <TouchableOpacity onPress={openYearModal} style={{}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+      <View
+        style={{
+          marginTop: 10,
+          flexDirection: 'row',
+          paddingStart: 10,
+          marginHorizontal: 5,
+          marginBottom: 10,
+          alignItems: 'center',
+          // Aligns items vertically in the row
+          justifyContent: 'space-between', // Distributes items evenly in the row
+        }}>
+        {/* <TouchableOpacity onPress={openYearModal} style={{}}>
             <View
               style={{
                 backgroundColor: 'rgba(13, 85, 199, 0.8)',
@@ -938,28 +946,36 @@ const SearchScreen = () => {
             </View>
           </TouchableOpacity> */}
 
-          <View
-            /* onPress={() => setSelectedView('DocumentSearch')} */
-            style={{marginLeft: 10,}}>
-            <Text
-              style={{
-                fontFamily: 'Inter_24pt-Bold',
-                fontSize: 24,
-                color: '#252525',
-              }}>
-              {/* Document */}Search
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Inter_24pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-              }}>
-              your tracking number
-            </Text>
-          </View>
+        <View
+          /* onPress={() => setSelectedView('DocumentSearch')} */
+          style={{marginLeft: 10}}>
+          <Text
+            style={{
+              fontFamily: 'Inter_24pt-Bold',
+              fontSize: 24,
+              color: '#252525',
+            }}>
+            {/* Document */}Search
+          </Text>
+          <Text
+            style={{
+              fontFamily: 'Inter_24pt-Regular',
+              fontSize: 14,
+              color: '#252525',
+            }}>
+            your tracking number
+          </Text>
+        </View>
 
-          {/* <View
+        {caoReceiver === '1' && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Receiver')}
+            style={{marginRight: 25}}>
+            <Icons name="qrcode-scan" size={40} color="black" />
+          </TouchableOpacity>
+        )}
+
+        {/* <View
             style={{
               flex: 1,
               flexDirection: 'row',
@@ -1023,46 +1039,41 @@ const SearchScreen = () => {
               <Divider />
             </Menu>
           </View> */}
-        </View>
+      </View>
 
-        <View>
+      <View></View>
 
-        </View>
+      <View style={{paddingHorizontal: 20, paddingBottom: 20}}>
+        {renderContent()}
+      </View>
 
-        <View style={{paddingHorizontal: 20, paddingBottom: 20}}>
-          {renderContent()}
-        </View>
+      <View
+        style={{
+          backgroundColor: 'rgba(232, 232, 232, 1)',
+          flex: 1,
+          paddingHorizontal: 20,
+        }}>
+        {selectedView === 'DocumentSearch' ? renderData() : renderDataPayroll()}
+      </View>
 
-        <View
-          style={{
-            backgroundColor: 'rgba(232, 232, 232, 1)',
-            flex: 1,
-            paddingHorizontal: 20,
-          }}>
-          {selectedView === 'DocumentSearch'
-            ? renderData()
-            : renderDataPayroll()}
-        </View>
-
-        <Modal transparent={true} visible={modalVisible} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <FlatList
-                data={years}
-                renderItem={renderYearItem}
-                keyExtractor={item => item}
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={closeYearModal}>
-                <Text style={styles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+      <Modal transparent={true} visible={modalVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <FlatList
+              data={years}
+              renderItem={renderYearItem}
+              keyExtractor={item => item}
+            />
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={closeYearModal}>
+              <Text style={styles.modalCloseButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-        {/* </ImageBackground> */}
-      </SafeAreaView>
-    </PaperProvider>
+        </View>
+      </Modal>
+      {/* </ImageBackground> */}
+    </SafeAreaView>
   );
 };
 

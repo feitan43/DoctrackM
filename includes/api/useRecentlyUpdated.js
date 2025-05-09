@@ -21,8 +21,8 @@ const useRecentlyUpdated = () => {
   }, []);
 
   const fetchRecentlyUpdatedData = useCallback(async () => {
-    if (permission === '10' || permission === '11') return; // Skip fetch for permission 10 or 11
-
+    if (permission === '10' || permission === '11') return;
+    console.log('Permission: ', permission)
     try {
       setRecentLoading(true);
 
@@ -103,11 +103,11 @@ const useRecentlyUpdated = () => {
   useEffect(() => {
     if (!officeCode || permission === '10' || permission === '11') return; // Skip socket connection for permission 10 or 11
 
-    socketRef.current = io('http://122.2.27.45:3308', {
+    socketRef.current = io('http://192.168.254.131:3308', {
       query: { officeCode },
     });
 
-    socketRef.current.on('connect', () => {});
+    socketRef.current.on('connect', () => { });
 
     socketRef.current.on('updatedNowData', (data) => {
       if (data.officeCode === officeCode) {
@@ -132,7 +132,7 @@ const useRecentlyUpdated = () => {
       }
     });
 
-    socketRef.current.on('disconnect', () => {});
+    socketRef.current.on('disconnect', () => { });
 
     return () => {
       if (socketRef.current) {
