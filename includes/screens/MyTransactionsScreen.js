@@ -38,9 +38,9 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
         shadowOffset: {width: 0, height: 2},
         shadowOpacity: 0.15, // Slightly stronger for better visibility
         shadowRadius: 4,
-        elevation: 5, // Lower elevation to match shadow
-        borderWidth: 1, // Optional: Thin border for refinement
-        borderColor: 'rgba(0, 0, 0, 0.1)', // Light border for subtle separation
+        elevation: 1, // Lower elevation to match shadow
+        //borderWidth: 1, // Optional: Thin border for refinement
+        //borderColor: 'rgba(0, 0, 0, 0.1)', // Light border for subtle separation
       }}>
       <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
         {/* Index Badge */}
@@ -116,8 +116,7 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
 
             <View style={styles.textRow}>
               <Text style={styles.label}>Amount</Text>
-              <Text
-                style={[styles.value, { color: '#007bff'}]}>
+              <Text style={[styles.value, {color: '#007bff'}]}>
                 {insertCommas(item.Amount)}
               </Text>
             </View>
@@ -295,7 +294,7 @@ const MyTransactionsScreen = ({navigation}) => {
       <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
         <View style={styles.container}>
           <ImageBackground
-            source={require('../../assets/images/CirclesBG.png')} 
+            source={require('../../assets/images/CirclesBG.png')}
             style={styles.bgHeader}>
             <View style={styles.header}>
               <Pressable
@@ -333,8 +332,8 @@ const MyTransactionsScreen = ({navigation}) => {
               <View
                 style={{
                   alignItems: 'center',
-              justifyContent: 'center',
-              padding: 20,
+                  justifyContent: 'center',
+                  padding: 20,
                 }}>
                 <Image
                   source={require('../../assets/images/errorState.png')}
@@ -347,11 +346,11 @@ const MyTransactionsScreen = ({navigation}) => {
                 />
                 <Text
                   style={{
-                  alignSelf: 'center',
-                  color: 'gray',
-                  fontSize: 14,
-                  textAlign: 'center',
-                  paddingHorizontal: 10,
+                    alignSelf: 'center',
+                    color: 'gray',
+                    fontSize: 14,
+                    textAlign: 'center',
+                    paddingHorizontal: 10,
                   }}>
                   {typeof error === 'string'
                     ? error
@@ -366,31 +365,31 @@ const MyTransactionsScreen = ({navigation}) => {
               </View>
             ) : myTransactionsData.length === 0 ? (
               <View
-                       style={{
-                         alignItems: 'center',
-                         justifyContent: 'center',
-                         padding: 20,
-                       }}>
-                       <Image
-                         source={require('../../assets/images/noresultsstate.png')}
-                         style={{
-                           width: 200,
-                           height: 200,
-                           resizeMode: 'contain',
-                           marginBottom: 10,
-                         }}
-                       />
-                       <Text
-                         style={{
-                           alignSelf: 'center',
-                           color: 'gray',
-                           fontSize: 14,
-                           textAlign: 'center',
-                           paddingHorizontal: 10,
-                         }}>
-                         No Result Found
-                       </Text>
-                     </View>
+                style={{
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 20,
+                }}>
+                <Image
+                  source={require('../../assets/images/noresultsstate.png')}
+                  style={{
+                    width: 200,
+                    height: 200,
+                    resizeMode: 'contain',
+                    marginBottom: 10,
+                  }}
+                />
+                <Text
+                  style={{
+                    alignSelf: 'center',
+                    color: 'gray',
+                    fontSize: 14,
+                    textAlign: 'center',
+                    paddingHorizontal: 10,
+                  }}>
+                  No Result Found
+                </Text>
+              </View>
             ) : (
               <View style={{height: '100%' /* paddingBottom: 55 */}}>
                 {renderContent()}
@@ -526,7 +525,7 @@ const styles = StyleSheet.create({
     flex: 0.7,
   },
   bgHeader: {
-    paddingTop:30,
+    paddingTop: 30,
     height: 80,
     backgroundColor: '#1a508c',
     flexDirection: 'row',

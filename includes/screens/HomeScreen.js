@@ -58,7 +58,7 @@ import {
 } from 'react-native-paper';
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useEvaluatorSummary } from '../hooks/useEvaluatorSummary';
-import { useInspection } from '../hooks/useInspection';
+import { useInspection, useInspectionRecentActivity } from '../hooks/useInspection';
 import DocTrackReceiverScreen from './DocTrackReceiverScreen';
 
 const Drawer = createDrawerNavigator();
@@ -101,7 +101,7 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState();
   const [showReminder, setShowReminder] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-
+  
   const {
     dataPR,
     dataPO,
@@ -133,12 +133,19 @@ const HomeScreen = ({ navigation }) => {
       recentActivityLoading,
       fetchRecentActivity,
     } = useRecentActivity(); */
-  const {
+/*   const {
     data: recentActivityData,
     error: recentActivityError,
     loading: recentActivityLoading,
     refetch: fetchRecentActivity,
-  } = useInspection();
+  } = useInspection(); */
+  const {
+    data: recentActivityData,
+    isError: recentActivityError,
+    isLoading: recentActivityLoading,
+    } = useInspectionRecentActivity();
+
+    console.log("rec",recentActivityData)
 
   const {
     receivingCountData,
@@ -147,7 +154,9 @@ const HomeScreen = ({ navigation }) => {
     isLoading: loadingReceiving,
     error: receivingError,
     receivingCount,
-  } = useReceiving();
+  } = useReceiving(selectedYear);
+
+
   const { trackSumData, trackSumError, trackSumLoading, refetchTrackSum } = useTrackingSummary(selectedYear);
   const { regTrackSumData, regTrackSumError, regTrackSumLoading, refetchRegTrackSum, } = useRegTrackingSummary(selectedYear);
   const { accountabilityData, error, fetchMyAccountability } = useMyAccountability();
@@ -344,7 +353,7 @@ const HomeScreen = ({ navigation }) => {
           recentActivityData={recentActivityData}
           recentActivityError={recentActivityError}
           recentActivityLoading={recentActivityLoading}
-          fetchRecentActivity={fetchRecentActivity}
+          //fetchRecentActivity={fetchRecentActivity}
           receivingCount={receivingCount}
           receivingCountData={receivingCountData}
           // receivedMonthly={receivedMonthly}
