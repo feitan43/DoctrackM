@@ -25,12 +25,12 @@ const RenderTrackingSummary = memo(({item, index, onPressItem}) => {
   return (
     <View
       style={{
-        backgroundColor: 'rgba(179, 196, 233, 0.1)',
+        //backgroundColor: 'rgba(179, 196, 233, 0.1)',
         marginVertical: 5,
         padding: 10,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#B0C4DE',
+        borderColor: '#ccc',
       }}>
       <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
         <View style={{paddingHorizontal: 10, justifyContent: 'center'}}>

@@ -51,7 +51,6 @@ export const useInspectItems = () => {
 
   const mutation = useMutation({
     mutationFn: async ({ year, deliveryId, trackingNumber, inspectionStatus,invNumber, invDate, remarks }) => {
-      console.log("onhold",year, deliveryId, trackingNumber, inspectionStatus,invNumber, invDate, remarks )
       if (!trackingNumber || !inspectionStatus || !deliveryId) {
         throw new Error('Tracking number and status are required');
       }
@@ -151,7 +150,6 @@ export const useInspectionPRDetails = (year, trackingNumber) => {
 
 export const useInspectionRecentActivity = () => {
   const { employeeNumber } = useUserInfo();
-  console.log("recent", employeeNumber)
   
   return useQuery({
     queryKey: employeeNumber ? ['inspectionRecentActivity', employeeNumber] : ['inspectionRecentActivity'],

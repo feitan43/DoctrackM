@@ -192,7 +192,6 @@ const EvaluateScreen = () => {
           try {
             // Correctly pass qrCodeValue to decryptScannedCode
             const result = decryptScannedCode(qrCodeValue);
-            console.log(result);
             const [year, ...trackingParts] = result.split('-');
             const trackingNumber = trackingParts.join('-');
 

@@ -296,7 +296,6 @@ export default function DocTrackReceiverScreen({
                       if (item.screen) {
                         navigation.navigate(item.screen);
                       } else {
-                        console.log(`${item.label} card pressed`);
                       }
                     }}>
                     {({pressed}) => (

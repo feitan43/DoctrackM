@@ -130,7 +130,6 @@ const ReceiverScreen = () => {
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
 
-    console.log('dataa', data);
 
     if (data.results.length > 0) {
       const resultTrackingNumber =
@@ -409,8 +408,6 @@ const ReceiverScreen = () => {
 
     try {
       const data = await fetchDataSearchReceiver(searchQuery, selectedYear);
-      console.log(data);
-
       if (!data || !data.results || data.results.length === 0) {
         setDataError(true);
         triggerShakeAnimation();
@@ -574,19 +571,6 @@ const ReceiverScreen = () => {
       </View>
     );
   };
-
-  // if (loading) {
-  //   console.log('Loading QR data...');
-  //   <ActivityIndicator size="large" color="#0000ff" />;
-  // } else if (error) {
-  //   Alert.alert('Error', error);
-  // } else if (data) {
-  //   console.log('Fetched QR data:', data);
-  //   /*  if (data.length === 0) {
-  //     // Check if the data array is empty
-  //     ToastAndroid.show('No Results', ToastAndroid.SHORT);
-  //   } */
-  // }
 
   {
     cameraPermission === 'denied' && <CameraPermission />;

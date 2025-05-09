@@ -149,8 +149,6 @@ const QRRevert = () => {
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
 
-    console.log('dataa', data);
-
     if (data.results.length > 0) {
       const resultTrackingNumber =
         trackingNumber.substring(4, 5) === '-' ||
@@ -234,7 +232,6 @@ const QRRevert = () => {
                   return;
           }
  */
-        //console.log('Fetched QR Data:', data);
 
         if (!Array.isArray(data) || data.length === 0) {
           console.error(
@@ -264,7 +261,6 @@ const QRRevert = () => {
 
         try {
           if (data2 && data2.status === 'success') {
-            console.log('data2', data2);
 
             const data = await fetchQRData(year, trackingNumber);
 

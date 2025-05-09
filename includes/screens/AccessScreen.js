@@ -11,6 +11,7 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useUserAccess, useUpdateUserAccess} from '../hooks/usePersonal';
@@ -22,19 +23,21 @@ const systems = [
   {key: 'PAYROLL', label: 'Payroll'},
   {key: 'ELOGS', label: 'E-logs'},
   {key: 'FMS', label: 'FMS'},
-  /* { key: 'GSOINVENTORY', label: 'GSO Inventory' },
-  { key: 'GSOINSPECTION', label: 'GSO Inspection' },
-  { key: 'BACATTACHMENT', label: 'BAC Attachment' }, */
+  /* {key: 'GSOINVENTORY', label: 'GSO Inventory'},
+  {key: 'GSOINSPECTION', label: 'GSO Inspection'},
+  {key: 'BACATTACHMENT', label: 'BAC Attachment'}, */
 ];
 
 const AccessScreen = ({navigation}) => {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedSystem, setSelectedSystem] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSystems, setSelectedSystems] = useState([]);
+  const [showSystemFilters, setShowSystemFilters] = useState(false);
 
   const {data, error, loading: userLoading} = useUserAccess();
   const {mutateAsync: updateUserAccess} = useUpdateUserAccess();
@@ -62,9 +65,40 @@ const AccessScreen = ({navigation}) => {
       });
 
       setUsers(transformedUsers);
+      setFilteredUsers(transformedUsers);
       setLoading(false);
     }
   }, [data]);
+
+  useEffect(() => {
+    filterUsers();
+  }, [searchQuery, selectedSystems, users]);
+
+  const filterUsers = () => {
+    let result = [...users];
+
+    // Apply search filter
+    if (searchQuery) {
+      result = result.filter(
+        user =>
+          (user.employeeNumber &&
+            user.employeeNumber
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())) ||
+          (user.name &&
+            user.name.toLowerCase().includes(searchQuery.toLowerCase())),
+      );
+    }
+
+    // Apply system filter
+    if (selectedSystems.length > 0) {
+      result = result.filter(user =>
+        selectedSystems.every(sys => user.access[sys] === 'access'),
+      );
+    }
+
+    setFilteredUsers(result);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -87,10 +121,6 @@ const AccessScreen = ({navigation}) => {
         activeCount++;
       } else if (user.RegistrationState === '0') {
         inactiveCount++;
-      } else {
-        console.warn(
-          `User with ID ${user.id} has an unknown RegistrationState: ${user.RegistrationState}`,
-        );
       }
     });
 
@@ -99,22 +129,25 @@ const AccessScreen = ({navigation}) => {
 
   const {activeCount, inactiveCount, overallCount} = countUsersByStatus(data);
 
-  const handleRoleChange = (user, systemKey) => {
-    setSelectedUser(user);
-    setSelectedSystem(systemKey);
-    setModalVisible(true);
+  const toggleSystemFilter = systemKey => {
+    setSelectedSystems(prev =>
+      prev.includes(systemKey)
+        ? prev.filter(sys => sys !== systemKey)
+        : [...prev, systemKey],
+    );
   };
 
-  const saveRoleChange = async newAccess => {
-    if (!selectedUser || !selectedSystem) return;
+ /*  const toggleAccess = async (user, systemKey) => {
+    const currentAccess = user.access[systemKey];
+    const newAccess = currentAccess === 'access' ? 'no-access' : 'access';
 
     const updatedUsers = users.map(u => {
-      if (u.id === selectedUser.id) {
+      if (u.id === user.id) {
         return {
           ...u,
           access: {
             ...u.access,
-            [selectedSystem]: newAccess,
+            [systemKey]: newAccess,
           },
         };
       }
@@ -122,12 +155,11 @@ const AccessScreen = ({navigation}) => {
     });
 
     setUsers(updatedUsers);
-    setModalVisible(false);
 
     try {
       const result = await updateUserAccess({
-        employeeNumber: selectedUser.employeeNumber,
-        system: selectedSystem,
+        employeeNumber: user.employeeNumber,
+        system: systemKey,
         access: newAccess === 'access' ? '1' : '0',
       });
 
@@ -157,43 +189,219 @@ const AccessScreen = ({navigation}) => {
         floating: true,
         duration: 3000,
       });
+
+      // Revert the UI change if the API call failed
+      const revertedUsers = users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            access: {
+              ...u.access,
+              [systemKey]: currentAccess,
+            },
+          };
+        }
+        return u;
+      });
+      setUsers(revertedUsers);
     }
-  };
+  }; */
 
-  const filteredUsers = users.filter(
-    user =>
-      (user.employeeNumber &&
-        user.employeeNumber
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())) ||
-      (user.name &&
-        user.name.toLowerCase().includes(searchQuery.toLowerCase())),
-  );
+  const toggleAccess = async (user, systemKey) => {
+  const currentAccess = user.access[systemKey];
+  
+  if (systemKey === 'RegistrationState') {
+    const newState = user.isActive ? '0' : '1'; 
 
-  const renderSystemAccess = (user, system) => {
+    const updatedUsers = users.map(u => {
+      if (u.id === user.id) {
+        return {
+          ...u,
+          isActive: newState === '1',  
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+
+    try {
+      const result = await updateUserAccess({
+        employeeNumber: user.employeeNumber,
+        system: systemKey,
+        access: newState, 
+      });
+
+      if (result.success) {
+        showMessage({
+          message: 'Update Successful',
+          description: 'User account status updated successfully.',
+          type: 'success',
+          icon: 'success',
+          backgroundColor: '#2E7D32',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+        setEditModalVisible(false);
+
+      } else {
+        throw new Error(result.message || 'Update failed');
+      }
+    } catch (error) {
+      showMessage({
+        message: 'Update Failed',
+        description: error.message || 'There was an issue updating user status.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#C62828',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+
+      const revertedUsers = users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            isActive: !user.isActive, 
+          };
+        }
+        return u;
+      });
+      setUsers(revertedUsers);
+    }
+    return;
+  }
+
+  const newAccess = currentAccess === 'access' ? 'no-access' : 'access';
+
+  const updatedUsers = users.map(u => {
+    if (u.id === user.id) {
+      return {
+        ...u,
+        access: {
+          ...u.access,
+          [systemKey]: newAccess,
+        },
+      };
+    }
+    return u;
+  });
+
+  setUsers(updatedUsers);
+
+  try {
+    const result = await updateUserAccess({
+      employeeNumber: user.employeeNumber,
+      system: systemKey,
+      access: newAccess === 'access' ? '1' : '0',
+    });
+
+    if (result.success) {
+      showMessage({
+        message: 'Update Successful',
+        description: 'User access updated successfully.',
+        type: 'success',
+        icon: 'success',
+        backgroundColor: '#2E7D32',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      setEditModalVisible(false)
+    } else {
+      throw new Error(result.message || 'Update failed');
+    }
+  } catch (error) {
+    showMessage({
+      message: 'Update Failed',
+      description: error.message || 'There was an issue updating user access.',
+      type: 'danger',
+      icon: 'danger',
+      backgroundColor: '#C62828',
+      color: '#FFFFFF',
+      floating: true,
+      duration: 3000,
+    });
+
+    const revertedUsers = users.map(u => {
+      if (u.id === user.id) {
+        return {
+          ...u,
+          access: {
+            ...u.access,
+            [systemKey]: currentAccess,
+          },
+        };
+      }
+      return u;
+    });
+    setUsers(revertedUsers);
+  }
+};
+
+  const renderAccessChip = (user, system) => {
     const hasAccess = user.access[system.key] === 'access';
     return (
       <TouchableOpacity
         key={system.key}
         style={[
-          styles.systemAccessButton,
-          hasAccess ? styles.accessButton : styles.noAccessButton,
+          styles.chip,
+          hasAccess ? styles.chipEnabled : styles.chipDisabled,
         ]}
-        onPress={() => handleRoleChange(user, system.key)}>
-        <Text style={styles.systemAccessText}>
-          {hasAccess ? 'Access' : 'No Access'}
-        </Text>
+        disabled={true}>
+        <Text style={styles.chipText}>{system.label}</Text>
         <Icon
-          name={hasAccess ? 'checkmark-circle' : 'close-circle'}
-          size={16}
+          name={hasAccess ? 'checkmark' : 'close'}
+          size={14}
           color="#fff"
-          style={styles.accessIcon}
+          style={styles.chipIcon}
         />
       </TouchableOpacity>
     );
   };
 
-  const renderItem = ({item, index}) => (
+const renderItem = ({ item, index }) => (
+  <View style={styles.userCard}>
+    <View style={styles.userInfo}>
+      <View style={styles.userHeaderRow}>
+        <Text style={styles.userIndex}>{index + 1}.</Text>
+        <Text style={styles.userName}>{item.employeeNumber}</Text>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          style={styles.editIconContainer}
+          onPress={() => {
+            setSelectedUser(item);
+            setEditModalVisible(true);
+          }}>
+          <Icon name="settings-outline" size={24} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.userHeaderRow}>
+        <Text style={styles.userFullName}>{item.name}</Text>
+        <View style={{ flex: 1 }} />
+      </View>
+
+      <Text style={styles.userStatus}>
+        {'Status: '}
+        <Text style={item.isActive ? styles.activeIcon : styles.inactiveIcon}>
+          {item.isActive ? 'Active' : 'Inactive'}
+        </Text>
+      </Text>
+
+      <View style={styles.chipsContainer}>
+        {systems
+          .filter(system => item.access[system.key] === 'access')
+          .map(system => renderAccessChip(item, system))}
+      </View>
+    </View>
+  </View>
+);
+
+
+/*   const renderItem = ({item, index}) => (
     <View style={styles.userCard}>
       <View style={styles.userInfo}>
         <View style={styles.userHeaderRow}>
@@ -208,17 +416,23 @@ const AccessScreen = ({navigation}) => {
           </Text>
         </Text>
 
-        <View style={styles.systemsContainer}>
-          {systems.map(system => (
-            <View key={system.key} style={styles.systemRow}>
-              <Text style={styles.systemLabel}>{system.label}:</Text>
-              {renderSystemAccess(item, system)}
-            </View>
-          ))}
+        <View style={styles.chipsContainer}>
+          {systems
+            .filter(system => item.access[system.key] === 'access')
+            .map(system => renderAccessChip(item, system))}
         </View>
+
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => {
+            setSelectedUser(item);
+            setEditModalVisible(true);
+          }}>
+          <Text style={styles.editButtonText}>Edit Access</Text>
+        </TouchableOpacity>
       </View>
     </View>
-  );
+  ); */
 
   if (loading || userLoading) {
     return (
@@ -243,9 +457,7 @@ const AccessScreen = ({navigation}) => {
               <Icon name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Access</Text>
-            <TouchableOpacity
-              //onPress={handleFiltersPress}
-              style={styles.searchIcon}>
+            <TouchableOpacity style={styles.searchIcon}>
               {/* <Icon name="ellipsis-vertical" size={20} color="#fff" /> */}
             </TouchableOpacity>
           </>
@@ -278,6 +490,71 @@ const AccessScreen = ({navigation}) => {
         </View>
       </View>
 
+      {/* System Filters */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={styles.filterToggleButton}
+          onPress={() => setShowSystemFilters(!showSystemFilters)}>
+          <Text style={styles.filterToggleButtonText}>
+            {showSystemFilters ? 'Hide System Filters' : 'Filter by System'}
+          </Text>
+          <Icon
+            name={showSystemFilters ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color="#1a508c"
+          />
+        </TouchableOpacity>
+
+        {showSystemFilters && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.systemFiltersContainer}>
+            {systems.map(system => (
+              <TouchableOpacity
+                key={system.key}
+                style={[
+                  styles.systemFilterButton,
+                  selectedSystems.includes(system.key) &&
+                    styles.systemFilterButtonSelected,
+                ]}
+                onPress={() => toggleSystemFilter(system.key)}>
+                <Text
+                  style={[
+                    styles.systemFilterButtonText,
+                    selectedSystems.includes(system.key) &&
+                      styles.systemFilterButtonTextSelected,
+                  ]}>
+                  {system.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {selectedSystems.length > 0 && (
+          <View style={styles.activeFiltersContainer}>
+            <Text style={styles.activeFiltersText}>Active filters:</Text>
+            <View style={styles.activeFiltersChips}>
+              {selectedSystems.map(systemKey => {
+                const system = systems.find(s => s.key === systemKey);
+                return (
+                  <View key={systemKey} style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterChipText}>
+                      {system?.label}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => toggleSystemFilter(systemKey)}>
+                      <Icon name="close" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+      </View>
+
       <FlatList
         data={filteredUsers}
         renderItem={renderItem}
@@ -289,69 +566,84 @@ const AccessScreen = ({navigation}) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No users found</Text>
+            {selectedSystems.length > 0 && (
+              <Text style={styles.emptySubtext}>
+                No users have access to all selected systems
+              </Text>
+            )}
           </View>
         }
       />
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Change{' '}
-              {systems.find(s => s.key === selectedSystem)?.label ||
-                selectedSystem}{' '}
-              Access
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              for {selectedUser?.name} {/* (#{selectedUser?.employeeNumber}) */}
-            </Text>
+      {/* Edit Access Modal */}
+     <Modal
+  animationType="slide"
+  transparent={true}
+  visible={editModalVisible}
+  onRequestClose={() => setEditModalVisible(false)}>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Edit Access</Text>
+      <Text style={styles.modalSubtitle}>
+        {selectedUser?.name} ({selectedUser?.employeeNumber})
+      </Text>
 
-            <View style={styles.roleOptionsContainer}>
+         <View style={styles.modalRegistrationContainer}>
+      <Text style={styles.modalSystemLabel}>Account</Text>
+       {/*  <Text>{selectedUser?.isActive ? 'Active' : 'Inactive'}</Text> */}
+        <TouchableOpacity
+          style={[
+            styles.modalToggleButton,
+            selectedUser?.isActive
+              ? styles.modalToggleButtonEnabled
+              : styles.modalToggleButtonDisabled,
+          ]}
+          onPress={() => toggleAccess(selectedUser, "RegistrationState")}>  
+          <Text style={styles.modalToggleButtonText}>
+            {selectedUser?.isActive ? 'Deactivate' : 'Activate'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+        
+
+      <View style={styles.modalSystemsContainer}>
+        {systems.map(system => {
+          const hasAccess = selectedUser?.access[system.key] === 'access';
+          return (
+            <View key={system.key} style={styles.modalSystemRow}>
+              <Text style={styles.modalSystemLabel}>{system.label}</Text>
               <TouchableOpacity
                 style={[
-                  styles.roleOption,
-                  selectedUser?.access[selectedSystem] === 'access' &&
-                    styles.selectedRoleOption,
-                  styles.accessOption,
+                  styles.modalToggleButton,
+                  hasAccess
+                    ? styles.modalToggleButtonEnabled
+                    : styles.modalToggleButtonDisabled,
                 ]}
-                onPress={() => saveRoleChange('access')}>
-                <Icon name="checkmark-circle" size={24} color="#4CAF50" />
-                <Text style={styles.roleOptionText}>Grant Access</Text>
-                {selectedUser?.access[selectedSystem] === 'access' && (
-                  <Icon name="checkmark" size={24} color="#1a508c" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.roleOption,
-                  selectedUser?.access[selectedSystem] === 'no-access' &&
-                    styles.selectedRoleOption,
-                  styles.noAccessOption,
-                ]}
-                onPress={() => saveRoleChange('no-access')}>
-                <Icon name="close-circle" size={24} color="#F44336" />
-                <Text style={styles.roleOptionText}>Revoke Access</Text>
-                {selectedUser?.access[selectedSystem] === 'no-access' && (
-                  <Icon name="checkmark" size={24} color="#1a508c" />
-                )}
+                onPress={() => toggleAccess(selectedUser, system.key)}>
+                <Text style={styles.modalToggleButtonText}>
+                  {hasAccess ? 'Revoke' : 'Grant'}
+                </Text>
               </TouchableOpacity>
             </View>
+          );
+        })}
+      </View>
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+   
+
+      <View style={styles.modalButtons}>
+        <TouchableOpacity
+          style={styles.doneButton}
+          onPress={() => setEditModalVisible(false)}>
+          <Text style={styles.doneButtonText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+
     </SafeAreaView>
   );
 };
@@ -418,11 +710,14 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
   },
+  userHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 2,
   },
   userIndex: {
     fontSize: 14,
@@ -432,47 +727,40 @@ const styles = StyleSheet.create({
   userFullName: {
     fontSize: 14,
     color: '#555',
-    marginBottom: 10,
+    marginTop: 2,
     fontStyle: 'italic',
   },
   userStatus: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 15,
+    marginVertical: 10,
   },
-  systemsContainer: {
-    marginTop: 10,
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10,
   },
-  systemRow: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginRight: 8,
     marginBottom: 8,
   },
-  systemLabel: {
-    width: 120,
-    fontSize: 14,
-    color: '#555',
+  chipEnabled: {
+    backgroundColor: '#4CAF50',
   },
-  systemAccessButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    minWidth: 100,
+  chipDisabled: {
+    backgroundColor: '#F44336',
   },
-  systemAccessText: {
+  chipText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '500',
   },
-  accessButton: {
-    backgroundColor: '#4CAF50',
-  },
-  noAccessButton: {
-    backgroundColor: '#F44336',
-  },
-  accessIcon: {
+  chipIcon: {
     marginLeft: 5,
   },
   emptyContainer: {
@@ -485,6 +773,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
   },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 10,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -496,12 +789,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
     color: '#333',
+    marginBottom: 5,
   },
   modalSubtitle: {
     fontSize: 16,
@@ -509,45 +804,52 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 20,
   },
-  roleOptionsContainer: {
-    marginVertical: 15,
+  modalSystemsContainer: {
+    marginVertical: 10,
   },
-  roleOption: {
+  modalSystemRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  selectedRoleOption: {
-    backgroundColor: '#f0f7ff',
-    borderWidth: 1,
-    borderColor: '#1a508c',
-  },
-  accessOption: {
-    backgroundColor: '#E8F5E9',
-  },
-  noAccessOption: {
-    backgroundColor: '#FFEBEE',
-  },
-  roleOptionText: {
-    flex: 1,
+  modalSystemLabel: {
     fontSize: 16,
-    marginLeft: 15,
     color: '#333',
+    paddingVertical:10
+  },
+  modalToggleButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  modalToggleButtonEnabled: {
+    backgroundColor: '#F44336',
+  },
+  modalToggleButtonDisabled: {
+    backgroundColor: '#4CAF50',
+  },
+  modalToggleButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   modalButtons: {
     marginTop: 20,
   },
-  cancelButton: {
+  doneButton: {
     padding: 12,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1a508c',
     borderRadius: 5,
     alignItems: 'center',
   },
-  cancelButtonText: {
-    color: '#666',
-    fontWeight: '500',
+  doneButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   activeIcon: {
     color: '#4CAF50',
@@ -573,26 +875,103 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#4CAF50', // Green for active
+    backgroundColor: '#4CAF50',
     marginRight: 5,
   },
   inactiveLegend: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#F44336', // Red for inactive
+    backgroundColor: '#F44336',
     marginRight: 5,
   },
   overallLegend: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#2196F3', // Blue for overall
+    backgroundColor: '#2196F3',
     marginRight: 5,
   },
   legendText: {
     fontSize: 14,
     color: '#333',
+  },
+  editButton: {
+    backgroundColor: '#1a508c',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  filterContainer: {
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  filterToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  filterToggleButtonText: {
+    color: '#1a508c',
+    fontWeight: 'bold',
+  },
+  systemFiltersContainer: {
+    paddingVertical: 10,
+  },
+  systemFilterButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1a508c',
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  systemFilterButtonSelected: {
+    backgroundColor: '#1a508c',
+  },
+  systemFilterButtonText: {
+    color: '#1a508c',
+  },
+  systemFilterButtonTextSelected: {
+    color: '#fff',
+  },
+  activeFiltersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
+  activeFiltersText: {
+    marginRight: 10,
+    color: '#666',
+  },
+  activeFiltersChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a508c',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    marginRight: 8,
+    marginBottom: 5,
+  },
+  activeFilterChipText: {
+    color: '#fff',
+    marginRight: 5,
   },
 });
 

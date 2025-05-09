@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   label: {
     //backgroundColor:'red',
     width: '25%',
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: 'Inter_28pt-Light',
     color: 'gray',
     textAlign: 'right',
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   value: {
     //backgroundColor:'blue',
     width: '70%',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: '#333',
     marginStart: 15,

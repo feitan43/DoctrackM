@@ -17,8 +17,6 @@ export const useEvaluate = () => {
         Status,
       });
 
-      console.log("res", response);
-
       return response.data;
     },
     onError: (error) => {
@@ -31,7 +29,6 @@ export const useEvaluate = () => {
       });
     },
     onSuccess: (data) => {
-      console.log('Evaluation successful:', data);
       // Show a success message.
       showMessage({
         message: 'Evaluation Successful!',

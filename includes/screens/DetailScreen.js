@@ -254,7 +254,6 @@ const DetailScreen = ({route, navigation}) => {
     employeeNumber,
     onSuccessCallback,
   ) => {
-    console.log('form', form);
 
     if (!items || items.length === 0) {
       showMessage({

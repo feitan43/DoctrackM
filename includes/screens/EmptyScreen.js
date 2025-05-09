@@ -3,7 +3,6 @@ import { View, Text } from 'react-native';
 
 const EmptyScreen = ({ userId }) => {
 
-  console.log("User",userId);
   return (
     <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
     {userId ? (

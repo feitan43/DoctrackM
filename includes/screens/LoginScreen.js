@@ -313,7 +313,6 @@ const LoginScreen = ({navigation}) => {
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log('Fetch request aborted due to timeout');
         Alert.alert('Error', 'The request timed out. Please try again.');
       } else {
         console.error(error);

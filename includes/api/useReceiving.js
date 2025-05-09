@@ -85,7 +85,6 @@ const useReceiving = (selectedYear) => {
       if (!employeeNumber || !selectedYear) return null;
       const headers = await getAuthHeaders();
       const apiUrl = `/receivingCount?EmployeeNumber=${employeeNumber}&Year=${selectedYear}`;
-      console.log("api",apiUrl)
       const response = await apiClient.get(apiUrl, { headers });
       return response.data;
     },

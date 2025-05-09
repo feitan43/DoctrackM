@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useMyTransactions from '../api/useMyTransactions';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import {Shimmer} from '../utils/useShimmer';
 import {insertCommas} from '../utils/insertComma';
 import {Menu, PaperProvider} from 'react-native-paper';
@@ -28,22 +27,168 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
   const getShortMonth = month => month.slice(0, 3);
 
   return (
-    <View
+       <View
+          style={{
+            //backgroundColor: 'rgba(179, 196, 233, 0.1)',
+            marginVertical: 5,
+            padding: 10,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#ccc',
+            marginBottom:20
+          }}>
+          <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+            <View style={{paddingHorizontal: 10, justifyContent: 'center'}}>
+              <Text
+                style={{
+                  fontSize: 15,
+                  textAlign: 'right',
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#007bff',
+                }}>
+                {index + 1}
+              </Text>
+            </View>
+    
+            {/* Content Section */}
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  marginBottom: 5,
+                  borderBottomWidth: 1,
+                  paddingBottom: 5,
+                  borderColor: item?.Status?.includes('Pending')
+                    ? '#FF9800'
+                    : '#252525',
+                }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: 'Inter_28pt-Bold',
+                    color: item?.Status?.includes('Pending')
+                      ? '#FF9800'
+                      : '#252525',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}>
+                  {item?.Status ?? ''}
+                </Text>
+              </View>
+    
+              <View style={styles.textRow}>
+                <Text style={styles.label}>TN </Text>
+                <Text style={styles.value}>{item.TrackingNumber}</Text>
+              </View>
+    
+              {item.TrackingType !== 'PR' && (
+                <View>
+                  <View style={styles.textRow}>
+                    <Text style={styles.label}>Claimant </Text>
+                    <Text style={styles.value}>{item.Claimant}</Text>
+                  </View>
+                  <View style={styles.textRow}>
+                    <Text style={styles.label}>Document </Text>
+                    <Text style={styles.value}>{item.DocumentType}</Text>
+                  </View>
+                </View>
+              )}
+    
+              {item.TrackingType === 'PR' && (
+                <>
+                  <View style={styles.textRow}>
+                    <Text style={styles.label}>PR Number </Text>
+                    <Text style={styles.value}>{item.PR_Number}</Text>
+                  </View>
+    
+                  <View style={styles.textRow}>
+                    <Text style={styles.label}>PR Sched </Text>
+                    <Text style={styles.value}>
+                      {item.PR_Month >= 1 && item.PR_Month <= 3
+                        ? '1st Quarter'
+                        : item.PR_Month >= 4 && item.PR_Month <= 6
+                        ? '2nd Quarter'
+                        : item.PR_Month >= 7 && item.PR_Month <= 9
+                        ? '3rd Quarter'
+                        : item.PR_Month >= 10 && item.PR_Month <= 12
+                        ? '4th Quarter'
+                        : ''}
+                    </Text>
+                  </View>
+    
+                  <View style={styles.textRow}>
+                    <Text style={styles.label}>Fund </Text>
+                    <Text style={styles.value}>{item.Fund}</Text>
+                  </View>
+                </>
+              )}
+                <View style={styles.textRow}>
+                <Text style={styles.label}>Period </Text>
+                <Text
+                  style={
+                    styles.value
+                  }>
+                    {getShortMonth(item.PeriodMonth)}
+                </Text>
+              </View>
+
+              <View style={styles.textRow}>
+                <Text style={styles.label}>Amount </Text>
+                <Text
+                  style={[
+                    styles.value,
+                    {
+                      color: 'rgba(8, 106, 235, 1)',
+                      fontFamily: 'Inter_28pt-Bold',
+                    },
+                  ]}>
+                  {insertCommas(item.Amount)}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  alignSelf: 'flex-end',
+                }}>
+                <Pressable
+                  style={({pressed}) => [
+                    {
+                      paddingVertical: 10,
+                      paddingHorizontal: 10,
+                      borderRadius: 18,
+                      backgroundColor: pressed
+                        ? 'rgba(189, 198, 236, 0.3)'
+                        : 'rgba(227, 230, 247, 0.3)',
+                    },
+                  ]}
+                  onPress={() => onPressItem(index, item)}>
+                  <Text
+                    style={{
+                      color: 'rgb(27, 126, 255)',
+                      fontWeight: '500',
+                      textAlign: 'right',
+                    }}>
+                    See Details
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+  );
+});
+
+{/* <View
       style={{
-        backgroundColor: '#fff',
-        borderRadius: 8, // Increased for smoother edges
-        padding: 10, // More padding for better spacing
-        marginVertical: 10, // Replaces marginTop & marginBottom
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.15, // Slightly stronger for better visibility
-        shadowRadius: 4,
-        elevation: 1, // Lower elevation to match shadow
-        //borderWidth: 1, // Optional: Thin border for refinement
-        //borderColor: 'rgba(0, 0, 0, 0.1)', // Light border for subtle separation
+       marginVertical: 5,
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ccc',
       }}>
       <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-        {/* Index Badge */}
         <View
           style={{
             //backgroundColor: '#007bff',
@@ -65,9 +210,7 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
           </Text>
         </View>
 
-        {/* Content Section */}
         <View style={{flex: 1, marginLeft: 10}}>
-          {/* Status Indicator */}
           <View
             style={{
               flexDirection: 'row',
@@ -90,7 +233,6 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
             </Text>
           </View>
 
-          {/* Transaction Details */}
           <View style={{paddingVertical: 8}}>
             <View style={styles.textRow}>
               <Text style={styles.label}>Claimant</Text>
@@ -122,7 +264,6 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
             </View>
           </View>
 
-          {/* Actions Section */}
           <View style={{alignSelf: 'flex-end'}}>
             <Pressable
               style={({pressed}) => [
@@ -138,10 +279,7 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
           </View>
         </View>
       </View>
-    </View>
-  );
-});
-
+    </View> */}
 const MyTransactionsScreen = ({navigation}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const {myTransactionsData, loading, error, fetchMyPersonal} =
@@ -507,22 +645,23 @@ const styles = StyleSheet.create({
   },
   textRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     marginBottom: 5,
   },
   label: {
-    fontSize: 14,
-    color: 'silver',
-    fontFamily: 'Inter_28pt-Regular',
-    flex: 0.3, // Label takes 30% width,
+    //backgroundColor:'red',
+    width: '30%',
+    fontSize: 12,
+    fontFamily: 'Inter_28pt-Light',
     textAlign: 'right',
+    color: 'gray',
   },
   value: {
-    paddingStart: 10,
+    //backgroundColor:'blue',
+    width: '70%',
     fontSize: 14,
-    color: '#252525',
-    fontFamily: 'Inter_28pt-SemiBold',
-    flex: 0.7,
+    fontFamily: 'Inter_28pt-Regular',
+    color: 'black',
+    marginStart: 10,
   },
   bgHeader: {
     paddingTop: 30,

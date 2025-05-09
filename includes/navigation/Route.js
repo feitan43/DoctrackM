@@ -163,9 +163,7 @@ export function Route() {
 
   const checkForUpdates = async currentVersion => {
     try {
-      //console.log('Checking for updates...');
       const response = await fetch(`${BASE_URL}/get-latest-version`);
-      //console.log('Response:', response);
       const data = await response.json();
       const latestVersionFromServer = data.latestVersion;
       const url = latestVersionFromServer.updateUrl;

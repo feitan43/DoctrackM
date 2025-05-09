@@ -34,7 +34,6 @@ export const useRemoveTNAttach = (onSuccess, onError) => {
     mutationFn: removeTNAttach,
     retry: 2,
     onSuccess: data => {
-      console.log('data', data);
       if (data?.status === 'success') {
         if (onSuccess) onSuccess(data);
       } else if (data?.status === 'error') {

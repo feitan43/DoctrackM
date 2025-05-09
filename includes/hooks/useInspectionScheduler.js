@@ -26,7 +26,6 @@ export const useAssignInspector = () => {
   
     const mutation = useMutation({
       mutationFn: async ({ id, inspectorEmp, inspectorName }) => {
-        console.log("mutate",id, inspectorEmp, inspectorName);
         if (!id || !inspectorEmp || !inspectorName) {
           return Promise.reject(new Error('All fields are required'));
         }
