@@ -339,7 +339,7 @@ const LoginScreen = ({navigation}) => {
           style={styles.backgroundImage}>
           <View style={styles.textContainer}>
             <Text style={styles.centeredText}>
-              DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.5</Text>
+              DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.6</Text>
             </Text>
 
             <View

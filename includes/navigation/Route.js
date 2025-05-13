@@ -65,7 +65,8 @@ import BASE_URL from '../../config';
 
 import CameraComponent from '../utils/CameraComponent';
 import DeviceInfo from 'react-native-device-info';
-import RNFetchBlob from 'react-native-blob-util';
+import RNBlobUtil  from 'react-native-blob-util';
+
 import BootSplash from 'react-native-bootsplash';
 import RNBootSplash from 'react-native-bootsplash';
 import StatusView from '../screens/procProgress/StatusView';
@@ -179,9 +180,10 @@ export function Route() {
   };
 
 
-  const handleUpdate = async updateUrl => {
+  /* const handleUpdate = async updateUrl => {
     const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
     const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
+
 
     const path = `${RNFetchBlob.fs.dirs.DocumentDir}/update.apk`;
     await notifee.createChannel({
@@ -251,8 +253,100 @@ export function Route() {
         await notifee.cancelNotification('progress');
         console.error('Failed to download update:', error);
       });
-  };
+  }; */
 
+const handleUpdate = async updateUrl => {
+  const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
+  const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
+  const path = `${RNBlobUtil.fs.dirs.DownloadDir}/update.apk`; // DownloadDir is more accessible for APK files
+
+  // Create Notifee channel
+  const channelId = await notifee.createChannel({
+    id: 'update',
+    name: 'Update Channel',
+    importance: AndroidImportance.HIGH,
+  });
+
+  // Show initial notification
+  await notifee.displayNotification({
+    id: 'download-progress',
+    title: 'Downloading Update',
+    body: 'Please wait while the update is being downloaded...',
+    android: {
+      channelId,
+      smallIcon: 'ic_launcher_round',
+      progress: {
+        max: 100,
+        current: 0,
+        indeterminate: true,
+      },
+    },
+  });
+
+  RNBlobUtil.config({
+    path,
+    fileCache: true,
+  })
+    .fetch('GET', url)
+    .progress(async (received, total) => {
+      const progress = Math.floor((received / total) * 100);
+
+      // Update progress notification
+      await notifee.displayNotification({
+        id: 'download-progress',
+        title: 'Downloading Update',
+        body: `Downloading... ${progress}%`,
+        android: {
+          channelId,
+          progress: {
+            max: 100,
+            current: progress,
+            indeterminate: false,
+          },
+        },
+      });
+    })
+    .then(async res => {
+      const filePath = res.path();
+
+      // Cancel progress notification
+      await notifee.cancelNotification('download-progress');
+
+      // Show download complete notification
+      await notifee.displayNotification({
+        title: 'Download Complete',
+        body: 'The update has been downloaded successfully.',
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher_round',
+          importance: AndroidImportance.HIGH,
+        },
+      });
+
+      if (Platform.OS === 'android') {
+        RNBlobUtil.android.actionViewIntent(filePath, 'application/vnd.android.package-archive');
+      } else if (Platform.OS === 'ios') {
+        Linking.openURL(appStoreUrl);
+      }
+    })
+    .catch(async error => {
+      console.error('Download failed:', error);
+
+      // Cancel progress notification
+      await notifee.cancelNotification('download-progress');
+
+      // Show error notification
+      await notifee.displayNotification({
+        title: 'Download Failed',
+        body: 'The update could not be downloaded. Please try again later.',
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher_round',
+          importance: AndroidImportance.HIGH,
+        },
+      });
+    });
+};
 
 
   useEffect(() => {

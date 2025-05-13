@@ -173,7 +173,9 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
   );
 });
 
-const SearchScreen = () => {
+const SearchScreen = ({}) => {
+ /*  const { fullName, employeeNumber, officeName } = route.params;
+  console.log(fullName, employeeNumber, officeName); */
   const currentYear = new Date().getFullYear().toString();
   
   const years = Array.from(

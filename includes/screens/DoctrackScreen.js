@@ -465,11 +465,11 @@ const DoctrackScreen = ({
   const renderUI = useCallback(() => {
     const itemsToShowTrackSum = showAll
       ? trackSumData
-      : trackSumData?.slice(0, 6);
+      : trackSumData?.slice(0, 5);
 
     const itemsToShowRegTrackSum = showAll
       ? regTrackSumData
-      : regTrackSumData?.slice(0, 6);
+      : regTrackSumData?.slice(0, 5);
 
     return (
       <View
@@ -502,13 +502,14 @@ const DoctrackScreen = ({
                     borderBottomWidth: 1,
                     borderBottomColor: '#eee',
                     paddingBottom: 5,
-                    marginBottom: 5,
+                    marginBottom: 10,
                   }}>
                   <Text
                     style={{
-                      fontFamily: 'Inter_28pt-SemiBold',
-                      color: '#252525',
-                      fontSize: 16,
+                         fontFamily: 'Inter_28pt-SemiBold',
+                        color: '#252525',
+                        paddingHorizontal: 10,
+                        fontSize: 16,
                     }}>
                     Transaction Counter
                   </Text>
@@ -1044,7 +1045,7 @@ const DoctrackScreen = ({
               </View>
             </>
           ) : (
-            (procurement === '1' || accountType === '1') &&
+            (procurement === '1' /* || accountType === '1' */) &&
             [
               '1071',
               '1081',
@@ -1068,7 +1069,7 @@ const DoctrackScreen = ({
                     shadowOffset: {width: 0, height: 2},
                     shadowOpacity: 0.25,
                     shadowRadius: 3.84,
-                    elevation: 8,
+                    elevation: 1,
                     borderBottomWidth: 1,
                     borderBottomColor: 'silver',
                     borderRightWidth: 1,
@@ -1086,6 +1087,7 @@ const DoctrackScreen = ({
                       style={{
                         fontFamily: 'Inter_28pt-SemiBold',
                         color: '#252525',
+                        paddingHorizontal: 10,
                         fontSize: 16,
                       }}>
                       Tracking Summary
@@ -1119,23 +1121,29 @@ const DoctrackScreen = ({
                                 selectedItem: item,
                               })
                             }
+                            style={{}}
                             android_ripple={{color: 'rgba(0, 0, 0, 0.2)'}}>
                             <View
                               style={{
                                 flexDirection: 'row',
-                                alignItems: 'center',
+                                //alignItems: 'center',
+                                borderBottomWidth:1,
+                                borderBottomColor:'#ccc',
+                                paddingVertical:5
+
                               }}>
                               <Text
                                 style={{
                                   fontFamily: 'Inter_28pt-Bold',
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   color: item.Status.includes('Pending')
                                     ? 'rgb(248, 12, 12)'
                                     : 'rgb(8, 112, 231)',
                                   width: '20%',
                                   textAlign: 'right',
                                   paddingRight: 10,
-                                  alignSelf: 'center',
+                                  //alignSelf: 'center',
+                                  textAlignVertical:'top'
                                 }}>
                                 {item.Count}
                               </Text>
@@ -1153,8 +1161,8 @@ const DoctrackScreen = ({
                         ))}
 
                         {trackSumData?.length > 5 && (
-                          <View style={{alignSelf: 'flex-end'}}>
-                            <Pressable
+                          <View style={{alignSelf: 'flex-end', marginTop:10}}>
+                            <TouchableOpacity
                               onPress={() => setShowAll(prev => !prev)}>
                               <Text
                                 style={{
@@ -1163,28 +1171,26 @@ const DoctrackScreen = ({
                                 }}>
                                 {showAll ? 'Show Less' : 'Show More'}
                               </Text>
-                            </Pressable>
+                            </TouchableOpacity>
                           </View>
                         )}
                       </>
                     )}
                   </View>
                 </View>
-                                ) }
-
-                  
+                                ) }  
 
                 <View
                 style={{
                   padding: 10,
-                  marginTop: 10,
+                  marginTop: 15,
                   backgroundColor: 'white',
                   borderRadius: 5,
                   shadowColor: '#000',
                   shadowOffset: {width: 0, height: 2},
                   shadowOpacity: 0.25,
                   shadowRadius: 3.84,
-                  elevation: 8,
+                  elevation: 1,
                   borderBottomWidth: 1,
                   borderBottomColor: 'silver',
                   borderRightWidth: 1,
@@ -1195,14 +1201,14 @@ const DoctrackScreen = ({
                     borderBottomWidth: 1,
                     borderBottomColor: '#eee',
                     paddingBottom: 5,
-                    marginBottom: 5,
+                    marginBottom: 10,
                   }}>
                   <Text
                     style={{
-                      fontFamily: 'Inter_28pt-Bold',
-                      color: '#252525',
-                      fontSize: 15,
-                      paddingHorizontal: 10,
+                         fontFamily: 'Inter_28pt-SemiBold',
+                        color: '#252525',
+                        paddingHorizontal: 10,
+                        fontSize: 16,
                     }}>
                     Transaction Counter
                   </Text>
@@ -1306,14 +1312,14 @@ const DoctrackScreen = ({
                 <View
                   style={{
                     padding: 10,
-                    marginTop: 10,
+                    marginTop: 15,
                     backgroundColor: 'white',
                     borderRadius: 5,
                     shadowColor: '#000',
                     shadowOffset: {width: 0, height: 2},
                     shadowOpacity: 0.25,
                     shadowRadius: 3.84,
-                    elevation: 8,
+                    elevation: 1,
                     borderBottomWidth: 1,
                     borderBottomColor: 'silver',
                     borderRightWidth: 1,
@@ -1328,8 +1334,9 @@ const DoctrackScreen = ({
                     }}>
                     <Text
                       style={{
-                        fontFamily: 'Inter_28pt-SemiBold',
+                          fontFamily: 'Inter_28pt-SemiBold',
                         color: '#252525',
+                        paddingHorizontal: 10,
                         fontSize: 16,
                       }}>
                       Transaction Progress
@@ -2039,7 +2046,7 @@ const DoctrackScreen = ({
         <View
           style={{
             padding: 10,
-            marginTop: 10,
+            marginTop: 15,
             marginBottom: 60,
             backgroundColor: 'white',
             borderRadius: 5,
@@ -2047,7 +2054,7 @@ const DoctrackScreen = ({
             shadowOffset: {width: 0, height: 2},
             shadowOpacity: 0.25,
             shadowRadius: 3.84,
-            elevation: 8,
+            elevation: 1,
             borderBottomWidth: 1,
             borderBottomColor: 'silver',
             borderRightWidth: 1,
@@ -2058,13 +2065,14 @@ const DoctrackScreen = ({
               borderBottomWidth: 1,
               borderBottomColor: '#eee',
               paddingBottom: 5,
-              marginBottom: 5,
+              marginBottom: 10,
             }}>
             <Text
               style={{
                 fontFamily: 'Inter_28pt-SemiBold',
-                color: '#252525',
-                fontSize: 16,
+                        color: '#252525',
+                        paddingHorizontal: 10,
+                        fontSize: 16,
               }}>
               Personal
             </Text>

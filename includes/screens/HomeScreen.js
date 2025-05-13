@@ -401,6 +401,25 @@ const HomeScreen = ({navigation}) => {
     );
   };
 
+  const SearchScreenComponent = ({}) => {
+    return (
+      <SearchScreen
+        navigation={navigation}
+        officeCode={officeCode}
+        officeName={officeName}
+        privilege={privilege}
+        fullName={fullName}
+        employeeNumber={employeeNumber}
+        permission={permission}
+        caoReceiver={caoReceiver}
+        caoEvaluator={caoEvaluator}
+        accountType={accountType}
+        officeAdmin={officeAdmin}
+        gsoInspection={gsoInspection}
+        procurement={procurement}
+      />
+    );
+  };
   const SettingsScreenComponent = ({}) => {
     return (
       <SettingsScreen
@@ -410,6 +429,13 @@ const HomeScreen = ({navigation}) => {
         privilege={privilege}
         fullName={fullName}
         employeeNumber={employeeNumber}
+        permission={permission}
+        caoReceiver={caoReceiver}
+        caoEvaluator={caoEvaluator}
+        accountType={accountType}
+        officeAdmin={officeAdmin}
+        gsoInspection={gsoInspection}
+        procurement={procurement}
       />
     );
   };
@@ -428,7 +454,7 @@ const HomeScreen = ({navigation}) => {
 
   const renderScene = SceneMap({
     doctrack: DoctrackScreenComponent,
-    search: SearchScreen,
+    search: SearchScreenComponent,
     settings: SettingsScreenComponent,
   });
 

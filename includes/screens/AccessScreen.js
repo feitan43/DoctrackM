@@ -137,7 +137,7 @@ const AccessScreen = ({navigation}) => {
     );
   };
 
- /*  const toggleAccess = async (user, systemKey) => {
+  /*  const toggleAccess = async (user, systemKey) => {
     const currentAccess = user.access[systemKey];
     const newAccess = currentAccess === 'access' ? 'no-access' : 'access';
 
@@ -208,16 +208,82 @@ const AccessScreen = ({navigation}) => {
   }; */
 
   const toggleAccess = async (user, systemKey) => {
-  const currentAccess = user.access[systemKey];
-  
-  if (systemKey === 'RegistrationState') {
-    const newState = user.isActive ? '0' : '1'; 
+    const currentAccess = user.access[systemKey];
+
+    if (systemKey === 'RegistrationState') {
+      const newState = user.isActive ? '0' : '1';
+
+      const updatedUsers = users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            isActive: newState === '1',
+          };
+        }
+        return u;
+      });
+
+      setUsers(updatedUsers);
+
+      try {
+        const result = await updateUserAccess({
+          employeeNumber: user.employeeNumber,
+          system: systemKey,
+          access: newState,
+        });
+
+        if (result.success) {
+          showMessage({
+            message: 'Update Successful',
+            description: 'User account status updated successfully.',
+            type: 'success',
+            icon: 'success',
+            backgroundColor: '#2E7D32',
+            color: '#FFFFFF',
+            floating: true,
+            duration: 3000,
+          });
+          setEditModalVisible(false);
+        } else {
+          throw new Error(result.message || 'Update failed');
+        }
+      } catch (error) {
+        showMessage({
+          message: 'Update Failed',
+          description:
+            error.message || 'There was an issue updating user status.',
+          type: 'danger',
+          icon: 'danger',
+          backgroundColor: '#C62828',
+          color: '#FFFFFF',
+          floating: true,
+          duration: 3000,
+        });
+
+        const revertedUsers = users.map(u => {
+          if (u.id === user.id) {
+            return {
+              ...u,
+              isActive: !user.isActive,
+            };
+          }
+          return u;
+        });
+        setUsers(revertedUsers);
+      }
+      return;
+    }
+
+    const newAccess = currentAccess === 'access' ? 'no-access' : 'access';
 
     const updatedUsers = users.map(u => {
       if (u.id === user.id) {
         return {
           ...u,
-          isActive: newState === '1',  
+          access: {
+            ...u.access,
+            [systemKey]: newAccess,
+          },
         };
       }
       return u;
@@ -229,13 +295,13 @@ const AccessScreen = ({navigation}) => {
       const result = await updateUserAccess({
         employeeNumber: user.employeeNumber,
         system: systemKey,
-        access: newState, 
+        access: newAccess === 'access' ? '1' : '0',
       });
 
       if (result.success) {
         showMessage({
           message: 'Update Successful',
-          description: 'User account status updated successfully.',
+          description: 'User access updated successfully.',
           type: 'success',
           icon: 'success',
           backgroundColor: '#2E7D32',
@@ -244,14 +310,14 @@ const AccessScreen = ({navigation}) => {
           duration: 3000,
         });
         setEditModalVisible(false);
-
       } else {
         throw new Error(result.message || 'Update failed');
       }
     } catch (error) {
       showMessage({
         message: 'Update Failed',
-        description: error.message || 'There was an issue updating user status.',
+        description:
+          error.message || 'There was an issue updating user access.',
         type: 'danger',
         icon: 'danger',
         backgroundColor: '#C62828',
@@ -264,82 +330,17 @@ const AccessScreen = ({navigation}) => {
         if (u.id === user.id) {
           return {
             ...u,
-            isActive: !user.isActive, 
+            access: {
+              ...u.access,
+              [systemKey]: currentAccess,
+            },
           };
         }
         return u;
       });
       setUsers(revertedUsers);
     }
-    return;
-  }
-
-  const newAccess = currentAccess === 'access' ? 'no-access' : 'access';
-
-  const updatedUsers = users.map(u => {
-    if (u.id === user.id) {
-      return {
-        ...u,
-        access: {
-          ...u.access,
-          [systemKey]: newAccess,
-        },
-      };
-    }
-    return u;
-  });
-
-  setUsers(updatedUsers);
-
-  try {
-    const result = await updateUserAccess({
-      employeeNumber: user.employeeNumber,
-      system: systemKey,
-      access: newAccess === 'access' ? '1' : '0',
-    });
-
-    if (result.success) {
-      showMessage({
-        message: 'Update Successful',
-        description: 'User access updated successfully.',
-        type: 'success',
-        icon: 'success',
-        backgroundColor: '#2E7D32',
-        color: '#FFFFFF',
-        floating: true,
-        duration: 3000,
-      });
-      setEditModalVisible(false)
-    } else {
-      throw new Error(result.message || 'Update failed');
-    }
-  } catch (error) {
-    showMessage({
-      message: 'Update Failed',
-      description: error.message || 'There was an issue updating user access.',
-      type: 'danger',
-      icon: 'danger',
-      backgroundColor: '#C62828',
-      color: '#FFFFFF',
-      floating: true,
-      duration: 3000,
-    });
-
-    const revertedUsers = users.map(u => {
-      if (u.id === user.id) {
-        return {
-          ...u,
-          access: {
-            ...u.access,
-            [systemKey]: currentAccess,
-          },
-        };
-      }
-      return u;
-    });
-    setUsers(revertedUsers);
-  }
-};
+  };
 
   const renderAccessChip = (user, system) => {
     const hasAccess = user.access[system.key] === 'access';
@@ -352,87 +353,57 @@ const AccessScreen = ({navigation}) => {
         ]}
         disabled={true}>
         <Text style={styles.chipText}>{system.label}</Text>
-        <Icon
+        {/*  <Icon
           name={hasAccess ? 'checkmark' : 'close'}
           size={14}
           color="#fff"
           style={styles.chipIcon}
-        />
+        /> */}
       </TouchableOpacity>
     );
   };
 
-const renderItem = ({ item, index }) => (
-  <View style={styles.userCard}>
-    <View style={styles.userInfo}>
-      <View style={styles.userHeaderRow}>
-        <Text style={styles.userIndex}>{index + 1}.</Text>
-        <Text style={styles.userName}>{item.employeeNumber}</Text>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity
-          style={styles.editIconContainer}
-          onPress={() => {
-            setSelectedUser(item);
-            setEditModalVisible(true);
-          }}>
-          <Icon name="settings-outline" size={24} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
+  const renderItem = ({item, index}) => (
+    <TouchableOpacity
+      style={styles.userCard}
+      onPress={() => {
+        setSelectedUser(item);
+        setEditModalVisible(true);
+      }}>
+      <View style={styles.rowContainer}>
+        <View style={styles.indexColumn}>
+          <Text style={styles.userIndex}>{index + 1}</Text>
+        </View>
 
-      <View style={styles.userHeaderRow}>
-        <Text style={styles.userFullName}>{item.name}</Text>
-        <View style={{ flex: 1 }} />
-      </View>
-
-      <Text style={styles.userStatus}>
-        {'Status: '}
-        <Text style={item.isActive ? styles.activeIcon : styles.inactiveIcon}>
-          {item.isActive ? 'Active' : 'Inactive'}
-        </Text>
-      </Text>
-
-      <View style={styles.chipsContainer}>
-        {systems
-          .filter(system => item.access[system.key] === 'access')
-          .map(system => renderAccessChip(item, system))}
-      </View>
-    </View>
-  </View>
-);
-
-
-/*   const renderItem = ({item, index}) => (
-    <View style={styles.userCard}>
-      <View style={styles.userInfo}>
-        <View style={styles.userHeaderRow}>
-          <Text style={styles.userIndex}>{index + 1}.</Text>
+        <View style={styles.centerColumn}>
           <Text style={styles.userName}>{item.employeeNumber}</Text>
-        </View>
-        <Text style={styles.userFullName}>{item.name}</Text>
-        <Text style={styles.userStatus}>
-          {'Status: '}
-          <Text style={item.isActive ? styles.activeIcon : styles.inactiveIcon}>
-            {item.isActive ? 'Active' : 'Inactive'}
-          </Text>
-        </Text>
+          <Text style={styles.userFullName}>{item.name}</Text>
 
-        <View style={styles.chipsContainer}>
-          {systems
-            .filter(system => item.access[system.key] === 'access')
-            .map(system => renderAccessChip(item, system))}
+          <Text style={styles.userStatus}>
+            {'Status: '}
+            <Text
+              style={item.isActive ? styles.activeIcon : styles.inactiveIcon}>
+              {item.isActive ? 'Active' : 'Deactivated'}
+            </Text>
+          </Text>
+          <View style={styles.chipsContainer}>
+            {systems
+              .filter(system => item.access[system.key] === 'access')
+              .map(system => renderAccessChip(item, system))}
+          </View>
         </View>
 
         <TouchableOpacity
-          style={styles.editButton}
+          style={styles.settingsColumn}
           onPress={() => {
             setSelectedUser(item);
             setEditModalVisible(true);
           }}>
-          <Text style={styles.editButtonText}>Edit Access</Text>
+          <Icon name="settings-outline" size={24} color="#ccc" />
         </TouchableOpacity>
       </View>
-    </View>
-  ); */
+    </TouchableOpacity>
+  );
 
   if (loading || userLoading) {
     return (
@@ -482,7 +453,7 @@ const renderItem = ({ item, index }) => (
         </View>
         <View style={styles.legendItem}>
           <View style={styles.inactiveLegend}></View>
-          <Text style={styles.legendText}>Inactive: {inactiveCount}</Text>
+          <Text style={styles.legendText}>Deactivated: {inactiveCount}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={styles.overallLegend}></View>
@@ -575,75 +546,68 @@ const renderItem = ({ item, index }) => (
         }
       />
 
-      {/* Edit Access Modal */}
-     <Modal
-  animationType="slide"
-  transparent={true}
-  visible={editModalVisible}
-  onRequestClose={() => setEditModalVisible(false)}>
-  <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Edit Access</Text>
-      <Text style={styles.modalSubtitle}>
-        {selectedUser?.name} ({selectedUser?.employeeNumber})
-      </Text>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Access</Text>
+            <Text style={styles.modalSubtitle}>
+              {selectedUser?.name} ({selectedUser?.employeeNumber})
+            </Text>
 
-         <View style={styles.modalRegistrationContainer}>
-      <Text style={styles.modalSystemLabel}>Account</Text>
-       {/*  <Text>{selectedUser?.isActive ? 'Active' : 'Inactive'}</Text> */}
-        <TouchableOpacity
-          style={[
-            styles.modalToggleButton,
-            selectedUser?.isActive
-              ? styles.modalToggleButtonEnabled
-              : styles.modalToggleButtonDisabled,
-          ]}
-          onPress={() => toggleAccess(selectedUser, "RegistrationState")}>  
-          <Text style={styles.modalToggleButtonText}>
-            {selectedUser?.isActive ? 'Deactivate' : 'Activate'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-        
-
-      <View style={styles.modalSystemsContainer}>
-        {systems.map(system => {
-          const hasAccess = selectedUser?.access[system.key] === 'access';
-          return (
-            <View key={system.key} style={styles.modalSystemRow}>
-              <Text style={styles.modalSystemLabel}>{system.label}</Text>
+            <View style={styles.modalRegistrationContainer}>
+              <Text style={styles.modalSystemLabel}>Account</Text>
+              {/*  <Text>{selectedUser?.isActive ? 'Active' : 'Inactive'}</Text> */}
               <TouchableOpacity
                 style={[
                   styles.modalToggleButton,
-                  hasAccess
+                  selectedUser?.isActive
                     ? styles.modalToggleButtonEnabled
                     : styles.modalToggleButtonDisabled,
                 ]}
-                onPress={() => toggleAccess(selectedUser, system.key)}>
+                onPress={() => toggleAccess(selectedUser, 'RegistrationState')}>
                 <Text style={styles.modalToggleButtonText}>
-                  {hasAccess ? 'Revoke' : 'Grant'}
+                  {selectedUser?.isActive ? 'Deactivate' : 'Activate'}
                 </Text>
               </TouchableOpacity>
             </View>
-          );
-        })}
-      </View>
 
-   
+            <View style={styles.modalSystemsContainer}>
+              {systems.map(system => {
+                const hasAccess = selectedUser?.access[system.key] === 'access';
+                return (
+                  <View key={system.key} style={styles.modalSystemRow}>
+                    <Text style={styles.modalSystemLabel}>{system.label}</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalToggleButton,
+                        hasAccess
+                          ? styles.modalToggleButtonEnabled
+                          : styles.modalToggleButtonDisabled,
+                      ]}
+                      onPress={() => toggleAccess(selectedUser, system.key)}>
+                      <Text style={styles.modalToggleButtonText}>
+                        {hasAccess ? 'Revoke' : 'Grant'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
 
-      <View style={styles.modalButtons}>
-        <TouchableOpacity
-          style={styles.doneButton}
-          onPress={() => setEditModalVisible(false)}>
-          <Text style={styles.doneButtonText}>Done</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
-
-
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => setEditModalVisible(false)}>
+                <Text style={styles.doneButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -697,48 +661,57 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   userCard: {
-    padding: 15,
-    marginBottom: 15,
+    padding: 12,
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 8,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  userInfo: {
-    flex: 1,
-  },
-  userHeaderRow: {
+  rowContainer: {
     flexDirection: 'row',
+    //alignItems: 'center',
+    paddingVertical:5,
+    marginBottom: 8,
+  },
+  indexColumn: {
+    width: 30,
     alignItems: 'center',
+  },
+  userIndex: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  centerColumn: {
+    flex: 1,
+    paddingLeft: 8,
+    justifyContent: 'center',
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#333',
-  },
-  userIndex: {
-    fontSize: 14,
-    color: '#999',
-    marginRight: 6,
   },
   userFullName: {
     fontSize: 14,
-    color: '#555',
-    marginTop: 2,
-    fontStyle: 'italic',
+    fontWeight: '400',
+    color: '#333',
   },
   userStatus: {
     fontSize: 14,
-    color: '#666',
-    marginVertical: 10,
+    color: '#555',
+  },
+  settingsColumn: {
+    padding: 4,
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 10,
+    marginTop: 10,
   },
   chip: {
     flexDirection: 'row',
@@ -818,7 +791,7 @@ const styles = StyleSheet.create({
   modalSystemLabel: {
     fontSize: 16,
     color: '#333',
-    paddingVertical:10
+    paddingVertical: 10,
   },
   modalToggleButton: {
     paddingHorizontal: 15,
@@ -856,7 +829,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   inactiveIcon: {
-    color: '#F44336',
+    //color: '#F44336',
+    color: '#E57373',
     fontWeight: 'bold',
   },
   legendContainer: {
@@ -882,7 +856,8 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#F44336',
+    //backgroundColor: '#F44336',
+    backgroundColor: '#E57373',
     marginRight: 5,
   },
   overallLegend: {
