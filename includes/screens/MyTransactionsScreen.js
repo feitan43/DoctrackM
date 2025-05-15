@@ -27,259 +27,154 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
   const getShortMonth = month => month.slice(0, 3);
 
   return (
-       <View
-          style={{
-            //backgroundColor: 'rgba(179, 196, 233, 0.1)',
-            marginVertical: 5,
-            padding: 10,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#ccc',
-            marginBottom:20
-          }}>
-          <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-            <View style={{paddingHorizontal: 10, justifyContent: 'center'}}>
-              <Text
-                style={{
-                  fontSize: 15,
-                  textAlign: 'right',
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#007bff',
-                }}>
-                {index + 1}
-              </Text>
-            </View>
-    
-            {/* Content Section */}
-            <View style={{flexDirection: 'column', flex: 1}}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  marginBottom: 5,
-                  borderBottomWidth: 1,
-                  paddingBottom: 5,
-                  borderColor: item?.Status?.includes('Pending')
-                    ? '#FF9800'
-                    : '#252525',
-                }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontFamily: 'Inter_28pt-Bold',
-                    color: item?.Status?.includes('Pending')
-                      ? '#FF9800'
-                      : '#252525',
-                    width: '100%',
-                    textAlign: 'left',
-                  }}>
-                  {item?.Status ?? ''}
-                </Text>
-              </View>
-    
-              <View style={styles.textRow}>
-                <Text style={styles.label}>TN </Text>
-                <Text style={styles.value}>{item.TrackingNumber}</Text>
-              </View>
-    
-              {item.TrackingType !== 'PR' && (
-                <View>
-                  <View style={styles.textRow}>
-                    <Text style={styles.label}>Claimant </Text>
-                    <Text style={styles.value}>{item.Claimant}</Text>
-                  </View>
-                  <View style={styles.textRow}>
-                    <Text style={styles.label}>Document </Text>
-                    <Text style={styles.value}>{item.DocumentType}</Text>
-                  </View>
-                </View>
-              )}
-    
-              {item.TrackingType === 'PR' && (
-                <>
-                  <View style={styles.textRow}>
-                    <Text style={styles.label}>PR Number </Text>
-                    <Text style={styles.value}>{item.PR_Number}</Text>
-                  </View>
-    
-                  <View style={styles.textRow}>
-                    <Text style={styles.label}>PR Sched </Text>
-                    <Text style={styles.value}>
-                      {item.PR_Month >= 1 && item.PR_Month <= 3
-                        ? '1st Quarter'
-                        : item.PR_Month >= 4 && item.PR_Month <= 6
-                        ? '2nd Quarter'
-                        : item.PR_Month >= 7 && item.PR_Month <= 9
-                        ? '3rd Quarter'
-                        : item.PR_Month >= 10 && item.PR_Month <= 12
-                        ? '4th Quarter'
-                        : ''}
-                    </Text>
-                  </View>
-    
-                  <View style={styles.textRow}>
-                    <Text style={styles.label}>Fund </Text>
-                    <Text style={styles.value}>{item.Fund}</Text>
-                  </View>
-                </>
-              )}
-                <View style={styles.textRow}>
-                <Text style={styles.label}>Period </Text>
-                <Text
-                  style={
-                    styles.value
-                  }>
-                    {getShortMonth(item.PeriodMonth)}
-                </Text>
-              </View>
-
-              <View style={styles.textRow}>
-                <Text style={styles.label}>Amount </Text>
-                <Text
-                  style={[
-                    styles.value,
-                    {
-                      color: 'rgba(8, 106, 235, 1)',
-                      fontFamily: 'Inter_28pt-Bold',
-                    },
-                  ]}>
-                  {insertCommas(item.Amount)}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  alignSelf: 'flex-end',
-                }}>
-                <Pressable
-                  style={({pressed}) => [
-                    {
-                      paddingVertical: 10,
-                      paddingHorizontal: 10,
-                      borderRadius: 18,
-                      backgroundColor: pressed
-                        ? 'rgba(189, 198, 236, 0.3)'
-                        : 'rgba(227, 230, 247, 0.3)',
-                    },
-                  ]}
-                  onPress={() => onPressItem(index, item)}>
-                  <Text
-                    style={{
-                      color: 'rgb(27, 126, 255)',
-                      fontWeight: '500',
-                      textAlign: 'right',
-                    }}>
-                    See Details
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </View>
-  );
-});
-
-{/* <View
+    <View
       style={{
-       marginVertical: 5,
+        //backgroundColor: 'rgba(179, 196, 233, 0.1)',
+        marginVertical: 5,
         padding: 10,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#ccc',
+        marginBottom: 20,
       }}>
       <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-        <View
-          style={{
-            //backgroundColor: '#007bff',
-            marginBottom: 8,
-            paddingBottom: 6,
-            borderRadius: 50,
-            width: 28,
-            height: 28,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+        <View style={{paddingHorizontal: 10, justifyContent: 'center'}}>
           <Text
             style={{
-              color: item?.Status?.includes('Pending') ? '#FF4343' : '#007bff',
-              fontWeight: 'bold',
-              fontSize: 16,
+              fontSize: 15,
+              textAlign: 'right',
+              fontFamily: 'Inter_28pt-Bold',
+              color: '#007bff',
             }}>
             {index + 1}
           </Text>
         </View>
 
-        <View style={{flex: 1, marginLeft: 10}}>
+        {/* Content Section */}
+        <View style={{flexDirection: 'column', flex: 1}}>
           <View
             style={{
               flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 8,
+              marginBottom: 5,
               borderBottomWidth: 1,
-              paddingBottom: 6,
+              paddingBottom: 5,
               borderColor: item?.Status?.includes('Pending')
-                ? '#FF4343'
+                ? '#FF9800'
                 : '#252525',
             }}>
             <Text
               style={{
                 fontSize: 16,
-                fontWeight: 'bold',
-                color: item?.Status?.includes('Pending') ? '#FF4343' : '#333',
-                flex: 1,
+                fontFamily: 'Inter_28pt-Bold',
+                color: item?.Status?.includes('Pending')
+                  ? '#FF9800'
+                  : '#252525',
+                width: '100%',
+                textAlign: 'left',
               }}>
               {item?.Status ?? ''}
             </Text>
           </View>
 
-          <View style={{paddingVertical: 8}}>
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Claimant</Text>
-              <Text style={styles.value}>{item.Claimant}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>TN</Text>
-              <Text style={styles.value}>{item.TrackingNumber}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Document</Text>
-              <Text style={styles.value}>{item.DocumentType}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Month</Text>
-              <Text style={styles.value}>
-                {getShortMonth(item.PeriodMonth)}
-              </Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Amount</Text>
-              <Text style={[styles.value, {color: '#007bff'}]}>
-                {insertCommas(item.Amount)}
-              </Text>
-            </View>
+          <View style={styles.textRow}>
+            <Text style={styles.label}>TN </Text>
+            <Text style={styles.value}>{item.TrackingNumber}</Text>
           </View>
 
-          <View style={{alignSelf: 'flex-end'}}>
+          {item.TrackingType !== 'PR' && (
+            <View>
+              <View style={styles.textRow}>
+                <Text style={styles.label}>Claimant </Text>
+                <Text style={styles.value}>{item.Claimant}</Text>
+              </View>
+              <View style={styles.textRow}>
+                <Text style={styles.label}>Document </Text>
+                <Text style={styles.value}>{item.DocumentType}</Text>
+              </View>
+            </View>
+          )}
+
+          {item.TrackingType === 'PR' && (
+            <>
+              <View style={styles.textRow}>
+                <Text style={styles.label}>PR Number </Text>
+                <Text style={styles.value}>{item.PR_Number}</Text>
+              </View>
+
+              <View style={styles.textRow}>
+                <Text style={styles.label}>PR Sched </Text>
+                <Text style={styles.value}>
+                  {item.PR_Month >= 1 && item.PR_Month <= 3
+                    ? '1st Quarter'
+                    : item.PR_Month >= 4 && item.PR_Month <= 6
+                    ? '2nd Quarter'
+                    : item.PR_Month >= 7 && item.PR_Month <= 9
+                    ? '3rd Quarter'
+                    : item.PR_Month >= 10 && item.PR_Month <= 12
+                    ? '4th Quarter'
+                    : ''}
+                </Text>
+              </View>
+
+              <View style={styles.textRow}>
+                <Text style={styles.label}>Fund </Text>
+                <Text style={styles.value}>{item.Fund}</Text>
+              </View>
+            </>
+          )}
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Period </Text>
+            <Text style={styles.value}>{getShortMonth(item.PeriodMonth)}</Text>
+          </View>
+
+          <View style={styles.textRow}>
+            <Text style={styles.label}>Amount </Text>
+            <Text
+              style={[
+                styles.value,
+                {
+                  color: 'rgba(8, 106, 235, 1)',
+                  fontFamily: 'Inter_28pt-Bold',
+                },
+              ]}>
+              {insertCommas(item.Amount)}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-end',
+            }}>
             <Pressable
               style={({pressed}) => [
                 {
-                  alignSelf: 'flex-end',
-                  padding: 10,
-                  //elevation: 2,
+                  paddingVertical: 10,
+                  paddingHorizontal: 10,
+                  borderRadius: 18,
+                  backgroundColor: pressed
+                    ? 'rgba(189, 198, 236, 0.3)'
+                    : 'rgba(227, 230, 247, 0.3)',
                 },
               ]}
               onPress={() => onPressItem(index, item)}>
-              <Text style={{color: 'orange'}}>See Details</Text>
+              <Text
+                style={{
+                  color: 'rgb(27, 126, 255)',
+                  fontWeight: '500',
+                  textAlign: 'right',
+                }}>
+                See Details
+              </Text>
             </Pressable>
           </View>
         </View>
       </View>
-    </View> */}
+    </View>
+  );
+});
+
 const MyTransactionsScreen = ({navigation}) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const {myTransactionsData, loading, error, fetchMyPersonal} =
@@ -297,11 +192,6 @@ const MyTransactionsScreen = ({navigation}) => {
     setRefreshing(false);
   }, [fetchMyPersonal]);
 
-  /*   const years = Array.from(
-    {length: 3},
-    (_, index) => new Date().getFullYear() - index,
-  );
- */
   const years = Array.from(
     {length: Math.max(0, new Date().getFullYear() - 2023 + 1)},
     (_, index) => new Date().getFullYear() - index,
@@ -430,6 +320,16 @@ const MyTransactionsScreen = ({navigation}) => {
   return (
     <PaperProvider>
       <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+         <ImageBackground
+                source={require('../../assets/images/bgasset.jpg')}
+                style={{flex: 1}}
+                resizeMode="cover">
+                <View
+                  style={{
+                    ...StyleSheet.absoluteFillObject,
+                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  }}
+                />
         <View style={styles.container}>
           <ImageBackground
             source={require('../../assets/images/CirclesBG.png')}
@@ -552,6 +452,7 @@ const MyTransactionsScreen = ({navigation}) => {
             </View>
           </View>
         </Modal>
+        </ImageBackground>
       </SafeAreaView>
     </PaperProvider>
   );

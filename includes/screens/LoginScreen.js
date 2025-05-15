@@ -359,9 +359,8 @@ const LoginScreen = ({navigation}) => {
                 }}
                 autoCapitalize="none"
                 keyboardType="numeric"
-                fontSize={20}
+                fontSize={18}
                 maxLength={6}
-                fontFamily="Oswald-Light"
                 onFocus={() => handleFocus('employeeNumber')}
                 onBlur={handleBlur}
               />
@@ -377,9 +376,8 @@ const LoginScreen = ({navigation}) => {
                 placeholder="Password"
                 secureTextEntry={!isPasswordVisible}
                 value={password}
-                fontSize={20}
+                fontSize={18}
                 maxLength={16}
-                fontFamily="Oswald-Light"
                 onFocus={() => handleFocus('password')}
                 onBlur={handleBlur}
                 onChangeText={text => setPassword(text)}
@@ -415,7 +413,7 @@ const LoginScreen = ({navigation}) => {
                     marginLeft: 8,
                     color: 'white',
                     fontSize: 13,
-                    fontFamily: 'Oswald-Regular',
+                    //fontFamily: 'Oswald-Regular',
                   }}>
                   Remember Me
                 </Text>
@@ -447,8 +445,8 @@ const LoginScreen = ({navigation}) => {
                       style={{
                         color: 'white',
                         fontSize: 16,
-                        letterSpacing: 2,
-                        fontFamily: 'Oswald-Regular',
+                        //letterSpacing: 2,
+                        //fontFamily: 'Oswald-Regular',
                       }}>
                       SIGN IN
                     </Text>

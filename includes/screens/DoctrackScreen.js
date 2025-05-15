@@ -15,6 +15,7 @@ import {
   SafeAreaView,
   TouchableHighlight,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useNavigation} from '@react-navigation/native';
@@ -109,8 +110,6 @@ const DoctrackScreen = ({
   const closeModal = () => {
     setSetModalVisible(false);
   };
-
- 
 
   const getSumOfDocumentTypeCount = data => {
     if (!data || !Array.isArray(data)) {
@@ -506,10 +505,10 @@ const DoctrackScreen = ({
                   }}>
                   <Text
                     style={{
-                         fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#252525',
-                        paddingHorizontal: 10,
-                        fontSize: 16,
+                      fontFamily: 'Inter_28pt-SemiBold',
+                      color: '#252525',
+                      paddingHorizontal: 10,
+                      fontSize: 16,
                     }}>
                     Transaction Counter
                   </Text>
@@ -1045,7 +1044,7 @@ const DoctrackScreen = ({
               </View>
             </>
           ) : (
-            (procurement === '1' /* || accountType === '1' */) &&
+            procurement === '1' /* || accountType === '1' */ &&
             [
               '1071',
               '1081',
@@ -1057,12 +1056,131 @@ const DoctrackScreen = ({
               'TRAC',
             ].includes(officeCode) && (
               <View>
-                
                 {accountType !== '2' && (
+                  <View
+                    style={{
+                      padding: 10,
+                      marginTop: 10,
+                      backgroundColor: 'white',
+                      borderRadius: 5,
+                      shadowColor: '#000',
+                      shadowOffset: {width: 0, height: 2},
+                      shadowOpacity: 0.25,
+                      shadowRadius: 3.84,
+                      elevation: 1,
+                      borderBottomWidth: 1,
+                      borderBottomColor: 'silver',
+                      borderRightWidth: 1,
+                      borderRightColor: 'silver',
+                    }}>
+                    <View
+                      style={{
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#eee',
+                        paddingBottom: 5,
+                        marginBottom: 5,
+                      }}>
+                      <Text
+                        style={{
+                          fontFamily: 'Inter_28pt-SemiBold',
+                          color: '#252525',
+                          paddingHorizontal: 10,
+                          fontSize: 16,
+                        }}>
+                        Tracking Summary
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingTop: 10,
+                        paddingBottom: 10,
+                        marginStart: 5,
+                      }}>
+                      {trackSumLoading ? (
+                        <Text style={{textAlign: 'center'}}>Loading...</Text>
+                      ) : trackSumError ? (
+                        <Text style={{textAlign: 'center', color: 'red'}}>
+                          Error loading data
+                        </Text>
+                      ) : itemsToShowTrackSum?.length === 0 ? (
+                        <Text style={{textAlign: 'center'}}>
+                          No results found
+                        </Text>
+                      ) : (
+                        <>
+                          {itemsToShowTrackSum?.map((item, index) => (
+                            <Pressable
+                              key={index}
+                              onPress={() =>
+                                navigation.navigate('TrackingSummaryScreen', {
+                                  selectedItem: item,
+                                })
+                              }
+                              style={{}}
+                              android_ripple={{color: 'rgba(0, 0, 0, 0.2)'}}>
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  //alignItems: 'center',
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: '#eee',
+                                  paddingVertical: 5,
+                                }}>
+                                <Text
+                                  style={{
+                                    fontFamily: 'Inter_28pt-Bold',
+                                    fontSize: 15,
+                                    color: item.Status.includes('Pending')
+                                      ? 'rgb(248, 12, 12)'
+                                      : 'rgb(8, 112, 231)',
+                                    width: '20%',
+                                    textAlign: 'right',
+                                    paddingRight: 10,
+                                    //alignSelf: 'center',
+                                    textAlignVertical: 'top',
+                                  }}>
+                                  {item.Count}
+                                </Text>
+                                <View style={{width: '80%'}}>
+                                  <Text
+                                    style={{
+                                      fontFamily: 'Inter_28pt-Light',
+                                      fontSize: 14,
+                                    }}>
+                                    {item.Status}
+                                  </Text>
+                                </View>
+                              </View>
+                            </Pressable>
+                          ))}
+
+                          {trackSumData?.length > 5 && (
+                            <View
+                              style={{alignSelf: 'flex-end', marginTop: 10}}>
+                              <TouchableOpacity
+                                onPress={() => setShowAll(prev => !prev)}>
+                                <Text
+                                  style={{
+                                    color: 'rgb(8, 112, 231)',
+                                    fontWeight: 'bold',
+                                  }}>
+                                  {showAll ? 'Show Less' : 'Show More'}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </>
+                      )}
+                    </View>
+                  </View>
+                )}
+
                 <View
                   style={{
                     padding: 10,
-                    marginTop: 10,
+                    marginTop: 15,
                     backgroundColor: 'white',
                     borderRadius: 5,
                     shadowColor: '#000',
@@ -1075,13 +1193,12 @@ const DoctrackScreen = ({
                     borderRightWidth: 1,
                     borderRightColor: 'silver',
                   }}>
-
                   <View
                     style={{
                       borderBottomWidth: 1,
                       borderBottomColor: '#eee',
                       paddingBottom: 5,
-                      marginBottom: 5,
+                      marginBottom: 10,
                     }}>
                     <Text
                       style={{
@@ -1090,224 +1207,107 @@ const DoctrackScreen = ({
                         paddingHorizontal: 10,
                         fontSize: 16,
                       }}>
-                      Tracking Summary
+                      Transaction Counter
                     </Text>
                   </View>
-                  
+
                   <View
                     style={{
-                      paddingHorizontal: 10,
-                      paddingTop: 10,
-                      paddingBottom: 10,
-                      marginStart: 5,
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      justifyContent: 'flex-start',
+                      alignItems: 'center',
+                      alignSelf: 'flex-start',
+                      gap: 15,
                     }}>
-                    {trackSumLoading ? (
-                      <Text style={{textAlign: 'center'}}>Loading...</Text>
-                    ) : trackSumError ? (
-                      <Text style={{textAlign: 'center', color: 'red'}}>
-                        Error loading data
-                      </Text>
-                    ) : itemsToShowTrackSum?.length === 0 ? (
-                      <Text style={{textAlign: 'center'}}>
-                        No results found
-                      </Text>
-                    ) : (
-                      <>
-                        {itemsToShowTrackSum?.map((item, index) => (
-                          <Pressable
-                            key={index}
-                            onPress={() =>
-                              navigation.navigate('TrackingSummaryScreen', {
-                                selectedItem: item,
-                              })
-                            }
-                            style={{}}
-                            android_ripple={{color: 'rgba(0, 0, 0, 0.2)'}}>
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                //alignItems: 'center',
-                                borderBottomWidth:1,
-                                borderBottomColor:'#ccc',
-                                paddingVertical:5
-
-                              }}>
-                              <Text
-                                style={{
-                                  fontFamily: 'Inter_28pt-Bold',
-                                  fontSize: 15,
-                                  color: item.Status.includes('Pending')
-                                    ? 'rgb(248, 12, 12)'
-                                    : 'rgb(8, 112, 231)',
-                                  width: '20%',
-                                  textAlign: 'right',
-                                  paddingRight: 10,
-                                  //alignSelf: 'center',
-                                  textAlignVertical:'top'
-                                }}>
-                                {item.Count}
-                              </Text>
-                              <View style={{width: '80%'}}>
-                                <Text
-                                  style={{
-                                    fontFamily: 'Inter_28pt-Light',
-                                    fontSize: 14,
-                                  }}>
-                                  {item.Status}
-                                </Text>
-                              </View>
-                            </View>
-                          </Pressable>
-                        ))}
-
-                        {trackSumData?.length > 5 && (
-                          <View style={{alignSelf: 'flex-end', marginTop:10}}>
-                            <TouchableOpacity
-                              onPress={() => setShowAll(prev => !prev)}>
-                              <Text
-                                style={{
-                                  color: 'rgb(8, 112, 231)',
-                                  fontWeight: 'bold',
-                                }}>
-                                {showAll ? 'Show Less' : 'Show More'}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </View>
-                </View>
-                                ) }  
-
-                <View
-                style={{
-                  padding: 10,
-                  marginTop: 15,
-                  backgroundColor: 'white',
-                  borderRadius: 5,
-                  shadowColor: '#000',
-                  shadowOffset: {width: 0, height: 2},
-                  shadowOpacity: 0.25,
-                  shadowRadius: 3.84,
-                  elevation: 1,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'silver',
-                  borderRightWidth: 1,
-                  borderRightColor: 'silver',
-                }}>
-                <View
-                  style={{
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#eee',
-                    paddingBottom: 5,
-                    marginBottom: 10,
-                  }}>
-                  <Text
-                    style={{
-                         fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#252525',
-                        paddingHorizontal: 10,
-                        fontSize: 16,
-                    }}>
-                    Transaction Counter
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    justifyContent: 'flex-start',
-                    alignItems: 'center',
-                    alignSelf: 'flex-start',
-                    gap: 15,
-                  }}>
-                  {[
-                    {
-                      label: 'Delays',
-                      count: `${officeDelaysLength ? officeDelaysLength : 0}`,
-                      screen: 'OfficeDelays',
-                      condition: accountType === '1',
-                    },
-                    {
-                      label: 'Updated',
-                      count: `${updatedNowData ? updatedNowData : 0}`,
-                      screen: 'RecentUpdated',
-                    },
-                    /* {
+                    {[
+                      {
+                        label: 'Delays',
+                        count: `${officeDelaysLength ? officeDelaysLength : 0}`,
+                        screen: 'OfficeDelays',
+                        condition: accountType === '1',
+                      },
+                      {
+                        label: 'Updated',
+                        count: `${updatedNowData ? updatedNowData : 0}`,
+                        screen: 'RecentUpdated',
+                      },
+                      /* {
                       label: 'Attachments',
                       icon: 'document-attach',
                       screen: 'PDF',
                     }, */
-                    {
-                      label: 'RegDelays',
-                      count: `${regOfficeDelaysLength ? regOfficeDelaysLength : 0}`,
-                      screen: 'Summary',
-                      condition:
-                        accountType > '1' &&
-                        [
-                          '8751',
-                          '1031',
-                          'BAAC',
-                          'BACN',
-                          '1071',
-                          '1081',
-                          '1061',
-                          '1091',
-                        ].includes(officeCode),
-                    },
-                  ].map((item, index, arr) => {
-                    if (item.condition === false) {
-                      return null;
-                    }
+                      {
+                        label: 'RegDelays',
+                        count: `${
+                          regOfficeDelaysLength ? regOfficeDelaysLength : 0
+                        }`,
+                        screen: 'Summary',
+                        condition:
+                          accountType > '1' &&
+                          [
+                            '8751',
+                            '1031',
+                            'BAAC',
+                            'BACN',
+                            '1071',
+                            '1081',
+                            '1061',
+                            '1091',
+                          ].includes(officeCode),
+                      },
+                    ].map((item, index, arr) => {
+                      if (item.condition === false) {
+                        return null;
+                      }
 
-                    return (
-                      <Pressable
-                        key={index}
-                        onPress={() => navigation.navigate(item.screen, item.params)}
-                        style={({pressed}) => [
-                          {
-                            width: arr.length === 3 ? '32%' : '32%',
-                            alignItems: 'center',
-                            paddingVertical: 10,
-                            marginBottom: 10,
-                            borderRadius: 5,
-                            elevation: 1,
-                            backgroundColor: pressed ? '#007bff' : '#ffffff',
-                            borderBottomWidth: 2,
-                            borderBottomColor: 'silver',
-                            borderRightWidth: 2,
-                            borderRightColor: 'silver',
-                          },
-                        ]}
-                        android_ripple={{}}>
-                        {({pressed}) => (
-                          <>
-                            <Text
-                              style={{
-                                color: pressed ? 'white' : '#007bff',
-                                fontFamily: 'Inter_28pt-Bold',
-                                fontSize: 26,
-                              }}>
-                              {item.count || 0}
-                            </Text>
-                            <Text
-                              style={{
-                                color: pressed ? 'white' : '#252525',
-                                fontFamily: 'Inter_28pt-Regular',
-                                fontSize: 10,
-                              }}>
-                              {item.label}
-                            </Text>
-                          </>
-                        )}
-                      </Pressable>
-                    );
-                  })}
+                      return (
+                        <Pressable
+                          key={index}
+                          onPress={() =>
+                            navigation.navigate(item.screen, item.params)
+                          }
+                          style={({pressed}) => [
+                            {
+                              width: arr.length === 3 ? '32%' : '32%',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              marginBottom: 10,
+                              borderRadius: 5,
+                              elevation: 1,
+                              backgroundColor: pressed ? '#007bff' : '#ffffff',
+                              borderBottomWidth: 2,
+                              borderBottomColor: 'silver',
+                              borderRightWidth: 2,
+                              borderRightColor: 'silver',
+                            },
+                          ]}
+                          android_ripple={{}}>
+                          {({pressed}) => (
+                            <>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#007bff',
+                                  fontFamily: 'Inter_28pt-Bold',
+                                  fontSize: 26,
+                                }}>
+                                {item.count || 0}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: pressed ? 'white' : '#252525',
+                                  fontFamily: 'Inter_28pt-Regular',
+                                  fontSize: 10,
+                                }}>
+                                {item.label}
+                              </Text>
+                            </>
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
-                </View>
-
 
                 <View
                   style={{
@@ -1334,7 +1334,7 @@ const DoctrackScreen = ({
                     }}>
                     <Text
                       style={{
-                          fontFamily: 'Inter_28pt-SemiBold',
+                        fontFamily: 'Inter_28pt-SemiBold',
                         color: '#252525',
                         paddingHorizontal: 10,
                         fontSize: 16,
@@ -2050,15 +2050,16 @@ const DoctrackScreen = ({
             marginBottom: 60,
             backgroundColor: 'white',
             borderRadius: 5,
-            shadowColor: '#000',
+            /* shadowColor: '#000',
             shadowOffset: {width: 0, height: 2},
             shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 1,
+            shadowRadius: 3.84, */
+            elevation: 2,
+            /*  elevation: 1,
             borderBottomWidth: 1,
             borderBottomColor: 'silver',
             borderRightWidth: 1,
-            borderRightColor: 'silver',
+            borderRightColor: 'silver', */
           }}>
           <View
             style={{
@@ -2070,9 +2071,9 @@ const DoctrackScreen = ({
             <Text
               style={{
                 fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#252525',
-                        paddingHorizontal: 10,
-                        fontSize: 16,
+                color: '#252525',
+                paddingHorizontal: 10,
+                fontSize: 16,
               }}>
               Personal
             </Text>
@@ -2207,25 +2208,36 @@ const DoctrackScreen = ({
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="transparent"
-        translucent={true}
-      />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={selectedOnRefresh}
-          />
-        }>
-        {renderUI()}
-        <LoadingModal visible={isModalVisible} />
-        <CustomModal visible={isSetModalVisible} onRequestClose={closeModal}>
-          <Text>This feature is currently under development.</Text>
-        </CustomModal>
-      </ScrollView>
+      <ImageBackground
+        source={require('../../assets/images/bgasset.jpg')}
+        style={{flex: 1}}
+        resizeMode="cover">
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}
+        />
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent={true}
+        />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={selectedOnRefresh}
+            />
+          }>
+          {renderUI()}
+          <LoadingModal visible={isModalVisible} />
+          <CustomModal visible={isSetModalVisible} onRequestClose={closeModal}>
+            <Text>This feature is currently under development.</Text>
+          </CustomModal>
+        </ScrollView>
+      </ImageBackground>
     </SafeAreaView>
   );
 };
@@ -2459,8 +2471,10 @@ const RecentActivity = ({
                       justifyContent: 'center',
                       paddingHorizontal: 10,
                     }}>
-                    <InspectionImage  year={item?.Year}
-                    trackingNumber={item?.TrackingNumber} />
+                    <InspectionImage
+                      year={item?.Year}
+                      trackingNumber={item?.TrackingNumber}
+                    />
                   </View>
 
                   <View style={{gap: 0, width: '70%'}}>
@@ -2524,6 +2538,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
+
   scrollViewContent: {
     flex: 1,
   },

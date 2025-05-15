@@ -24,8 +24,6 @@ import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
 import useUserInfo from '../api/useUserInfo';
 
-
-
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   // const modifiedDate = item.DateModified.split(' ')[0];
   // const isDateMatched = modifiedDate === formattedDate;
@@ -174,10 +172,9 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
 });
 
 const SearchScreen = ({}) => {
- /*  const { fullName, employeeNumber, officeName } = route.params;
-  console.log(fullName, employeeNumber, officeName); */
   const currentYear = new Date().getFullYear().toString();
-  
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+
   const years = Array.from(
     {length: Math.max(0, currentYear - 2023 + 1)},
     (_, index) => ({
@@ -185,7 +182,8 @@ const SearchScreen = ({}) => {
       value: currentYear - index,
     }),
   );
-  const {caoReceiver} = useUserInfo();
+
+  const {caoReceiver, receiver} = useUserInfo();
 
   const [searchText, setSearchText] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
@@ -200,6 +198,7 @@ const SearchScreen = ({}) => {
 
   const [dataError, setDataError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
   const {
     searchTrackData,
     setSearchTrackData,
@@ -232,6 +231,10 @@ const SearchScreen = ({}) => {
         useNativeDriver: true,
       }),
     ]).start();
+  };
+  const handleSearch = () => {
+    console.log('Searching for:', searchText);
+    setSearchModalVisible(truex);
   };
 
   const navigation = useNavigation();
@@ -474,16 +477,9 @@ const SearchScreen = ({}) => {
                 alignItems: 'center',
                 width: '80%',
               }}>
-              {/* Search Bar */}
               <View style={{flex: 1}}>
                 <View style={styles.searchBarInput}>
-                  <View
-                    style={
-                      {
-                        /* width: '40%',  */
-                        //borderWidth:1
-                      }
-                    }>
+                  <View style={{}}>
                     <YearDropdown
                       selectedYear={selectedYear}
                       setSelectedYear={setSelectedYear}
@@ -504,13 +500,11 @@ const SearchScreen = ({}) => {
                       {
                         fontSize: 14,
                         color: 'black',
-                        //fontFamily: 'Inter_28pt-Regular',
                       },
                     ]}
                     autoCapitalize="characters"
                     placeholderTextColor="silver"
                     placeholderStyle={styles.placeholderText}
-                    //autoFocus={true}
                     autoCorrect={false}
                     autoCompleteType="off"
                     textContentType="none"
@@ -532,7 +526,6 @@ const SearchScreen = ({}) => {
               </View>
             </View>
 
-            {/* Search Button */}
             <TouchableOpacity
               style={{
                 width: '18%',
@@ -552,12 +545,7 @@ const SearchScreen = ({}) => {
               </View>
             </TouchableOpacity>
           </View>
-          <View style={{padding: 8}}>
-            {/* <Text>Select Type</Text> */}
-            {/* <TouchableOpacity onPress={() => navigation.navigate('Receiver')}>
-              <Icon name="chevron-back" size={24} />
-            </TouchableOpacity> */}
-          </View>
+          <View style={{padding: 8}}></View>
         </View>
       );
     } else if (selectedView === 'SearchName') {
@@ -837,7 +825,7 @@ const SearchScreen = ({}) => {
 
     return (
       <View style={styles.noDataContainer}>
-        <Text style={styles.noDataText}>{/* No results found */}</Text>
+        <Text style={styles.noDataText}></Text>
       </View>
     );
   };
@@ -917,186 +905,166 @@ const SearchScreen = ({}) => {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-      <View
-        style={{
-          marginTop: 10,
-          flexDirection: 'row',
-          paddingStart: 10,
-          marginHorizontal: 5,
-          marginBottom: 10,
-          alignItems: 'center',
-          // Aligns items vertically in the row
-          justifyContent: 'space-between', // Distributes items evenly in the row
-        }}>
-        {/* <TouchableOpacity onPress={openYearModal} style={{}}>
-            <View
-              style={{
-                backgroundColor: 'rgba(13, 85, 199, 0.8)',
-                paddingHorizontal: 10,
-                borderRightWidth: 2,
-                borderRightColor: 'silver',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Oswald-Regular',
-                  fontSize: 16,
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                }}>
-                {selectedYear}
-              </Text>
-            </View>
-          </TouchableOpacity> */}
+      <ImageBackground
+        source={require('../../assets/images/bgasset.jpg')}
+        style={{flex: 1}}
+        resizeMode="cover">
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}
+        />
 
         <View
-          /* onPress={() => setSelectedView('DocumentSearch')} */
-          style={{marginLeft: 10}}>
-          <Text
-            style={{
-              fontFamily: 'Inter_24pt-Bold',
-              fontSize: 24,
-              color: '#252525',
-            }}>
-            {/* Document */}Search
-          </Text>
-          <Text
-            style={{
-              fontFamily: 'Inter_24pt-Regular',
-              fontSize: 14,
-              color: '#252525',
-            }}>
-            your tracking number
-          </Text>
-        </View>
-
-        {caoReceiver === '1' && (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Receiver')}
-            style={{marginRight: 25}}>
-            <Icons name="qrcode-scan" size={40} color="black" />
-          </TouchableOpacity>
-        )}
-
-        {/* <View
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              alignSelf: 'flex-end',
-            }}>
-            <Menu
-              visible={visible}
-              onDismiss={closeMenu}
-              statusBarHeight={-20}
-              anchor={
-                <TouchableOpacity
-                  style={{
-                    marginEnd: 10,
-                    padding: 10,
-                    borderWidth: 0.5,
-                    borderColor: 'rgba(13, 85, 199, 0.8)',
-                    borderRadius: 5,
-                  }}
-                  onPress={openMenu}>
-                  <Icon
-                    name="filter"
-                    size={16}
-                    color="rgba(13, 85, 199, 0.8)"
-                  />
-                </TouchableOpacity>
-              }>
-              <Menu.Item
-                onPress={() => {
-                  setSelectedView('DocumentSearch');
-                  closeMenu();
-                }}
-                title="Search by TN or Claimant"
-                titleStyle={{fontSize: 14}}
-              />
-              <Divider />
-              <Menu.Item
-                onPress={() => {
-                  setSelectedView('SearchEmployeeNumber');
-                  setSearchTrackData(null);
-                  setSearchPayrollData(null);
-                  setDataError(false);
-                  closeMenu();
-                }}
-                title="Search by Employee Number"
-                titleStyle={{fontSize: 14}}
-              />
-              <Divider />
-              <Menu.Item
-                onPress={() => {
-                  setSelectedView('SearchName');
-                  setSearchTrackData(null);
-                  setSearchPayrollData(null);
-                  setDataError(false);
-                  closeMenu();
-                }}
-                title="Search by Name"
-                titleStyle={{fontSize: 14}}
-              />
-              <Divider />
-            </Menu>
-          </View> */}
-      </View>
-
-      <View></View>
-
-      <View style={{paddingHorizontal: 20, paddingBottom: 20}}>
-        {renderContent()}
-      </View>
-
-      <View
-        style={{
-          backgroundColor: 'rgba(232, 232, 232, 1)',
-          flex: 1,
-          paddingHorizontal: 20,
-        }}>
-        {selectedView === 'DocumentSearch' ? renderData() : renderDataPayroll()}
-      </View>
-
-      <Modal transparent={true} visible={modalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <FlatList
-              data={years}
-              renderItem={renderYearItem}
-              keyExtractor={item => item}
-            />
+          style={{
+            borderWidth: 1,
+            backgroundColor:'rgba(255,255,255,0.5)',
+            borderColor: '#eee',
+            marginTop: 10,
+            paddingStart: 10,
+            marginHorizontal: 5,
+            marginBottom: 10,
+            alignItems: 'flex-start',
+          }}>
+          {(caoReceiver === '0' || receiver === '0') && (
             <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={closeYearModal}>
-              <Text style={styles.modalCloseButtonText}>Close</Text>
+              onPress={() => navigation.navigate('Receiver')}
+              style={{position: 'absolute', top: 10, right: 10}}>
+              <Icons name="qrcode-scan" size={40} color="black" />
             </TouchableOpacity>
+          )}
+        
+          <View style={{marginStart: 10, marginBottom: 20}}>
+            <Text
+              style={{
+                fontFamily: 'Inter_24pt-Bold',
+                fontSize: 24,
+                color: '#252525',
+              }}>
+              Search
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Inter_24pt-Regular',
+                fontSize: 14,
+                color: '#252525',
+              }}>
+              Search tracking number
+            </Text>
+
+            <View
+              style={{
+                marginTop: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
+              <TouchableOpacity
+                style={{
+                  height: 40,
+                  width: '90%',
+                  borderColor: '#ccc',
+                  borderWidth: 1,
+                  paddingHorizontal: 10,
+                  borderRadius: 5,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                }}
+                onPress={() => setSearchModalVisible(true)}>
+                <Icons
+                  name="magnify"
+                  size={24}
+                  color="#252525"
+                  style={{marginRight: 10}}
+                />
+                <Text style={{fontSize: 16, color: '#252525'}}>Enter here</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </Modal>
-      {/* </ImageBackground> */}
+
+        <Modal transparent={true} visible={modalVisible} animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <FlatList
+                data={years}
+                renderItem={renderYearItem}
+                keyExtractor={item => item}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={closeYearModal}>
+                <Text style={styles.modalCloseButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+         {/* <View
+          style={{
+            backgroundColor: 'rgba(232, 232, 232, 1)',
+            backgroundColor: 'white',
+            flex: 1,
+            paddingHorizontal: 20,
+          }}>
+          {selectedView === 'DocumentSearch'
+            ? renderData()
+            : renderDataPayroll()}
+        </View> */}
+
+        <Modal visible={searchModalVisible} transparent animationType="slide">
+          <View style={styles.fullScreenModal}>
+            <View style={styles.searchHeader}>
+              <TouchableOpacity
+                onPress={() => setSearchModalVisible(false)}
+                style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color="#252525" />
+              </TouchableOpacity>
+
+              <View style={styles.searchInputContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search tracking number"
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  autoFocus={true}
+                  clearButtonMode="never"
+                  underlineColorAndroid="transparent"
+                  placeholderTextColor="#999"
+                />
+                {searchText.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchText('')}
+                    style={styles.clearButton}>
+                    <Text style={styles.clearIcon}>×</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.searchButton,
+                searchText.trim().length === 0 && styles.searchButtonDisabled,
+              ]}
+              onPress={handleSearch}
+              disabled={searchText.trim().length === 0}>
+              <Text style={styles.searchButtonText}>Search</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      </ImageBackground>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  searchBarContainer: {
-    //backgroundColor: 'white',
-    //borderRadius: 5,
-    //marginVertical: 10,
-  },
   searchBarInput: {
-    //backgroundColor: 'rgba(238, 240, 248, 1)',
-    //backgroundColor: 'transparent',
     flex: 1,
     backgroundColor: 'rgba(245, 244, 244, 0.79)',
     flexDirection: 'row',
     borderRadius: 5,
-    //borderWidth:1,
-    //borderWidth: 1,
-    //borderBottomWidth: 1,
-    // borderColor: 'black',
-    //paddingStart: 10,
   },
   modalContainer: {
     flex: 1,
@@ -1169,6 +1137,81 @@ const styles = StyleSheet.create({
     width: 80,
     height: 40,
     paddingHorizontal: 10,
+  },
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  backButton: {
+    padding: 8,
+    marginRight: 10,
+  },
+
+  backIcon: {
+    fontSize: 22,
+    color: '#252525',
+  },
+
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    height: 40,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#252525',
+    paddingVertical: 0,
+  },
+
+  clearButton: {
+    marginLeft: 8,
+  },
+
+  clearIcon: {
+    fontSize: 20,
+    color: '#999',
+  },
+
+  searchButton: {
+    marginTop: 20,
+    marginHorizontal: 15,
+    backgroundColor: '#252525',
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+
+  searchButtonDisabled: {
+    opacity: 0.5,
   },
 });
 
