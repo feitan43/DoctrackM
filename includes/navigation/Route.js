@@ -107,6 +107,7 @@ import EvalAnnual from '../screens/evaluator/EvalAnnual';
 import AttachmentsScreen from '../screens/AttachmentsScreen';
 import AccessScreen from '../screens/AccessScreen';
 import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
+import EditOBRScreen from '../screens/receiver/EditOBRScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -574,6 +575,7 @@ const handleUpdate = async updateUrl => {
 
         <Stack.Screen name='QRManual' component={QRManual} />
         <Stack.Screen name='EditAdvScreen' component={EditAdvScreen} />
+        <Stack.Screen name='EditOBRScreen' component={EditOBRScreen} />
         <Stack.Screen name='QRAuto' component={QRAuto} />
         <Stack.Screen name='QRRevert' component={QRRevert} />
 

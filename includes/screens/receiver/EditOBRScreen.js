@@ -2,26 +2,25 @@ import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import { useUpdateQRDataADV } from '../../api/useUpdateQRData';
+import { useUpdateQRDataOBR } from '../../api/useUpdateQRData';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-const EditAdvScreen = ({ route }) => {
+const EditOBRScreen = ({ route }) => {
     const navigation = useNavigation();
     const { item } = route.params;
 
-    const { mutateAsync, isPending } = useUpdateQRDataADV();
-
-    const advNumber = item?.ADV1 || '';
+    const { mutateAsync, isPending } = useUpdateQRDataOBR();
+    const obrNumber = item?.OBR_Number || '';
     const year = item?.Year;
     const trackingNumber = item?.TrackingNumber;
-    const [newAdvNumber, setNewAdvNumber] = useState(advNumber);
+    const [newOBRNumber, setNewOBRNumber] = useState(obrNumber);
     const [error, setError] = useState('');
 
     const handleSubmit = async () => {
         setError('');
 
-        if (newAdvNumber === '' || newAdvNumber === 'n/a' || isNaN(newAdvNumber)) {
-            setError('Please enter a valid ADV Number');
+        if (newOBRNumber === '' || newOBRNumber === 'n/a' || isNaN(newOBRNumber)) {
+            setError('Please enter a valid OBR Number');
             return;
         }
 
@@ -30,7 +29,7 @@ const EditAdvScreen = ({ route }) => {
             await mutateAsync({
                 year,
                 trackingNumber,
-                adv1: newAdvNumber,
+                obrNumber: newOBRNumber,
             });
             navigation.goBack(); 
         } catch (error) {
@@ -73,9 +72,9 @@ const EditAdvScreen = ({ route }) => {
             <View style={styles.contentContainer}>
                 <TextInput
                     mode="outlined"
-                    label="ADV Number"
-                    value={newAdvNumber}
-                    onChangeText={setNewAdvNumber}
+                    label="OBR Number"
+                    value={newOBRNumber}
+                    onChangeText={setNewOBRNumber}
                     style={styles.textInput}
                     keyboardType="numeric"
                     error={error !== ''}
@@ -140,4 +139,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default EditAdvScreen;
+export default EditOBRScreen;

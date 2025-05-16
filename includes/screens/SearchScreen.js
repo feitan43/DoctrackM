@@ -23,6 +23,8 @@ import {Menu, Divider, IconButton, PaperProvider} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
 import useUserInfo from '../api/useUserInfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from "@react-navigation/native";
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   // const modifiedDate = item.DateModified.split(' ')[0];
@@ -171,6 +173,9 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
   );
 });
 
+const STORAGE_KEY = '@search_history';
+
+
 const SearchScreen = ({}) => {
   const currentYear = new Date().getFullYear().toString();
   const [searchModalVisible, setSearchModalVisible] = useState(false);
@@ -198,6 +203,8 @@ const SearchScreen = ({}) => {
 
   const [dataError, setDataError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [searchHistory, setSearchHistory] = useState([]);
+
 
   const {
     searchTrackData,
@@ -210,6 +217,51 @@ const SearchScreen = ({}) => {
     fetchDataSearchTrack,
     fetchDataSearchPayroll,
   } = useSearchTrack(searchText, selectedYear, search);
+
+  const getSearchHistory = async () => {
+  try {
+    const history = await AsyncStorage.getItem(STORAGE_KEY);
+    if (history) {
+      setSearchHistory(JSON.parse(history));
+    }
+  } catch (error) {
+    console.log('Error retrieving search history:', error);
+  }
+};
+
+
+const addSearchItem = async (item) => {
+  const trimmedItem = item.trim();
+  if (trimmedItem.length === 0) return;
+
+  const newHistory = [trimmedItem, ...searchHistory.filter(i => i !== trimmedItem)];
+  const limitedHistory = newHistory.slice(0, 5); // Keep only the last 5 searches
+  setSearchHistory(limitedHistory);
+  await saveSearchHistory(limitedHistory);
+};
+
+const removeSearchItem = async (item) => {
+  const updatedHistory = searchHistory.filter(i => i !== item);
+  setSearchHistory(updatedHistory);
+  await saveSearchHistory(updatedHistory);
+};
+
+const handleHistorySelect = (item) => {
+  setSearchText(item);
+};
+
+useEffect(() => {
+  getSearchHistory();
+}, []);
+
+const saveSearchHistory = async (newHistory) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
+  } catch (error) {
+    console.log('Error saving search history:', error);
+  }
+};
+
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
@@ -283,6 +335,12 @@ const SearchScreen = ({}) => {
       setErrorMessage('at least 3 characters.');
       return;
     }
+    addSearchItem(searchText);
+
+    setSearchHistory((prev) => {
+      const newHistory = [searchText, ...prev.filter(item => item !== searchText)];
+      return newHistory.slice(0, 5); // Keep only the last 5 searches
+    });
 
     const validText = /^[a-zA-Z0-9-]*$/;
 
@@ -319,6 +377,8 @@ const SearchScreen = ({}) => {
             ? searchText
             : data.results[0].TrackingNumber;
 
+            setSearchModalVisible(false);
+
         navigation.navigate('Detail', {
           index: 0,
           selectedItem: {
@@ -331,7 +391,7 @@ const SearchScreen = ({}) => {
       } else {
         console.log('No unique results found for the search.');
       }
-
+      //setSearchModalVisible(false);
       setSearch(true);
     } catch (fetchError) {
       setDataError(true); // Set error
@@ -927,15 +987,16 @@ const SearchScreen = ({}) => {
             marginBottom: 10,
             alignItems: 'flex-start',
           }}>
-          {(caoReceiver === '0' || receiver === '0') && (
-            <TouchableOpacity
+         
+              {/* <TouchableOpacity
               onPress={() => navigation.navigate('Receiver')}
-              style={{position: 'absolute', top: 10, right: 10}}>
-              <Icons name="qrcode-scan" size={40} color="black" />
-            </TouchableOpacity>
-          )}
+              style={{ top: 10, right: 10}}>
+              <Icons name="qrcode-scan" size={40} color="#252525" />
+            </TouchableOpacity> */}
         
-          <View style={{marginStart: 10, marginBottom: 20}}>
+          <View style={{marginStart: 10, marginBottom: 20, marginTop:10}}>
+            <View style={{flexDirection:'row', justifyContent:'space-between'}}>
+              <View>
             <Text
               style={{
                 fontFamily: 'Inter_24pt-Bold',
@@ -952,7 +1013,17 @@ const SearchScreen = ({}) => {
               }}>
               Search tracking number
             </Text>
-
+            </View>
+            <View style={{alignItems:'flex-end'}}>
+             {(caoReceiver === '0' || receiver === '0') &&(
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Receiver')}
+              style={{top: 10, right: 20}}>
+              <Icons name="qrcode-scan" size={40} color="black" />
+            </TouchableOpacity>
+          )}
+          </View>
+          </View>
             <View
               style={{
                 marginTop: 10,
@@ -962,10 +1033,12 @@ const SearchScreen = ({}) => {
               <TouchableOpacity
                 style={{
                   height: 40,
-                  width: '90%',
+                  width: '95%',
+                  marginEnd:20,
                   borderColor: '#ccc',
                   borderWidth: 1,
                   paddingHorizontal: 10,
+                  marginTop:10,
                   borderRadius: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -1032,6 +1105,7 @@ const SearchScreen = ({}) => {
                   clearButtonMode="never"
                   underlineColorAndroid="transparent"
                   placeholderTextColor="#999"
+                  
                 />
                 {searchText.length > 0 && (
                   <TouchableOpacity
@@ -1048,10 +1122,31 @@ const SearchScreen = ({}) => {
                 styles.searchButton,
                 searchText.trim().length === 0 && styles.searchButtonDisabled,
               ]}
-              onPress={handleSearch}
+              onPress={searchTrackingNumber}
               disabled={searchText.trim().length === 0}>
               <Text style={styles.searchButtonText}>Search</Text>
             </TouchableOpacity>
+
+              <View style={styles.historyContainer}>
+      {searchHistory.length > 0 && (
+        <Text style={styles.historyTitle}>Search History:</Text>
+      )}
+      {searchHistory.map((item, index) => (
+        <View key={index} style={styles.historyItem}>
+          <TouchableOpacity onPress={() => handleHistorySelect(item)}>
+            <Text style={styles.historyText}>{item}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => removeSearchItem(item)}>
+            <Text style={styles.removeIcon}>×</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+
+            <View>
+              {renderData()}
+            </View>
+              
           </View>
         </Modal>
       </ImageBackground>
@@ -1213,6 +1308,31 @@ const styles = StyleSheet.create({
   searchButtonDisabled: {
     opacity: 0.5,
   },
+  historyContainer: {
+  paddingHorizontal: 16,
+  paddingTop: 10,
+},
+historyTitle: {
+  fontSize: 14,
+  color: '#555',
+  marginBottom: 5,
+},
+historyItem: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  paddingVertical: 8,
+  borderBottomWidth: 1,
+  borderBottomColor: '#ddd',
+},
+historyText: {
+  fontSize: 16,
+  color: '#333',
+},
+removeIcon: {
+  fontSize: 18,
+  color: '#f00',
+  paddingHorizontal: 10,
+},
 });
 
 export default SearchScreen;

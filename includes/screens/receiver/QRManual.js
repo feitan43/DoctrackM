@@ -67,8 +67,12 @@ const QRManual = () => {
     year,
     trackingNumber,
   });
-  const handleEdit = item => {
+  const handleEditADV = item => {
     navigation.navigate('EditAdvScreen', {item});
+  };
+
+  const handleEditOBR = item => {
+    navigation.navigate('EditOBRScreen', {item});
   };
 
   const {fetchDataSearchReceiver, setSearchTNData, loading, searchTNData} =
@@ -179,11 +183,12 @@ const QRManual = () => {
   // --------- Render Item QR Manual
 
   const renderItem = ({item}) => {
-    const showReceivedButton = (() => {
-      const {TrackingType, privilege, Office , Status, OBRType} = item || {};
+   /*  const showReceivedButton = (() => {
+      const {TrackingType, privilege, Office, Status, OBRType} = item || {};
 
       const isPR = TrackingType === 'PR' && privilege === '8';
-      const isPO = TrackingType === 'PO' /* && ['8', '5', '9'].includes(privilege) */;
+      const isPO =
+        TrackingType === 'PO'; 
       const isPX = TrackingType === 'PX';
       const isPY = TrackingType === 'PY';
 
@@ -193,19 +198,22 @@ const QRManual = () => {
 
       if (
         isPO &&
-        ['1031', '1071','TRAC'].includes(officeCode) &&
+        ['1031', '1071', 'TRAC'].includes(officeCode) &&
         ['Supplier Conformed', 'Check Preparation - CTO'].includes(Status)
       ) {
         return true;
       }
-      if ((isPY && Status === 'Admin Operation Received' && OBRType === '1') || (isPY && Status === 'Supplier Conformed' && officeCode === 'TRAC'))  {
+      if (
+        (isPY && Status === 'Admin Operation Received' && OBRType === '1') ||
+        (isPY && Status === 'Supplier Conformed' && officeCode === 'TRAC')
+      ) {
         return true;
       }
 
       if (isPX && Status === 'Check Preparation - CTO') return true;
 
       return false;
-    })();
+    })(); */
 
     const showCAOReceivedButton = (() => {
       const {TrackingType, Status, DocumentType, Fund} = item;
@@ -283,49 +291,172 @@ const QRManual = () => {
       return false;
     })();
 
+    const showCBOReceivedButton = (() => {
+      const {TrackingType, Status, DocumentType, Fund} = item;
 
+      const isPY = TrackingType === 'PY';
+      const isPO = TrackingType === 'PO';
+      const isNF = TrackingType === 'NF';
+      const isPX = TrackingType === 'PX';
+      const isIP = TrackingType === 'IP';
+      const isPR = TrackingType === 'PR';
+
+      if (isPY && ['Encoded', 'Pending Released - CBO'].includes(Status)) {
+        return true;
+      }
+
+      if (
+        isPO &&
+        ['Supplier Conformed', 'Admin Operation Received'].includes(Status)
+      ) {
+        return true;
+      }
+
+      if (
+        isNF &&
+        [
+          'OBR Implementing Office Signed',
+          'CBO Received',
+          'Pending Released - CBO',
+          'Obligation Request for Pick-up',
+        ].includes(Status)
+      ) {
+        return true;
+      }
+
+      return false;
+    })();
+
+    const showCBORevertButton = (() => {
+      const {TrackingType, Status} = item;
+
+      //PX
+      if (TrackingType === 'PO') {
+        if (Status === 'Fund Control') {
+          return true;
+        }
+      }
+
+      if (TrackingType === 'NF') {
+        if (Status === 'CBO Received') {
+          return true;
+        }
+        if (Status === 'Obligation Request for Pick-up') {
+          return true;
+        }
+          if (Status === 'Obligation Request Signed') {
+          return true;
+        }
+      
+      }
+
+      // )
+    
+      return false;
+    })();
 
 
     return (
       <View style={styles.itemContainer}>
         <View style={styles.textRow}>
-          <Text style={styles.label}>Year:</Text>
-          <Text style={styles.value}>{item.Year}</Text>
+          <Text style={styles.label}>Year | TN</Text>
+          <Text style={styles.value}>
+            {item.Year} - {item.TrackingNumber}
+          </Text>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{bottom: 5}}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
+
         <View style={styles.textRow}>
-          <Text style={styles.label}>Tracking Type:</Text>
-          <Text style={styles.value}>{item.TrackingType}</Text>
+          <Text style={styles.label}>Status</Text>
+          <Text style={styles.value}>{item.Status}</Text>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{bottom: 5}}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
+
         <View style={styles.textRow}>
-          <Text style={styles.label}>TN:</Text>
-          <Text style={styles.value}>{item.TrackingNumber}</Text>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.label}>ADV Number</Text>
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={[styles.value]}>
+                  {item?.ADV1 ? item.ADV1 : ''}
+                </Text>
+
+                {officeCode === '1081' && (
+                  <View style={{alignContent: 'flex-end'}}>
+                    <TouchableOpacity
+                      onPress={() => handleEditADV(item)}
+                      style={{flexDirection: 'row'}}>
+                      <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{bottom: 5}}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
+
         <View style={styles.textRow}>
-          <Text style={styles.label}>Document Type:</Text>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.label}>OBR Number</Text>
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={[styles.value]}>
+                  {item?.OBR_Number ? item.OBR_Number : ''}
+                </Text>
+                {officeCode === '1071' && (
+                  <View style={{alignContent: 'flex-end'}}>
+                    <TouchableOpacity
+                      onPress={() => handleEditOBR(item)}
+                      style={{flexDirection: 'row'}}>
+                      <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Doc Type</Text>
           <Text style={styles.value}>{item.DocumentType}</Text>
         </View>
         <Divider
@@ -334,229 +465,29 @@ const QRManual = () => {
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{bottom: 5}}
-        />
-
-         <View style={styles.textRow}>
-          <View style={{flexDirection: 'row'}}>
-            <Text style={styles.label}>OBR Number:</Text>
-            <View style={{flexDirection: 'column', flex: 1}}>
-              <View
-                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                <Text style={[styles.value]}>
-                  {item?.OBR_Number ? item.OBR_Number : ''}
-                </Text>
-
-                <View style={{alignContent: 'flex-end'}}>
-                  <TouchableOpacity
-                    onPress={() => handleEdit(item)}
-                    style={{flexDirection: 'row'}}>
-                    <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
-                    <Icon name="create-outline" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <Divider
-          width={1.9}
-          color={'rgba(217, 217, 217, 0.1)'}
-          borderStyle={'dashed'}
-          marginHorizontal={10}
-          marginBottom={5}
-          style={{bottom: 5}}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
 
         <View style={styles.textRow}>
-          <View style={{flexDirection: 'row'}}>
-            <Text style={styles.label}>ADV Number:</Text>
-            <View style={{flexDirection: 'column', flex: 1}}>
-              <View
-                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                <Text style={[styles.value]}>
-                  {item?.ADV1 ? item.ADV1 : ''}
-                </Text>
-
-                <View style={{alignContent: 'flex-end'}}>
-                  <TouchableOpacity
-                    onPress={() => handleEdit(item)}
-                    style={{flexDirection: 'row'}}>
-                    <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
-                    <Icon name="create-outline" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <Divider
-          width={1.9}
-          color={'rgba(217, 217, 217, 0.1)'}
-          borderStyle={'dashed'}
-          marginHorizontal={10}
-          marginBottom={5}
-          style={{bottom: 5}}
-        />
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{item.Status}</Text>
-        </View>
-        <Divider
-          width={1.9}
-          color={'rgba(217, 217, 217, 0.1)'}
-          borderStyle={'dashed'}
-          marginHorizontal={10}
-          marginBottom={5}
-          style={{bottom: 5}}
-        />
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Amount:</Text>
+          <Text style={styles.label}>Amount</Text>
           <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
-          style={{bottom: 5}}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
 
         <View style={{flexDirection: 'column'}}>
-          {showReceivedButton && (
-            <>
-              {item.Status === 'Supplier Conformed' && (
-                <View
-                  style={{
-                    alignSelf: 'center',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}>
-                  {item.OBR_Number && (
-                    <Text
-                      style={{
-                        marginRight: 10,
-                        color: '#000',
-                        marginTop: 10,
-                      }}>
-                      OBR #
-                    </Text>
-                  )}
-
-                  <TextInput
-                    style={{
-                      height: 40,
-                      borderColor: '#ccc',
-                      borderWidth: 1,
-                      borderRadius: 4,
-                      padding: 10,
-                      marginTop: 10,
-                      color: '#000',
-                    }}
-                    placeholder={'Enter OBR #'}
-                    placeholderTextColor="#aaa"
-                    keyboardType="numeric"
-                    maxLength={10}
-                    value={inputParams || item.OBR_Number} // Use inputParams if it exists, otherwise fallback to item.OBR_Number
-                    onChangeText={text => {
-                      const numericText = text.replace(/[^0-9]/g, ''); // Remove non-numeric characters
-                      setInputParams(numericText); // Update inputParams state with valid numeric text
-                    }}
-                    editable={false} // Always make the TextInput editable
-                  />
-                </View>
-              )}
-              {/* Received Button */}
-              <Button
-                mode="contained"
-                //loading={isLoading}
-                //disabled={isLoading}
-                style={{
-                  marginTop: 20,
-                  borderRadius: 8,
-                  elevation: 1,
-                  backgroundColor: '#007bff',
-                }}
-                onPress={() => {
-                  if (item.TrackingType === 'PO') {
-                    if (officeCode === '1071' && privilege === '9') {
-                      if (item.Status === 'Supplier Conformed') {
-                        if (!item.OBR_Number || item.OBR_Number.trim() === '') {
-                          if (inputParams === '') {
-                            Alert.alert(
-                              'OBR Number Required',
-                              'Please enter a valid OBR number.',
-                            );
-                            return;
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  handleReceived(
-                    item.Year,
-                    item.TrackingNumber,
-                    item.TrackingType,
-                    item.DocumentType,
-                    item.Status,
-                    inputParams,
-                  );
-                }}>
-                Received
-              </Button>
-            </>
-          )}
+       
 
           {showCAOReceivedButton && (
             <>
-              {item.Status === 'Supplier Conformed' && (
-                <View
-                  style={{
-                    alignSelf: 'center',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}>
-                  {item.OBR_Number && (
-                    <Text
-                      style={{
-                        marginRight: 10,
-                        color: '#000',
-                        marginTop: 10,
-                      }}>
-                      OBR #
-                    </Text>
-                  )}
-
-                  <TextInput
-                    style={{
-                      height: 40,
-                      borderColor: '#ccc',
-                      borderWidth: 1,
-                      borderRadius: 4,
-                      padding: 10,
-                      marginTop: 10,
-                      color: '#000',
-                    }}
-                    placeholder={'Enter OBR #'}
-                    placeholderTextColor="#aaa"
-                    keyboardType="numeric"
-                    maxLength={10}
-                    value={inputParams || item.OBR_Number}
-                    onChangeText={text => {
-                      const numericText = text.replace(/[^0-9]/g, '');
-                      setInputParams(numericText);
-                    }}
-                    editable={false}
-                  />
-                </View>
-              )}
-              {/* Received Button */}
-              <Button
+                <Button
                 mode="contained"
                 loading={isReceivedLoading}
                 disabled={isReceivedLoading}
@@ -637,6 +568,73 @@ const QRManual = () => {
               Revert
             </Button>
           )}
+
+          {showCBOReceivedButton && (
+            <>
+              <Button
+                mode="contained"
+                loading={isReceivedLoading}
+                disabled={isReceivedLoading}
+                style={{
+                  marginTop: 10,
+                  borderRadius: 8,
+                  backgroundColor: '#007bff',
+                }}
+                onPress={() => {
+                  if (item.TrackingType === 'PO') {
+                    if (officeCode === '1071' && privilege === '9') {
+                      if (item.Status === 'Supplier Conformed') {
+                        if (!item.OBR_Number || item.OBR_Number.trim() === '') {
+                          if (inputParams === '') {
+                            Alert.alert(
+                              'OBR Number Required',
+                              'Please enter a valid OBR number.',
+                            );
+                            return;
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  handleReceived(
+                    item.Year,
+                    item.TrackingNumber,
+                    item.TrackingType,
+                    item.DocumentType,
+                    item.Status,
+                    inputParams,
+                  );
+                }}>
+                Receive
+              </Button>
+            </>
+          )}
+          
+          {showCBORevertButton && (
+            <Button
+              mode="contained"
+              loading={isRevertLoading}
+              disabled={isRevertLoading}
+              style={{
+                marginTop: 10,
+                borderRadius: 8,
+                elevation: 1,
+                backgroundColor: 'orange',
+              }}
+              onPress={() =>
+                handleRevert(
+                  item.Year,
+                  item.TrackingNumber,
+                  item.TrackingType,
+                  item.DocumentType,
+                  item.Status,
+                )
+              }>
+              Revert
+            </Button>
+          )}
+
         </View>
 
         <View
@@ -665,6 +663,7 @@ const QRManual = () => {
   };
 
   const handleShowDetails = async (trackingNumber, year) => {
+    console.log("tn", trackingNumber, year );
     const data = await fetchDataSearchReceiver(trackingNumber, year);
     console.log('Fetched Data:', data.adv);
 
@@ -763,45 +762,15 @@ const QRManual = () => {
 
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#fff',
-          paddingBottom: 5,
-          zIndex: 1,
-          width: '100%',
-        }}>
-        <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginStart: 10,
-              padding: 10,
-              borderRadius: 24,
-            },
-          ]}
-          android_ripple={{
-            color: '#F6F6F6',
-            borderless: true,
-            radius: 24,
-            foreground: true,
-          }}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="gray" />
-        </Pressable>
-        <Text
-          style={{
-            padding: 10,
-            color: '#252525',
-            fontSize: 16,
-            fontFamily: 'Inter_24pt-Bold',
-          }}>
-          Search via QR Code
-        </Text>
-      </View>
+        <View style={styles.header}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}>
+                <Icon name="arrow-back" size={24} color="#000" />
+              </TouchableOpacity>
+              <Text style={styles.headerText}>Manual Receive</Text>
+              <View style={{ paddingHorizontal: 10, marginVertical: 10 }}></View>
+            </View>
 
       <View style={styles.cameraPreview}>
         {qrLoading ? (
@@ -942,7 +911,7 @@ const QRManual = () => {
                     color={'#fff'}
                     style={{marginRight: 2}}
                   />
-                  <Text
+                   <Text
                     style={{
                       fontSize: 13,
                       fontFamily: 'Inter_28pt-Bold',
@@ -1027,16 +996,13 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 16,
-    //fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
-    fontFamily: 'Oswald-Regular',
   },
   textRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     paddingBottom: 10,
-    // paddingStart: 10,
   },
   label: {
     width: '30%',
@@ -1049,7 +1015,6 @@ const styles = StyleSheet.create({
     // width: '70%',
     color: 'white',
     fontSize: 14,
-    //fontFamily: 'Oswald-Regular',
     marginStart: 10,
   },
   cameraPreview: {
