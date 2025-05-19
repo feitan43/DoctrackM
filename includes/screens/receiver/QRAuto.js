@@ -464,7 +464,6 @@ const QRAuto = () => {
 
  const isEligibleForProcessing = (status, trackingType, documentType, fund) => {
   const isValidStatus = (() => {
-    console.log(officeCode, status, trackingType, documentType, fund)
     switch (trackingType) {
       case 'PY':
         if (officeCode === '1081') {
@@ -557,6 +556,7 @@ const QRAuto = () => {
     throw new Error("Auto receive failed");
   }
 };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>

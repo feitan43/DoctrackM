@@ -1183,15 +1183,15 @@ const DoctrackScreen = ({
                     marginTop: 15,
                     backgroundColor: 'white',
                     borderRadius: 5,
-                    shadowColor: '#000',
+                    /*  shadowColor: '#000',
                     shadowOffset: {width: 0, height: 2},
                     shadowOpacity: 0.25,
-                    shadowRadius: 3.84,
+                    shadowRadius: 3.84, */
                     elevation: 1,
-                    borderBottomWidth: 1,
+                    /*  borderBottomWidth: 1,
                     borderBottomColor: 'silver',
                     borderRightWidth: 1,
-                    borderRightColor: 'silver',
+                    borderRightColor: 'silver', */
                   }}>
                   <View
                     style={{
@@ -2041,6 +2041,133 @@ const DoctrackScreen = ({
             )
           )}
         </View>
+
+        {/* Uploader */}
+        {procurement === '1' && (
+          <View
+            style={{
+              padding: 10,
+              marginTop: 15,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              elevation: 2,
+            }}>
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 10,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-SemiBold',
+                  color: '#252525',
+                  paddingHorizontal: 10,
+                  fontSize: 16,
+                }}>
+                Uploader
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                gap: 15,
+              }}>
+              {[
+                {
+                  label: 'Attachments',
+                  count: `${myTransactionsLength ? myTransactionsLength : 0}`,
+                  screen: 'Attachments',
+                },
+               /*  {
+                  label: 'ARE',
+                  count: `${
+                    accountabilityData ? accountabilityData.length : 0
+                  }`,
+                  screen: 'MyAccountability',
+                },
+                {
+                  label: 'Access',
+                  icon: true,
+                  condition: officeAdmin === '1',
+                  screen: 'MyAccess',
+                }, */
+              ].map((item, index) => {
+                if (item.condition === false) {
+                  return null;
+                }
+
+                return (
+                  <Pressable
+                    key={index}
+                    style={({pressed}) => [
+                      {
+                        width: '30%',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        marginBottom: 10,
+                        borderRadius: 5,
+                        elevation: 1,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
+                    onPress={() => {
+                      if (item.screen) {
+                        navigation.navigate(item.screen);
+                      } else {
+                        console.log(`${item.label} card pressed`);
+                      }
+                    }}>
+                    {({pressed}) => (
+                      <>
+                        {item.icon ? (
+                          <View style={{paddingVertical: 5}}>
+                            <Image
+                              source={require('../../assets/images/access.png')}
+                              style={{
+                                width: 30,
+                                height: 30,
+                                tintColor: pressed ? 'white' : '#007bff',
+                              }}
+                            />
+                          </View>
+                        ) : (
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#007bff',
+                              fontFamily: 'Inter_28pt-Bold',
+                              fontSize: 26,
+                            }}>
+                            {item.count || 0}
+                          </Text>
+                        )}
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/*PERSONAL VIEW */}
         <View

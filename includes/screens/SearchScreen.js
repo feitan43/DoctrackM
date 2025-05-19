@@ -24,7 +24,6 @@ import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
 import useUserInfo from '../api/useUserInfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from "@react-navigation/native";
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   // const modifiedDate = item.DateModified.split(' ')[0];
@@ -188,8 +187,7 @@ const SearchScreen = ({}) => {
     }),
   );
 
-  const {caoReceiver, receiver} = useUserInfo();
-
+  const {caoReceiver, cboReceiver} = useUserInfo();
   const [searchText, setSearchText] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -235,7 +233,7 @@ const addSearchItem = async (item) => {
   if (trimmedItem.length === 0) return;
 
   const newHistory = [trimmedItem, ...searchHistory.filter(i => i !== trimmedItem)];
-  const limitedHistory = newHistory.slice(0, 5); // Keep only the last 5 searches
+  const limitedHistory = newHistory.slice(0, 5); 
   setSearchHistory(limitedHistory);
   await saveSearchHistory(limitedHistory);
 };
@@ -1015,7 +1013,7 @@ const saveSearchHistory = async (newHistory) => {
             </Text>
             </View>
             <View style={{alignItems:'flex-end'}}>
-             {(caoReceiver === '0' || receiver === '0') &&(
+             {(caoReceiver === '1' || cboReceiver === '1') &&(
             <TouchableOpacity
               onPress={() => navigation.navigate('Receiver')}
               style={{top: 10, right: 20}}>

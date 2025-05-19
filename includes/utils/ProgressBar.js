@@ -103,11 +103,9 @@ const ProgressBar = ({TrackingType, Status, DocumentType, ClaimType, Mode}) => {
             '5* CAO Released'
         ];
     }
-}
-
+  }
   
-  
-   if (TrackingType === 'Purchase Order' || TrackingType === 'PO') {
+  if (TrackingType === 'Purchase Order' || TrackingType === 'PO') {
     statusScheme = [
       '1* Encoded',
       '2* GSO Received',
@@ -126,7 +124,7 @@ const ProgressBar = ({TrackingType, Status, DocumentType, ClaimType, Mode}) => {
       '8* Delivered',
     ];
   }
-   if (TrackingType === 'PX' || TrackingType === 'Payment') {
+  if (TrackingType === 'PX' || TrackingType === 'Payment') {
     statusScheme = [
       '1*Encoded',
       '2*For Inspection - GSO',

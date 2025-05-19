@@ -5,7 +5,7 @@ export const formTypeMap = {
       'PO Form',
       'Acceptance Form',
       'RFI Form',
-      'Request for Delivery Extension',
+      /* 'Request for Delivery Extension', */
     ],
     PX: [
       'DV Form',

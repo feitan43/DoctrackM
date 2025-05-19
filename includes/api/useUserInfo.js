@@ -53,7 +53,7 @@ const useUserInfo = () => {
     procurement: userData?.PROCUREMENT ?? null,
     gsoInspection: userData?.GSOINSPECTION ?? null,
     officeAdmin: userData?.OFFICEADMIN ?? null,
-    receiver: userData?.RECEIVER ?? null,
+    cboReceiver: userData?.CBORECEIVER ?? null,
   };
 };
 
