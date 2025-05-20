@@ -5,6 +5,9 @@ import {
   fetchAttachmentFiles,
 } from '../api/uploadApi.js';
 import { formTypeMap } from '../utils/formTypeMap.js';
+import apiClient from '../api/apiClient.js';
+import useUserInfo from '../api/useUserInfo.js';
+
 
 export const useUploadTNAttach = (onSuccess, onError) => {
   return useMutation({
@@ -81,3 +84,32 @@ export const useAttachmentFiles = (year, trackingNumber, trackingType) => {
   });
 };
 
+
+const fetchTNAttachments = async (year, officeCode) => {
+  if (!year || !officeCode) {
+    //console.error('Missing params:', { year, officeCode });
+    return [];
+  }
+  const url = `/getTNAttachments?Year=${year}&Office=${officeCode}`;
+  try {
+    const { data } = await apiClient.get(url);
+    return data; 
+  } catch (err) {
+    return [];
+  }
+};
+
+
+
+export const useTNAttachment = (year) => {
+  const { officeCode } = useUserInfo();
+    const isReady = !!year && !!officeCode;
+
+  return useQuery({
+    queryKey: ['tnAttachments', year, officeCode],
+    queryFn: () => fetchTNAttachments(year, officeCode),
+    enabled: isReady,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+};

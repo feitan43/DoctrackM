@@ -483,18 +483,18 @@ const DoctrackScreen = ({
               <View
                 style={{
                   padding: 10,
-                  marginTop: 10,
-                  backgroundColor: 'white',
-                  borderRadius: 5,
-                  shadowColor: '#000',
-                  shadowOffset: {width: 0, height: 2},
-                  shadowOpacity: 0.25,
-                  shadowRadius: 3.84,
-                  elevation: 8,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'silver',
-                  borderRightWidth: 1,
-                  borderRightColor: 'silver',
+                    marginTop: 15,
+                    backgroundColor: 'white',
+                    borderRadius: 5,
+                    /*  shadowColor: '#000',
+                    shadowOffset: {width: 0, height: 2},
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84, */
+                    elevation: 1,
+                    /*  borderBottomWidth: 1,
+                    borderBottomColor: 'silver',
+                    borderRightWidth: 1,
+                    borderRightColor: 'silver', */
                 }}>
                 <View
                   style={{
@@ -2081,23 +2081,12 @@ const DoctrackScreen = ({
               }}>
               {[
                 {
-                  label: 'Attachments',
-                  count: `${myTransactionsLength ? myTransactionsLength : 0}`,
-                  screen: 'Attachments',
+                label: 'Attachments',
+                icon: true,
+                condition: officeAdmin === '1',
+                screen: 'Attachments',
                 },
-               /*  {
-                  label: 'ARE',
-                  count: `${
-                    accountabilityData ? accountabilityData.length : 0
-                  }`,
-                  screen: 'MyAccountability',
-                },
-                {
-                  label: 'Access',
-                  icon: true,
-                  condition: officeAdmin === '1',
-                  screen: 'MyAccess',
-                }, */
+              
               ].map((item, index) => {
                 if (item.condition === false) {
                   return null;
@@ -2133,14 +2122,15 @@ const DoctrackScreen = ({
                       <>
                         {item.icon ? (
                           <View style={{paddingVertical: 5}}>
-                            <Image
+                           {/*  <Image
                               source={require('../../assets/images/access.png')}
                               style={{
                                 width: 30,
                                 height: 30,
                                 tintColor: pressed ? 'white' : '#007bff',
                               }}
-                            />
+                            /> */}
+                            <Icon name="document-attach-outline" size={28} color={pressed ? 'white' : '#007bff'}/>
                           </View>
                         ) : (
                           <Text

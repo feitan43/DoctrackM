@@ -70,41 +70,6 @@ const EvalDaily = () => {
     [navigation],
   );
 
-  /*   const fadeAnim = useRef(new Animated.Value(0)).current; // Initial opacity: 0
-  const scaleAnim = useRef(new Animated.Value(0.8)).current; // Initial scale: 0.8
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 1, // Fully visible
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0.5, // Fade out slightly
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1, // Scale up slightly
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.8, // Scale down slightly
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []); */
-
   const calendarTheme = {
     backgroundColor: '#F4F6F9',
     calendarBackground: '#FFFFFF',
