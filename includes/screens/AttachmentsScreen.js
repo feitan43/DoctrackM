@@ -12,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  ToastAndroid,
 } from 'react-native';
 import {pick} from '@react-native-documents/picker';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -23,13 +24,16 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import {formTypeMap} from '../utils/formTypeMap';
-import {useAttachmentFiles, useTNAttachment} from '../hooks/useAttachments';
+import {
+  useUploadTNAttach,
+  useAttachmentFiles,
+  useTNAttachment,
+} from '../hooks/useAttachments';
 import {FlashList} from '@shopify/flash-list';
-import {Camera, useCameraDevice, useCodeScanner} from 'react-native-vision-camera';
-import { requestCameraPermission, validateQRData } from '../utils/qrScanner';
-
- 
-
+import QRScanner from '../utils/qrScanner';
+import {formatFileSize, getQuarter} from '../utils/index';
+import { showMessage } from 'react-native-flash-message';
+import {useQueryClient } from '@tanstack/react-query';
 
 const AttachmentsScreen = ({navigation}) => {
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -45,9 +49,15 @@ const AttachmentsScreen = ({navigation}) => {
   const [selectedType, setSelectedType] = useState('PO');
   const [refreshing, setRefreshing] = useState(false);
   const [sheetIndex, setSheetIndex] = useState(-1);
+  const [showScanner, setShowScanner] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState([]);
+  const queryClient = useQueryClient();
 
-   const device = useCameraDevice('back');
-  const [hasPermission, setHasPermission] = useState(false);
+  useEffect(() => {
+    if (searchQuery) {
+      bottomSheetAttachmentRef.current?.expand();
+    }
+  }, [searchQuery]);
 
   const currentYear = new Date().getFullYear();
   const startYear = 2025;
@@ -72,16 +82,14 @@ const AttachmentsScreen = ({navigation}) => {
     trackingNumber,
     trackingType,
   );
-  const hasFormAttachments = (trackingType, attachments) => {
-    if (!trackingType || !attachments) return false;
-    const expectedForms = formTypeMap[trackingType] || [];
-    return attachments.some(att => expectedForms.includes(att.formName));
-  };
 
   const {data: tnAttachments, refetch} = useTNAttachment(
     selectedYear,
     trackingType,
   );
+
+  const {mutate: uploadMutation, isPending: uploadAttachLoading} =
+    useUploadTNAttach();
 
   const filteredData = useMemo(() => {
     let data = tnAttachments || [];
@@ -107,35 +115,174 @@ const AttachmentsScreen = ({navigation}) => {
     setFormOptions(options);
   }, [trackingType]);
 
-  /*   const handleSearchTrackingNumber = async () => {
-    try {
-      const data = await fetchDataSearchTrack();
-      if (data.count === 1 && data.results.length > 0) {
-        const result = data.results[0];
-        const trackingType = result.TrackingType;
-        setTrackingType(trackingType);
-        setFormOptions(formTypeMap[trackingType] || []);
-        setTrackingData(result);
-      }
-    } catch (error) {
-      setTrackingData([]);
-      console.log('Error fetching tracking data:', error);
-    }
-  }; */
-
   const pickFile = async formType => {
     try {
       const res = await pick({type: ['image/*', 'application/pdf']});
-      if (!res || res.length === 0) return;
+
+      if (!res?.length) return;
+
       const file = res[0];
-      setAttachments(prev => ({
-        ...prev,
-        [formType]: [...(prev[formType] || []), file],
-      }));
+
+      setAttachmentFile(prev => {
+        const existingFiles = prev?.[formType] || [];
+
+        const isDuplicate = existingFiles.some(f => f.name === file.name);
+
+        if (isDuplicate) {
+          ToastAndroid.show('File already picked.', ToastAndroid.SHORT);
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [formType]: [...existingFiles, file],
+        };
+
+        
+      });
     } catch (err) {
       console.log('Error picking document:', err);
     }
   };
+  
+ const handleUpload = async ( attachmentFile, form, tn, year ) => {
+
+  if (!attachmentFile || attachmentFile.length === 0) {
+    showMessage({
+      message: 'No items selected for upload.',
+      type: 'warning',
+      icon: 'warning',
+      duration: 3000,
+      floating: true,
+    });
+    return;
+  }
+
+  if (!year || !tn || !form) {
+    showMessage({
+      message: 'Missing required parameters.',
+      type: 'danger',
+      icon: 'danger',
+      floating: true,
+      duration: 3000,
+    });
+    return;
+  }
+  console.log("tn", attachmentFile, form, tn, year );
+
+
+
+ /*  uploadMutation(
+    { imagePath: attachmentFile[form], year, tn, form },
+    {
+      onSuccess: data => {
+        showMessage({
+          message: `${form} ${data?.message || 'Upload successful!'}`,
+          type: 'success',
+          icon: 'success',
+          floating: true,
+          duration: 3000,
+        });
+
+        queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
+        queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
+
+        setSelectedFiles([]);
+
+        if (onSuccessCallback) {
+          onSuccessCallback();
+        }
+      },
+      onError: error => {
+        showMessage({
+          message: `${form} Upload failed!`,
+          description: error?.message || 'Something went wrong',
+          type: 'danger',
+          icon: 'danger',
+          floating: true,
+          duration: 3000,
+        });
+      },
+    }
+  ); */
+};
+
+
+
+
+  // const handleUpload = async (
+  //   items,
+  //   year,
+  //   tn,
+  //   form,
+  //   employeeNumber,
+  //   onSuccessCallback,
+  // ) => {
+  //   console.log()
+
+  //   /* if (!items || items.length === 0) {
+  //     showMessage({
+  //       message: 'No items selected for upload.',
+  //       type: 'warning',
+  //       icon: 'warning',
+  //       duration: 3000,
+  //     });
+  //     return;
+  //   }
+
+  //   if (!year || !tn || !employeeNumber) {
+  //     showMessage({
+  //       message: 'Missing required parameters.',
+  //       type: 'danger',
+  //       icon: 'danger',
+  //       floating: true,
+  //       duration: 3000,
+  //     });
+  //     return;
+  //   }
+
+  //   const imagePath = items.map(item => ({
+  //     uri: item?.uri,
+  //     name: item?.name,
+  //     type: item?.type,
+  //   }));
+
+  //   uploadMutation.mutate(
+  //     {imagePath, year, tn, form, employeeNumber},
+  //     {
+  //       onSuccess: data => {
+  //         showMessage({
+  //           message: `${form} ${data?.message || 'Upload successful!'}`,
+  //           type: 'success',
+  //           icon: 'success',
+  //           floating: true,
+  //           duration: 3000,
+  //         });
+
+  //         // Invalidate and refetch queries to refresh data
+  //         queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
+  //         queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
+
+  //         setSelectedFiles([]);
+  //         bottomSheetRef.current?.close();
+
+  //         if (onSuccessCallback) {
+  //           onSuccessCallback();
+  //         }
+  //       },
+  //       onError: error => {
+  //         showMessage({
+  //           message: `${form} Upload failed!`,
+  //           description: error?.message || 'Something went wrong',
+  //           type: 'danger',
+  //           icon: 'danger',
+  //           floating: true,
+  //           duration: 3000,
+  //         });
+  //       },
+  //     },
+  //   ); */
+  // };
 
   const openDocument = uri => {
     Linking.openURL(uri).catch(err =>
@@ -143,8 +290,15 @@ const AttachmentsScreen = ({navigation}) => {
     );
   };
 
+  const handleRemoveFile = (formType, indexToRemove) => {
+    setAttachmentFile(prev => ({
+      ...prev,
+      [formType]: prev[formType].filter((_, i) => i !== indexToRemove),
+    }));
+  };
+
   const removeAttachment = (formType, index) => {
-    setAttachments(prev => ({
+    setAttachmentFile(prev => ({
       ...prev,
       [formType]: prev[formType].filter((_, i) => i !== index),
     }));
@@ -169,73 +323,68 @@ const AttachmentsScreen = ({navigation}) => {
     }
   };
 
-   const codeScanner = useCodeScanner({
-    codeTypes: ['qr'],
-    onCodeScanned: (codes) => {
-      if (codes.length > 0) {
-        const raw = codes[0].value;
-        const {valid, data} = validateQRData(raw);
-        if (valid) {
-          Alert.alert('QR Scanned', JSON.stringify(data));
-        }
-      }
-    },
-  });
-
-   useEffect(() => {
-    requestCameraPermission().then(setHasPermission);
-  }, []);
-
   return (
     <BottomSheetModalProvider>
       <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={require('../../assets/images/CirclesBG.png')}
-          style={styles.bgHeader}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}>
-              <Icon name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            {/*  <Text style={styles.headerTitle}>Attachments</Text> */}
-            <View style={styles.searchContainer}>
-              <TextInput
-                style={styles.searchInput}
-                //label="Tracking Number"
-                placeholder="Tracking Number"
-                value={searchQuery}
-                keyboardType="default"
-                autoCapitalize="characters"
-                onChangeText={setSearchQuery}
-                theme={{
-                  fonts: {
-                    labelLarge: {
-                      fontSize: 4, // adjust to your preference
-                    },
-                  },
-                }}
-              />
+        {showScanner ? (
+          <QRScanner
+            onClose={() => setShowScanner(false)}
+            onScan={({year, trackingNumber}) => {
+              setSelectedType('All');
+              setSearchQuery(trackingNumber);
+              setShowScanner(false);
+              bottomSheetAttachmentRef.current?.expand();
+            }}
+          />
+        ) : (
+          <>
+            <ImageBackground
+              source={require('../../assets/images/CirclesBG.png')}
+              style={styles.bgHeader}>
+              <View style={styles.header}>
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                {/*  <Text style={styles.headerTitle}>Attachments</Text> */}
+                <View style={styles.searchContainer}>
+                  <TextInput
+                    style={styles.searchInput}
+                    //label="Tracking Number"
+                    placeholder="Tracking Number"
+                    value={searchQuery}
+                    keyboardType="default"
+                    autoCapitalize="characters"
+                    onChangeText={setSearchQuery}
+                    theme={{
+                      fonts: {
+                        labelLarge: {
+                          fontSize: 4, // adjust to your preference
+                        },
+                      },
+                    }}
+                  />
 
-              <Icon
-                name="search"
-                size={20}
-                color="#888"
-                style={styles.searchIcon}
-              />
-            </View>
-            <Button
-              mode="contained"
-              //onPress={handleSearchTrackingNumber}
-              style={{backgroundColor: '#fff', borderRadius: 5}}>
-              <MaterialCommunityIcons
-                name="qrcode-scan"
-                size={20}
-                color="#007AFF"
-              />
-            </Button>
+                  <Icon
+                    name="search"
+                    size={20}
+                    color="#888"
+                    style={styles.searchIcon}
+                  />
+                </View>
+                <Button
+                  mode="contained"
+                  onPress={() => setShowScanner(true)}
+                  style={{backgroundColor: '#fff', borderRadius: 5}}>
+                  <MaterialCommunityIcons
+                    name="qrcode-scan"
+                    size={20}
+                    color="#007AFF"
+                  />
+                </Button>
 
-            {/* <Button
+                {/* <Button
               mode="elevated"
               onPress={() => bottomSheetRef.current?.expand()}
               style={{
@@ -249,368 +398,465 @@ const AttachmentsScreen = ({navigation}) => {
               )}>
             </Button>
              */}
-          </View>
-        </ImageBackground>
+              </View>
+            </ImageBackground>
 
-        <View style={{marginBottom: 20}}>
-          <View
-            style={{
-              flexDirection: 'row',
-              //justifyContent: 'space-evenly',
-              //alignItems: 'center',
-            }}></View>
+            <View style={{marginBottom: 20}}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                }}></View>
 
-          {/* Year Picker (Optional) */}
-          {/* <View
-      style={{
-        marginTop: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-      }}>
-      <Text style={{marginStart: 10}}>Year: </Text>
-      <TouchableOpacity
-        onPress={() => bottomSheetRef.current?.expand()}
-        style={styles.yearSelection}>
-        <Text style={{color: '#333'}}>{selectedYear}</Text>
-      </TouchableOpacity>
-    </View> */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipContainer}>
+                {trackingTypes.map(type => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.chip,
+                      selectedType === type && styles.selectedChip,
+                    ]}
+                    onPress={() => setSelectedType(type)}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        selectedType === type && styles.selectedChipText,
+                      ]}>
+                      {trackingTypeLabels[type]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipContainer}>
-            {trackingTypes.map(type => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.chip,
-                  selectedType === type && styles.selectedChip,
-                ]}
-                onPress={() => setSelectedType(type)}>
-                <Text
-                  style={[
-                    styles.chipText,
-                    selectedType === type && styles.selectedChipText,
-                  ]}>
-                  {trackingTypeLabels[type]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              <View style={{paddingHorizontal: 20}}>
+                <Text>{filteredData.length} results</Text>
+              </View>
 
-          <View style={{paddingHorizontal: 20}}>
-            <Text>{filteredData.length} results</Text>
-          </View>
+              <View style={{height: 600}}>
+                {!tnAttachments ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#555"
+                    style={{marginTop: 20}}
+                  />
+                ) : (
+                  <FlashList
+                    data={filteredData}
+                    keyExtractor={(item, index) => item.TrackingNumber + index}
+                    estimatedItemSize={77}
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
+                    renderItem={({item, index}) => {
+                      const attachmentsArray = item.Attachments
+                        ? item.Attachments.split(',').map(str => str.trim())
+                        : [];
 
-          <View style={{height: 600}}>
-            {!tnAttachments ? (
-              <ActivityIndicator
-                size="large"
-                color="#555"
-                style={{marginTop: 20}}
-              />
-            ) : (
-              <FlashList
-                data={filteredData}
-                keyExtractor={(item, index) => item.TrackingNumber + index}
-                estimatedItemSize={77}
-                refreshing={refreshing} // <-- make sure this is boolean
-                onRefresh={handleRefresh}
-                renderItem={({item, index}) => {
-                  // split attachments into array, trim spaces
-                  const attachmentsArray = item.Attachments
-                    ? item.Attachments.split(',').map(str => str.trim())
-                    : [];
+                      const forms = formTypeMap[item.TrackingType] || [];
 
-                  // get relevant forms for the item's tracking type
-                  const forms = formTypeMap[item.TrackingType] || [];
-
-                  return (
-                    <View style={styles.itemContainer}>
-                      <Text style={styles.index}>{index + 1}</Text>
-                      <View style={styles.infoContainer}>
-                        <Text style={styles.label}>{item.TrackingNumber}</Text>
-                        <Text style={styles.value}>{item.Claimant}</Text>
-                        <View style={styles.attachmentsContainer}>
-                          {forms.map((form, i) => {
-                            const hasForm = attachmentsArray.includes(form);
-                            return (
-                              <View
-                                key={i}
-                                style={[
-                                  styles.formTag,
-                                  hasForm
-                                    ? styles.formTagChecked
-                                    : styles.formTagUnchecked,
-                                ]}>
-                                <MaterialCommunityIcons
-                                  name={
-                                    hasForm ? 'check-circle' : 'circle-outline'
-                                  }
-                                  size={14}
-                                  color={hasForm ? 'green' : '#ccc'}
-                                  style={{marginRight: 4}}
-                                />
-                                <Text
-                                  style={[
-                                    styles.formTagText,
-                                    hasForm && styles.formTagTextChecked,
-                                  ]}>
-                                  {form}
+                      return (
+                        <TouchableOpacity
+                          onPress={() => {
+                            bottomSheetAttachmentRef.current?.expand();
+                            setTrackingNumber(item.TrackingNumber);
+                            setTrackingType(item.TrackingType);
+                          }}
+                          disabled={
+                            !['PR', 'PO', 'PX'].includes(item.TrackingType)
+                          }
+                          style={[
+                            //styles.attachmentButton,
+                            !['PR', 'PO', 'PX'].includes(item.TrackingType) && {
+                              opacity: 0.5,
+                            },
+                          ]}>
+                          <View style={styles.itemContainer}>
+                            <Text style={styles.index}>{index + 1}</Text>
+                            <View style={styles.infoContainer}>
+                              <Text style={styles.label}>
+                                {item.TrackingNumber}
+                              </Text>
+                              {item.TrackingType === 'PR' && (
+                                <Text style={styles.value}>
+                                  {getQuarter(item.PR_Month)}
                                 </Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      </View>
+                              )}
 
-                      <TouchableOpacity
-                        onPress={() => {
-                          bottomSheetAttachmentRef.current?.expand();
-                          setTrackingNumber(item.TrackingNumber);
-                          setTrackingType(item.TrackingType);
-                        }}
-                        disabled={
-                          !['PR', 'PO', 'PX'].includes(item.TrackingType)
-                        }
-                        style={[
-                          styles.attachmentButton,
-                          !['PR', 'PO', 'PX'].includes(item.TrackingType) && {
-                            opacity: 0.5,
-                          },
-                        ]}>
+                              {item.TrackingType !== 'PR' && (
+                                <Text style={styles.value}>
+                                  {item.Claimant}
+                                </Text>
+                              )}
+
+                              <View style={styles.attachmentsContainer}>
+                                {forms.map((form, i) => {
+                                  const hasForm =
+                                    attachmentsArray.includes(form);
+                                  return (
+                                    <View
+                                      key={i}
+                                      style={[
+                                        styles.formTag,
+                                        hasForm
+                                          ? styles.formTagChecked
+                                          : styles.formTagUnchecked,
+                                      ]}>
+                                      <MaterialCommunityIcons
+                                        name={
+                                          hasForm
+                                            ? 'check-circle'
+                                            : 'circle-outline'
+                                        }
+                                        size={14}
+                                        color={hasForm ? 'green' : '#ccc'}
+                                        style={{marginRight: 4}}
+                                      />
+                                      <Text
+                                        style={[
+                                          styles.formTagText,
+                                          hasForm && styles.formTagTextChecked,
+                                        ]}>
+                                        <Text style={{fontWeight: 600}}>
+                                          {i + 1}.{' '}
+                                        </Text>
+                                        {form}
+                                      </Text>
+                                    </View>
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    }}
+                    ListEmptyComponent={() => (
+                      <View style={styles.noTrackingDataContainer}>
                         <MaterialCommunityIcons
-                          name="paperclip"
-                          size={30}
-                          color="#007AFF"
+                          name="file-search-outline"
+                          size={48}
+                          color="#aaa"
                         />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }}
-                ListEmptyComponent={() => (
+                        <Text style={styles.noTrackingDataText}>
+                          No tracking data found.
+                        </Text>
+                      </View>
+                    )}
+                    ListHeaderComponentStyle={{paddingBottom: 20}}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{paddingBottom: 20}}
+                  />
+                )}
+              </View>
+            </View>
+
+            <BottomSheet
+              ref={bottomSheetRef}
+              index={-1}
+              snapPoints={['25%', '50%']}
+              enablePanDownToClose={true}
+              style={{
+                backgroundColor: '#fff',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                overflow: 'hidden',
+              }}>
+              <View
+                style={{
+                  padding: 20,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#ddd',
+                }}>
+                <Text style={{fontSize: 18, fontWeight: '600', color: '#333'}}>
+                  Select Year
+                </Text>
+              </View>
+
+              {yearOptions.map(year => (
+                <TouchableOpacity
+                  key={year}
+                  onPress={() => handleSelectYear(year)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 16,
+                    paddingHorizontal: 20,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                    backgroundColor: '#fafafa',
+                  }}
+                  activeOpacity={0.7}>
+                  <MaterialCommunityIcons
+                    name={
+                      selectedYear === year
+                        ? 'radiobox-marked'
+                        : 'radiobox-blank'
+                    }
+                    size={20}
+                    color={selectedYear === year ? '#007AFF' : '#999'}
+                  />
+                  <Text style={{fontSize: 16, color: '#555', marginLeft: 12}}>
+                    {year}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </BottomSheet>
+
+            <BottomSheet
+              ref={bottomSheetTTRef}
+              index={-1}
+              snapPoints={['25%', '50%']}
+              enablePanDownToClose={true}
+              style={{backgroundColor: '#fff'}}>
+              {trackingTypes.map(tt => (
+                <TouchableOpacity
+                  key={tt}
+                  onPress={() => handleSelectTT(tt)}
+                  style={{padding: 16}}>
+                  <Text>{tt}</Text>
+                </TouchableOpacity>
+              ))}
+            </BottomSheet>
+
+            <BottomSheet
+              ref={bottomSheetAttachmentRef}
+              index={-1}
+              snapPoints={['50%', '90%']}
+              enablePanDownToClose={true}
+              onChange={index => setSheetIndex(index)}
+              style={{
+                backgroundColor: '#fff',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+              }}
+              backdropComponent={({style}) =>
+                sheetIndex !== -1 ? (
+                  <TouchableWithoutFeedback
+                    onPress={() => bottomSheetAttachmentRef.current?.close()}>
+                    <View
+                      style={[style, {backgroundColor: 'rgba(0,0,0,0.5)'}]}
+                    />
+                  </TouchableWithoutFeedback>
+                ) : null
+              }>
+              <View
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderBottomWidth: 1,
+                  borderColor: '#e0e0e0',
+                }}>
+                <Text
+                  style={{fontSize: 16, fontWeight: '600', color: '#007AFF'}}>
+                  <Text style={{color: '#333'}}>TN ~ </Text>{' '}
+                  {trackingNumber || 'N/A'}
+                </Text>
+
+                <Text>
+                  <Text style={{fontWeight: '800'}}>
+                    {(attachments || [])?.length}
+                  </Text>{' '}
+                  out of {formOptions.length}
+                </Text>
+              </View>
+
+              <BottomSheetScrollView
+                contentContainerStyle={{paddingBottom: 20, paddingTop: 10}}
+                showsVerticalScrollIndicator={false}>
+                {!tnAttachments ? (
                   <View style={styles.noTrackingDataContainer}>
                     <MaterialCommunityIcons
                       name="file-search-outline"
-                      size={48}
-                      color="#aaa"
+                      size={80}
+                      color="#7A92A5"
+                      style={styles.noTrackingIcon}
                     />
                     <Text style={styles.noTrackingDataText}>
-                      No tracking data found.
+                      Search a tracking number to view attachments.
+                    </Text>
+                    <Text style={styles.noTrackingDataSubText}>
+                      Enter the tracking number above to check for available
+                      documents.
                     </Text>
                   </View>
-                )}
-                ListHeaderComponentStyle={{paddingBottom: 20}}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{paddingBottom: 20}}
-              />
-            )}
-          </View>
+                ) : (
+                  formOptions.map((form, index) => {
+                    const filteredAttachments = (attachments || []).filter(
+                      attachment => {
+                        const fileName = attachment.split('~')[2];
+                        return fileName === form;
+                      },
+                    );
 
-          {/*   <TextInput
-          mode="outlined"
-          label="Tracking Number"
-          value={trackingNumber}
-          keyboardType="default"
-          autoCapitalize="characters"
-          onChangeText={handleTrackingNumberChange}
-          style={styles.input}
-        />
-        <Button
-          mode="contained"
-          onPress={handleSearchTrackingNumber}
-          style={styles.searchButton}>
-          Search
-        </Button> */}
-        </View>
+                    return (
+                      <View key={form} style={styles.cardContainer}>
+                        <View style={styles.labelUploadRow}>
+                          <View style={styles.indexColumn}>
+                            <Text style={styles.indexText}>{index + 1}.</Text>
+                          </View>
 
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={-1}
-          snapPoints={['25%', '50%']}
-          enablePanDownToClose={true}
-          style={{
-            backgroundColor: '#fff',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            overflow: 'hidden',
-          }}>
-          <View
-            style={{
-              padding: 20,
-              borderBottomWidth: 1,
-              borderBottomColor: '#ddd',
-            }}>
-            <Text style={{fontSize: 18, fontWeight: '600', color: '#333'}}>
-              Select Year
-            </Text>
-          </View>
+                          <View style={styles.formLabelColumn}>
+                            <Text style={styles.formLabel}>{form}</Text>
+                          </View>
+                        </View>
 
-          {yearOptions.map(year => (
-            <TouchableOpacity
-              key={year}
-              onPress={() => handleSelectYear(year)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 16,
-                paddingHorizontal: 20,
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                backgroundColor: '#fafafa',
-              }}
-              activeOpacity={0.7}>
-              <MaterialCommunityIcons
-                name={
-                  selectedYear === year ? 'radiobox-marked' : 'radiobox-blank'
-                }
-                size={20}
-                color={selectedYear === year ? '#007AFF' : '#999'}
-              />
-              <Text style={{fontSize: 16, color: '#555', marginLeft: 12}}>
-                {year}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </BottomSheet>
+                        {filteredAttachments.length > 0 ? (
+                          filteredAttachments.map((attachment, idx) => {
+                            const filename = attachment.split('/').pop();
+                            const [, , formSeries, seriesExt] =
+                              filename.split('~');
 
-        <BottomSheet
-          ref={bottomSheetTTRef}
-          index={-1}
-          snapPoints={['25%', '50%']}
-          enablePanDownToClose={true}
-          style={{backgroundColor: '#fff'}}>
-          {trackingTypes.map(tt => (
-            <TouchableOpacity
-              key={tt}
-              onPress={() => handleSelectTT(tt)}
-              style={{padding: 16}}>
-              <Text>{tt}</Text>
-            </TouchableOpacity>
-          ))}
-        </BottomSheet>
-
-        <BottomSheet
-          ref={bottomSheetAttachmentRef}
-          index={-1}
-          snapPoints={['50%', '90%']}
-          enablePanDownToClose={true}
-          onChange={index => setSheetIndex(index)} // track index
-          style={{
-            backgroundColor: '#fff',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-          }}
-          backdropComponent={({style}) =>
-            sheetIndex !== -1 ? ( // show only if expanded
-              <TouchableWithoutFeedback
-                onPress={() => bottomSheetAttachmentRef.current?.close()}>
-                <View style={[style, {backgroundColor: 'rgba(0,0,0,0.5)'}]} />
-              </TouchableWithoutFeedback>
-            ) : null
-          }>
-          <BottomSheetScrollView
-            contentContainerStyle={{paddingBottom: 20, paddingTop: 10}}
-            showsVerticalScrollIndicator={false}>
-            {!tnAttachments ? (
-              <View style={styles.noTrackingDataContainer}>
-                <MaterialCommunityIcons
-                  name="file-search-outline"
-                  size={80}
-                  color="#7A92A5"
-                  style={styles.noTrackingIcon}
-                />
-                <Text style={styles.noTrackingDataText}>
-                  Search a tracking number to view attachments.
-                </Text>
-                <Text style={styles.noTrackingDataSubText}>
-                  Enter the tracking number above to check for available
-                  documents.
-                </Text>
-              </View>
-            ) : (
-              formOptions.map((form, index) => {
-                const filteredAttachments = (attachments || []).filter(
-                  attachment => {
-                    const fileName = attachment.split('~')[2];
-                    return fileName === form;
-                  },
-                );
-
-                return (
-                  <View key={form} style={styles.cardContainer}>
-                    <View style={styles.labelUploadRow}>
-                      <View style={styles.indexColumn}>
-                        <Text style={styles.indexText}>{index + 1}</Text>
-                      </View>
-
-                      <View style={styles.formLabelColumn}>
-                        <Text style={styles.formLabel}>{form}</Text>
-                      </View>
-
-                      {/*  <TouchableOpacity
-                        style={styles.uploadButton}
-                        onPress={() => pickFile(form)}
-                        activeOpacity={0.7}>
-                        <MaterialCommunityIcons
-                          name="cloud-upload-outline"
-                          size={20}
-                          color="#fff"
-                        />
-                        <Text style={{color: 'white', marginLeft: 6}}>
-                          Upload
-                        </Text>
-                      </TouchableOpacity> */}
-                    </View>
-
-                    {filteredAttachments.length > 0 ? (
-                      filteredAttachments.map((attachment, idx) => {
-                        const filename = attachment.split('/').pop();
-                        const [, , formSeries, seriesExt] = filename.split('~');
-
-                        return (
-                          <View key={idx} style={styles.attachmentItem}>
+                            return (
+                              <View key={idx} style={styles.attachmentItem}>
+                                <TouchableOpacity
+                                  onPress={() => openDocument(attachment)}>
+                                  <Text style={styles.attachmentText}>
+                                    {`${formSeries}~${seriesExt}`}
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  onPress={() => removeAttachment(attachment)}
+                                  style={styles.trashIconContainer}>
+                                  <Icon
+                                    name="trash-outline"
+                                    size={20}
+                                    color="#D9534F"
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                            );
+                          })
+                        ) : (
+                          <View style={styles.noAttachmentContainer}>
+                            {/*   <Text style={styles.noAttachmentText}>
+                              Attachments for {form}
+                            </Text> */}
                             <TouchableOpacity
-                              onPress={() => openDocument(attachment)}>
-                              <Text style={styles.attachmentText}>
-                                {`${formSeries}~${seriesExt}`}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginBottom: 8,
+                              }}
+                              onPress={() => pickFile(form)}>
+                              <MaterialCommunityIcons
+                                name="upload"
+                                size={18}
+                                color="#007AFF"
+                              />
+                              <Text style={{color: '#007AFF', marginLeft: 4}}>
+                                Browse
                               </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => removeAttachment(attachment)}
-                              style={styles.trashIconContainer}>
-                              <Icon
-                                name="trash-outline"
-                                size={20}
-                                color="#D9534F"
-                              />
-                            </TouchableOpacity>
-                          </View>
-                        );
-                      })
-                    ) : (
-                      <View style={styles.noAttachmentContainer}>
-                        <Text style={styles.noAttachmentText}>
-                          No Attachments
-                        </Text>
-                        <TouchableOpacity style={{flexDirection:'row'}} onPress={() => pickFile(form)}>
-                          <MaterialCommunityIcons
-                            name="upload"
-                            size={18}
-                            color="#007AFF"
-                          />
 
-                          <Text style={{color: '#007AFF'}}>Upload</Text>
-                        </TouchableOpacity>
+                            <View style={styles.attachmentList}>
+                              {attachmentFile?.[form]?.length > 0 ? (
+                                <>
+                                  {attachmentFile[form].map((file, index) => {
+                                    // Get file extension (lowercase)
+                                    const ext = (
+                                      file.name ||
+                                      file.uri?.split('/').pop() ||
+                                      ''
+                                    )
+                                      .split('.')
+                                      .pop()
+                                      .toLowerCase();
+
+                                    const iconName = [
+                                      'jpg',
+                                      'jpeg',
+                                      'png',
+                                      'gif',
+                                      'bmp',
+                                      'webp',
+                                    ].includes(ext)
+                                      ? 'file-image'
+                                      : ext === 'pdf'
+                                      ? 'file-document'
+                                      : 'file-document';
+
+                                    return (
+                                      <View
+                                        key={index}
+                                        style={styles.attachmentCard}>
+                                        <View style={styles.fileInfo}>
+                                          <MaterialCommunityIcons
+                                            name={iconName}
+                                            size={20}
+                                            color="#007AFF"
+                                            style={{marginRight: 6}}
+                                          />
+                                          <View style={{flexShrink: 1}}>
+                                            <Text
+                                              style={styles.fileNameText}
+                                              numberOfLines={1}
+                                              ellipsizeMode="tail">
+                                              {file.name ||
+                                                file.uri?.split('/').pop() ||
+                                                'Unnamed file'}
+                                            </Text>
+                                            <Text
+                                              style={{
+                                                color: '#888',
+                                                fontSize: 12,
+                                                marginTop: 2,
+                                              }}>
+                                              {formatFileSize(file.size)}
+                                            </Text>
+                                          </View>
+                                        </View>
+
+                                        <TouchableOpacity
+                                          onPress={() =>
+                                            handleRemoveFile(form, index)
+                                          }>
+                                          <MaterialCommunityIcons
+                                            name="close-circle"
+                                            size={22}
+                                            color="#FF3B30"
+                                          />
+                                        </TouchableOpacity>
+                                      </View>
+                                    );
+                                  })}
+
+                                  <TouchableOpacity
+                                    style={styles.uploadButton}
+                                    onPress={() =>
+                                      handleUpload(
+                                        attachmentFile,
+                                        selectedYear,
+                                        trackingNumber,
+                                        form,
+                                    )
+                                    }>
+                                    <MaterialCommunityIcons
+                                      name="upload"
+                                      size={18}
+                                      color="#fff"
+                                    />
+                                    <Text style={styles.uploadButtonText}>
+                                      Upload
+                                    </Text>
+                                  </TouchableOpacity>
+                                </>
+                              ) : (
+                                <Text style={styles.noFilesText}>
+                                  No files attached yet
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-          </BottomSheetScrollView>
-        </BottomSheet>
+                    );
+                  })
+                )}
+              </BottomSheetScrollView>
+            </BottomSheet>
+          </>
+        )}
       </SafeAreaView>
     </BottomSheetModalProvider>
   );
@@ -671,18 +917,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#555',
   },
-
-  formLabelColumn: {
-    flex: 1, // take remaining space after index column
-    paddingLeft: 8,
-  },
-
-  formLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -808,7 +1042,7 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#252525',
   },
 
   uploadButton: {
@@ -831,6 +1065,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#ccc',
   },
 
   noAttachmentText: {
@@ -908,26 +1145,34 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    //paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderColor: '#e0e0e0',
     backgroundColor: '#fff',
-    paddingBottom: 20,
+    //paddingBottom: 20,
   },
   index: {
     fontWeight: 'bold',
     fontSize: 16,
-    width: 30,
-    textAlign: 'center',
+    width: 40,
+    textAlign: 'right',
     color: '#444',
   },
   infoContainer: {
     flex: 1,
+    marginStart: 10,
   },
   label: {
-    fontWeight: '600',
-    color: '#555',
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#007AFF',
+    elevation: 1,
+    shadowColor: '#ccc',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15,
+    shadowRadius: 2, // Added shadowRadius for better shadow rendering on iOS
   },
+
   value: {
     marginBottom: 6,
     color: '#000',
@@ -939,9 +1184,10 @@ const styles = StyleSheet.create({
   },
   attachmentButton: {
     alignSelf: 'center',
-    //backgroundColor: '#007AFF',
+    //backgroundColor: '',
     padding: 15,
     borderRadius: 10,
+    alignSelf: 'baseline',
   },
   attachmentsContainer: {
     flexDirection: 'row',
@@ -972,6 +1218,59 @@ const styles = StyleSheet.create({
   },
   formTagTextChecked: {
     color: 'green',
+    fontWeight: '600',
+  },
+  attachmentList: {
+    marginTop: 10,
+  },
+  attachmentList: {
+    marginTop: 10,
+  },
+  attachmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9f9f9',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  fileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
+  fileNameText: {
+    fontSize: 14,
+    color: '#333',
+    flexShrink: 1,
+  },
+  noFilesText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#999',
+    marginBottom: 8,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  uploadButtonText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

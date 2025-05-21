@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -25,18 +25,18 @@ import {
   useFrameProcessor,
   useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useSearchReceiver from '../../api/useSearchReceiver';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import useGetQRData from '../../api/useGetQRData';
-import { insertCommas } from '../../utils/insertComma';
+import {insertCommas} from '../../utils/insertComma';
 import useUserInfo from '../../api/useUserInfo';
 import BottomSheet from '@gorhom/bottom-sheet';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 //import CameraPermission from '../../utils/CameraPermission';
 
-const { width, height } = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 const squareSize = 250; // Size of the transparent square
 const currentYear = new Date().getFullYear().toString();
 const ReceiverScreen = () => {
@@ -46,14 +46,19 @@ const ReceiverScreen = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [year, setSelectedYear] = useState(new Date().getFullYear());
   const [dataError, setDataError] = useState(false);
-  const { officeCode, privilege, permission, accountType } = useUserInfo();
+  const {officeCode, privilege, permission, accountType} = useUserInfo();
 
-  const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
+  const {fetchDataSearchReceiver, setSearchTNData, loading, searchTNData} =
     useSearchReceiver();
 
   // const { qrData, setQRData, qrLoading, qrError, fetchQRData } = useGetQRData();
-  const { data: qrData, isLoading: qrLoading, error: qrError, refetch } = useGetQRData({
-    year
+  const {
+    data: qrData,
+    isLoading: qrLoading,
+    error: qrError,
+    refetch,
+  } = useGetQRData({
+    year,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -130,11 +135,10 @@ const ReceiverScreen = () => {
   const handleShowDetails = async (trackingNumber, year) => {
     const data = await fetchDataSearchReceiver(trackingNumber, year);
 
-
     if (data.results.length > 0) {
       const resultTrackingNumber =
         trackingNumber.substring(4, 5) === '-' ||
-          trackingNumber.substring(0, 3) === 'PR-'
+        trackingNumber.substring(0, 3) === 'PR-'
           ? trackingNumber
           : data.results[0].TrackingNumber;
 
@@ -156,10 +160,10 @@ const ReceiverScreen = () => {
   const isCameraReady = cameraDevice?.isAvailable;
   const cameraRef = useRef(null);
 
-  const { hasPermission, requestPermission } = cameraPermission;
+  const {hasPermission, requestPermission} = cameraPermission;
 
   const format = useCameraFormat(cameraDevice, [
-    { videoResolution: { width: 1280, height: 720 } },
+    {videoResolution: {width: 1280, height: 720}},
   ]);
 
   const decryptScannedCode = scannedCode => {
@@ -216,7 +220,6 @@ const ReceiverScreen = () => {
         }
 
         const data = await fetchQRData(year, trackingNumber);
-
 
         /*  if (!data || data.error) {
           ToastAndroid.show('No data found or invalid code.', ToastAndroid.SHORT);
@@ -417,7 +420,7 @@ const ReceiverScreen = () => {
 
       const trackingNumber =
         searchQuery.substring(4, 5) === '-' ||
-          searchQuery.substring(0, 3) === 'PR-'
+        searchQuery.substring(0, 3) === 'PR-'
           ? searchQuery
           : data.results[0].TrackingNumber;
 
@@ -444,7 +447,7 @@ const ReceiverScreen = () => {
     }
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({item}) => {
     const showReceivedButton =
       (officeCode === '1031' &&
         privilege === '5' &&
@@ -492,7 +495,7 @@ const ReceiverScreen = () => {
           <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
         </View>
 
-        <View style={{ flexDirection: 'row' }}>
+        <View style={{flexDirection: 'row'}}>
           {showReceivedButton && (
             <TouchableOpacity
               style={{
@@ -577,7 +580,7 @@ const ReceiverScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{flex: 1}}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.container}>
         <View
@@ -587,14 +590,14 @@ const ReceiverScreen = () => {
             backgroundColor: '#fff',
             paddingBottom: 5,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
+            shadowOffset: {width: 0, height: 2},
             shadowOpacity: 0.2,
             shadowRadius: 3,
             //elevation: 3,
           }}>
           <Pressable
-            style={({ pressed }) => [
-              pressed && { backgroundColor: 'rgba(0, 0, 0, 0.1)' },
+            style={({pressed}) => [
+              pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
               {
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -622,7 +625,7 @@ const ReceiverScreen = () => {
             Scan QR
           </Text>
         </View>
-        <View style={{ flex: 1, paddingHorizontal: 5 }}>
+        <View style={{flex: 1, paddingHorizontal: 5}}>
           <View
             style={{
               flexDirection: 'row',
@@ -660,7 +663,7 @@ const ReceiverScreen = () => {
             }}>
             <Pressable
               onPress={handleQRManual}
-              style={({ pressed }) => [
+              style={({pressed}) => [
                 {
                   flexDirection: 'row',
                   paddingVertical: 15,
@@ -672,10 +675,10 @@ const ReceiverScreen = () => {
                   //borderRadius: 10,
                 },
               ]}
-              android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}>
+              android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
               <TouchableOpacity
                 style={styles.qrIconWrapper}
-              //onPress={handleQrIconPress}
+                //onPress={handleQrIconPress}
               >
                 <Icon name="scan" size={30} color="#007bff" />
                 <View style={styles.qrCodeIcon}>
@@ -707,7 +710,7 @@ const ReceiverScreen = () => {
 
             <Pressable
               onPress={handleQRAuto}
-              style={({ pressed }) => [
+              style={({pressed}) => [
                 {
                   flexDirection: 'row',
                   paddingVertical: 15,
@@ -718,10 +721,10 @@ const ReceiverScreen = () => {
                   //borderRadius: 10,
                 },
               ]}
-              android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}>
+              android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
               <TouchableOpacity
                 style={styles.qrIconWrapper}
-              //onPress={handleQrIconPress}
+                //onPress={handleQrIconPress}
               >
                 <Icon name="scan" size={30} color="#007bff" />
                 <View style={styles.qrCodeIcon}>
@@ -780,7 +783,7 @@ const ReceiverScreen = () => {
           </View>
 
           {qrData && qrData.length > 0 && (
-            <View style={{ paddingVertical: 10 }}>
+            <View style={{paddingVertical: 10}}>
               <TouchableOpacity
                 onPress={() => handleClear()}
                 style={{
@@ -799,7 +802,7 @@ const ReceiverScreen = () => {
                     padding: 5,
                   }}>
                   <Icon name="close-circle" size={16} color="#000" />
-                  <Text style={{ width: 'auto' }}>Clear</Text>
+                  <Text style={{width: 'auto'}}>Clear</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -871,7 +874,7 @@ const ReceiverScreen = () => {
               <View
                 style={[
                   styles.modalContent,
-                  qrLoading ? { backgroundColor: 'transparent' } : null,
+                  qrLoading ? {backgroundColor: 'transparent'} : null,
                 ]}>
                 {qrLoading ? (
                   <View
@@ -882,7 +885,7 @@ const ReceiverScreen = () => {
                       alignItems: 'center',
                       width: 320,
                     }}>
-                    <View style={{ padding: 40, backgroundColor: 'white' }}>
+                    <View style={{padding: 40, backgroundColor: 'white'}}>
                       <ActivityIndicator size="large" color="#0000ff" />
                     </View>
                   </View>
@@ -951,7 +954,7 @@ const styles = StyleSheet.create({
     elevation: 1,
     // iOS shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 1,
     zIndex: 1,
@@ -1079,7 +1082,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -8 }, { translateY: -8 }],
+    transform: [{translateX: -8}, {translateY: -8}],
   },
   textRow: {
     flexDirection: 'row',

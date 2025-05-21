@@ -1,7 +1,10 @@
 import apiClient from './apiClient';
+import useUserInfo from './useUserInfo';
 
-export const uploadTNAttach = async ({ imagePath, year, tn, form, employeeNumber }) => {
-  if (!imagePath || !year || !tn || !employeeNumber) {
+export const uploadTNAttach = async ({ imagePath, year, tn, form }) => {
+  console.log("from back",imagePath, year, tn, form)
+  const {employeeNumber} = useUserInfo();
+  if (!imagePath || !year || !tn) {
     throw new Error('Missing required parameters');
   }
 
