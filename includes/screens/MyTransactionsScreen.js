@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import useMyTransactions from '../api/useMyTransactions';
 import {Shimmer} from '../utils/useShimmer';
 import {insertCommas} from '../utils/insertComma';
-import {Menu, PaperProvider} from 'react-native-paper';
+import {Button, Menu, PaperProvider} from 'react-native-paper';
 import {Dropdown} from 'react-native-element-dropdown';
 
 const currentYear = new Date().getFullYear();
@@ -293,10 +293,37 @@ const MyTransactionsScreen = ({navigation}) => {
           extraData={selectedItems}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.1}
+          ListHeaderComponent={() => (
+            <View style={{backgroundColor: '#222', padding: 10}}>
+              <Button
+                mode="contained"
+                onPress={() => {
+                  // handle filter press
+                }}
+                contentStyle={{
+                  padding: 6,
+                  borderRadius: 20,
+                  backgroundColor: '#666',
+                }}
+                style={{borderRadius: 20, alignSelf: 'flex-start'}}
+                icon={() => (
+                  <Icon name="funnel-outline" size={20} color="#fff" />
+                )}
+                labelStyle={{
+                  color: '#fff',
+                  fontSize: 14,
+                  marginLeft: 6,
+                }}>
+                Filter
+              </Button>
+            </View>
+          )}
+          stickyHeaderIndices={[0]} // 👈 this makes the header stick
           ListFooterComponent={() =>
             loading ? <ActivityIndicator color="white" /> : null
           }
         />
+
         {isLoadingMore && (
           <View
             style={{
@@ -320,138 +347,141 @@ const MyTransactionsScreen = ({navigation}) => {
   return (
     <PaperProvider>
       <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-         <ImageBackground
-                source={require('../../assets/images/bgasset.jpg')}
-                style={{flex: 1}}
-                resizeMode="cover">
-                <View
-                  style={{
-                    ...StyleSheet.absoluteFillObject,
-                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        <ImageBackground
+          source={require('../../assets/images/bgasset.jpg')}
+          style={{flex: 1}}
+          resizeMode="cover">
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            }}
+          />
+          <View style={styles.container}>
+            <ImageBackground
+              source={require('../../assets/images/CirclesBG.png')}
+              style={styles.bgHeader}>
+              <View style={styles.header}>
+                <Pressable
+                  style={({pressed}) => [
+                    pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
+                    styles.backButton,
+                  ]}
+                  android_ripple={{
+                    color: '#F6F6F6',
+                    borderless: true,
+                    radius: 24,
                   }}
-                />
-        <View style={styles.container}>
-          <ImageBackground
-            source={require('../../assets/images/CirclesBG.png')}
-            style={styles.bgHeader}>
-            <View style={styles.header}>
-              <Pressable
-                style={({pressed}) => [
-                  pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                  styles.backButton,
-                ]}
-                android_ripple={{
-                  color: '#F6F6F6',
-                  borderless: true,
-                  radius: 24,
-                }}
-                onPress={() => navigation.goBack()}>
-                <Icon name="arrow-back" size={24} color="#fff" />
-              </Pressable>
+                  onPress={() => navigation.goBack()}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </Pressable>
 
-              <Text style={styles.title}>Salaries</Text>
-              <View>
+                <Text style={styles.title}>Salaries</Text>
+                {/* <View>
                 <YearDropdown
                   selectedYear={selectedYear}
                   setSelectedYear={setSelectedYear}
                 />
+              </View> */}
               </View>
-            </View>
-          </ImageBackground>
+            </ImageBackground>
 
-          <View style={{flex: 1, backgroundColor: '#F6F6F6'}}>
-            {loading ? (
-              <View style={[styles.container2, {top: 80}]}>
-                {[...Array(7)].map((_, index) => (
-                  <Shimmer key={index} />
-                ))}
-              </View>
-            ) : error ? (
-              <View
-                style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 20,
-                }}>
-                <Image
-                  source={require('../../assets/images/errorState.png')}
+            <View style={{flex: 1, backgroundColor: '#F6F6F6'}}>
+              {loading ? (
+                <View style={[styles.container2, {top: 80}]}>
+                  {[...Array(7)].map((_, index) => (
+                    <Shimmer key={index} />
+                  ))}
+                </View>
+              ) : error ? (
+                <View
                   style={{
-                    width: 200,
-                    height: 200,
-                    resizeMode: 'contain',
-                    marginBottom: 10,
-                  }}
-                />
-                <Text
-                  style={{
-                    alignSelf: 'center',
-                    color: 'gray',
-                    fontSize: 14,
-                    textAlign: 'center',
-                    paddingHorizontal: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 20,
                   }}>
-                  {typeof error === 'string'
-                    ? error
-                    : error.message || 'An unknown error occurred'}
-                </Text>
-              </View>
-            ) : myTransactionsData === null ? (
-              <View style={[styles.container2, {top: 80}]}>
-                {[...Array(7)].map((_, index) => (
-                  <Shimmer key={index} />
-                ))}
-              </View>
-            ) : myTransactionsData.length === 0 ? (
-              <View
-                style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 20,
-                }}>
-                <Image
-                  source={require('../../assets/images/noresultsstate.png')}
+                  <Image
+                    source={require('../../assets/images/errorState.png')}
+                    style={{
+                      width: 200,
+                      height: 200,
+                      resizeMode: 'contain',
+                      marginBottom: 10,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      alignSelf: 'center',
+                      color: 'gray',
+                      fontSize: 14,
+                      textAlign: 'center',
+                      paddingHorizontal: 10,
+                    }}>
+                    {typeof error === 'string'
+                      ? error
+                      : error.message || 'An unknown error occurred'}
+                  </Text>
+                </View>
+              ) : myTransactionsData === null ? (
+                <View style={[styles.container2, {top: 80}]}>
+                  {[...Array(7)].map((_, index) => (
+                    <Shimmer key={index} />
+                  ))}
+                </View>
+              ) : myTransactionsData.length === 0 ? (
+                <View
                   style={{
-                    width: 200,
-                    height: 200,
-                    resizeMode: 'contain',
-                    marginBottom: 10,
-                  }}
-                />
-                <Text
-                  style={{
-                    alignSelf: 'center',
-                    color: 'gray',
-                    fontSize: 14,
-                    textAlign: 'center',
-                    paddingHorizontal: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 20,
                   }}>
-                  No Result Found
-                </Text>
-              </View>
-            ) : (
-              <View style={{height: '100%' /* paddingBottom: 55 */}}>
-                {renderContent()}
-              </View>
-            )}
-          </View>
-        </View>
-
-        <Modal transparent={true} visible={modalVisible} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <FlatList
-                data={years}
-                renderItem={renderYearItem}
-                keyExtractor={item => item}
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={closeYearModal}>
-                <Text style={styles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
+                  <Image
+                    source={require('../../assets/images/noresultsstate.png')}
+                    style={{
+                      width: 200,
+                      height: 200,
+                      resizeMode: 'contain',
+                      marginBottom: 10,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      alignSelf: 'center',
+                      color: 'gray',
+                      fontSize: 14,
+                      textAlign: 'center',
+                      paddingHorizontal: 10,
+                    }}>
+                    No Result Found
+                  </Text>
+                </View>
+              ) : (
+                <View style={{height: '100%' /* paddingBottom: 55 */}}>
+                  {renderContent()}
+                </View>
+              )}
             </View>
           </View>
-        </Modal>
+
+          <Modal
+            transparent={true}
+            visible={modalVisible}
+            animationType="slide">
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <FlatList
+                  data={years}
+                  renderItem={renderYearItem}
+                  keyExtractor={item => item}
+                />
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={closeYearModal}>
+                  <Text style={styles.modalCloseButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </ImageBackground>
       </SafeAreaView>
     </PaperProvider>

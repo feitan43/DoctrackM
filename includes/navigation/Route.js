@@ -108,6 +108,7 @@ import AttachmentsScreen from '../screens/AttachmentsScreen';
 import AccessScreen from '../screens/AccessScreen';
 import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
 import EditOBRScreen from '../screens/receiver/EditOBRScreen';
+import SuperAccessScreen from '../screens/SuperAccessScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -527,6 +528,7 @@ const handleUpdate = async updateUrl => {
           navigationBarColor: 'transparent',
           animationDuration: 500,
           presentation: 'transparentModal',
+          
         }}>
         <Stack.Screen name="Home">
           {props => (
@@ -602,6 +604,7 @@ const handleUpdate = async updateUrl => {
 
         <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
         <Stack.Screen name='MyAccess' component={AccessScreen}/>
+        <Stack.Screen name='SuperAccess' component={SuperAccessScreen}/>
 
 
         <Stack.Screen

@@ -2159,6 +2159,123 @@ const DoctrackScreen = ({
           </View>
         )}
 
+         {/* Uploader */}
+        {procurement === '1' && (
+          <View
+            style={{
+              padding: 10,
+              marginTop: 15,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              elevation: 2,
+            }}>
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 10,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-SemiBold',
+                  color: '#252525',
+                  paddingHorizontal: 10,
+                  fontSize: 16,
+                }}>
+                BOSS LEVEL
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                gap: 15,
+              }}>
+              {[
+                {
+                label: 'Access',
+                icon: true,
+                condition: officeAdmin === '1',
+                screen: 'SuperAccess',
+                },
+              
+              ].map((item, index) => {
+                if (item.condition === false) {
+                  return null;
+                }
+
+                return (
+                  <Pressable
+                    key={index}
+                    style={({pressed}) => [
+                      {
+                        width: '30%',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        marginBottom: 10,
+                        borderRadius: 5,
+                        elevation: 1,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
+                    onPress={() => {
+                      if (item.screen) {
+                        navigation.navigate(item.screen);
+                      } else {
+                        console.log(`${item.label} card pressed`);
+                      }
+                    }}>
+                    {({pressed}) => (
+                      <>
+                        {item.icon ? (
+                          <View style={{paddingVertical: 5}}>
+                           {/*  <Image
+                              source={require('../../assets/images/access.png')}
+                              style={{
+                                width: 30,
+                                height: 30,
+                                tintColor: pressed ? 'white' : '#007bff',
+                              }}
+                            /> */}
+                            <Icon name="glasses-outline" size={30} color={pressed ? 'white' : '#007bff'}/>
+                          </View>
+                        ) : (
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#007bff',
+                              fontFamily: 'Inter_28pt-Bold',
+                              fontSize: 26,
+                            }}>
+                            {item.count || 0}
+                          </Text>
+                        )}
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/*PERSONAL VIEW */}
         <View
           style={{
@@ -2222,6 +2339,7 @@ const DoctrackScreen = ({
                 condition: officeAdmin === '1',
                 screen: 'MyAccess',
               },
+              
             ].map((item, index) => {
               if (item.condition === false) {
                 return null;

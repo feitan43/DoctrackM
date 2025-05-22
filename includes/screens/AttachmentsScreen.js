@@ -13,11 +13,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   ToastAndroid,
+  Alert,
 } from 'react-native';
 import {pick} from '@react-native-documents/picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {TextInput, Button} from 'react-native-paper';
+import {TextInput, Button, ProgressBar} from 'react-native-paper';
 import BottomSheet, {
   BottomSheetModal,
   BottomSheetModalProvider,
@@ -26,14 +27,16 @@ import BottomSheet, {
 import {formTypeMap} from '../utils/formTypeMap';
 import {
   useUploadTNAttach,
+  useRemoveTNAttach,
   useAttachmentFiles,
   useTNAttachment,
 } from '../hooks/useAttachments';
 import {FlashList} from '@shopify/flash-list';
 import QRScanner from '../utils/qrScanner';
 import {formatFileSize, getQuarter} from '../utils/index';
-import { showMessage } from 'react-native-flash-message';
-import {useQueryClient } from '@tanstack/react-query';
+import {showMessage} from 'react-native-flash-message';
+import {useQueryClient} from '@tanstack/react-query';
+import useUserInfo from '../api/useUserInfo';
 
 const AttachmentsScreen = ({navigation}) => {
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -52,6 +55,11 @@ const AttachmentsScreen = ({navigation}) => {
   const [showScanner, setShowScanner] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState([]);
   const queryClient = useQueryClient();
+  const {employeeNumber} = useUserInfo();
+  const [uploadProgress, setUploadProgress] = useState({});
+
+  const {mutate: uploadMutation, isPending: uploadAttachLoading} =
+    useUploadTNAttach();
 
   useEffect(() => {
     if (searchQuery) {
@@ -88,8 +96,8 @@ const AttachmentsScreen = ({navigation}) => {
     trackingType,
   );
 
-  const {mutate: uploadMutation, isPending: uploadAttachLoading} =
-    useUploadTNAttach();
+  const {mutate: removeAttachment, isPending: removeAttachmentLoading} =
+    useRemoveTNAttach();
 
   const filteredData = useMemo(() => {
     let data = tnAttachments || [];
@@ -137,17 +145,218 @@ const AttachmentsScreen = ({navigation}) => {
           ...prev,
           [formType]: [...existingFiles, file],
         };
-
-        
       });
     } catch (err) {
       console.log('Error picking document:', err);
     }
   };
-  
- const handleUpload = async ( attachmentFile, form, tn, year ) => {
 
-  if (!attachmentFile || attachmentFile.length === 0) {
+  /* const handleUpload = async (
+    attachmentFile,
+    year,
+    tn,
+    form,
+    onSuccessCallback,
+  ) => {
+    if (!attachmentFile || attachmentFile.length === 0) {
+      showMessage({
+        message: 'No items selected for upload.',
+        type: 'warning',
+        icon: 'warning',
+        duration: 3000,
+        floating: true,
+      });
+      return;
+    }
+
+    if (!year || !tn || !form) {
+      showMessage({
+        message: 'Missing required parameters.',
+        type: 'danger',
+        icon: 'danger',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    const files = attachmentFile[form];
+
+    const imagePath = [];
+
+    files.forEach(item => {
+      imagePath.push({
+        uri: item?.uri,
+        name: item?.name,
+        type: item?.type,
+      });
+    });
+
+    uploadMutation(
+      {
+        imagePath: files,
+        year,
+        tn,
+        form,
+        employeeNumber,
+        onProgress: progress => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [form]: progress,
+          }));
+        },
+      },
+      {
+        onSuccess: data => {
+          setUploadProgress(prev => ({...prev, [form]: 100}));
+
+          showMessage({
+            message: `${form} ${data?.message || 'Upload successful!'}`,
+            type: 'success',
+            icon: 'success',
+            floating: true,
+            duration: 3000,
+          });
+
+          queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
+          queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
+
+          setAttachmentFile([]);
+
+          if (onSuccessCallback) {
+            onSuccessCallback();
+          }
+        },
+        onError: error => {
+          setUploadProgress(prev => ({...prev, [form]: 0}));
+
+          showMessage({
+            message: `${form} Upload failed!`,
+            description: error?.message || 'Something went wrong',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
+        },
+      },
+    );
+  }; */
+
+  const handleUpload = async (
+    attachmentFile,
+    year,
+    tn,
+    form,
+    onSuccessCallback,
+  ) => {
+    if (
+      !attachmentFile ||
+      !attachmentFile[form] ||
+      attachmentFile[form].length === 0
+    ) {
+      showMessage({
+        message: 'No items selected for upload.',
+        type: 'warning',
+        icon: 'warning',
+        duration: 3000,
+        floating: true,
+      });
+      return;
+    }
+
+    if (!year || !tn || !form) {
+      showMessage({
+        message: 'Missing required parameters.',
+        type: 'danger',
+        icon: 'danger',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    const files = attachmentFile[form];
+
+    const imagePath = files.map(item => ({
+      uri: item?.uri,
+      name: item?.name,
+      type: item?.type,
+    }));
+
+    uploadMutation(
+      {
+        imagePath,
+        year,
+        tn,
+        form,
+        employeeNumber,
+        onProgress: progress => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [form]: progress,
+          }));
+        },
+      },
+      {
+        onSuccess: data => {
+          showMessage({
+            message: `${form} ${data?.message || 'Upload successful!'}`,
+            type: 'success',
+            icon: 'success',
+            floating: true,
+            duration: 3000,
+          });
+
+          queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
+          queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
+
+          // ✅ Clear only this form's files
+          setAttachmentFile(prev => ({
+            ...prev,
+            [form]: [],
+          }));
+
+          // ✅ Reset progress for this form
+          setUploadProgress(prev => {
+            const updated = {...prev};
+            delete updated[form];
+            return updated;
+          });
+
+          if (onSuccessCallback) {
+            onSuccessCallback();
+          }
+        },
+        onError: error => {
+          showMessage({
+            message: `${form} Upload failed!`,
+            description: error?.message || 'Something went wrong',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
+
+          // ✅ Reset progress even on error
+          setUploadProgress(prev => {
+            const updated = {...prev};
+            delete updated[form];
+            return updated;
+          });
+        },
+      },
+    );
+  };
+
+  /*  const handleUpload = async (
+  attachmentFile,
+  year,
+  tn,
+  form,
+  onSuccessCallback,
+) => {
+  if (!attachmentFile || !attachmentFile[form] || attachmentFile[form].length === 0) {
     showMessage({
       message: 'No items selected for upload.',
       type: 'warning',
@@ -168,121 +377,155 @@ const AttachmentsScreen = ({navigation}) => {
     });
     return;
   }
-  console.log("tn", attachmentFile, form, tn, year );
 
+  const files = attachmentFile[form];
 
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
 
- /*  uploadMutation(
-    { imagePath: attachmentFile[form], year, tn, form },
-    {
-      onSuccess: data => {
-        showMessage({
-          message: `${form} ${data?.message || 'Upload successful!'}`,
-          type: 'success',
-          icon: 'success',
-          floating: true,
-          duration: 3000,
-        });
+    await uploadMutation.mutateAsync(
+      {
+        imagePath: [file], // still an array for compatibility
+        year,
+        tn,
+        form,
+        employeeNumber,
+        onUploadProgress: progressEvent => {
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
 
-        queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
-        queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
-
-        setSelectedFiles([]);
-
-        if (onSuccessCallback) {
-          onSuccessCallback();
-        }
+          setUploadProgress(prev => ({
+            ...prev,
+            [form]: {
+              ...(prev[form] || {}),
+              [i]: progress, // per file index
+            },
+          }));
+        },
       },
-      onError: error => {
-        showMessage({
-          message: `${form} Upload failed!`,
-          description: error?.message || 'Something went wrong',
-          type: 'danger',
-          icon: 'danger',
-          floating: true,
-          duration: 3000,
-        });
-      },
+      {
+        onSuccess: data => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [form]: {
+              ...(prev[form] || {}),
+              [i]: 100,
+            },
+          }));
+
+          showMessage({
+            message: `${form} File ${i + 1} uploaded successfully.`,
+            type: 'success',
+            icon: 'success',
+            floating: true,
+            duration: 2000,
+          });
+
+          queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
+          queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
+        },
+        onError: error => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [form]: {
+              ...(prev[form] || {}),
+              [i]: 0,
+            },
+          }));
+
+          showMessage({
+            message: `${form} File ${i + 1} upload failed!`,
+            description: error?.message || 'Something went wrong',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
+        },
+      }
+    );
+  }
+
+  // clear after all uploads are done
+  setAttachmentFile(prev => ({
+    ...prev,
+    [form]: [],
+  }));
+
+  if (onSuccessCallback) onSuccessCallback();
+}; */
+
+  const handleRemove = async (year, tn, form, onSuccessCallback) => {
+    if (!year || !tn || !form) {
+      showMessage({
+        message: 'Missing required parameters.',
+        type: 'danger',
+        icon: 'danger',
+        floating: true,
+        duration: 3000,
+      });
+      return;
     }
-  ); */
-};
 
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete the files for this form?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => {
+            removeAttachment(
+              {year, tn, form},
+              {
+                onSuccess: data => {
+                  showMessage({
+                    message: `${form} ${data?.message || 'Remove successful!'}`,
+                    type: 'success',
+                    icon: 'success',
+                    floating: true,
+                    duration: 3000,
+                  });
 
+                  queryClient.invalidateQueries([
+                    'attachmentFiles',
+                    year,
+                    tn,
+                    form,
+                  ]);
+                  queryClient.refetchQueries([
+                    'attachmentFiles',
+                    year,
+                    tn,
+                    form,
+                  ]);
 
-
-  // const handleUpload = async (
-  //   items,
-  //   year,
-  //   tn,
-  //   form,
-  //   employeeNumber,
-  //   onSuccessCallback,
-  // ) => {
-  //   console.log()
-
-  //   /* if (!items || items.length === 0) {
-  //     showMessage({
-  //       message: 'No items selected for upload.',
-  //       type: 'warning',
-  //       icon: 'warning',
-  //       duration: 3000,
-  //     });
-  //     return;
-  //   }
-
-  //   if (!year || !tn || !employeeNumber) {
-  //     showMessage({
-  //       message: 'Missing required parameters.',
-  //       type: 'danger',
-  //       icon: 'danger',
-  //       floating: true,
-  //       duration: 3000,
-  //     });
-  //     return;
-  //   }
-
-  //   const imagePath = items.map(item => ({
-  //     uri: item?.uri,
-  //     name: item?.name,
-  //     type: item?.type,
-  //   }));
-
-  //   uploadMutation.mutate(
-  //     {imagePath, year, tn, form, employeeNumber},
-  //     {
-  //       onSuccess: data => {
-  //         showMessage({
-  //           message: `${form} ${data?.message || 'Upload successful!'}`,
-  //           type: 'success',
-  //           icon: 'success',
-  //           floating: true,
-  //           duration: 3000,
-  //         });
-
-  //         // Invalidate and refetch queries to refresh data
-  //         queryClient.invalidateQueries(['attachmentFiles', year, tn, form]);
-  //         queryClient.refetchQueries(['attachmentFiles', year, tn, form]);
-
-  //         setSelectedFiles([]);
-  //         bottomSheetRef.current?.close();
-
-  //         if (onSuccessCallback) {
-  //           onSuccessCallback();
-  //         }
-  //       },
-  //       onError: error => {
-  //         showMessage({
-  //           message: `${form} Upload failed!`,
-  //           description: error?.message || 'Something went wrong',
-  //           type: 'danger',
-  //           icon: 'danger',
-  //           floating: true,
-  //           duration: 3000,
-  //         });
-  //       },
-  //     },
-  //   ); */
-  // };
+                  if (onSuccessCallback) {
+                    onSuccessCallback();
+                  }
+                },
+                onError: error => {
+                  showMessage({
+                    message: 'Remove failed!',
+                    description: error?.message || 'Something went wrong',
+                    type: 'danger',
+                    icon: 'danger',
+                    floating: true,
+                    duration: 3000,
+                  });
+                },
+              },
+            );
+          },
+        },
+      ],
+      {cancelable: false},
+    );
+  };
 
   const openDocument = uri => {
     Linking.openURL(uri).catch(err =>
@@ -297,12 +540,12 @@ const AttachmentsScreen = ({navigation}) => {
     }));
   };
 
-  const removeAttachment = (formType, index) => {
+  /*   const removeAttachment = (formType, index) => {
     setAttachmentFile(prev => ({
       ...prev,
       [formType]: prev[formType].filter((_, i) => i !== index),
     }));
-  };
+  }; */
 
   const handleSelectYear = year => {
     setSelectedYear(year);
@@ -502,7 +745,7 @@ const AttachmentsScreen = ({navigation}) => {
                                           ? styles.formTagChecked
                                           : styles.formTagUnchecked,
                                       ]}>
-                                      <MaterialCommunityIcons
+                                      {/*  <MaterialCommunityIcons
                                         name={
                                           hasForm
                                             ? 'check-circle'
@@ -511,7 +754,7 @@ const AttachmentsScreen = ({navigation}) => {
                                         size={14}
                                         color={hasForm ? 'green' : '#ccc'}
                                         style={{marginRight: 4}}
-                                      />
+                                      /> */}
                                       <Text
                                         style={[
                                           styles.formTagText,
@@ -699,6 +942,19 @@ const AttachmentsScreen = ({navigation}) => {
                           <View style={styles.formLabelColumn}>
                             <Text style={styles.formLabel}>{form}</Text>
                           </View>
+                          {filteredAttachments?.length > 0 && (
+                            <TouchableOpacity
+                              onPress={() =>
+                                handleRemove(selectedYear, trackingNumber, form)
+                              }
+                              style={styles.trashIconContainer}>
+                              <Icon
+                                name="trash-outline"
+                                size={20}
+                                color="#D9534F"
+                              />
+                            </TouchableOpacity>
+                          )}
                         </View>
 
                         {filteredAttachments.length > 0 ? (
@@ -715,15 +971,6 @@ const AttachmentsScreen = ({navigation}) => {
                                     {`${formSeries}~${seriesExt}`}
                                   </Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                  onPress={() => removeAttachment(attachment)}
-                                  style={styles.trashIconContainer}>
-                                  <Icon
-                                    name="trash-outline"
-                                    size={20}
-                                    color="#D9534F"
-                                  />
-                                </TouchableOpacity>
                               </View>
                             );
                           })
@@ -732,22 +979,35 @@ const AttachmentsScreen = ({navigation}) => {
                             {/*   <Text style={styles.noAttachmentText}>
                               Attachments for {form}
                             </Text> */}
-                            <TouchableOpacity
+
+                            <View
                               style={{
-                                flexDirection: 'row',
+                                width: '100%',
+                                paddingVertical: 10,
+                                backgroundColor: '#FAFAFA',
                                 alignItems: 'center',
-                                marginBottom: 8,
-                              }}
-                              onPress={() => pickFile(form)}>
-                              <MaterialCommunityIcons
-                                name="upload"
-                                size={18}
-                                color="#007AFF"
-                              />
-                              <Text style={{color: '#007AFF', marginLeft: 4}}>
-                                Browse
-                              </Text>
-                            </TouchableOpacity>
+                                borderWidth: 1,
+                                borderStyle: 'dashed',
+                                borderColor: '#ccc',
+                                borderRadius: 8,
+                              }}>
+                              <TouchableOpacity
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  marginBottom: 8,
+                                }}
+                                onPress={() => pickFile(form)}>
+                                <MaterialCommunityIcons
+                                  name="upload"
+                                  size={18}
+                                  color="#007AFF"
+                                />
+                                <Text style={{color: '#007AFF', marginLeft: 4}}>
+                                  Browse
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
 
                             <View style={styles.attachmentList}>
                               {attachmentFile?.[form]?.length > 0 ? (
@@ -804,6 +1064,67 @@ const AttachmentsScreen = ({navigation}) => {
                                               }}>
                                               {formatFileSize(file.size)}
                                             </Text>
+
+                                            {uploadProgress[form] !==
+                                              undefined && (
+                                              <View style={{marginTop: 10}}>
+                                                <ProgressBar
+                                                  progress={
+                                                    uploadProgress[form] / 100
+                                                  }
+                                                  color="#007AFF"
+                                                  style={{
+                                                    height: 8,
+                                                    borderRadius: 5,
+                                                  }}
+                                                />
+                                                <Text
+                                                  style={{
+                                                    fontSize: 12,
+                                                    marginTop: 4,
+                                                  }}>
+                                                  Uploading...{' '}
+                                                  {uploadProgress[form]}%
+                                                </Text>
+                                              </View>
+                                            )}
+
+                                            {/*  <View style={{marginTop: 4}}>
+                                              {uploadProgress?.[form] !==
+                                                undefined &&
+                                                uploadProgress[form] < 100 && (
+                                                  <View
+                                                    style={
+                                                      styles.progressBarContainer
+                                                    }>
+                                                    <View
+                                                      style={[
+                                                        styles.progressBarFill,
+                                                        {
+                                                          width: `${uploadProgress[form]}%`,
+                                                          backgroundColor:
+                                                            '#007AFF',
+                                                        },
+                                                      ]}
+                                                    />
+                                                    <Text
+                                                      style={
+                                                        styles.progressText
+                                                      }>
+                                                      {uploadProgress[form]}%
+                                                    </Text>
+                                                  </View>
+                                                )}
+
+                                              <Text
+                                                style={{
+                                                  color: '#888',
+                                                  fontSize: 12,
+                                                  marginTop: 2,
+                                                }}>
+                                                {formatFileSize(file.size)}
+                                              </Text>
+                                            </View> */}
                                           </View>
                                         </View>
 
@@ -822,23 +1143,46 @@ const AttachmentsScreen = ({navigation}) => {
                                   })}
 
                                   <TouchableOpacity
-                                    style={styles.uploadButton}
+                                    style={[
+                                      styles.uploadButton,
+                                      uploadAttachLoading &&
+                                        styles.uploadButtonDisabled,
+                                    ]}
                                     onPress={() =>
                                       handleUpload(
                                         attachmentFile,
                                         selectedYear,
                                         trackingNumber,
                                         form,
-                                    )
-                                    }>
-                                    <MaterialCommunityIcons
-                                      name="upload"
-                                      size={18}
-                                      color="#fff"
-                                    />
-                                    <Text style={styles.uploadButtonText}>
-                                      Upload
-                                    </Text>
+                                      )
+                                    }
+                                    disabled={uploadAttachLoading} // Disable button while loading
+                                  >
+                                    {uploadAttachLoading ? (
+                                      <View
+                                        style={{
+                                          flex: 1,
+                                          justifyContent: 'center',
+                                          alignItems: 'center',
+                                          flexDirection: 'row',
+                                        }}>
+                                        <ActivityIndicator
+                                          size="small"
+                                          color="#fff"
+                                        />
+                                      </View>
+                                    ) : (
+                                      <>
+                                        {/*  <MaterialCommunityIcons
+                                          name="upload"
+                                          size={18}
+                                          color="#fff"
+                                        /> */}
+                                        <Text style={styles.uploadButtonText}>
+                                          Upload
+                                        </Text>
+                                      </>
+                                    )}
                                   </TouchableOpacity>
                                 </>
                               ) : (
@@ -1060,14 +1404,8 @@ const styles = StyleSheet.create({
   },
 
   noAttachmentContainer: {
-    backgroundColor: '#FAFAFA',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    flex: 1,
     marginBottom: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#ccc',
   },
 
   noAttachmentText: {
@@ -1165,7 +1503,7 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '700',
     fontSize: 16,
-    color: '#007AFF',
+    color: '#252525',
     elevation: 1,
     shadowColor: '#ccc',
     shadowOffset: {width: 0, height: 2},
@@ -1175,7 +1513,7 @@ const styles = StyleSheet.create({
 
   value: {
     marginBottom: 6,
-    color: '#000',
+    color: 'gray',
   },
   empty: {
     padding: 20,
@@ -1223,9 +1561,6 @@ const styles = StyleSheet.create({
   attachmentList: {
     marginTop: 10,
   },
-  attachmentList: {
-    marginTop: 10,
-  },
   attachmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1257,6 +1592,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#999',
     marginBottom: 8,
+    textAlign: 'center',
   },
   uploadButton: {
     flexDirection: 'row',
@@ -1268,10 +1604,38 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   uploadButtonText: {
+    flex: 1,
     color: '#fff',
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '600',
+    paddingVertical: 5,
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    height: 6,
+    width: '100%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
+    position: 'relative',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressText: {
+    position: 'absolute',
+    right: 4,
+    top: -2,
+    fontSize: 10,
+    color: '#555',
+  },
+  fileSizeText: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 
