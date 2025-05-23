@@ -37,7 +37,7 @@ const useReceiving = (selectedYear) => {
       if (!year || !trackingNumber) throw new Error('Year and TrackingNumber are required');
       const headers = await getAuthHeaders();
 
-      const apiUrl = `/receiverReceived?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&AccountType=${accountType}&Privilege=${privilege}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}&inputParams=${inputParams}`;
+      const apiUrl = `/receiverReceived?Year=${year}&TrackingNumber=${trackingNumber}&TrackingType=${trackingType}&DocumentType=${documentType}&Status=${status}&OfficeCode=${officeCode}&EmployeeNumber=${employeeNumber}&inputParams=${inputParams}`;
       const { data } = await apiClient.get(apiUrl, {}, { headers });
       return data;
     },
