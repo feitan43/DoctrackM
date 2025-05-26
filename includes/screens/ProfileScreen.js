@@ -7,7 +7,7 @@ import {
   Button,
   TouchableOpacity,
   Pressable,
-  StatusBar
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useUserInfo from '../api/useUserInfo';
@@ -53,127 +53,126 @@ const ProfileScreen = ({navigation}) => {
   // 5 - Admin Operations Receiving
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-      {/* Header with Back Button */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#fff',
-          paddingBottom: 5,
-          shadowColor: '#000',
-          shadowOffset: {width: 0, height: 2},
-          shadowOpacity: 0.2,
-          shadowRadius: 3,
-          elevation: 3,
-        }}>
-        <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginStart: 10,
-              padding: 10,
-              borderRadius: 24,
-            },
-          ]}
-          android_ripple={{
-            color: '#F6F6F6',
-            borderless: true,
-            radius: 24,
-          }}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="gray" />
-        </Pressable>
-
-        <Text
+    <SafeAreaView style={{flex: 1}}>
+      <View style={styles.container}>
+        {/* Header with Back Button */}
+        <View
           style={{
-            padding: 10,
-            color: '#252525',
-            fontFamily: 'Inter_28pt-Bold',
-            fontSize: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#fff',
+            paddingBottom: 5,
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 2},
+            shadowOpacity: 0.2,
+            shadowRadius: 3,
+            elevation: 3,
           }}>
-          Profile
-        </Text>
-      </View>
+          <Pressable
+            style={({pressed}) => [
+              pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginStart: 10,
+                padding: 10,
+                borderRadius: 24,
+              },
+            ]}
+            android_ripple={{
+              color: '#F6F6F6',
+              borderless: true,
+              radius: 24,
+            }}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="gray" />
+          </Pressable>
 
-      {/* Profile Picture */}
-      <Image
-        source={require('../../assets/images/davao.png')}
-        style={styles.profileImage}
-      />
-      <View style={{paddingHorizontal: 20, rowGap: 5}}>
-        <Text style={styles.label}>Employee Number</Text>
-        <Text style={styles.labelValue}>{employeeNumber}</Text>
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
+          <Text
+            style={{
+              padding: 10,
+              color: '#252525',
+              fontFamily: 'Inter_28pt-Bold',
+              fontSize: 16,
+            }}>
+            Profile
+          </Text>
+        </View>
+
+        {/* Profile Picture */}
+        <Image
+          source={require('../../assets/images/davao.png')}
+          style={styles.profileImage}
         />
+        <View style={{paddingHorizontal: 20, rowGap: 5}}>
+          <Text style={styles.label}>Employee Number</Text>
+          <Text style={styles.labelValue}>{employeeNumber}</Text>
+          <View
+            style={{
+              height: 1,
+              marginTop: 10,
+              backgroundColor: 'gray',
+            }}
+          />
 
-        <Text style={styles.label}>Account Name</Text>
-        <Text style={styles.labelValue}>{fullName}</Text>
+          <Text style={styles.label}>Account Name</Text>
+          <Text style={styles.labelValue}>{fullName}</Text>
 
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
+          <View
+            style={{
+              height: 1,
+              marginTop: 10,
+              backgroundColor: 'gray',
+            }}
+          />
 
-        <Text style={styles.label}>Office</Text>
-        <Text style={styles.labelValue}>{officeName}</Text>
+          <Text style={styles.label}>Office</Text>
+          <Text style={styles.labelValue}>{officeName}</Text>
 
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
+          <View
+            style={{
+              height: 1,
+              marginTop: 10,
+              backgroundColor: 'gray',
+            }}
+          />
 
-        <Text style={styles.label}>Account Type </Text>
-        <Text style={styles.labelValue}>
-          {parseInt(accountType) === 1
-            ? 'Officer'
-            : parseInt(accountType) === 2
-            ? 'DTS Officer'
-            : parseInt(accountType) === 3
-            ? 'Doctrack Administrator'
-            : parseInt(accountType) === 4
-            ? 'Master Receiver'
-            : parseInt(accountType) === 5
-            ? 'Master Releaser'
-            : parseInt(accountType) === 6
-            ? 'Pending Master'
-            : parseInt(accountType) === 7
-            ? 'Programmer'
-            : parseInt(accountType) === 8
-            ? 'SLP Master'
-            : parseInt(accountType) === 9
-            ? 'Master Adviser'
-            : parseInt(accountType) === 10
-            ? 'BAC Officer'
-            : 'Unknown Account Type'}
-        </Text>
+          <Text style={styles.label}>Account Type </Text>
+          <Text style={styles.labelValue}>
+            {parseInt(accountType) === 1
+              ? 'Officer'
+              : parseInt(accountType) === 2
+              ? 'DTS Officer'
+              : parseInt(accountType) === 3
+              ? 'Doctrack Administrator'
+              : parseInt(accountType) === 4
+              ? 'Master Receiver'
+              : parseInt(accountType) === 5
+              ? 'Master Releaser'
+              : parseInt(accountType) === 6
+              ? 'Pending Master'
+              : parseInt(accountType) === 7
+              ? 'Programmer'
+              : parseInt(accountType) === 8
+              ? 'SLP Master'
+              : parseInt(accountType) === 9
+              ? 'Master Adviser'
+              : parseInt(accountType) === 10
+              ? 'BAC Officer'
+              : 'Unknown Account Type'}
+          </Text>
 
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
-      </View>
+          <View
+            style={{
+              height: 1,
+              marginTop: 10,
+              backgroundColor: 'gray',
+            }}
+          />
+        </View>
 
-      {/* Name */}
-      {/*  <Text>Name</Text>
+        {/* Name */}
+        {/*  <Text>Name</Text>
       <Text style={styles.name}>{fullName}</Text>
 
       <Text style={styles.name}>{employeeNumber}</Text>
@@ -182,10 +181,11 @@ const ProfileScreen = ({navigation}) => {
 
       <Text style={styles.name}>{officeCode}</Text>
  */}
-      {/* Edit Profile Button */}
-      {/* <TouchableOpacity style={styles.button}>
+        {/* Edit Profile Button */}
+        {/* <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>Edit Profile</Text>
       </TouchableOpacity> */}
+      </View>
     </SafeAreaView>
   );
 };

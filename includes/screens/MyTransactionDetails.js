@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -8,472 +8,429 @@ import {
   TouchableOpacity,
   Modal,
   ImageBackground,
-  SafeAreaView
+  SafeAreaView,
 } from 'react-native';
 import {DataTable} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Ionicons';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import {insertCommas} from '../utils/insertComma';
 import useTransactionHistory from '../api/useTransactionHistory';
 import Timeline from 'react-native-timeline-flatlist';
+import { width, removeHtmlTags} from '../utils';
 
 const MyTransactionDetails = ({route, navigation}) => {
   const {selectedItem} = route.params;
-  const [showMore, setShowMore] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const {transactionsHistory} = useTransactionHistory(selectedItem);
+
   const timelineData = transactionsHistory.map(item => ({
     time: item.DateModified,
     title: item.Status,
     description: `Completion: ${item.Completion}`,
   }));
+  
+  const getStatusColor = status => {
+  if (status.includes('Pending')) return '#FFA500';
+  if (status.includes('Approved')) return '#4CAF50';
+  if (status.includes('Rejected')) return '#F44336';
+  return '#2196F3';
+};
 
-  function removeHtmlTags(text) {
-    if (text === null || text === undefined) {
-      return '';
-    }
 
-    const boldEndRegex = /<\/b>/g;
-    const newText = text.replace(boldEndRegex, '</b>\n');
-    const htmlRegex = /<[^>]*>/g;
-    return newText.replace(htmlRegex, ' ');
-  }
-  const renderContent = () => {
-    return (
-      <ScrollView contentContainerStyle={{}}>
-        {/*         <Text style={styles.claimantText}>{selectedItem.Claimant}</Text>
-         */}
-        <View style={styles.detailRow}>
-          {/* <Text style={[styles.labelText, {color: 'white'}]}>Status</Text> */}
-          <TouchableOpacity
-            style={[
-              styles.statusButton,
-              selectedItem.Status === 'Pending' && styles.pendingStatus,
-            ]}
-            //onPress={() => setModalVisible(true)
-          >
-            <Text
-              style={[
-                styles.statusText,
-                {
-                  color: 'white',
-                  fontSize: 18,
-                  textShadowColor: 'rgba(90, 89, 89, 0.84)',
-                  textShadowOffset: {width: 1, height: 1},
-                  textShadowRadius: 2,
-                },
-              ]}>
-              {selectedItem.TrackingType} - {selectedItem.Status}
+  return (
+    <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('../../assets/images/CirclesBG.png')}
+        style={styles.headerBackground}>
+        <View style={styles.header}>
+          <Pressable
+            style={styles.backButton}
+            android_ripple={styles.backButtonRipple}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+          <Text style={styles.headerTitle}>{/* Transaction  */}Details</Text>
+          <View style={{width: 40}} />
+        </View>
+      </ImageBackground>
+
+      <ScrollView
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}>
+        <View
+          style={[
+            styles.statusCard,
+            {backgroundColor: getStatusColor(selectedItem.Status)},
+          ]}>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Text style={styles.trackingType}>
+              {selectedItem.TrackingType} -{' '}
             </Text>
-            <Text style={[styles.dateText, {color: 'white'}]}>
-              {selectedItem.DateModified}
-            </Text>
-          </TouchableOpacity>
+            <Text style={styles.statusText}>{selectedItem.Status}</Text>
+          </View>
+
+          <Text style={styles.dateText}>{selectedItem.DateModified}</Text>
         </View>
 
-        <View style={{marginHorizontal: 10}}>
-          <View style={styles.textRow}>
-            <Text style={styles.label}>TN</Text>
-            <Text style={styles.value}>{selectedItem.TrackingNumber}</Text>
-          </View>
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Claimant</Text>
-            <Text style={styles.value}>{selectedItem.Claimant}</Text>
-          </View>
-          {/*  <View style={styles.textRow}>
-            <Text style={styles.label}>Office</Text>
-            <Text style={styles.value}>{selectedItem.OfficeName}</Text>
-          </View> */}
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Document</Text>
-            <Text style={styles.value}>{selectedItem.DocumentType}</Text>
-          </View>
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Period</Text>
-            <Text style={styles.value}>{selectedItem.PeriodMonth}</Text>
-          </View>
-          {/* <View style={styles.textRow}>
-            <Text style={styles.label}>ClaimType </Text>
-            <Text style={styles.value}>{selectedItem.ClaimType}</Text>
-          </View> */}
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Fund</Text>
-            <Text style={styles.value}>{selectedItem.Fund}</Text>
-          </View>
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Amount</Text>
-            <Text style={styles.value}>
-              ₱{insertCommas(selectedItem.Amount)}
-            </Text>
-          </View>
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Net Amount</Text>
-            <Text style={styles.value}>
-              ₱{insertCommas(selectedItem.NetAmount)}
-            </Text>
-          </View>
+        <View style={styles.detailsCard}>
+          <DetailRow label="TN" value={selectedItem.TrackingNumber} />
+          <DetailRow label="Claimant" value={selectedItem.Claimant} />
+          <DetailRow label="Document" value={selectedItem.DocumentType} />
+          <DetailRow label="Period" value={selectedItem.PeriodMonth} />
+          <DetailRow label="Fund" value={selectedItem.Fund} />
+          <DetailRow
+            label="Amount"
+            value={`₱${insertCommas(selectedItem.Amount)}`}
+            isAmount
+          />
+          <DetailRow
+            label="Net Amount"
+            value={`₱${insertCommas(selectedItem.NetAmount)}`}
+            isAmount
+          />
 
-          <View
-            style={{
-              height: 1,
-              backgroundColor: 'silver',
-              marginVertical: 10,
-              marginHorizontal: 20,
-            }}></View>
+          <View style={styles.divider} />
 
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Encoded By</Text>
-            <Text style={styles.value}>{selectedItem.Encoder}</Text>
-          </View>
-
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Date Encoded</Text>
-            <Text style={styles.value}>{selectedItem.DateEncoded}</Text>
-          </View>
-          <View style={styles.textRow}>
-            <Text style={styles.label}>Date Updated</Text>
-            <Text style={styles.value}>{selectedItem.DateModified}</Text>
-          </View>
+          <DetailRow label="Encoded By" value={selectedItem.Encoder} />
+          <DetailRow label="Date Encoded" value={selectedItem.DateEncoded} />
+          <DetailRow label="Date Updated" value={selectedItem.DateModified} />
         </View>
-        {/* <View style={styles.amountRow}>
-          <View>
-            <Text style={styles.labelText}>Document</Text>
-            <Text style={styles.valueText}>{selectedItem.DocumentType}</Text>
-          </View>
-
-          <View>
-            <Text style={styles.labelText}>Month</Text>
-            <Text style={styles.valueText}>{selectedItem.PeriodMonth}</Text>
-          </View>
-        </View> */}
-
-        {/*   <View style={styles.amountRow}>
-          <View>
-            <Text style={styles.labelText}>Amount</Text>
-            <Text style={styles.valueText}>
-              ₱ {insertCommas(selectedItem.Amount)}
-            </Text>
-          </View>
-
-          <View>
-            <Text style={styles.labelText}>Net Amount</Text>
-            <Text style={styles.valueText}>
-              ₱ {insertCommas(selectedItem.NetAmount)}
-            </Text>
-          </View>
-        </View> */}
 
         {selectedItem.Remarks && (
-          <View style={styles.remarksContainer}>
-            <Text style={styles.remarksTitle}>Pending Notes</Text>
-            <View style={styles.remarksBox}>
+          <View style={styles.remarksCard}>
+            <Text style={styles.sectionTitle}>Pending Notes</Text>
+            <View style={styles.remarksContent}>
               <Text style={styles.remarksText}>
                 {removeHtmlTags(selectedItem.Remarks)}
               </Text>
             </View>
           </View>
         )}
-        <View>
-          <TouchableOpacity
-            style={styles.historyButton}
-            onPress={() => setShowHistory(!showHistory)}>
-            <Text style={styles.historyButtonText}>
-              {showHistory ? 'Hide History' : 'Show History'}
-            </Text>
-          </TouchableOpacity>
 
-          {showHistory && (
-            <DataTable style={styles.transactionTable}>
-              <DataTable.Header>
-                <DataTable.Title>Date</DataTable.Title>
-                <DataTable.Title>Status</DataTable.Title>
-                <DataTable.Title numeric>Completion</DataTable.Title>
-              </DataTable.Header>
+        <TouchableOpacity
+          style={styles.historyToggle}
+          onPress={() => setShowHistory(!showHistory)}>
+          <Text style={styles.historyToggleText}>
+            {showHistory ? 'Hide History' : 'Show History'}
+          </Text>
+          <Icon
+            name={showHistory ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color="#007AFF"
+          />
+        </TouchableOpacity>
 
-              {transactionsHistory.length > 0 ? (
-                transactionsHistory.map((item, index) => {
-                  const isLastItem = index === transactionsHistory.length - 1;
-                  return (
-                    <DataTable.Row
-                      key={index}
-                      style={isLastItem ? styles.highlightedRow : null}>
-                      <DataTable.Cell style={styles.dataCell}>
-                        <Text style={[styles.dataText, {fontSize: 10}]}>
-                          {item.DateModified}
-                        </Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.dataCell}>
-                        <Text style={styles.dataText}>{item.Status}</Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.dataCell} numeric>
-                        <Text style={styles.dataText}>{item.Completion}</Text>
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  );
-                })
-              ) : (
-                <DataTable.Row>
-                  <DataTable.Cell
-                    style={{justifyContent: 'center'}}
-                    colspan={3}>
-                    <Text style={styles.noTransactionsText}>
-                      No Transaction History available
-                    </Text>
-                  </DataTable.Cell>
-                </DataTable.Row>
-              )}
-            </DataTable>
-          )}
-        </View>
+        {showHistory && (
+          <View style={styles.historyCard}>
+            {transactionsHistory.length > 0 ? (
+              <DataTable>
+                <DataTable.Header style={styles.tableHeader}>
+                  <DataTable.Title style={styles.tableHeaderText}>
+                    Date
+                  </DataTable.Title>
+                  <DataTable.Title style={styles.tableHeaderText}>
+                    Status
+                  </DataTable.Title>
+                  <DataTable.Title numeric style={styles.tableHeaderText}>
+                    Completion
+                  </DataTable.Title>
+                </DataTable.Header>
 
-        <Modal
-          visible={modalVisible}
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}>
-          <View style={styles.modalContainer}>
-            <TouchableOpacity
-              onPress={() => setModalVisible(false)}
-              style={styles.closeButton}>
-              <Icon name="close-outline" size={24} color="black" />
-            </TouchableOpacity>
-            <Timeline data={timelineData} />
+                {transactionsHistory.map((item, index) => (
+                  <DataTable.Row
+                    key={index}
+                    style={[
+                      styles.tableRow,
+                      index === transactionsHistory.length - 1 &&
+                        styles.highlightedRow,
+                    ]}>
+                    <DataTable.Cell>
+                      <Text style={styles.tableCellText}>
+                        {item.DateModified}
+                      </Text>
+                    </DataTable.Cell>
+                    <DataTable.Cell>
+                      <Text style={styles.tableCellText}>{item.Status}</Text>
+                    </DataTable.Cell>
+                    <DataTable.Cell numeric>
+                      <Text style={styles.tableCellText}>
+                        {item.Completion}
+                      </Text>
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                ))}
+              </DataTable>
+            ) : (
+              <Text style={styles.noHistoryText}>
+                No transaction history available
+              </Text>
+            )}
           </View>
-        </Modal>
+        )}
       </ScrollView>
-    );
-  };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
-        style={styles.bgHeader}>
-        <View style={styles.header}>
-          <Pressable
-            style={({pressed}) => [
-              pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-              styles.backButton,
-            ]}
-            android_ripple={{
-              color: '#F6F6F6',
-              borderless: true,
-              radius: 24,
-            }}
-            onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="#fff" />
-          </Pressable>
-
-          <Text style={styles.title}></Text>
+      {/* Timeline Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setModalVisible(false)}>
+              <Icon name="close" size={24} color="#666" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Transaction Timeline</Text>
+            <Timeline
+              data={timelineData}
+              circleSize={16}
+              circleColor="#007AFF"
+              lineColor="#007AFF"
+              timeStyle={styles.timelineTime}
+              titleStyle={styles.timelineTitle}
+              descriptionStyle={styles.timelineDescription}
+            />
+          </View>
         </View>
-      </ImageBackground>
-
-      {renderContent()}
+      </Modal>
     </SafeAreaView>
   );
 };
 
+const DetailRow = ({label, value, isAmount = false}) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={[styles.detailValue, isAmount && styles.amountValue]}>
+      {value}
+    </Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F5F7FA',
+  },
+  headerBackground: {
+    height: 80,
+    paddingTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    elevation: 4,
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    width: '100%',
   },
   backButton: {
     width: 40,
-    backgroundColor: 'transparent',
-    padding: 10,
-    flexDirection: 'row',
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
-    },
-  claimantText: {
+    borderRadius: 20,
+  },
+  backButtonRipple: {
+    color: 'rgba(255,255,255,0.2)',
+    borderless: true,
+    radius: 20,
+  },
+  headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#444',
-    flex: 1,
+    fontWeight: '600',
+    color: '#fff',
     textAlign: 'center',
+    flex: 1,
   },
-  labelText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  valueText: {
+  statusCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  trackingType: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  statusButton: {
-    backgroundColor: '#3DD1FC',
-    paddingVertical: 10,
-    //borderRadius: 8,
-    marginBottom: 10,
-    paddingHorizontal: 20,
-  },
-  pendingStatus: {
-    backgroundColor: '#FFEB3B',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
   },
   statusText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#3B3B3B',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
   },
   dateText: {
-    fontSize: 12,
-    color: '#777',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
   },
-  amountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 15,
-  },
-  remarksContainer: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: '#F8F9FA', // Light gray background
-    borderRadius: 8,
-    //borderWidth: 1,
-    borderColor: '#D1D5DB', // Light border color
-  },
-  remarksTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#374151', // Dark gray text
-    marginBottom: 5,
-  },
-  remarksBox: {
-    backgroundColor: '#FFFFFF', // White box for remarks
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'orange',
+  detailsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    //elevation: 1,
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    flex: 1,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    flex: 2,
+    textAlign: 'right',
+  },
+  amountValue: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#EEE',
+    marginVertical: 8,
+  },
+  remarksCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 8,
+  },
+  remarksContent: {
+    backgroundColor: '#FFF9E6',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE082',
   },
   remarksText: {
     fontSize: 14,
-    color: '#4B5563', // Gray text
+    color: '#5D4037',
     lineHeight: 20,
   },
-  transactionTable: {
-    backgroundColor: '#fff',
-    // marginTop: 15,
-    borderRadius: 10,
-    overflow: 'hidden',
-    elevation: 2,
-    marginBottom: 20,
+  historyToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    marginBottom: 16,
   },
-  noTransactionsText: {
+  historyToggleText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  historyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  tableHeader: {
+    backgroundColor: '#F5F7FA',
+  },
+  tableHeaderText: {
+    color: '#666',
+    fontWeight: '600',
+  },
+  tableRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  tableCellText: {
+    fontSize: 12,
+    color: '#333',
+  },
+  highlightedRow: {
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+  },
+  noHistoryText: {
     textAlign: 'center',
     color: '#999',
-    fontSize: 16,
-    marginTop: 20,
+    fontSize: 14,
+    padding: 16,
   },
   modalContainer: {
     flex: 1,
-    padding: 20,
-  },
-  closeButton: {
-    paddingVertical: 10,
-  },
-  detailRow: {
-    marginVertical: 0,
-  },
-  bgHeader: {
-    paddingTop:30,
-    height: 80,
-    backgroundColor: '#1a508c',
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    elevation: 4, // Shadow effect
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    //backgroundColor: '#fff',
-    paddingBottom: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    //elevation: 2,
+  modalContent: {
+    width: width * 0.9,
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
   },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    //padding: 10,
-  },
-  textRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 5,
-  },
-  label: {
-    //backgroundColor:'red',
-    width: '25%',
-    fontSize: 14,
-    fontFamily: 'Inter_28pt-Light',
-    color: 'gray',
-    textAlign: 'right',
-    letterSpacing: -0.5,
-  },
-  value: {
-    //backgroundColor:'blue',
-    width: '70%',
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginStart: 15,
-    //letterSpacing: -1,
-  },
-  dataCell: {
-    fontSize: 12,
-    fontWeight: '500', // Change this value to your desired font size
-    color: '#333', // You can also change the color if needed
-    alignContent: 'flex-start',
-  },
-  dataText: {
-    fontSize: 12,
-    fontWeight: '500', // Adjust font size as needed
-    color: '#333', // Dark gray for readability
-    textAlign: 'justify',
-  },
-  highlightedRow: {
-    backgroundColor: 'orange', // Light gray background for highlight
-    borderRadius: 5, // Optional rounded corners
-  },
-  historyButton: {
-    //backgroundColor: '#007bff',
-    padding: 10,
-    paddingEnd: 20,
-    borderRadius: 5,
-    alignItems: 'center',
+  modalCloseButton: {
     alignSelf: 'flex-end',
-    //marginBottom: 10,
+    padding: 8,
   },
-  historyButtonText: {
-    color: 'orange',
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 16,
   },
-  highlightedRow: {
-    backgroundColor: 'orange',
-    borderRadius: 5,
+  timelineTime: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  timelineTitle: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  timelineDescription: {
+    color: '#666',
+    fontSize: 12,
   },
 });
+
 export default MyTransactionDetails;

@@ -11,7 +11,7 @@ import {
   Alert,
   Linking,
   Button,
-  Modal
+  Modal,
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
@@ -27,7 +27,7 @@ const queryClient = new QueryClient();
 const App = () => {
   const [isConnected, setIsConnected] = useState(true);
 
-  const { progress, isBundleUpdated } = useHotUpdaterStore();
+  const {progress, isBundleUpdated} = useHotUpdaterStore();
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
@@ -60,17 +60,17 @@ const App = () => {
   };
 
   function extractFormatDateFromUUIDv7(uuid) {
-    const timestampHex = uuid.split("-").join("").slice(0, 12);
+    const timestampHex = uuid.split('-').join('').slice(0, 12);
     const timestamp = parseInt(timestampHex, 16);
-  
+
     const date = new Date(timestamp);
     const year = date.getFullYear().toString().slice(2);
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const day = date.getDate().toString().padStart(2, "0");
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const seconds = date.getSeconds().toString().padStart(2, "0");
-  
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+
     return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
   }
 
@@ -83,13 +83,13 @@ const App = () => {
           translucent
         />
 
-        <FlashMessage position="bottom" />
+        <FlashMessage position="bottom" zIndex={9999} />
 
         <View style={styles.container}>
           {isConnected ? (
             <>
-            <Route />      
-          </>
+              <Route />
+            </>
           ) : (
             <View style={styles.noInternetContainer}>
               <StatusBar
@@ -167,5 +167,5 @@ const styles = StyleSheet.create({
 
 export default HotUpdater.wrap({
   source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
-  reloadOnForceUpdate: true, 
-})(App); 
+  reloadOnForceUpdate: true,
+})(App);

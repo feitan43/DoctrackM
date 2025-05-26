@@ -11,6 +11,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import useUserInfo from '../api/useUserInfo';
 import notifee, {AuthorizationStatus} from '@notifee/react-native';
 import {useFocusEffect} from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NotificationScreen = ({navigation}) => {
   const {employeeNumber, fullName, officeName, officeCode, accountType} =
@@ -100,6 +101,7 @@ const NotificationScreen = ({navigation}) => {
   );
 
   return (
+    <SafeAreaView style={{flex:1}}>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
@@ -219,6 +221,7 @@ const NotificationScreen = ({navigation}) => {
         </Text>
       </View> */}
     </View>
+    </SafeAreaView>
   );
 };
 
@@ -231,7 +234,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    paddingTop: 40,
     padding: 10,
     paddingStart: 20,
     borderBottomWidth: 1,
