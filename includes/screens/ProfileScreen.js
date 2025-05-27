@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Image,
-  Button,
   TouchableOpacity,
   Pressable,
   StatusBar,
@@ -14,247 +13,250 @@ import useUserInfo from '../api/useUserInfo';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 const ProfileScreen = ({navigation}) => {
-  const {employeeNumber, fullName, officeName, officeCode, accountType} =
-    useUserInfo();
+  const {
+    employeeNumber,
+    fullName,
+    officeName,
+    officeCode,
+    accountType,
+    gsoInspection,
+    caoReceiver,
+    caoEvaluator,
+    cboReceiver,
+  } = useUserInfo();
 
-  // PERMISSIONS:
-  // 10 - gso
-  // 11 - gso
-  // 30 - ling
-  // 31 - cbo
-  // 32 - PPMP
-  // 33 - light/water
-  // 34 - ling hr
-  // 35 - bac
-  // 36 - cancel
-  // 37 - cto check management
-  // 38 - BAC Secretariat
-  // 39 - BAC Chairman
-  // 40 - CEO PDD
-  // 41 - CEO Construction
-  // 42 - CEO Admin
-  // 43 - CAO trust fund controller
-  // 44 - CBO gen fund fund controller
-  // 45 - Inventory Assets Module viewer
-  // 46 - REMI Account for all access program and account codes
-  // 47 - Disaster Account
-  // 48 - Receiver Admin -New-
-  // 49 - Receiver GSO -New-
-  // 50 - Receiver CTO -New-
-  // 51 - Receiver CBO -New-
-  // 52 - Receiver CEO -New-
-  // 53 - Receiver CAO -New-
+  // Helper function to map accountType to readable string
+  const getAccountTypeName = type => {
+    switch (parseInt(type)) {
+      case 1:
+        return 'Officer';
+      case 2:
+        return 'DTS Officer';
+      case 3:
+        return 'Doctrack Administrator';
+      case 4:
+        return 'Master Receiver';
+      case 5:
+        return 'Master Releaser';
+      case 6:
+        return 'Pending Master';
+      case 7:
+        return 'Programmer';
+      case 8:
+        return 'SLP Master';
+      case 9:
+        return 'Master Adviser';
+      case 10:
+        return 'BAC Officer';
+      default:
+        return 'Unknown Account Type';
+    }
+  };
 
-  // PRIVILEGES:
-  // 1 - CAO Mai2 (For AP Cancellation Button)
-  // 2 - CAO Janice (Master Receiver)
-  // 3 - CAO Do2 and Kervih (Document Receivers)
-  // 4 - For PR - EDIT STATUS function
-  // 5 - Admin Operations Receiving
+  // Helper function to get additional privilege names based on flags
+  const getPrivilegeNames = () => {
+    const privileges = [];
+    if (gsoInspection === 1) {
+      privileges.push('Inspector');
+    }
+    // Combine caoReceiver and cboReceiver into a single 'Receiver' privilege
+    if (caoReceiver === 1 || cboReceiver === 1) {
+      privileges.push('Receiver');
+    }
+    if (caoEvaluator === 1) {
+      privileges.push('Evaluator');
+    }
+    return privileges;
+  };
+
+  const currentPrivileges = getPrivilegeNames();
 
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      {/* Header with Back Button and Title */}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({pressed}) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
+          android_ripple={{color: '#F0F0F0', borderless: true, radius: 24}}>
+          <Icon name="arrow-back" size={24} color="#424242" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
+
       <View style={styles.container}>
-        {/* Header with Back Button */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: '#fff',
-            paddingBottom: 5,
-            shadowColor: '#000',
-            shadowOffset: {width: 0, height: 2},
-            shadowOpacity: 0.2,
-            shadowRadius: 3,
-            elevation: 3,
-          }}>
-          <Pressable
-            style={({pressed}) => [
-              pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginStart: 10,
-                padding: 10,
-                borderRadius: 24,
-              },
-            ]}
-            android_ripple={{
-              color: '#F6F6F6',
-              borderless: true,
-              radius: 24,
-            }}
-            onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="gray" />
-          </Pressable>
-
-          <Text
-            style={{
-              padding: 10,
-              color: '#252525',
-              fontFamily: 'Inter_28pt-Bold',
-              fontSize: 16,
-            }}>
-            Profile
-          </Text>
+        {/* Profile Image Section */}
+        <View style={styles.profileImageContainer}>
+          <Image
+            source={require('../../assets/images/davao.png')} // Consider a more generic placeholder or user-specific avatar
+            style={styles.profileImage}
+          />
+          <Text style={styles.userName}>{fullName}</Text>
+          <Text style={styles.userRole}>{getAccountTypeName(accountType)}</Text>
         </View>
 
-        {/* Profile Picture */}
-        <Image
-          source={require('../../assets/images/davao.png')}
-          style={styles.profileImage}
-        />
-        <View style={{paddingHorizontal: 20, rowGap: 5}}>
-          <Text style={styles.label}>Employee Number</Text>
-          <Text style={styles.labelValue}>{employeeNumber}</Text>
-          <View
-            style={{
-              height: 1,
-              marginTop: 10,
-              backgroundColor: 'gray',
-            }}
-          />
+        {/* Profile Details Section */}
+        <View style={styles.detailsContainer}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Employee Number</Text>
+            <Text style={styles.detailValue}>{employeeNumber}</Text>
+          </View>
+          <View style={styles.divider} />
 
-          <Text style={styles.label}>Account Name</Text>
-          <Text style={styles.labelValue}>{fullName}</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Office</Text>
+            <Text style={styles.detailValue}>{officeName}</Text>
+          </View>
 
-          <View
-            style={{
-              height: 1,
-              marginTop: 10,
-              backgroundColor: 'gray',
-            }}
-          />
-
-          <Text style={styles.label}>Office</Text>
-          <Text style={styles.labelValue}>{officeName}</Text>
-
-          <View
-            style={{
-              height: 1,
-              marginTop: 10,
-              backgroundColor: 'gray',
-            }}
-          />
-
-          <Text style={styles.label}>Account Type </Text>
-          <Text style={styles.labelValue}>
-            {parseInt(accountType) === 1
-              ? 'Officer'
-              : parseInt(accountType) === 2
-              ? 'DTS Officer'
-              : parseInt(accountType) === 3
-              ? 'Doctrack Administrator'
-              : parseInt(accountType) === 4
-              ? 'Master Receiver'
-              : parseInt(accountType) === 5
-              ? 'Master Releaser'
-              : parseInt(accountType) === 6
-              ? 'Pending Master'
-              : parseInt(accountType) === 7
-              ? 'Programmer'
-              : parseInt(accountType) === 8
-              ? 'SLP Master'
-              : parseInt(accountType) === 9
-              ? 'Master Adviser'
-              : parseInt(accountType) === 10
-              ? 'BAC Officer'
-              : 'Unknown Account Type'}
-          </Text>
-
-          <View
-            style={{
-              height: 1,
-              marginTop: 10,
-              backgroundColor: 'gray',
-            }}
-          />
+          {/* Display Privileges if any exist */}
+          {currentPrivileges.length > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Privileges</Text>
+                <Text style={styles.detailValue}>
+                  {currentPrivileges.join(', ')}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
-        {/* Name */}
-        {/*  <Text>Name</Text>
-      <Text style={styles.name}>{fullName}</Text>
-
-      <Text style={styles.name}>{employeeNumber}</Text>
-
-      <Text style={styles.name}>{officeName}</Text>
-
-      <Text style={styles.name}>{officeCode}</Text>
- */}
-        {/* Edit Profile Button */}
-        {/* <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Edit Profile</Text>
-      </TouchableOpacity> */}
+        {/* Action Button Section (e.g., Edit Profile, Logout) */}
+        {/* If you want to add an "Edit Profile" or "Logout" button later, this is a good place */}
+        {/*
+        <TouchableOpacity style={styles.editButton}>
+          <Text style={styles.editButtonText}>Edit Profile</Text>
+        </TouchableOpacity>
+        */}
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F8FA', // Light background for the whole screen
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingTop: 40,
-    padding: 10,
-    paddingStart: 20,
-    backgroundColor: '#fff',
-    paddingBottom: 5,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12, // Adjusted padding for better header height
+    paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1, // Softer shadow
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 4,
+    marginBottom: 8, // Space below header
   },
   backButton: {
-    marginRight: 10,
+    padding: 10,
+    borderRadius: 24,
+    marginRight: 5,
+  },
+  backButtonPressed: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   headerTitle: {
+    fontFamily: 'Inter_28pt-Bold', // Assuming this custom font is available
     fontSize: 18,
-    color: '#252525',
-    fontFamily: 'Inter_28pt-Bold',
+    color: '#212121', // Darker text for better contrast
+    marginLeft: 5,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15, // Consistent horizontal padding
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+    paddingVertical: 30, // More vertical padding around image and name
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10, // Slightly rounded corners
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
+    marginBottom: 20, // Space below the profile card
+    marginTop: 10, // Space above the profile card
   },
   profileImage: {
-    width: 100,
-    height: 100,
+    width: 120, // Slightly larger image
+    height: 120, // Slightly larger image
+    borderRadius: 60, // Perfect circle
+    marginBottom: 15,
+    borderWidth: 3, // Add a subtle border
+    borderColor: '#E0E0E0', // Light border color
+  },
+  userName: {
+    fontFamily: 'Inter_28pt-Bold', // Stronger font for name
+    fontSize: 22,
+    color: '#212121',
+    textTransform: 'capitalize', // Ensure consistent capitalization
+    marginBottom: 5,
+  },
+  userRole: {
+    fontFamily: 'Inter_28pt-Regular', // Use regular for the role
+    fontSize: 15,
+    color: '#616161', // Muted color for role
+  },
+  detailsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
+    paddingHorizontal: 20, // Padding inside the details card
+    paddingVertical: 15,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Pushes label and value to opposite ends
+    alignItems: 'center',
+    paddingVertical: 12, // Vertical padding for each detail row
+  },
+  detailLabel: {
+    fontFamily: 'Inter_28pt-Regular', // Consistent font for labels
+    fontSize: 13,
+    color: '#757575', // Muted gray for labels
+  },
+  detailValue: {
+    fontFamily: 'Inter_28pt-Medium', // Slightly bolder for values
+    fontSize: 15,
+    color: '#212121', // Darker color for values
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#EEEEEE', // Lighter, more subtle divider
+    marginVertical: 0, // No extra margin if handled by paddingVertical in detailItem
+  },
+  editButton: {
+    backgroundColor: '#007BFF', // Primary blue button
+    paddingVertical: 14,
+    borderRadius: 8,
     alignSelf: 'center',
-    marginTop: 40,
-    marginBottom: 40,
-    opacity: 0.5,
+    width: '90%', // Almost full width
+    marginTop: 30, // Space above the button
+    shadowColor: '#007BFF',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  name: {
-    fontSize: 24,
-    fontFamily: 'Oswald-Medium',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 10,
-    textTransform: 'capitalize',
-  },
-  button: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignSelf: 'center',
-  },
-  buttonText: {
-    color: '#fff',
+  editButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  label: {
-    fontFamily: 'Inter_28pt-Regular',
-    color: 'rgba(107, 107, 107, 0.53)',
-    fontSize: 12,
-  },
-  labelValue: {
-    fontFamily: 'Inter_28pt-Regular',
-    fontSize: 14,
-    color: 'black',
+    fontFamily: 'Inter_28pt-Bold',
+    textAlign: 'center',
   },
 });
 

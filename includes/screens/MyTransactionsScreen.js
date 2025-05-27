@@ -53,7 +53,7 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
           {/* Details Section */}
           <View style={styles.detailsSection}>
             <View style={styles.textRow}>
-              <Text style={styles.label}>TN </Text>
+              <Text style={styles.label}>Year </Text>
               <Text style={styles.value}>{item.Year}</Text>
             </View>
             <View style={styles.textRow}>
@@ -171,59 +171,59 @@ const MyTransactionsScreen = ({navigation}) => {
   }, [isLoadingMore, myTransactionsData, visibleItems]);
 
   const renderFooter = useCallback(
-    () =>
-      isLoadingMore ? (
-        <View style={styles.loadMoreIndicator}>
-          <ActivityIndicator size="small" color="#007bff" />
-        </View>
-      ) : null,
-    [isLoadingMore],
+      () =>
+        isLoadingMore ? (
+          <View style={styles.loadMoreIndicator}>
+            <ActivityIndicator size="small" color="#007bff" />
+          </View>
+        ) : null,
+      [isLoadingMore],
   );
 
   const renderEmptyComponent = useCallback(
-    () => (
-      <View style={styles.emptyContainer}>
-        <Image
-          source={require('../../assets/images/noresultsstate.png')}
-          style={styles.emptyImage}
-        />
-        <Text style={styles.emptyText}>No transactions found</Text>
-      </View>
-    ),
-    [],
+      () => (
+        <View style={styles.emptyContainer}>
+          <Image
+            source={require('../../assets/images/noresultsstate.png')}
+            style={styles.emptyImage}
+          />
+          <Text style={styles.emptyText}>No transactions found</Text>
+        </View>
+      ),
+      [],
   );
 
   const renderErrorComponent = useCallback(
-    () => (
-      <View style={styles.errorContainer}>
-        <Image
-          source={require('../../assets/images/errorState.png')}
-          style={styles.errorImage}
-        />
-        <Text style={styles.errorText}>
-          {error?.message || 'An error occurred'}
-        </Text>
-        <Button
-          mode="contained"
-          onPress={fetchMyPersonal}
-          style={styles.retryButton}
-          labelStyle={styles.retryButtonText}>
-          Retry
-        </Button>
-      </View>
-    ),
-    [error, fetchMyPersonal],
+      () => (
+        <View style={styles.errorContainer}>
+          <Image
+            source={require('../../assets/images/errorState.png')}
+            style={styles.errorImage}
+          />
+          <Text style={styles.errorText}>
+            {error?.message || 'An error occurred'}
+          </Text>
+          <Button
+            mode="contained"
+            onPress={fetchMyPersonal}
+            style={styles.retryButton}
+            labelStyle={styles.retryButtonText}>
+            Retry
+          </Button>
+        </View>
+      ),
+      [error, fetchMyPersonal],
   );
 
   const renderLoadingComponent = useCallback(
-    () => (
-      <View style={styles.loadingContainer}>
-        {[...Array(7)].map((_, index) => (
-          <Shimmer key={`shimmer-${index}`} />
-        ))}
-      </View>
-    ),
-    [],
+      () => (
+        <View style={styles.loadingContainer}>
+          {[...Array(7)].map((_, index) => (
+            <Shimmer key={`shimmer-${index}`} />
+          ))}
+        </View>
+      ),
+      [],
   );
 
   const renderHeader = useCallback(
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    width: '30%',
+    width: '25%',
     fontSize: 12,
     fontFamily: 'Inter_28pt-Light',
     textAlign: 'right',

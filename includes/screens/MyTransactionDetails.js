@@ -15,7 +15,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {insertCommas} from '../utils/insertComma';
 import useTransactionHistory from '../api/useTransactionHistory';
 import Timeline from 'react-native-timeline-flatlist';
-import { width, removeHtmlTags} from '../utils';
+import {width, removeHtmlTags} from '../utils';
 
 const MyTransactionDetails = ({route, navigation}) => {
   const {selectedItem} = route.params;
@@ -28,14 +28,13 @@ const MyTransactionDetails = ({route, navigation}) => {
     title: item.Status,
     description: `Completion: ${item.Completion}`,
   }));
-  
-  const getStatusColor = status => {
-  if (status.includes('Pending')) return '#FFA500';
-  if (status.includes('Approved')) return '#4CAF50';
-  if (status.includes('Rejected')) return '#F44336';
-  return '#2196F3';
-};
 
+  const getStatusColor = status => {
+    if (status.includes('Pending')) return '#FFA500';
+    if (status.includes('Approved')) return '#4CAF50';
+    if (status.includes('Rejected')) return '#F44336';
+    return '#2196F3';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,6 +72,7 @@ const MyTransactionDetails = ({route, navigation}) => {
         </View>
 
         <View style={styles.detailsCard}>
+          <DetailRow label="Year" value={selectedItem.Year} />
           <DetailRow label="TN" value={selectedItem.TrackingNumber} />
           <DetailRow label="Claimant" value={selectedItem.Claimant} />
           <DetailRow label="Document" value={selectedItem.DocumentType} />
@@ -291,13 +291,13 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    //alignItems: 'center',
     paddingVertical: 8,
   },
   detailLabel: {
     fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    color: '#888',
+    fontWeight: '400',
     flex: 1,
   },
   detailValue: {

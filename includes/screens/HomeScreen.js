@@ -679,7 +679,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bannerContainer: {
-    paddingTop: 30,
     backgroundColor: 'white',
   },
   scene: {

@@ -1,252 +1,399 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Switch,
   Alert,
+  Platform,
+  Pressable,
+  StatusBar,
+  ScrollView,
+  Switch, // Ensure Switch is imported as it's used within SettingItem
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import useUserInfo from '../api/useUserInfo';
 import notifee, {AuthorizationStatus} from '@notifee/react-native';
 import {useFocusEffect} from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
+
+// --- Reusable SettingItem Components (defined within the same file as requested) ---
+
+// A reusable component for individual settings with a switch
+const SettingItem = ({
+  iconName,
+  title,
+  description,
+  switchValue,
+  onToggle,
+  showStatusBadge = false,
+  statusText,
+  statusColor,
+  disabled = false, // Add a disabled prop for visual feedback
+}) => {
+  return (
+    <View style={[settingItemStyles.settingItemContainer, disabled && settingItemStyles.disabledContainer]}>
+      <View style={settingItemStyles.settingIconTextWrapper}>
+        <Icon name={iconName} size={28} color={disabled ? '#BDBDBD' : '#424242'} style={settingItemStyles.settingIcon} />
+        <View style={settingItemStyles.settingTextContent}>
+          <View style={settingItemStyles.titleAndBadge}>
+            <Text style={[settingItemStyles.settingTitle, disabled && settingItemStyles.disabledText]}>{title}</Text>
+            {showStatusBadge && (
+              <Text style={[settingItemStyles.statusBadge, { backgroundColor: statusColor }]}>
+                {statusText}
+              </Text>
+            )}
+          </View>
+          <Text style={[settingItemStyles.settingDescription, disabled && settingItemStyles.disabledText]}>
+            {description}
+          </Text>
+        </View>
+      </View>
+      <Switch
+        value={switchValue}
+        onValueChange={onToggle}
+        trackColor={{ false: '#9E9E9E', true: '#66BB6A' }} // Muted grey for false, vibrant green for true
+        thumbColor={switchValue ? '#FFFFFF' : '#F4F3F4'}
+        ios_backgroundColor="#E0E0E0"
+        disabled={disabled} // Apply disabled state to switch
+      />
+    </View>
+  );
+};
+
+// Styles for the SettingItem component
+const settingItemStyles = StyleSheet.create({
+  settingItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18, // Increased padding for better touch targets
+    paddingHorizontal: 18,
+    borderRadius: 12, // More rounded corners
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, // Subtle shadow
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
+    borderBottomWidth: 0, // Removed this if not explicitly needed for internal spacing, the marginBottom handles it.
+  },
+  disabledContainer: {
+    opacity: 0.7, // Reduce opacity for disabled items
+  },
+  disabledText: {
+    color: '#9E9E9E', // Muted text color for disabled items
+  },
+  settingIconTextWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  settingIcon: {
+    marginRight: 18, // Increased margin for icon
+  },
+  settingTextContent: {
+    flex: 1,
+  },
+  titleAndBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4, // Slightly more space for title/badge
+  },
+  settingTitle: {
+    // fontFamily: 'Oswald-Medium', // Using your specified font
+    fontSize: 17, // Slightly larger title
+    fontWeight: '600', // Semibold
+    color: '#212121',
+  },
+  statusBadge: {
+    marginLeft: 12, // More space for badge
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20, // More rounded, pill-like badge
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    overflow: 'hidden',
+    textTransform: 'uppercase', // Make badge text uppercase
+  },
+  settingDescription: {
+    // fontFamily: 'Oswald-Light', // Using your specified font
+    fontSize: 14, // Slightly larger description
+    color: '#757575',
+    lineHeight: 20, // Improved line height
+  },
+});
+
+// A reusable component for settings that are actionable by tapping the whole row
+// For cases where a switch might reflect status, but the action is a deeper dive
+const ActionableSettingItem = ({
+  iconName,
+  title,
+  description,
+  onPress,
+  showStatusBadge = false,
+  statusText,
+  statusColor,
+}) => {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        settingItemStyles.settingItemContainer, // Reusing base container styles
+        pressed && settingItemStyles.actionableItemPressed,
+      ]}
+      android_ripple={{ color: '#E0E0E0', borderless: false, radius: 25 }} // Android ripple effect
+    >
+      <View style={settingItemStyles.settingIconTextWrapper}>
+        <Icon name={iconName} size={28} color="#424242" style={settingItemStyles.settingIcon} />
+        <View style={settingItemStyles.settingTextContent}>
+          <View style={settingItemStyles.titleAndBadge}>
+            <Text style={settingItemStyles.settingTitle}>{title}</Text>
+            {showStatusBadge && (
+              <Text style={[settingItemStyles.statusBadge, { backgroundColor: statusColor }]}>
+                {statusText}
+              </Text>
+            )}
+          </View>
+          <Text style={settingItemStyles.settingDescription}>{description}</Text>
+        </View>
+      </View>
+      <Icon name="chevron-forward-outline" size={24} color="#BDBDBD" /> {/* Chevron indicator */}
+    </Pressable>
+  );
+};
+
+// --- Main NotificationScreen Component ---
 
 const NotificationScreen = ({navigation}) => {
-  const {employeeNumber, fullName, officeName, officeCode, accountType} =
-    useUserInfo();
-
-  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
+  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false); // Default to false, then check
   const [isBatteryOptimizationDisabled, setIsBatteryOptimizationDisabled] =
-    useState(true);
+    useState(true); // Default to true for iOS, check for Android
 
-  const toggleNotifications = async () => {
-    if (!isNotificationsEnabled) {
-      const settings = await notifee.getNotificationSettings();
-      if (settings.authorizationStatus === AuthorizationStatus.DENIED) {
-        await notifee.openNotificationSettings();
-        setIsNotificationsEnabled(true);
-      }
-    } else {
-      Alert.alert(
-        'Disable Notifications',
-        'Are you sure you want to disable notifications?',
-        [
-          {
-            text: 'Yes',
-            onPress: async () => {
-              await notifee.openNotificationSettings();
-              setIsNotificationsEnabled(false); // Disable notifications in state
-              /*  Alert.alert(
-                'Notifications Disabled',
-                'You will no longer receive notifications.',
-              ); */
-            },
-          },
-          {text: 'Cancel', style: 'cancel'},
-        ],
-      );
-    }
-  };
-
-  const toggleBatteryOptimization = async () => {
-    try {
-      const isBatteryOptimizationEnabled =
-        await notifee.isBatteryOptimizationEnabled();
-      if (isBatteryOptimizationEnabled) {
-        // Open battery optimization settings
-        await notifee.openBatteryOptimizationSettings();
-        Alert.alert(
-          'Battery Optimization Settings',
-          'Please disable battery optimization for real-time notifications.',
-        );
-      } else {
-        setIsBatteryOptimizationDisabled(true);
-        Alert.alert(
-          'Battery Optimization',
-          'Battery optimization is already disabled.',
-        );
-      }
-    } catch (err) {
-      console.warn(err);
-    }
-  };
-
-  async function checkNotificationPermission() {
+  // Logic for checking notification permissions
+  const checkNotificationPermission = async () => {
     const settings = await notifee.getNotificationSettings();
     setIsNotificationsEnabled(
       settings.authorizationStatus === AuthorizationStatus.AUTHORIZED,
     );
-  }
+  };
 
-  async function checkBatteryOptimization() {
-    const isBatteryOptimizationEnabled =
-      await notifee.isBatteryOptimizationEnabled();
-
-    if (isBatteryOptimizationEnabled) {
-      //console.log("Battery optimization is enabled.");
-      setIsBatteryOptimizationDisabled(false);
+  // Logic for checking battery optimization status (Android only)
+  const checkBatteryOptimizationStatus = async () => {
+    if (Platform.OS === 'android') {
+      const isBatteryOptimizationEnabled =
+        await notifee.isBatteryOptimizationEnabled();
+      setIsBatteryOptimizationDisabled(!isBatteryOptimizationEnabled); // State is true if disabled
     } else {
-      //console.log("Battery optimization is disabled.");
-      setIsBatteryOptimizationDisabled(true);
+      setIsBatteryOptimizationDisabled(true); // Always true for iOS
     }
-  }
+  };
 
+  // Effect to run checks when screen is focused
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       checkNotificationPermission();
-      checkBatteryOptimization();
+      checkBatteryOptimizationStatus();
     }, []),
   );
 
+  // Handlers for toggling settings
+  const handleToggleNotifications = async () => {
+    Alert.alert(
+      'Notification Settings',
+      'To manage app notifications, please open your device settings. Changes made there will reflect here.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Open Settings',
+          onPress: async () => {
+            await notifee.openNotificationSettings();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleToggleBatteryOptimization = async () => {
+    if (!isBatteryOptimizationDisabled) {
+      // If it's currently enabled (i.e., !isBatteryOptimizationDisabled is true)
+      Alert.alert(
+        'Disable Battery Optimization',
+        'For reliable real-time notifications, please disable battery optimization for this app in your device settings. Tap "Open Settings" to proceed.',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Open Settings',
+            onPress: async () => {
+              await notifee.openBatteryOptimizationSettings();
+            },
+          },
+        ],
+      );
+    } else {
+      // If it's already disabled, just inform them.
+      Alert.alert(
+        'Battery Optimization Status',
+        'Battery optimization is already disabled for this app. Real-time notifications should function correctly.',
+      );
+    }
+  };
+
   return (
-    <SafeAreaView style={{flex:1}}>
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={styles.header}>
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.goBack()}
-          style={styles.backButton}>
-          <Icon name="arrow-back" size={24} color="#252525" />
-        </TouchableOpacity>
+          style={({pressed}) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
+          android_ripple={{color: '#E0E0E0', borderless: true, radius: 24}}>
+          <Icon name="arrow-back" size={24} color="#424242" />
+        </Pressable>
         <Text style={styles.headerTitle}>Notifications</Text>
-        
       </View>
-   
-      {/* Enable Notifications Section */}
-      <View style={{flexDirection: 'row', paddingHorizontal: 20}}>
-        <Icon
-          name="notifications-outline"
-          size={40}
-          color="#333333"
-          padding={5}
-        />
-        <View style={{paddingStart: 10}}>
-          <Text style={{fontFamily: 'Oswald-Medium', fontSize: 16}}>
-            Enable Notifications
-          </Text>
 
-          <Text
-            style={{fontSize: 12, fontFamily: 'Oswald-Light', color: 'gray'}}>
-            to receive daily updates to your documents
-          </Text>
-        </View>
-      </View>
-      <View style={{paddingEnd: 20}}>
-        <Switch
-          style={{padding: 10}}
-          value={isNotificationsEnabled}
-          onValueChange={toggleNotifications}
+      <ScrollView style={styles.container}>
+        <SettingItem
+          iconName="notifications-outline"
+          title="App Notifications"
+          description="Control whether you receive alerts and updates from the app."
+          switchValue={isNotificationsEnabled}
+          onToggle={handleToggleNotifications} // This now primarily opens settings
+          showStatusBadge={true}
+          statusText={isNotificationsEnabled ? 'Allowed' : 'Blocked'}
+          statusColor={isNotificationsEnabled ? '#4CAF50' : '#F44336'} // Green for allowed, Red for blocked
         />
-      </View>
-      <View
-        style={{
-          height: 5,
-          marginTop: 10,
-          backgroundColor: 'rgba(174, 171, 171, 0.2)',
-        }}
-      />
 
-      {/* Disable Battery Optimization Section */}
-      <View
-        style={{flexDirection: 'row', paddingHorizontal: 20, paddingTop: 20}}>
-        <Icon
-          name="battery-half-outline"
-          size={40}
-          color="#333333"
-          padding={5}
-        />
-        <View style={{paddingStart: 10}}>
-          <View style={{flexDirection: 'column', rowGap: -10}}>
-            <Text
-              style={{fontFamily: 'Oswald-Medium', color: 'red', fontSize: 16}}>
-              Disable
-            </Text>
-            <Text style={{fontFamily: 'Oswald-Medium', fontSize: 16}}>
-              Battery Optimization
-            </Text>
-          </View>
-          <Text
-            style={{
-              fontSize: 12,
-              fontFamily: 'Oswald-Light',
-              color: 'gray',
-              width: '60%',
-            }}>
-            to receive real-time notifications and receive daily updates to your
-            documents
-          </Text>
-        </View>
-      </View>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignSelf: 'flex-end',
-          alignItems: 'center',
-          paddingEnd: 20,
-        }}>
-        <Text
-          style={{
-            fontFamily: 'Oswald-Light',
-            backgroundColor: isBatteryOptimizationDisabled
-              ? 'green'
-              : 'rgba(240, 98, 97, 1)',
-            color: 'white',
-            paddingHorizontal: 10,
-            borderRadius: 5,
-          }}>
-          {isBatteryOptimizationDisabled ? 'Disabled' : 'Not yet Disabled'}
-        </Text>
+        {Platform.OS === 'android' && (
+          <>
+            <View style={styles.sectionDivider} />
+            <SettingItem
+              iconName="battery-charging-outline" // More appropriate icon for battery
+              title="Battery Optimization"
+              description="Disable for uninterrupted background operation and reliable notifications."
+              switchValue={isBatteryOptimizationDisabled} // true if disabled, false if enabled
+              onToggle={handleToggleBatteryOptimization}
+              showStatusBadge={true}
+              statusText={isBatteryOptimizationDisabled ? 'Disabled' : 'Enabled'}
+              statusColor={isBatteryOptimizationDisabled ? '#4CAF50' : '#FF9800'} // Green for disabled, Orange for enabled (warning)
+            />
 
-        <Switch
-          style={{padding: 10}}
-          value={isBatteryOptimizationDisabled}
-          onValueChange={toggleBatteryOptimization}
+            {/* Conditional "How to" guide for battery optimization */}
+            {!isBatteryOptimizationDisabled && (
+              <View style={styles.howToGuide}>
+                <Text style={styles.howToTitle}>
+                  How to Disable Battery Optimization:
+                </Text>
+                <Text style={styles.howToStep}>
+                  1. Tap the switch above or "Open Settings" in the alert.
+                </Text>
+                <Text style={styles.howToStep}>
+                  2. In App Info, find "Battery" or "Battery usage."
+                </Text>
+                <Text style={styles.howToStep}>
+                  3. Select "Unrestricted" or "Don't optimize."
+                </Text>
+                <Text style={styles.howToStep}>
+                  4. Return here; the status should update.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Add more notification-related settings here if applicable */}
+        {/*
+        <View style={styles.sectionDivider} />
+        <SettingItem
+          iconName="chatbox-outline"
+          title="Push Notifications"
+          description="Receive messages and alerts for new activities."
+          switchValue={true} // Example: controlled by a different state
+          onToggle={() => console.log('Toggle Push Notifications')}
         />
-      </View>
-     {/*  <View style={{paddingHorizontal: 20}}>
-        <Text>How to?</Text>
-        <Text>
-          Step 1
-        </Text>
-        <Text>
-          Click All apps <Text>Find DocMobile</Text>
-        </Text>
-        <Text>
-          Step 2
-        </Text>
-        <Text>Click Don't optimize</Text>
-        <Text>
-          Then you're all done!
-        </Text>
-      </View> */}
-    </View>
+        <SettingItem
+          iconName="mail-outline"
+          title="Email Notifications"
+          description="Get daily summary emails about your activity."
+          switchValue={false}
+          onToggle={() => console.log('Toggle Email Notifications')}
+        />
+        */}
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F8FA', // Light grey background
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 10,
-    paddingStart: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: Platform.OS === 'ios' ? 15 : 12, // Adjust padding for iOS vs Android
+    paddingHorizontal: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3}, // More pronounced shadow
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 6, // Increased elevation for Android
+    marginBottom: 15, // More space below header
   },
   backButton: {
-    marginRight: 10,
+    padding: 10,
+    borderRadius: 24,
+    marginRight: 5,
+  },
+  backButtonPressed: {
+    backgroundColor: 'rgba(0, 0, 0, 0.08)', // Slightly darker press state
   },
   headerTitle: {
-    fontSize: 18,
-    color: '#252525',
-    fontFamily: 'Inter_28pt-Bold',
- },
+    // fontFamily: 'Inter_28pt-Bold', // Use custom font if available
+    fontSize: 20, // Larger title font size
+    fontWeight: 'bold', // Ensure it's bold if custom font not loaded
+    color: '#212121',
+    marginLeft: 5,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingTop: 5, // Slightly less top padding as items have their own padding
+  },
+  sectionDivider: {
+    height: 4, // Thicker divider
+    backgroundColor: '#E0E0E0', // Light grey
+    marginVertical: 25, // More vertical space for clear section separation
+    borderRadius: 2,
+  },
+  howToGuide: {
+    backgroundColor: '#E8F5E9', // Light green background for informative guide
+    padding: 18,
+    borderRadius: 12,
+    marginTop: -5, // Slightly overlap with the setting item for visual connection
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#A5D6A7', // Green border
+  },
+  howToTitle: {
+    // fontFamily: 'Oswald-Medium',
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#388E3C', // Darker green for title
+    marginBottom: 8,
+  },
+  howToStep: {
+    // fontFamily: 'Oswald-Light',
+    fontSize: 13,
+    color: '#4CAF50', // Medium green for steps
+    marginBottom: 4,
+  },
 });
 
 export default NotificationScreen;

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -18,46 +18,95 @@ import {Checkbox} from 'react-native-paper';
 import {
   useUserSuperAccess,
   useUpdateUserSuperAccess,
+  useSystemsList,
 } from '../hooks/usePersonal';
 import {officeMap} from '../utils/officeMap';
-//import {SafeAreaView} from 'react-native-safe-area-context';
+
+const EmployeeCard = ({employee, officeMap}) => (
+  <View style={styles.employeeCard}>
+    <View style={styles.employeeAvatar}>
+      <Icon name="person" size={30} color="#666" />
+    </View>
+    <View style={styles.employeeInfo}>
+      <Text style={styles.employeeName}>{employee.Name}</Text>
+      <Text style={styles.employeeId}>{employee.EmployeeNumber}</Text>
+      <Text style={styles.employeeDetail}>
+        {employee.Office} - {officeMap[employee.Office] || employee.Office}
+      </Text>
+      {employee.RegistrationState !== undefined && (
+        <View
+          style={[
+            styles.statusBadge,
+            employee.RegistrationState === 1
+              ? styles.activeBadge
+              : styles.inactiveBadge,
+          ]}>
+          <Text style={styles.statusText}>
+            {employee.RegistrationState === 1 ? 'ACTIVE' : 'INACTIVE'}
+          </Text>
+        </View>
+      )}
+    </View>
+  </View>
+);
+
+const SystemAccessToggle = ({system, employeeAccess, onToggle, currentlyUpdatingSystemKey}) => {
+  const isUpdating = currentlyUpdatingSystemKey === system.key; // Check if this specific system is updating
+
+  return (
+    <TouchableOpacity
+      onPress={() => onToggle(system.key)}
+      style={[
+        styles.systemItem,
+        employeeAccess === 1 ? styles.systemItemActive : null,
+      ]}
+      disabled={isUpdating} // Disable interaction while updating
+      accessibilityLabel={`Toggle ${system.label} access`}>
+      <View style={styles.systemInfo}>
+      {/*   <Icon
+          name={system.icon}
+          size={20}
+          color={employeeAccess === 1 ? '#28a745' : '#666'}
+          style={styles.systemIcon}
+        /> */}
+        <Text style={styles.systemText}>{system.label}</Text>
+      </View>
+      {isUpdating ? ( // Show spinner only for the updating system
+        <ActivityIndicator size="small" color="#007bff" />
+      ) : (
+        <Checkbox
+          status={employeeAccess === 1 ? 'checked' : 'unchecked'}
+          // onPress handled by parent TouchableOpacity
+          color="#28a745"
+          uncheckedColor="#999"
+        />
+      )}
+    </TouchableOpacity>
+  );
+};
+
 
 const SuperAccessScreen = ({navigation}) => {
   const [searchText, setSearchText] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [searchAttempted, setSearchAttempted] = useState(false); // To show "not found" only after a search
+  const [searchAttempted, setSearchAttempted] = useState(false);
+  const [currentlyUpdatingSystemKey, setCurrentlyUpdatingSystemKey] = useState(null); // New state for granular loading
 
   const {mutateAsync: fetchAccess, isPending, error} = useUserSuperAccess();
-  const {mutateAsync: updateUserAccess, isPending: isUpdatingAccess} =
-    useUpdateUserSuperAccess();
+  const {mutateAsync: updateUserAccess} = useUpdateUserSuperAccess();
+  const { data: dynamicSystemsList, isLoading: loadingSystems, error: systemsError } = useSystemsList();
+  console.log(dynamicSystemsList)
 
-  const systemsList = [
-    {key: 'PROCUREMENT', label: 'Procurement', icon: 'cart-outline'},
-    {key: 'OFFICEADMIN', label: 'Office Admin', icon: 'briefcase-outline'},
-    {key: 'PAYROLL', label: 'Payroll', icon: 'cash-outline'},
-    {key: 'ELOGS', label: 'E-logs', icon: 'document-text-outline'},
-    {key: 'FMS', label: 'FMS', icon: 'car-outline'},
-    {key: 'SURE', label: 'Supplier Registry', icon: 'people-outline'},
-    {key: 'CAORECEIVER', label: 'CAO Receiver', icon: 'person-outline'},
-    {key: 'CAOEVALUATOR', label: 'CAO Evaluator', icon: 'person-outline'},
-    {key: 'CBORECEIVER', label: 'CBO Receiver', icon: 'person-outline'},
-    // { // Removed Overall System Access
-    //   key: 'RegistrationState',
-    //   label: 'Overall System Access',
-    //   icon: 'key-outline',
-    // },
-  ];
-
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim();
     Keyboard.dismiss();
 
-    setSelectedEmployee(null); // Clear previous employee data
-    setSearchAttempted(true); // Mark that a search has been initiated
+    setSelectedEmployee(null);
+    setSearchAttempted(true);
 
     if (!trimmed) {
       Alert.alert('Empty Search', 'Please enter an employee ID or name.');
-      setSearchAttempted(false); // Reset if search is empty/invalid
+      setSearchAttempted(false);
       return;
     }
 
@@ -65,7 +114,7 @@ const SuperAccessScreen = ({navigation}) => {
 
     if (isNumber && trimmed.length !== 6) {
       Alert.alert('Invalid Input', 'Employee ID must be 6 digits.');
-      setSearchAttempted(false); // Reset if input is invalid
+      setSearchAttempted(false);
       return;
     }
 
@@ -75,15 +124,16 @@ const SuperAccessScreen = ({navigation}) => {
         const rawEmployeeData = data[0];
         const processedEmployee = {...rawEmployeeData};
 
-        const allPossibleKeys = [
-          ...systemsList.map(s => s.key),
-          'RegistrationState', // Keep processing it if it comes from API
-        ];
-        allPossibleKeys.forEach(key => {
-          if (rawEmployeeData[key] !== undefined) {
-            processedEmployee[key] = Number(rawEmployeeData[key]);
+        dynamicSystemsList.forEach(s => {
+          if (rawEmployeeData[s.key] !== undefined) {
+            processedEmployee[s.key] = Number(rawEmployeeData[s.key]);
           }
         });
+        if (rawEmployeeData.RegistrationState !== undefined) {
+          processedEmployee.RegistrationState = Number(
+            rawEmployeeData.RegistrationState,
+          );
+        }
 
         if (typeof processedEmployee.EmployeeNumber === 'number') {
           processedEmployee.EmployeeNumber = String(
@@ -93,9 +143,8 @@ const SuperAccessScreen = ({navigation}) => {
 
         setSelectedEmployee(processedEmployee);
       } else {
-        setSelectedEmployee(null); // Explicitly set to null if no data found
+        setSelectedEmployee(null);
       }
-      console.log('Fetched user access:', data);
     } catch (err) {
       console.error('Error fetching user access:', err);
       Alert.alert(
@@ -104,93 +153,52 @@ const SuperAccessScreen = ({navigation}) => {
       );
       setSelectedEmployee(null);
     }
-  };
+  }, [searchText, fetchAccess, dynamicSystemsList]);
 
-  const toggleAccess = key => {
-    if (!selectedEmployee) return;
+  const toggleAccess = useCallback(
+    async key => {
+      if (!selectedEmployee) {
+        Alert.alert('Error', 'No employee selected to update access.');
+        return;
+      }
 
-    // Simplified toggle logic: directly toggle the system's access state
-    setSelectedEmployee(prev => ({
-      ...prev,
-      // Toggle between 0 and 1, ensuring prev[key] is treated as a number
-      [key]: Number(prev[key]) === 1 ? 0 : 1,
-    }));
-  };
+      const currentAccessValue = Number(selectedEmployee[key]);
+      const newAccessValue = currentAccessValue === 1 ? 0 : 1;
 
-  const handleUpdateAccess = async () => {
-    if (!selectedEmployee) {
-      Alert.alert(
-        'No Employee Selected',
-        'Please search for an employee first.',
-      );
-      return;
-    }
+      const originalAccessValue = selectedEmployee[key];
 
-    Alert.alert(
-      'Confirm Update',
-      `Are you sure you want to update ${selectedEmployee.Name}'s access?`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Update',
-          onPress: async () => {
-            try {
-              const dataToUpdate = {
-                EmployeeNumber: selectedEmployee.EmployeeNumber,
-                ...Object.fromEntries(
-                  systemsList.map(system => [
-                    system.key,
-                    selectedEmployee[system.key], // Assumes these are numbers (0/1)
-                  ]),
-                ),
-              };
-              // If your API still expects RegistrationState, you might need to add it back here explicitly.
-              // For example, if it should always be 1 or based on some other logic:
-              // dataToUpdate.RegistrationState = selectedEmployee.RegistrationState !== undefined ? selectedEmployee.RegistrationState : 1; // Example
+      // Optimistic UI update
+      setSelectedEmployee(prev => {
+        const updated = {
+          ...prev,
+          [key]: newAccessValue,
+        };
+        return updated;
+      });
 
-              await updateUserAccess(dataToUpdate);
-              Alert.alert('Success', 'Employee access updated successfully!');
-            } catch (updateError) {
-              console.error('Error updating user access:', updateError);
-              Alert.alert('Error', 'Failed to update employee access.');
-            }
-          },
-        },
-      ],
-    );
-  };
+      setCurrentlyUpdatingSystemKey(key); // Set the key of the system being updated
 
-  const renderSystemItem = ({item}) => (
-    <View
-      style={[
-        styles.systemItem,
-        selectedEmployee?.[item.key] === 1 ? styles.systemItemActive : null,
-      ]}>
-      <View style={styles.systemInfo}>
-       {/*  <Icon
-          name={item.icon}
-          size={20}
-          color={selectedEmployee?.[item.key] === 1 ? '#28a745' : '#666'}
-          style={styles.systemIcon}
-        /> */}
-        <Text style={styles.systemText}>{item.label}</Text>
-      </View>
-      <Checkbox
-        status={selectedEmployee?.[item.key] === 1 ? 'checked' : 'unchecked'}
-        onPress={() => toggleAccess(item.key)}
-        // Checkbox is no longer disabled based on RegistrationState
-        color="#28a745"
-        uncheckedColor="#999"
-      />
-    </View>
+      const employeeNumber = selectedEmployee.EmployeeNumber;
+      const system = key;
+      const access = newAccessValue;
+
+      try {
+        await updateUserAccess({employeeNumber, system, access});
+        // You might want a toast message here: Toast.show({ type: 'success', text1: 'Access Updated!', text2: `${system} access changed.` });
+      } catch (updateError) {
+        console.error('Error updating user access:', updateError);
+        Alert.alert('Update Error', `Failed to update access for ${key}.`);
+        // Revert UI on error
+        setSelectedEmployee(prev => ({
+          ...prev,
+          [key]: originalAccessValue,
+        }));
+      } finally {
+        setCurrentlyUpdatingSystemKey(null); // Clear the updating key
+      }
+    },
+    [selectedEmployee, updateUserAccess],
   );
-
-  // Determine if any system access is granted for general status display
-  // This is an assumption. If RegistrationState still comes from the API and should be used for display, adjust accordingly.
-  const hasAnyAccess =
-    selectedEmployee &&
-    systemsList.some(system => selectedEmployee[system.key] === 1);
-  const displayRegistrationState = selectedEmployee?.RegistrationState === 1; // Or use hasAnyAccess depending on desired behavior
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#f0f2f5'}}>
@@ -201,7 +209,8 @@ const SuperAccessScreen = ({navigation}) => {
           <Pressable
             style={styles.backButton}
             android_ripple={styles.backButtonRipple}
-            onPress={() => navigation.goBack()}>
+            onPress={() => navigation.goBack()}
+            accessibilityLabel="Go back">
             <Icon name="arrow-back" size={24} color="#fff" />
           </Pressable>
           <Text style={styles.headerTitle}>ADMIN</Text>
@@ -229,7 +238,8 @@ const SuperAccessScreen = ({navigation}) => {
           <TouchableOpacity
             style={styles.button}
             onPress={handleSearch}
-            disabled={isPending}>
+            disabled={isPending}
+            accessibilityLabel="Search Employee">
             {isPending ? (
               <ActivityIndicator color="#fff" />
             ) : (
@@ -271,63 +281,35 @@ const SuperAccessScreen = ({navigation}) => {
                 />
                 <Text style={styles.resultHeaderText}>
                   {selectedEmployee.RegistrationState === 1
-                    ? 'User Active' // Changed text to be more generic
+                    ? 'User Active'
                     : 'User Inactive'}
                 </Text>
               </View>
             )}
 
-            <View style={styles.employeeCard}>
-              <View style={styles.employeeAvatar}>
-                <Icon name="person" size={30} color="#666" />
-              </View>
-              <View style={styles.employeeInfo}>
-                <Text style={styles.employeeName}>{selectedEmployee.Name}</Text>
-                <Text style={styles.employeeId}>
-                  {selectedEmployee.EmployeeNumber}
-                </Text>
-                <Text style={styles.employeeDetail}>
-                 {selectedEmployee.Office} - {officeMap[selectedEmployee.Office] ||
-                    selectedEmployee.Office}
-                </Text>
-
-                {selectedEmployee.RegistrationState !== undefined && (
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      selectedEmployee.RegistrationState === 1
-                        ? styles.activeBadge
-                        : styles.inactiveBadge,
-                    ]}>
-                    <Text style={styles.statusText}>
-                      {selectedEmployee.RegistrationState === 1
-                        ? 'ACTIVE'
-                        : 'INACTIVE'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
+            <EmployeeCard employee={selectedEmployee} officeMap={officeMap} />
 
             <View style={styles.systemsListContainer}>
               <Text style={styles.systemsNote}>
-                Toggle access for individual systems below.
+                Toggle access for individual systems below. Changes are saved automatically.
               </Text>
-              {systemsList.map(item => (
-                <View key={item.key}>{renderSystemItem({item})}</View>
+              {dynamicSystemsList.map(item => (
+                <SystemAccessToggle
+                  key={item.key}
+                  system={item}
+                  employeeAccess={selectedEmployee?.[item.key]}
+                  onToggle={toggleAccess}
+                  currentlyUpdatingSystemKey={currentlyUpdatingSystemKey} // Pass the new state
+                />
               ))}
             </View>
 
-            <TouchableOpacity
+            {/* Removed the 'Save' button as access is auto-saved */}
+            {/* <TouchableOpacity
               style={styles.saveButton}
-              onPress={handleUpdateAccess}
-              disabled={isUpdatingAccess}>
-              {isUpdatingAccess ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
+              onPress={() => Alert.alert('Info', 'Access is updated automatically on toggle.')}>
+              <Text style={styles.saveButtonText}>Access is Auto-Saved</Text>
+            </TouchableOpacity> */}
           </View>
         )}
 
@@ -343,8 +325,9 @@ const SuperAccessScreen = ({navigation}) => {
               style={styles.tryAgainButton}
               onPress={() => {
                 setSearchText('');
-                setSearchAttempted(false); // Reset search attempted state
-              }}>
+                setSearchAttempted(false);
+              }}
+              accessibilityLabel="Clear search and try again">
               <Text style={styles.tryAgainText}>Clear Search</Text>
             </TouchableOpacity>
           </View>
@@ -359,18 +342,16 @@ export default SuperAccessScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5', // Lighter grey background for the whole screen
-    //paddingHorizontal: 20, // Keep padding on inner components for more control
+    backgroundColor: '#f0f2f5',
   },
   headerBackground: {
-    height: 80, // Adjust as needed, considering safe area
-    paddingTop: 30, // This might need adjustment based on SafeAreaView handling on different devices
+    height: 80,
+    paddingTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 4, // For Android shadow
-    // backgroundColor: '#007bff', // Example: Set a solid background color if image is not preferred or for fallback
+    elevation: 4,
   },
   header: {
     flexDirection: 'row',
@@ -386,7 +367,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   backButtonRipple: {
-    color: 'rgba(255,255,255,0.2)', // Ripple color for Android
+    color: 'rgba(255,255,255,0.2)',
     borderless: true,
     radius: 20,
   },
@@ -395,14 +376,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     textAlign: 'center',
-    flex: 1, // Allows title to center properly between back button and placeholder
+    flex: 1,
   },
   searchSection: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    marginHorizontal: 16, // Added horizontal margin
-    marginTop: 20, // Added top margin
+    marginHorizontal: 16,
+    marginTop: 20,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
@@ -447,8 +428,8 @@ const styles = StyleSheet.create({
   resultsSection: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginHorizontal: 16, // Added horizontal margin
-    marginBottom: 20, // Added bottom margin
+    marginHorizontal: 16,
+    marginBottom: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
@@ -510,6 +491,11 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 2,
   },
+  // Added for potential stacked office details
+  employeeSubDetail: {
+    fontSize: 13,
+    color: '#777',
+  },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
@@ -529,8 +515,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   systemsListContainer: {
-    paddingHorizontal: 20, // Matched padding with employeeCard
-    paddingVertical: 15, // Added vertical padding
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
   systemsNote: {
     fontSize: 13,
@@ -572,15 +558,15 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
-  saveButton: {
-    backgroundColor: '#007bff', // Primary button color
-    paddingVertical: 16, // Standard padding
-    borderRadius: 10, // Consistent border radius
+  saveButton: { 
+    backgroundColor: '#007bff',
+    paddingVertical: 16,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 20, // Horizontal margin
-    marginBottom: 20, // Bottom margin
-    marginTop: 10, // Top margin to separate from list
+    marginHorizontal: 20,
+    marginBottom: 20,
+    marginTop: 10,
     elevation: 3,
     flexDirection: 'row',
   },
@@ -600,8 +586,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    marginHorizontal: 16, // Added horizontal margin
-    marginTop: 20, // Added top margin
+    marginHorizontal: 16,
+    marginTop: 20,
   },
   deniedText: {
     fontSize: 19,
@@ -618,7 +604,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   tryAgainButton: {
-    backgroundColor: '#007bff', // Consistent button styling
+    backgroundColor: '#007bff',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,

@@ -38,7 +38,6 @@ import FastImage from 'react-native-fast-image';
 import ZoomableImage from '../utils/ZoomableImage';
 import {insertCommas} from '../utils/insertComma';
 import {formTypeMap} from '../utils/formTypeMap';
-import LinearGradient from 'react-native-linear-gradient';
 import Loading from '../utils/Loading';
 
 const DetailScreen = ({route, navigation}) => {
@@ -73,6 +72,7 @@ const DetailScreen = ({route, navigation}) => {
 
   const {mutate: uploadMutation, isPending: uploadAttachLoading} =
     useUploadTNAttach();
+    
   const {mutate: removeAttachment, isPending: removeAttachmentLoading} =
     useRemoveTNAttach();
 
