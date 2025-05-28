@@ -26,29 +26,18 @@ const QRScanner = ({onScan, onClose}) => {
 
   const [permissionStatus, setPermissionStatus] = useState(null);
 
- /*  useEffect(() => {
-    (async () => {
+  useEffect(() => {
+    const checkPermissions = async () => {
       const status = Camera.getCameraPermissionStatus();
-      setPermissionStatus(status);
       if (status !== 'granted') {
         const newStatus = await Camera.requestCameraPermission();
         setPermissionStatus(newStatus);
+      } else {
+        setPermissionStatus(status);
       }
-    })();
+    };
+    checkPermissions();
   }, []);
- */
-useEffect(() => {
-  const checkPermissions = async () => {
-    const status = Camera.getCameraPermissionStatus();
-    if (status !== 'granted') {
-      const newStatus = await Camera.requestCameraPermission();
-      setPermissionStatus(newStatus);
-    } else {
-      setPermissionStatus(status);
-    }
-  };
-  checkPermissions();
-}, []);
 
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],

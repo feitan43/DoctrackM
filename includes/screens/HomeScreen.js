@@ -254,7 +254,6 @@ const HomeScreen = ({navigation}) => {
     setTimeout(() => {
       setLoading(false);
     }, 1500);
-
   };
 
   const handleNotification = async () => {
@@ -420,6 +419,7 @@ const HomeScreen = ({navigation}) => {
       />
     );
   };
+
   const SettingsScreenComponent = ({}) => {
     return (
       <SettingsScreen
@@ -469,13 +469,8 @@ const HomeScreen = ({navigation}) => {
           <SafeAreaLoader>
             {() => (
               <>
-                <StatusBar
-                  barStyle="light-content"
-                  backgroundColor="orange"
-                  translucent={true}
-                />
                 <ImageBackground
-                  source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
+                  source={require('../../assets/images/CirclesBG.png')}
                   style={styles.header}>
                   <Image
                     source={require('../../assets/images/docmobilelogo2.png')}
@@ -487,15 +482,6 @@ const HomeScreen = ({navigation}) => {
                       tintColor: '#fff',
                     }}
                   />
-                  {/*  {accountType === '1' ||
-              (accountType === '4' && ( */}
-                  {/*  <View>
-                  <YearDropdown
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                  />
-                </View> */}
-                  {/*  ))} */}
 
                   <Menu
                     visible={visible}
@@ -551,7 +537,6 @@ const HomeScreen = ({navigation}) => {
                     </View>
                   </Modal>
 
-                  {/* Progress Modal */}
                   <Modal
                     animationType="fade"
                     transparent={true}
@@ -599,29 +584,29 @@ const HomeScreen = ({navigation}) => {
                       />
                     </View>
                   </BottomSheetModal>
+                  
                 </ImageBackground>
                 {showReminder /*  || Platform.Version < 30 */ && (
                   <Banner
                     style={styles.bannerContainer}
                     text="You haven't enabled notifications. Enable them for timely updates."
                     buttons={
-                      <HStack spacing={2}>
+                      <View style={styles.buttonStack}>
                         <Button
-                          key="fix-it"
-                          variant="contained"
-                          title="Enable Notifications"
+                          mode="contained" 
                           onPress={handleNotification}
-                          titleStyle={{fontSize: 12}}
-                          style={{backgroundColor: '#1a508c'}}
-                        />
+                          labelStyle={styles.buttonLabel}
+                          style={styles.containedButton}
+                        >
+                          Enable Notifications
+                        </Button>
                         <Button
-                          key="learn-more"
-                          variant="text"
+                          mode="text"
                           onPress={() => setShowReminder(false)}
-                          title="Dismiss"
-                          titleStyle={{fontSize: 12, color: '#1a508c'}}
-                        />
-                      </HStack>
+                          labelStyle={styles.dismissButtonLabel}>
+                          Dismiss
+                        </Button>
+                      </View>
                     }
                   />
                 )}
@@ -680,6 +665,24 @@ const styles = StyleSheet.create({
   },
   bannerContainer: {
     backgroundColor: 'white',
+  },
+   buttonStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // Add spacing between buttons, if not handled by a true HStack component
+    // For example, you might add margin to individual buttons
+  },
+  containedButton: {
+    backgroundColor: '#1a508c', // Your specified background color
+    marginRight: 8, // Add some space between buttons
+  },
+  buttonLabel: {
+    fontSize: 12,
+    color: 'white', // Contained buttons usually have white text
+  },
+  dismissButtonLabel: {
+    fontSize: 12,
+    color: '#1a508c', // Text buttons usually have colored text
   },
   scene: {
     flex: 1,

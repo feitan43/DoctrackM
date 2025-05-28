@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react'; // Import useState
 import {
   View,
   Text,
@@ -8,13 +8,15 @@ import {
   Linking,
   Pressable,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {WebView} from 'react-native-webview';
 
 const ContactUsScreen = ({navigation}) => {
-  // userInfo is not used in the UI, so it's removed for cleaner code
-  // const {employeeNumber, fullName, officeName, officeCode, accountType} = useUserInfo();
+  const [showMapWebView, setShowMapWebView] = useState(false);
+  const [currentMapUrl, setCurrentMapUrl] = useState('');
 
   const handleEmailPress = () => {
     Linking.openURL('mailto:projectdoctrack@gmail.com');
@@ -40,6 +42,17 @@ const ContactUsScreen = ({navigation}) => {
       .catch(err => console.error('An error occurred', err));
   };
 
+  const handleMapPress = () => {
+    //const address = "Mezzanine Floor, Room 17 Procurement Division, Room 15 Inventory Division, City Hall Building, San Pedro Street, Davao City, Davao del Sur";
+    // Encode the address for a URL
+    //const encodedAddress = encodeURIComponent(address);
+    // Construct the Google Maps URL for searching the address
+    const mapURL = `https://maps.app.goo.gl/DeFtpdf1rEZXSMU68`;
+
+    setCurrentMapUrl(mapURL);
+    setShowMapWebView(true);
+  };
+
   const ContactItem = ({iconName, imageSource, label, value, onPress}) => (
     <Pressable
       onPress={onPress}
@@ -59,9 +72,37 @@ const ContactUsScreen = ({navigation}) => {
     </Pressable>
   );
 
+  if (showMapWebView) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => setShowMapWebView(false)}
+            style={({pressed}) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            android_ripple={{color: '#F0F0F0', borderless: true, radius: 24}}>
+            <Icon name="arrow-back" size={24} color="#424242" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Office Location</Text>
+        </View>
+        <WebView
+          source={{uri: currentMapUrl}}
+          style={styles.webView}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
       <View style={styles.header}>
         <Pressable
           onPress={() => navigation.goBack()}
@@ -75,8 +116,9 @@ const ContactUsScreen = ({navigation}) => {
         <Text style={styles.headerTitle}>Contact Us</Text>
       </View>
 
-      <View style={styles.container}>
-        {/* Email Section */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContentContainer}>
         <Text style={styles.sectionTitle}>Email Us</Text>
         <ContactItem
           imageSource={require('../../assets/images/gmail.png')}
@@ -84,9 +126,6 @@ const ContactUsScreen = ({navigation}) => {
           value="projectdoctrack@gmail.com"
           onPress={handleEmailPress}
         />
-
-        {/* Hotline Section */}
-        <View style={styles.sectionDivider} />
         <Text style={styles.sectionTitle}>Project Doctrack Hotline</Text>
         <ContactItem
           iconName="call-sharp"
@@ -107,8 +146,6 @@ const ContactUsScreen = ({navigation}) => {
           onPress={() => handlePhonePress('09626827702')}
         />
 
-        {/* Social Media Section */}
-        <View style={styles.sectionDivider} />
         <Text style={styles.sectionTitle}>Find Us on Social Media</Text>
         <ContactItem
           imageSource={require('../../assets/images/fblogo.png')}
@@ -117,16 +154,14 @@ const ContactUsScreen = ({navigation}) => {
           onPress={handleFacebookPress}
         />
 
-        {/* Visit Us Section */}
-        <View style={styles.sectionDivider} />
         <Text style={styles.sectionTitle}>Visit Us</Text>
         <ContactItem
           iconName="location-outline"
           label="Office Location"
           value="G/F Project Doctrack Office (Old CHO Building) Pichon St. Brgy. 1-A Poblacion District, Davao City"
-          // onPress could open a map application if desired
+          onPress={handleMapPress}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -134,7 +169,7 @@ const ContactUsScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F8FA', // Light grey background for a cleaner look
+    backgroundColor: '#F5F8FA',
   },
   header: {
     flexDirection: 'row',
@@ -146,8 +181,8 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 4, // Higher elevation for a more pronounced shadow
-    marginBottom: 8, // Space below header
+    elevation: 4,
+    marginBottom: 8,
   },
   backButton: {
     padding: 10,
@@ -158,32 +193,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   headerTitle: {
-    fontFamily: 'Inter_28pt-Bold', // Assuming you have this custom font
     fontSize: 18,
-    color: '#212121', // Darker text for better contrast
+    color: '#212121',
     marginLeft: 5,
+    fontWeight: 'bold',
   },
-  container: {
+  scrollView: {
     flex: 1,
+  },
+  scrollViewContentContainer: {
     paddingHorizontal: 15,
     paddingTop: 10,
+    paddingBottom: 20,
   },
   sectionTitle: {
-    fontFamily: 'Inter_28pt-Bold',
     fontSize: 15,
     color: '#424242',
     marginTop: 20,
     marginBottom: 10,
     paddingLeft: 5,
+    fontWeight: 'bold',
   },
   contactItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start', // Align items to the start for multi-line address
+    alignItems: 'flex-start',
     backgroundColor: '#FFFFFF',
     paddingVertical: 14,
     paddingHorizontal: 15,
     borderRadius: 8,
-    marginBottom: 8, // Spacing between contact items
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.08,
@@ -191,35 +229,29 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   contactItemPressed: {
-    backgroundColor: '#F0F0F0', // Lighter background on press
+    backgroundColor: '#F0F0F0',
   },
   contactItemImage: {
     width: 22,
     height: 22,
     marginRight: 15,
-    marginTop: 2, // Adjust for better vertical alignment with text
+    marginTop: 2,
   },
   contactTextContainer: {
-    flex: 1, // Allows text to wrap and push icon/image to the left
-    marginLeft: 15, // Space between icon/image and text
+    flex: 1,
+    marginLeft: 15,
   },
   contactLabel: {
-    fontFamily: 'Inter_28pt-Regular',
     fontSize: 13,
-    color: '#757575', // Slightly muted label for hierarchy
+    color: '#757575',
   },
   contactValue: {
-    fontFamily: 'Inter_28pt-Medium', // Slightly bolder for primary info
     fontSize: 15,
     color: '#212121',
     marginTop: 2,
-    // Removed textDecorationLine: 'underline' from here to apply only on pressable items
   },
-  sectionDivider: {
-    height: 2,
-    backgroundColor: '#E0E0E0', // Distinct separator between sections
-    marginVertical: 20,
-    borderRadius: 3,
+  webView: {
+    flex: 1,
   },
 });
 

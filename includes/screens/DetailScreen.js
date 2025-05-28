@@ -12,14 +12,14 @@ import {
   Alert,
   Modal,
   StatusBar,
+  Animated,
   //SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ActivityIndicator} from 'react-native-paper';
 import useGenInformation from '../api/useGenInformation';
-import {DataTable} from 'react-native-paper';
+import {DataTable, Divider} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Divider} from '@rneui/themed';
 import {pick} from '@react-native-documents/picker';
 import {
   BottomSheetModal,
@@ -39,6 +39,18 @@ import ZoomableImage from '../utils/ZoomableImage';
 import {insertCommas} from '../utils/insertComma';
 import {formTypeMap} from '../utils/formTypeMap';
 import Loading from '../utils/Loading';
+import {
+  GeneralInformationCard,
+  OBRInformationCard,
+  PRDetailsCard,
+  RemarksCard,
+  PendingNoteCard,
+  DigitalCopiesCard,
+  TransactionHistoryCard,
+} from './../components/PRDetails';
+import {width, height} from '../utils';
+const HEADER_HEIGHT = 250;
+const PARALLAX_FACTOR = 0.6; 
 
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
@@ -72,7 +84,7 @@ const DetailScreen = ({route, navigation}) => {
 
   const {mutate: uploadMutation, isPending: uploadAttachLoading} =
     useUploadTNAttach();
-    
+
   const {mutate: removeAttachment, isPending: removeAttachmentLoading} =
     useRemoveTNAttach();
 
@@ -81,7 +93,6 @@ const DetailScreen = ({route, navigation}) => {
     isLoading: attachmentsFilesLoading,
     isError: attachementsFilesError,
   } = useAttachmentFiles(year, trackingNumber, trackingType);
-
 
   const [genStatusGuide, setGenStatusGuide] = useState([]);
   const [genStatusOffice, setGenStatusOffice] = useState([]);
@@ -141,7 +152,7 @@ const DetailScreen = ({route, navigation}) => {
   };
   const [scrolled, setScrolled] = useState(false);
 
-  const handleScroll = (event) => {
+  const handleScroll = event => {
     const y = event.nativeEvent.contentOffset.y;
     setScrolled(y > 0); // true if user has scrolled down
   };
@@ -254,7 +265,6 @@ const DetailScreen = ({route, navigation}) => {
     employeeNumber,
     onSuccessCallback,
   ) => {
-
     if (!items || items.length === 0) {
       showMessage({
         message: 'No items selected for upload.',
@@ -496,516 +506,600 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
+  // const renderDetailsPRRequest = () => {
+  //   if (selectedItem.TrackingType === 'PR') {
+  //     return (
+  //       <ScrollView ref={scrollViewRef}>
+
+  //         <View ref={genInfoRef} style={{marginTop: 10}}>
+  //         <View style={styles.cardContainer}>
+
+  //         <View style={styles.cardHeader}>
+  //               <Text style={styles.headerText}>GENERAL INFORMATION</Text>
+  //               </View>
+
+  //               {[
+  //                 {
+  //                   label: 'Office',
+  //                   value: genInformationData.OfficeName?.replace(/\\/g, ''),
+  //                 },
+  //                 {
+  //                   label: 'Status',
+  //                   value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
+  //                 },
+  //                 {label: 'OBR Number', value: genInformationData.OBR_Number},
+  //                 {label: 'PR Number', value: genInformationData.PR_Number},
+  //                 {label: 'PR Sched', value: genInformationData.PR_Sched},
+  //                 {label: 'Fund', value: genInformationData.Fund},
+  //                 {label: 'Encoded By', value: genInformationData.EncodedBy},
+  //                 {
+  //                   label: 'Date Encoded',
+  //                   value: genInformationData.DateEncoded,
+  //                 },
+  //                 {
+  //                   label: 'Date Updated',
+  //                   value: genInformationData.DateModified,
+  //                 },
+  //               ].map((item, index) => (
+  //                 <View key={index} style={{ marginVertical: 5 }}>
+  //                 <View
+  //                   style={{
+  //                     flexDirection: 'row',
+  //                     flexWrap: 'wrap',
+  //                     paddingVertical: 4,
+  //                     paddingHorizontal:10
+  //                   }}
+  //                 >
+  //                   <Text
+  //                     style={{
+  //                       fontSize: 14,
+  //                       color: '#777',
+  //                       fontWeight: '400',
+  //                       width: '35%',
+  //                     }}
+  //                   >
+  //                     {item.label}
+  //                   </Text>
+  //                   <Text
+  //                     style={{
+  //                       fontSize: 14,
+  //                       color: '#222',
+  //                       fontWeight: 'bold',
+  //                       width: '65%',
+  //                       paddingLeft: 12,
+  //                     }}
+  //                   >
+  //                     {item.value || '—'}
+  //                   </Text>
+  //                 </View>
+  //                 {index !== item.length - 1 && (
+  //                   <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
+  //                 )}
+  //               </View>
+  //               ))}
+  //             </View>
+  //           </View>
+
+  //         <View ref={obrInfoRef} style={{ marginTop: 20 }}>
+  //         <View style={styles.cardContainer}>
+  //         <View style={styles.cardHeader}>
+  //         <Text style={styles.headerText}>OBR INFORMATION</Text>
+  //         </View>
+
+  //           <View style={styles.cardTable}>
+  //             <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
+  //             <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
+  //               <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
+  //               <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
+  //             </View>
+
+  //             {OBRInformation && OBRInformation.length > 0 ? (
+  //               OBRInformation.map((item, index) => (
+  //                 <View
+  //                 key={index}
+  //                 style={[
+  //                   styles.tableRow,
+  //                   {
+  //                     flexDirection: 'row',
+  //                     borderBottomWidth: 1,
+  //                     borderBottomColor: '#E5E7EB',
+  //                     paddingVertical: 5,
+  //                   },
+  //                 ]}
+  //               >
+  //                 <View style={{ flex: 1 }}>
+  //                   <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_ProgramCode}</Text>
+  //                   <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
+  //                 </View>
+
+  //                 <View style={{ flex: 1 }}>
+  //                 <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_AccountCode}</Text>
+  //                   <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
+  //                 </View>
+
+  //                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
+  //                 <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>
+  //                     {insertCommas(item.Amount)}
+  //                   </Text>
+  //                 </View>
+  //               </View>
+
+  //               ))
+  //             ) : (
+  //               <Text style={styles.noDataText}>No data available</Text>
+  //             )}
+
+  //             <View style={styles.totalContainer}>
+  //               <Text style={[styles.totalAmount, {marginEnd:5}]}>
+  //                 {insertCommas(totalAmount.toFixed(2))}
+  //               </Text>
+  //             </View>
+  //           </View>
+  //         </View>
+  //         </View>
+
+  //         <View ref={prDetailsRef} style={{ marginTop: 20 }}>
+  //           <View style={styles.cardContainer}>
+  //           <View style={styles.cardHeader}>
+  //         <Text style={styles.headerText}>PR DETAILS</Text>
+  //         </View>
+
+  //             <View style={styles.cardTable}>
+  //               <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB', }]}>
+  //                 <View style={{ flex: 2 }}>
+  //                   <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
+  //                 </View>
+  //                 <View style={{ flex: 1, alignItems: 'center' }}>
+  //                   <Text style={styles.tableHeaderText}>QTY | COST</Text>
+  //                 </View>
+  //                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
+  //                   <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
+  //                 </View>
+  //               </View>
+
+  //               {prpopxDetails && prpopxDetails.length > 0 ? (
+  //                 prpopxDetails.map((detail, index) => (
+  //                   <View key={index}>
+  //                     <View style={[styles.tableRow,{  flexDirection: 'row',
+  //                     borderBottomWidth: 1,
+  //                     borderBottomColor: '#E5E7EB',
+  //                     paddingVertical: 10,}]}>
+  //                       <View style={{ flex: 2 }}>
+  //                         <TouchableOpacity onPress={() => toggleDescription(index)}>
+  //                           <Text
+  //                             style={styles.tableRowSub}
+  //                             numberOfLines={expandedIndex === index ? undefined : 3}
+  //                             ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
+  //                             {detail.Description}
+  //                           </Text>
+  //                         </TouchableOpacity>
+  //                       </View>
+
+  //                       <View style={{ flex: 1, alignItems: 'center' }}>
+  //                         <Text style={styles.tableRowMain}>
+  //                           {Math.floor(detail.Qty)}{' '}
+  //                           <Text style={styles.tableRowSub}>{detail.Unit}</Text>
+  //                         </Text>
+  //                         <Text style={styles.tableRowSub}>
+  //                           {insertCommas(detail.Amount)}
+  //                         </Text>
+  //                       </View>
+
+  //                       <View style={{ flex: 1, alignItems: 'flex-end' }}>
+  //                         <Text
+  //                           style={[
+  //                             styles.tableRowMain,
+  //                             {paddingVertical: 5 },
+  //                           ]}>
+  //                           {insertCommas(detail.Total)}
+  //                         </Text>
+  //                       </View>
+  //                     </View>
+
+  //                   </View>
+  //                 ))
+  //               ) : (
+  //                 <Text style={styles.noDataText}>No data available</Text>
+  //               )}
+
+  //               <View style={styles.totalContainer}>
+  //               <Text style={[styles.totalAmount, {marginEnd:5}]}>
+  //                   {insertCommas(prpopxTotalAmount.toFixed(2))}
+  //                 </Text>
+  //               </View>
+  //             </View>
+  //           </View>
+  //         </View>
+
+  //         <View ref={remarksRef} style={{marginTop: 20}}>
+  //         <View style={styles.cardContainer}>
+  //         <View style={styles.cardHeader}>
+  //         <Text style={styles.headerText}>REMARKS</Text>
+  //         </View>
+
+  //           <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+  //             {genInformationData?.Remarks1 ? (
+  //               <Text style={styles.remarksText}>
+  //                 {removeHtmlTags(genInformationData.Remarks1)}
+  //               </Text>
+  //             ) : (
+  //               <Text style={styles.noDataText}>No remarks available.</Text>
+  //             )}
+  //           </View>
+  //         </View>
+  //         </View>
+
+  //         <View style={{ marginTop: 20 }}>
+  //         <View style={styles.cardContainer}>
+  //         <View style={styles.cardHeader}>
+  //         <Text style={styles.headerText}>PENDING NOTE</Text>
+  //         </View>
+
+  //           <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+  //           {genInformationData?.Remarks ? (
+  //             <Text
+  //               style={{
+  //                 fontSize: 13,
+  //                 color: '#92400E',
+  //                 lineHeight: 20,
+  //               }}>
+  //               {genInformationData.Remarks}
+  //             </Text>
+  //           ) : (
+  //             <Text
+  //             style={styles.noDataText}>
+  //               No pending note provided.
+  //             </Text>
+  //           )}
+  //           </View>
+  //         </View>
+  //         </View>
+
+  //        {genInformationData.Year === '2025' && procurement === '1' && (
+  //         <View  style={{marginTop: 20}}>
+  //           <View style={styles.cardContainer}>
+  //           <View style={styles.cardHeader}>
+  //         <Text style={styles.headerText}>DIGITAL COPIES</Text>
+  //         </View>
+
+  //             <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
+  //             {formTypeMap.PR.map((formType, index) => {
+  //                 const formTypeFiles =
+  //                   attachmentsFiles?.filter(
+  //                     fileUrl => fileUrl.split('~')[2] === formType,
+  //                   ) || [];
+
+  //                 const hasFiles = formTypeFiles.length > 0;
+
+  //                 return (
+  //                   <View
+  //                     key={formType}
+  //                     style={{
+  //                       marginVertical: 10,
+  //                       paddingBottom: 10,
+  //                       borderBottomWidth: 1,
+  //                       borderColor: '#e5e7eb',
+  //                     }}>
+  //                     <View
+  //                       style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
+  //                       <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
+  //                         {`${index + 1}. ${formType}`}
+  //                       </Text>
+
+  //                       <TouchableOpacity
+  //                         disabled={hasFiles}
+  //                         onPress={() => handleAttachFiles(formType)}
+  //                         style={{
+  //                           backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+  //                           paddingVertical: 6,
+  //                           paddingHorizontal: 12,
+  //                           borderRadius: 5,
+  //                           marginRight: 10,
+  //                           opacity: hasFiles ? 0.5 : 1,
+  //                         }}>
+  //                         <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>
+  //                           Attach Files
+  //                         </Text>
+  //                       </TouchableOpacity>
+
+  //                       <TouchableOpacity
+  //                         disabled={!hasFiles}
+  //                         onPress={() => handleRemove(year, trackingNumber, formType)}
+  //                         style={{
+  //                           backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+  //                           paddingVertical: 4,
+  //                           paddingHorizontal: 12,
+  //                           borderRadius: 5,
+  //                           opacity: !hasFiles ? 0.5 : 1,
+  //                         }}>
+  //                         <Icon name={'trash-outline'} size={20} color={'#FF6347'} />
+  //                       </TouchableOpacity>
+  //                     </View>
+
+  //                     <View style={{marginTop: 5}}>
+  //                       {hasFiles ? (
+  //                         formTypeFiles.map((fileUrl, fileIndex) => {
+  //                           const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+  //                           const fileExtension = fileUrl.split('.').pop();
+  //                           const uniqueKey = `file-${formType}-${fileIndex}`;
+
+  //                           return (
+  //                             <View
+  //                               key={uniqueKey}
+  //                               style={{
+  //                                 flexDirection: 'row',
+  //                                 alignItems: 'center',
+  //                                 marginTop: 5,
+  //                                 backgroundColor: '#f1f5f9',
+  //                                 padding: 10,
+  //                                 borderRadius: 6,
+  //                               }}>
+  //                               <TouchableOpacity
+  //                                 onPress={() => {
+  //                                   if (fileExtension === 'pdf') {
+  //                                     Linking.openURL(uniqueUri);
+  //                                   } else {
+  //                                     handleImagePress(uniqueUri);
+  //                                   }
+  //                                 }}>
+  //                                 <Text style={{color: '#1e293b', fontSize: 12}}>
+  //                                   {fileUrl.split('~').slice(-2).join('~')}
+  //                                 </Text>
+  //                               </TouchableOpacity>
+  //                             </View>
+  //                           );
+  //                         })
+  //                       ) : (
+  //                         <Text style={{color: '#9ca3af', fontSize: 12}}>
+  //                           No attached files
+  //                         </Text>
+  //                       )}
+  //                     </View>
+  //                   </View>
+  //                 );
+  //               })}
+  //             </View>
+  //           </View>
+  //         </View>
+  //         )}
+
+  //       <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
+  //         <View
+  //           style={{
+  //             backgroundColor: '#fff',
+  //             borderRadius: 16,
+  //             shadowColor: '#000',
+  //             shadowOffset: { width: 0, height: 1 },
+  //             shadowOpacity: 0.05,
+  //             shadowRadius: 3,
+  //             elevation: 2,
+  //             marginHorizontal: 16,
+  //             overflow: 'hidden',
+  //           }}>
+  //          <View style={styles.cardHeader}>
+  //         <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
+  //         </View>
+
+  //           <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
+  //             {/* Table Header */}
+  //             <View
+  //               style={{
+  //                 flexDirection: 'row',
+  //                 paddingBottom: 8,
+  //                 borderBottomWidth: 1,
+  //                 borderColor: '#E5E7EB',
+  //                 marginBottom: 6,
+  //               }}>
+  //               <View style={{ flex: 1 }} />
+  //               <View style={{ flex: 3 }}>
+  //                 <Text
+  //                   style={{
+  //                     fontSize: 11,
+  //                     color: '#9CA3AF',
+  //                     fontWeight: '500',
+  //                   }}>
+  //                   DATE
+  //                 </Text>
+  //               </View>
+  //               <View style={{ flex: 5 }}>
+  //                 <Text
+  //                   style={{
+  //                     fontSize: 11,
+  //                     color: '#9CA3AF',
+  //                     fontWeight: '500',
+  //                   }}>
+  //                   STATUS
+  //                 </Text>
+  //               </View>
+  //               <View style={{ flex: 3 }}>
+  //                 <Text
+  //                   style={{
+  //                     fontSize: 11,
+  //                     color: '#9CA3AF',
+  //                     fontWeight: '500',
+  //                     textAlign: 'right',
+  //                   }}>
+  //                   COMPLETION
+  //                 </Text>
+  //               </View>
+  //             </View>
+
+  //             {/* Table Body */}
+  //             {transactionHistory && transactionHistory.length > 0 ? (
+  //               transactionHistory.map((item, index) => (
+  //                 <View key={index}>
+  //                   <View
+  //                     style={{
+  //                       flexDirection: 'row',
+  //                       alignItems: 'center',
+  //                       paddingVertical: 10,
+  //                       backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
+  //                       borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
+  //                     }}>
+  //                     <View style={{ flex: 1 }}>
+  //                       <Text
+  //                         style={{
+  //                           fontSize: 11,
+  //                           color: '#6B7280',
+  //                           textAlign: 'center',
+  //                         }}>
+  //                         {index + 1}
+  //                       </Text>
+  //                     </View>
+  //                     <View style={{ flex: 3 }}>
+  //                       <Text
+  //                         style={{
+  //                           fontSize: 11,
+  //                           color: '#4B5563',
+  //                         }}>
+  //                         {item.DateModified}
+  //                       </Text>
+  //                     </View>
+  //                     <View style={{ flex: 5 }}>
+  //                       <Text
+  //                         style={{
+  //                           fontSize: 12,
+  //                           color: '#1F2937',
+  //                           fontWeight: '500',
+  //                         }}>
+  //                         {item.Status}
+  //                       </Text>
+  //                     </View>
+  //                     <View style={{ flex: 3 }}>
+  //                       <Text
+  //                         style={{
+  //                           fontSize: 11,
+  //                           color: '#6B7280',
+  //                           textAlign: 'right',
+  //                           marginEnd:10
+  //                         }}>
+  //                         {removeHtmlTags(item.Completion)}
+  //                       </Text>
+  //                     </View>
+  //                   </View>
+
+  //                   {index !== transactionHistory.length - 1 && (
+  //                     <View
+  //                       style={{
+  //                         height: 1,
+  //                         backgroundColor: '#E5E7EB',
+  //                         marginVertical: 6,
+  //                       }}
+  //                     />
+  //                   )}
+  //                 </View>
+  //               ))
+  //             ) : (
+  //               <Text
+  //                 style={{
+  //                   color: '#9CA3AF',
+  //                   fontSize: 12,
+  //                   textAlign: 'center',
+  //                   marginTop: 10,
+  //                 }}>
+  //                 No Transaction History available
+  //               </Text>
+  //             )}
+  //           </View>
+  //         </View>
+  //       </View>
+
+  //         <View style={{height: 500}} />
+  //       </ScrollView>
+  //     );
+  //   } else {
+  //     return (
+  //       <View>
+  //         <Text>No details available for this type.</Text>
+  //       </View>
+  //     );
+  //   }
+  // };
+
   const renderDetailsPRRequest = () => {
     if (selectedItem.TrackingType === 'PR') {
       return (
         <ScrollView ref={scrollViewRef}>
-
           <View ref={genInfoRef} style={{marginTop: 10}}>
-          <View style={styles.cardContainer}>
-
-          <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>GENERAL INFORMATION</Text>
-                </View>
-
-                {[
-                  {
-                    label: 'Office',
-                    value: genInformationData.OfficeName?.replace(/\\/g, ''),
-                  },
-                  {
-                    label: 'Status',
-                    value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
-                  },
-                  {label: 'OBR Number', value: genInformationData.OBR_Number},
-                  {label: 'PR Number', value: genInformationData.PR_Number},
-                  {label: 'PR Sched', value: genInformationData.PR_Sched},
-                  {label: 'Fund', value: genInformationData.Fund},
-                  {label: 'Encoded By', value: genInformationData.EncodedBy},
-                  {
-                    label: 'Date Encoded',
-                    value: genInformationData.DateEncoded,
-                  },
-                  {
-                    label: 'Date Updated',
-                    value: genInformationData.DateModified,
-                  },
-                ].map((item, index) => (
-                  <View key={index} style={{ marginVertical: 5 }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      paddingVertical: 4,
-                      paddingHorizontal:10
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        color: '#777', 
-                        fontWeight: '400', 
-                        width: '35%',
-                      }}
-                    >
-                      {item.label}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        color: '#222', 
-                        fontWeight: 'bold',
-                        width: '65%',
-                        paddingLeft: 12,
-                      }}
-                    >
-                      {item.value || '—'}
-                    </Text>
-                  </View>
-                  {index !== item.length - 1 && (
-                    <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
-                  )}
-                </View>
-                ))}
-              </View>
-            </View>
-
-
-          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>OBR INFORMATION</Text>
+            <GeneralInformationCard
+              genInformationData={genInformationData}
+              styles={styles}
+            />
           </View>
-
-            <View style={styles.cardTable}>
-              <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
-              <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
-                <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
-                <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
-              </View>
-
-              {OBRInformation && OBRInformation.length > 0 ? (
-                OBRInformation.map((item, index) => (
-                  <View
-                  key={index}
-                  style={[
-                    styles.tableRow,
-                    {
-                      flexDirection: 'row',
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#E5E7EB',
-                      paddingVertical: 5,
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_ProgramCode}</Text>
-                    <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
-                  </View>
-                
-                  <View style={{ flex: 1 }}>
-                  <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_AccountCode}</Text>
-                    <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
-                  </View>
-                
-                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>
-                      {insertCommas(item.Amount)}
-                    </Text>
-                  </View>
-                </View>
-                
-                ))
-              ) : (
-                <Text style={styles.noDataText}>No data available</Text>
-              )}
-
-              <View style={styles.totalContainer}>
-                <Text style={[styles.totalAmount, {marginEnd:5}]}>
-                  {insertCommas(totalAmount.toFixed(2))}
-                </Text>
-              </View>
-            </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <View style={{height:10, width:'100%', borderWidth:5}}/> */}
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <OBRInformationCard
+              OBRInformation={OBRInformation}
+              totalAmount={totalAmount}
+              insertCommas={insertCommas}
+              styles={styles}
+            />
           </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={prDetailsRef} style={{marginTop: 20}}>
+            <PRDetailsCard
+              prpopxDetails={prpopxDetails}
+              prpopxTotalAmount={prpopxTotalAmount}
+              insertCommas={insertCommas}
+              expandedIndex={expandedIndex}
+              toggleDescription={toggleDescription}
+              styles={styles}
+            />
           </View>
-
-          <View ref={prDetailsRef} style={{ marginTop: 20 }}>
-            <View style={styles.cardContainer}>
-            <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PR DETAILS</Text>
-          </View>
-
-              <View style={styles.cardTable}>
-                <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB', }]}>
-                  <View style={{ flex: 2 }}>
-                    <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
-                  </View>
-                  <View style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={styles.tableHeaderText}>QTY | COST</Text>
-                  </View>
-                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                    <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
-                  </View>
-                </View>
-
-                {prpopxDetails && prpopxDetails.length > 0 ? (
-                  prpopxDetails.map((detail, index) => (
-                    <View key={index}>
-                      <View style={[styles.tableRow,{  flexDirection: 'row',
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#E5E7EB',
-                      paddingVertical: 10,}]}>
-                        <View style={{ flex: 2 }}>
-                          <TouchableOpacity onPress={() => toggleDescription(index)}>
-                            <Text
-                              style={styles.tableRowSub}
-                              numberOfLines={expandedIndex === index ? undefined : 3}
-                              ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
-                              {detail.Description}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* Qty & Cost Column */}
-                        <View style={{ flex: 1, alignItems: 'center' }}>
-                          <Text style={styles.tableRowMain}>
-                            {Math.floor(detail.Qty)}{' '}
-                            <Text style={styles.tableRowSub}>{detail.Unit}</Text>
-                          </Text>
-                          <Text style={styles.tableRowSub}>
-                            {insertCommas(detail.Amount)}
-                          </Text>
-                        </View>
-
-                        {/* Total Column */}
-                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                          <Text
-                            style={[
-                              styles.tableRowMain,
-                              {paddingVertical: 5 },
-                            ]}>
-                            {insertCommas(detail.Total)}
-                          </Text>
-                        </View>
-                      </View>
-
-                     {/*  {index !== prpopxDetails.length - 1 && (
-                        <View style={styles.divider} />
-                      )} */}
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noDataText}>No data available</Text>
-                )}
-
-                <View style={styles.totalContainer}>
-                <Text style={[styles.totalAmount, {marginEnd:5}]}>
-                    {insertCommas(prpopxTotalAmount.toFixed(2))}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>REMARKS</Text>
+            <RemarksCard
+              genInformationData={genInformationData}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View style={{marginTop: 20}}>
+            <PendingNoteCard
+              genInformationData={genInformationData}
+              styles={styles}
+            />
           </View>
 
-            <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-              {genInformationData?.Remarks1 ? (
-                <Text style={styles.remarksText}>
-                  {removeHtmlTags(genInformationData.Remarks1)}
-                </Text>
-              ) : (
-                <Text style={styles.noDataText}>No remarks available.</Text>
-              )}
-            </View>
-          </View>
-          </View>
+          {genInformationData.Year == '2025' && procurement === '1' && (
+            <>
+              <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
-          <View style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PENDING NOTE</Text>
-          </View>
-
-            <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-            {genInformationData?.Remarks ? (
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: '#92400E',
-                  lineHeight: 20,
-                }}>
-                {genInformationData.Remarks}
-              </Text>
-            ) : (
-              <Text
-              style={styles.noDataText}>
-                No pending note provided.
-              </Text>
-            )}
-            </View>
-          </View>
-          </View>
-
-         {genInformationData.Year === '2025' && procurement === '1' && (
-          <View  style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-            <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>DIGITAL COPIES</Text>
-          </View>
-
-              <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-              {formTypeMap.PR.map((formType, index) => {
-                  const formTypeFiles =
-                    attachmentsFiles?.filter(
-                      fileUrl => fileUrl.split('~')[2] === formType,
-                    ) || [];
-
-                  const hasFiles = formTypeFiles.length > 0;
-
-                  return (
-                    <View
-                      key={formType}
-                      style={{
-                        marginVertical: 10,
-                        paddingBottom: 10,
-                        borderBottomWidth: 1,
-                        borderColor: '#e5e7eb',
-                      }}>
-                      <View
-                        style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
-                        <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
-                          {`${index + 1}. ${formType}`}
-                        </Text>
-
-                        <TouchableOpacity
-                          disabled={hasFiles}
-                          onPress={() => handleAttachFiles(formType)}
-                          style={{
-                            backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            marginRight: 10,
-                            opacity: hasFiles ? 0.5 : 1,
-                          }}>
-                          <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>
-                            Attach Files
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          disabled={!hasFiles}
-                          onPress={() => handleRemove(year, trackingNumber, formType)}
-                          style={{
-                            backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-                            paddingVertical: 4,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            opacity: !hasFiles ? 0.5 : 1,
-                          }}>
-                          <Icon name={'trash-outline'} size={20} color={'#FF6347'} />
-                        </TouchableOpacity>
-                      </View>
-
-                      <View style={{marginTop: 5}}>
-                        {hasFiles ? (
-                          formTypeFiles.map((fileUrl, fileIndex) => {
-                            const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-                            const fileExtension = fileUrl.split('.').pop();
-                            const uniqueKey = `file-${formType}-${fileIndex}`;
-
-                            return (
-                              <View
-                                key={uniqueKey}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  marginTop: 5,
-                                  backgroundColor: '#f1f5f9',
-                                  padding: 10,
-                                  borderRadius: 6,
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    if (fileExtension === 'pdf') {
-                                      Linking.openURL(uniqueUri);
-                                    } else {
-                                      handleImagePress(uniqueUri);
-                                    }
-                                  }}>
-                                  <Text style={{color: '#1e293b', fontSize: 12}}>
-                                    {fileUrl.split('~').slice(-2).join('~')}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <Text style={{color: '#9ca3af', fontSize: 12}}>
-                            No attached files
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
+              <View style={{marginTop: 20}}>
+                <DigitalCopiesCard
+                  formTypeMap={formTypeMap}
+                  attachmentsFiles={attachmentsFiles}
+                  handleAttachFiles={handleAttachFiles}
+                  handleRemove={handleRemove}
+                  year={genInformationData.Year}
+                  trackingNumber={trackingNumber} // Ensure trackingNumber is available
+                  handleImagePress={handleImagePress}
+                  styles={styles}
+                />
               </View>
-            </View>
-          </View>
+            </>
           )}
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
-        <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 3,
-              elevation: 2,
-              marginHorizontal: 16,
-              overflow: 'hidden',
-            }}>
-           <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
+          <View ref={transactionHistoryRef} style={{marginTop: 20}}>
+            <TransactionHistoryCard
+              transactionHistory={transactionHistory}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
           </View>
-
-            <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-              {/* Table Header */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  paddingBottom: 8,
-                  borderBottomWidth: 1,
-                  borderColor: '#E5E7EB',
-                  marginBottom: 6,
-                }}>
-                <View style={{ flex: 1 }} />
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    DATE
-                  </Text>
-                </View>
-                <View style={{ flex: 5 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    STATUS
-                  </Text>
-                </View>
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                      textAlign: 'right',
-                    }}>
-                    COMPLETION
-                  </Text>
-                </View>
-              </View>
-
-              {/* Table Body */}
-              {transactionHistory && transactionHistory.length > 0 ? (
-                transactionHistory.map((item, index) => (
-                  <View key={index}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
-                        borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
-                      }}>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'center',
-                          }}>
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#4B5563',
-                          }}>
-                          {item.DateModified}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 5 }}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: '#1F2937',
-                            fontWeight: '500',
-                          }}>
-                          {item.Status}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'right',
-                            marginEnd:10
-                          }}>
-                          {removeHtmlTags(item.Completion)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {index !== transactionHistory.length - 1 && (
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: '#E5E7EB',
-                          marginVertical: 6,
-                        }}
-                      />
-                    )}
-                  </View>
-                ))
-              ) : (
-                <Text
-                  style={{
-                    color: '#9CA3AF',
-                    fontSize: 12,
-                    textAlign: 'center',
-                    marginTop: 10,
-                  }}>
-                  No Transaction History available
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
 
           <View style={{height: 500}} />
         </ScrollView>
       );
     } else {
       return (
-        <View>
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
           <Text>No details available for this type.</Text>
         </View>
       );
@@ -1016,248 +1110,293 @@ const DetailScreen = ({route, navigation}) => {
     if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
-
           <View ref={genInfoRef} style={{marginTop: 10}}>
-          <View style={styles.cardContainer}>
-                <View style={styles.cardHeader}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
                 <Text style={styles.headerText}>GENERAL INFORMATION</Text>
-                </View>
-                <View>
-          {[
-            { label: 'Office', value: genInformationData.OfficeName?.replace(/\\/g, '') },
-            { label: 'Status', value: `${genInformationData.TrackingType} - ${genInformationData.Status}` },
-            { label: 'Supplier', value: genInformationData.Claimant },
-            { label: 'Transaction Classification', value: genInformationData.ComplexLabel },
-            { label: 'PO Number', value: genInformationData.PO_Number },
-            { label: 'PO Date', value: genInformationData.PoDate },
-            { label: 'OBR Number', value: genInformationData.OBR_Number },
-            { label: 'PR Number', value: genInformationData.PR_Number },
-            { label: 'PR Sched', value: genInformationData.PR_Sched },
-            { label: 'PR TN', value: genInformationData.PR_TrackingNumber },
-            { label: 'Fund', value: genInformationData.Fund },
-            { label: 'Nature', value: genInformationData.NatureOfPayment },
-            { label: 'Specifics', value: genInformationData.Specifics },
-            { label: 'Mode', value: genInformationData.ModeOfProcTitle },
-            { label: 'Payment Term', value: genInformationData.PaymentTermLabel },
-            { label: 'Retention TN', value: genInformationData.RetentionTN },
-            { label: 'Encoded By', value: genInformationData.EncodedBy },
-            { label: 'Date Encoded', value: genInformationData.DateEncoded },
-            { label: 'Date Updated', value: genInformationData.DateModified },
-          ].map((item, index) => (
-            <View key={index} style={{ marginVertical: 5 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                paddingVertical: 4,
-                paddingHorizontal:10
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: '#777', 
-                  fontWeight: '400', 
-                  width: '35%',
-                }}
-              >
-                {item.label}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: '#222', 
-                  fontWeight: 'bold',
-                  width: '65%',
-                  paddingLeft: 12,
-                }}
-              >
-                {item.value || '—'}
-              </Text>
-            </View>
-            {index !== item.length - 1 && (
-              <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
-            )}
-          </View>
+              </View>
+              <View>
+                {[
+                  {
+                    label: 'Office',
+                    value: genInformationData.OfficeName?.replace(/\\/g, ''),
+                  },
+                  {
+                    label: 'Status',
+                    value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
+                  },
+                  {label: 'Supplier', value: genInformationData.Claimant},
+                  {
+                    label: 'Transaction Classification',
+                    value: genInformationData.ComplexLabel,
+                  },
+                  {label: 'PO Number', value: genInformationData.PO_Number},
+                  {label: 'PO Date', value: genInformationData.PoDate},
+                  {label: 'OBR Number', value: genInformationData.OBR_Number},
+                  {label: 'PR Number', value: genInformationData.PR_Number},
+                  {label: 'PR Sched', value: genInformationData.PR_Sched},
+                  {label: 'PR TN', value: genInformationData.PR_TrackingNumber},
+                  {label: 'Fund', value: genInformationData.Fund},
+                  {label: 'Nature', value: genInformationData.NatureOfPayment},
+                  {label: 'Specifics', value: genInformationData.Specifics},
+                  {label: 'Mode', value: genInformationData.ModeOfProcTitle},
+                  {
+                    label: 'Payment Term',
+                    value: genInformationData.PaymentTermLabel,
+                  },
+                  {
+                    label: 'Retention TN',
+                    value: genInformationData.RetentionTN,
+                  },
+                  {label: 'Encoded By', value: genInformationData.EncodedBy},
+                  {
+                    label: 'Date Encoded',
+                    value: genInformationData.DateEncoded,
+                  },
+                  {
+                    label: 'Date Updated',
+                    value: genInformationData.DateModified,
+                  },
+                ].map((item, index) => (
+                  <View key={index} style={{marginVertical: 5}}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        paddingVertical: 4,
+                        paddingHorizontal: 10,
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: '#777',
+                          fontWeight: '400',
+                          width: '35%',
+                        }}>
+                        {item.label}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: '#222',
+                          fontWeight: 'bold',
+                          width: '65%',
+                          paddingLeft: 12,
+                        }}>
+                        {item.value || '—'}
+                      </Text>
+                    </View>
+                    {index !== item.length - 1 && (
+                      <View
+                        style={{
+                          height: 1,
+                          backgroundColor: '#eee',
+                          marginTop: 6,
+                        }}
+                      />
+                    )}
+                  </View>
                 ))}
               </View>
-          </View>
-          </View>
-
-          <View ref={paymentHistoryRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PAYMENT HISTORY</Text>
-          </View>
-
-            <View style={styles.cardDetails}>
-              {paymentHistory && paymentHistory.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                  <View style={{ flexDirection: 'row' }}>
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>TN</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`tn-${index}`} style={styles.columnValue}>
-                          {payment.TrackingNumber}
-                        </Text>
-                      ))}
-                    </View>
-
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>STATUS</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`status-${index}`} style={styles.columnValue}>
-                          {payment.Status}
-                        </Text>
-                      ))}
-                    </View>
-
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>GROSS</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`gross-${index}`} style={styles.columnValue}>
-                          {payment.Gross}
-                        </Text>
-                      ))}
-                    </View>
-
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>LD</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`ld-${index}`} style={styles.columnValue}>
-                          {payment.LiquidatedDamages}
-                        </Text>
-                      ))}
-                    </View>
-
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>TOTAL TAX</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`tax-${index}`} style={styles.columnValue}>
-                          {payment.TotalTax}
-                        </Text>
-                      ))}
-                    </View>
-
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>RETENTION</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`ret-${index}`} style={styles.columnValue}>
-                          {payment.Retention}
-                        </Text>
-                      ))}
-                    </View>
-
-                    {/* ADJUSTMENT COLUMN */}
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>ADJUSTMENT</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`adj-${index}`} style={styles.columnValue}>
-                          {payment.AdjustmentAmount}
-                        </Text>
-                      ))}
-                    </View>
-
-                    {/* NET COLUMN */}
-                    <View style={styles.column}>
-                      <Text style={styles.columnHeader}>NET</Text>
-                      {paymentHistory.map((payment, index) => (
-                        <Text key={`net-${index}`} style={styles.columnValue}>
-                          {payment.NetAmount}
-                        </Text>
-                      ))}
-                    </View>
-                  </View>
-                </ScrollView>
-              ) : (
-                <View style={{ }}>
-                                 <Text style={styles.noDataText}>No record found.</Text>
-
-                </View>
-              )}
             </View>
           </View>
-          </View>
 
-          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>OBR INFORMATION</Text>
-          </View>
-
-            <View style={styles.cardTable}>
-              <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
-              <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
-                <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
-                <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
-              </View>
-
-              {OBRInformation && OBRInformation.length > 0 ? (
-            OBRInformation.map((item, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.tableRow,
-                  {
-                    flexDirection: 'row',
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#E5E7EB',
-                    paddingVertical: 5,
-                    alignItems:'baseline'
-                  },
-                ]}
-              >
-                {/* PROGRAM */}
-                <View style={{ flex: 1 }}>
-                  <View>
-                    <Text style={styles.tableRowMain}>{item.PR_ProgramCode}</Text>
-                  </View>
-                  <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
-                </View>
-
-                {/* CODE */}
-                <View style={{ flex: 1 }}>
-                  <View>
-                    <Text style={styles.tableRowMain}>{item.PR_AccountCode}</Text>
-                  </View>
-                  <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
-                </View>
-
-                {/* AMOUNT */}
-                <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
-                  <Text style={styles.tableRowMain}>{insertCommas(item.PO_Amount)}</Text>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noDataText}>No data available</Text>
-          )}
-
-
-              <View style={styles.totalContainer}>
-                <Text style={[styles.totalAmount, {marginEnd:5}]}>
-                  {insertCommas(POTOTAL.toFixed(2))}
-                </Text>
-              </View>
-            </View>
-          </View>
-          </View>
-
-          <View ref={prDetailsRef} style={{ marginTop: 20 }}>
+          <View ref={paymentHistoryRef} style={{marginTop: 20}}>
             <View style={styles.cardContainer}>
-            <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PO DETAILS</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>PAYMENT HISTORY</Text>
+              </View>
+
+              <View style={styles.cardDetails}>
+                {paymentHistory && paymentHistory.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                    <View style={{flexDirection: 'row'}}>
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>TN</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text key={`tn-${index}`} style={styles.columnValue}>
+                            {payment.TrackingNumber}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>STATUS</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text
+                            key={`status-${index}`}
+                            style={styles.columnValue}>
+                            {payment.Status}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>GROSS</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text
+                            key={`gross-${index}`}
+                            style={styles.columnValue}>
+                            {payment.Gross}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>LD</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text key={`ld-${index}`} style={styles.columnValue}>
+                            {payment.LiquidatedDamages}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>TOTAL TAX</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text key={`tax-${index}`} style={styles.columnValue}>
+                            {payment.TotalTax}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>RETENTION</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text key={`ret-${index}`} style={styles.columnValue}>
+                            {payment.Retention}
+                          </Text>
+                        ))}
+                      </View>
+
+                      {/* ADJUSTMENT COLUMN */}
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>ADJUSTMENT</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text key={`adj-${index}`} style={styles.columnValue}>
+                            {payment.AdjustmentAmount}
+                          </Text>
+                        ))}
+                      </View>
+
+                      {/* NET COLUMN */}
+                      <View style={styles.column}>
+                        <Text style={styles.columnHeader}>NET</Text>
+                        {paymentHistory.map((payment, index) => (
+                          <Text key={`net-${index}`} style={styles.columnValue}>
+                            {payment.NetAmount}
+                          </Text>
+                        ))}
+                      </View>
+                    </View>
+                  </ScrollView>
+                ) : (
+                  <View style={{}}>
+                    <Text style={styles.noDataText}>No record found.</Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
+
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>OBR INFORMATION</Text>
+              </View>
 
               <View style={styles.cardTable}>
-                <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB', }]}>
-                  <View style={{ flex: 2 }}>
+                <View
+                  style={[styles.tableHeader, {backgroundColor: '#E5E7EB'}]}>
+                  <Text style={[styles.tableHeaderText, {flex: 1}]}>
+                    PROGRAM
+                  </Text>
+                  <Text style={[styles.tableHeaderText, {flex: 1}]}>CODE</Text>
+                  <Text style={[styles.tableHeaderTextRight, {flex: 1}]}>
+                    AMOUNT
+                  </Text>
+                </View>
+
+                {OBRInformation && OBRInformation.length > 0 ? (
+                  OBRInformation.map((item, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.tableRow,
+                        {
+                          flexDirection: 'row',
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#E5E7EB',
+                          paddingVertical: 5,
+                          alignItems: 'baseline',
+                        },
+                      ]}>
+                      {/* PROGRAM */}
+                      <View style={{flex: 1}}>
+                        <View>
+                          <Text style={styles.tableRowMain}>
+                            {item.PR_ProgramCode}
+                          </Text>
+                        </View>
+                        <Text style={styles.tableRowSub}>
+                          {item.ProgramName}
+                        </Text>
+                      </View>
+
+                      {/* CODE */}
+                      <View style={{flex: 1}}>
+                        <View>
+                          <Text style={styles.tableRowMain}>
+                            {item.PR_AccountCode}
+                          </Text>
+                        </View>
+                        <Text style={styles.tableRowSub}>
+                          {item.AccountTitle}
+                        </Text>
+                      </View>
+
+                      {/* AMOUNT */}
+                      <View
+                        style={{
+                          flex: 1,
+                          alignItems: 'flex-end',
+                          justifyContent: 'center',
+                        }}>
+                        <Text style={styles.tableRowMain}>
+                          {insertCommas(item.PO_Amount)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No data available</Text>
+                )}
+
+                <View style={styles.totalContainer}>
+                  <Text style={[styles.totalAmount, {marginEnd: 5}]}>
+                    {insertCommas(POTOTAL.toFixed(2))}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View ref={prDetailsRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>PO DETAILS</Text>
+              </View>
+
+              <View style={styles.cardTable}>
+                <View
+                  style={[styles.tableHeader, {backgroundColor: '#E5E7EB'}]}>
+                  <View style={{flex: 2}}>
                     <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
                   </View>
-                  <View style={{ flex: 1, alignItems: 'center' }}>
+                  <View style={{flex: 1, alignItems: 'center'}}>
                     <Text style={styles.tableHeaderText}>QTY | COST</Text>
                   </View>
-                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <View style={{flex: 1, alignItems: 'flex-end'}}>
                     <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
                   </View>
                 </View>
@@ -1265,26 +1404,39 @@ const DetailScreen = ({route, navigation}) => {
                 {prpopxDetails && prpopxDetails.length > 0 ? (
                   prpopxDetails.map((detail, index) => (
                     <View key={index}>
-                      <View style={[styles.tableRow,{  flexDirection: 'row',
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#E5E7EB',
-                      paddingVertical: 10,}]}>
-                        <View style={{ flex: 2 }}>
-                          <TouchableOpacity onPress={() => toggleDescription(index)}>
+                      <View
+                        style={[
+                          styles.tableRow,
+                          {
+                            flexDirection: 'row',
+                            borderBottomWidth: 1,
+                            borderBottomColor: '#E5E7EB',
+                            paddingVertical: 10,
+                          },
+                        ]}>
+                        <View style={{flex: 2}}>
+                          <TouchableOpacity
+                            onPress={() => toggleDescription(index)}>
                             <Text
                               style={styles.tableRowSub}
-                              numberOfLines={expandedIndex === index ? undefined : 3}
-                              ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
+                              numberOfLines={
+                                expandedIndex === index ? undefined : 3
+                              }
+                              ellipsizeMode={
+                                expandedIndex === index ? 'clip' : 'tail'
+                              }>
                               {detail.Description}
                             </Text>
                           </TouchableOpacity>
                         </View>
 
                         {/* Qty & Cost Column */}
-                        <View style={{ flex: 1, alignItems: 'center' }}>
+                        <View style={{flex: 1, alignItems: 'center'}}>
                           <Text style={styles.tableRowMain}>
                             {Math.floor(detail.Qty)}{' '}
-                            <Text style={styles.tableRowSub}>{detail.Unit}</Text>
+                            <Text style={styles.tableRowSub}>
+                              {detail.Unit}
+                            </Text>
                           </Text>
                           <Text style={styles.tableRowSub}>
                             {insertCommas(detail.Amount)}
@@ -1292,18 +1444,15 @@ const DetailScreen = ({route, navigation}) => {
                         </View>
 
                         {/* Total Column */}
-                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        <View style={{flex: 1, alignItems: 'flex-end'}}>
                           <Text
-                            style={[
-                              styles.tableRowMain,
-                              {paddingVertical: 5 },
-                            ]}>
+                            style={[styles.tableRowMain, {paddingVertical: 5}]}>
                             {insertCommas(detail.Total)}
                           </Text>
                         </View>
                       </View>
 
-                     {/*  {index !== prpopxDetails.length - 1 && (
+                      {/*  {index !== prpopxDetails.length - 1 && (
                         <View style={styles.divider} />
                       )} */}
                     </View>
@@ -1313,7 +1462,7 @@ const DetailScreen = ({route, navigation}) => {
                 )}
 
                 <View style={styles.totalContainer}>
-                <Text style={[styles.totalAmount, {marginEnd:5}]}>
+                  <Text style={[styles.totalAmount, {marginEnd: 5}]}>
                     {insertCommas(prpopxTotalAmount.toFixed(2))}
                   </Text>
                 </View>
@@ -1322,161 +1471,198 @@ const DetailScreen = ({route, navigation}) => {
           </View>
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>REMARKS</Text>
-          </View>
-            <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-              {genInformationData?.Remarks1 ? (
-                <Text style={styles.remarksText}>
-                  {removeHtmlTags(genInformationData.Remarks1)}
-                </Text>
-              ) : (
-                <Text style={styles.noDataText}>No remarks available.</Text>
-              )}
-            </View>
-          </View>
-          </View>
-
-          <View ref={remarksRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PENDING NOTE</Text>
-          </View>
-
-            <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-            {genInformationData?.Remarks ? (
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: '#92400E',
-                  lineHeight: 20,
-                }}>
-                {genInformationData.Remarks}
-              </Text>
-            ) : (
-              <Text
-              style={styles.noDataText}>
-                No pending note provided.
-              </Text>
-            )}
-            </View>
-          </View>
-          </View>
-
-          {genInformationData.Year === '2025' && /* procurement === '1' &&  */(
-          <View  style={{marginTop: 20}}>
             <View style={styles.cardContainer}>
-            <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>DIGITAL COPIES</Text>
-          </View>
-
-              <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-              {formTypeMap.PO.map((formType, index) => {
-                  const formTypeFiles =
-                    attachmentsFiles?.filter(
-                      fileUrl => fileUrl.split('~')[2] === formType,
-                    ) || [];
-
-                  const hasFiles = formTypeFiles.length > 0;
-
-                  return (
-                    <View
-                      key={formType}
-                      style={{
-                        marginVertical: 10,
-                        paddingBottom: 10,
-                        borderBottomWidth: 1,
-                        borderColor: '#e5e7eb',
-                      }}>
-                      <View
-                        style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
-                        <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
-                          {`${index + 1}. ${formType}`}
-                        </Text>
-                        {procurement === '1' && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <TouchableOpacity
-                            disabled={hasFiles}
-                            onPress={() => handleAttachFiles(formType)}
-                            style={{
-                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                              paddingVertical: 6,
-                              paddingHorizontal: 12,
-                              borderRadius: 5,
-                              marginRight: 10,
-                              opacity: hasFiles ? 0.5 : 1,
-                            }}
-                          >
-                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-                              Attach Files
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            disabled={!hasFiles}
-                            onPress={() => handleRemove(year, trackingNumber, formType)}
-                            style={{
-                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-                              paddingVertical: 4,
-                              paddingHorizontal: 12,
-                              borderRadius: 5,
-                              opacity: !hasFiles ? 0.5 : 1,
-                            }}
-                          >
-                            <Icon name={'trash-outline'} size={20} color={'#252525'} />
-                          </TouchableOpacity>
-                        </View>
-                      )}
-
-                        
-                      </View>
-
-                      <View style={{marginTop: 5}}>
-                        {hasFiles ? (
-                          formTypeFiles.map((fileUrl, fileIndex) => {
-                            const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-                            const fileExtension = fileUrl.split('.').pop();
-                            const uniqueKey = `file-${formType}-${fileIndex}`;
-
-                            return (
-                              <View
-                                key={uniqueKey}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  marginTop: 5,
-                                  backgroundColor: '#f1f5f9',
-                                  padding: 10,
-                                  borderRadius: 6,
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    if (fileExtension === 'pdf') {
-                                      Linking.openURL(uniqueUri);
-                                    } else {
-                                      handleImagePress(uniqueUri);
-                                    }
-                                  }}>
-                                  <Text style={{color: '#1e293b', fontSize: 12}}>
-                                    {fileUrl.split('~').slice(-2).join('~')}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <Text style={{color: '#9ca3af', fontSize: 12}}>
-                            No attached files
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>REMARKS</Text>
+              </View>
+              <View
+                style={[
+                  styles.cardTable,
+                  {paddingHorizontal: 10, paddingVertical: 10},
+                ]}>
+                {genInformationData?.Remarks1 ? (
+                  <Text style={styles.remarksText}>
+                    {removeHtmlTags(genInformationData.Remarks1)}
+                  </Text>
+                ) : (
+                  <Text style={styles.noDataText}>No remarks available.</Text>
+                )}
               </View>
             </View>
           </View>
+
+          <View ref={remarksRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>PENDING NOTE</Text>
+              </View>
+
+              <View
+                style={[
+                  styles.cardTable,
+                  {paddingHorizontal: 10, paddingVertical: 10},
+                ]}>
+                {genInformationData?.Remarks ? (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: '#92400E',
+                      lineHeight: 20,
+                    }}>
+                    {genInformationData.Remarks}
+                  </Text>
+                ) : (
+                  <Text style={styles.noDataText}>
+                    No pending note provided.
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {genInformationData.Year === '2025' && (
+            /* procurement === '1' &&  */ <View style={{marginTop: 20}}>
+              <View style={styles.cardContainer}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.headerText}>DIGITAL COPIES</Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.cardTable,
+                    {paddingHorizontal: 10, paddingVertical: 10},
+                  ]}>
+                  {formTypeMap.PO.map((formType, index) => {
+                    const formTypeFiles =
+                      attachmentsFiles?.filter(
+                        fileUrl => fileUrl.split('~')[2] === formType,
+                      ) || [];
+
+                    const hasFiles = formTypeFiles.length > 0;
+
+                    return (
+                      <View
+                        key={formType}
+                        style={{
+                          marginVertical: 10,
+                          paddingBottom: 10,
+                          borderBottomWidth: 1,
+                          borderColor: '#e5e7eb',
+                        }}>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginBottom: 6,
+                          }}>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              flex: 1,
+                              fontWeight: 'bold',
+                              color: '#1e293b',
+                            }}>
+                            {`${index + 1}. ${formType}`}
+                          </Text>
+                          {procurement === '1' && (
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}>
+                              <TouchableOpacity
+                                disabled={hasFiles}
+                                onPress={() => handleAttachFiles(formType)}
+                                style={{
+                                  backgroundColor: hasFiles
+                                    ? '#ccc'
+                                    : '#1976D2',
+                                  paddingVertical: 6,
+                                  paddingHorizontal: 12,
+                                  borderRadius: 5,
+                                  marginRight: 10,
+                                  opacity: hasFiles ? 0.5 : 1,
+                                }}>
+                                <Text
+                                  style={{
+                                    color: '#fff',
+                                    fontSize: 12,
+                                    fontWeight: 'bold',
+                                  }}>
+                                  Attach Files
+                                </Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                disabled={!hasFiles}
+                                onPress={() =>
+                                  handleRemove(year, trackingNumber, formType)
+                                }
+                                style={{
+                                  backgroundColor: !hasFiles
+                                    ? '#ccc'
+                                    : '#ebf8ff',
+                                  paddingVertical: 4,
+                                  paddingHorizontal: 12,
+                                  borderRadius: 5,
+                                  opacity: !hasFiles ? 0.5 : 1,
+                                }}>
+                                <Icon
+                                  name={'trash-outline'}
+                                  size={20}
+                                  color={'#252525'}
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={{marginTop: 5}}>
+                          {hasFiles ? (
+                            formTypeFiles.map((fileUrl, fileIndex) => {
+                              const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                              const fileExtension = fileUrl.split('.').pop();
+                              const uniqueKey = `file-${formType}-${fileIndex}`;
+
+                              return (
+                                <View
+                                  key={uniqueKey}
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    marginTop: 5,
+                                    backgroundColor: '#f1f5f9',
+                                    padding: 10,
+                                    borderRadius: 6,
+                                  }}>
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      if (fileExtension === 'pdf') {
+                                        Linking.openURL(uniqueUri);
+                                      } else {
+                                        handleImagePress(uniqueUri);
+                                      }
+                                    }}>
+                                    <Text
+                                      style={{color: '#1e293b', fontSize: 12}}>
+                                      {fileUrl.split('~').slice(-2).join('~')}
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              );
+                            })
+                          ) : (
+                            <Text style={{color: '#9ca3af', fontSize: 12}}>
+                              No attached files
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
           )}
 
           {/* {genInformationData.Year === '2025' && procurement === '1' && (
@@ -1634,146 +1820,148 @@ const DetailScreen = ({route, navigation}) => {
             </View>
           )} */}
 
-        <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 3,
-              elevation: 2,
-              marginHorizontal: 16,
-              overflow: 'hidden',
-            }}>
+          <View ref={transactionHistoryRef} style={{marginTop: 20}}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                shadowColor: '#000',
+                shadowOffset: {width: 0, height: 1},
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+                marginHorizontal: 16,
+                overflow: 'hidden',
+              }}>
               <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
-          </View>
-
-            <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-              {/* Table Header */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  paddingBottom: 8,
-                  borderBottomWidth: 1,
-                  borderColor: '#E5E7EB',
-                  marginBottom: 6,
-                }}>
-                <View style={{ flex: 1 }} />
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    DATE
-                  </Text>
-                </View>
-                <View style={{ flex: 5 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    STATUS
-                  </Text>
-                </View>
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                      textAlign: 'right',
-                    }}>
-                    COMPLETION
-                  </Text>
-                </View>
+                <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
               </View>
 
-              {/* Table Body */}
-              {transactionHistory && transactionHistory.length > 0 ? (
-                transactionHistory.map((item, index) => (
-                  <View key={index}>
-                    <View
+              <View style={{paddingVertical: 12, paddingHorizontal: 14}}>
+                {/* Table Header */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    paddingBottom: 8,
+                    borderBottomWidth: 1,
+                    borderColor: '#E5E7EB',
+                    marginBottom: 6,
+                  }}>
+                  <View style={{flex: 1}} />
+                  <View style={{flex: 3}}>
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
-                        borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
                       }}>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'center',
-                          }}>
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#4B5563',
-                          }}>
-                          {item.DateModified}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 5 }}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: '#1F2937',
-                            fontWeight: '500',
-                          }}>
-                          {item.Status}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'right',
-                            marginEnd:10
-                          }}>
-                          {removeHtmlTags(item.Completion)}
-                        </Text>
-                      </View>
-                    </View>
+                      DATE
+                    </Text>
+                  </View>
+                  <View style={{flex: 5}}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                      }}>
+                      STATUS
+                    </Text>
+                  </View>
+                  <View style={{flex: 3}}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                        textAlign: 'right',
+                      }}>
+                      COMPLETION
+                    </Text>
+                  </View>
+                </View>
 
-                    {index !== transactionHistory.length - 1 && (
+                {/* Table Body */}
+                {transactionHistory && transactionHistory.length > 0 ? (
+                  transactionHistory.map((item, index) => (
+                    <View key={index}>
                       <View
                         style={{
-                          height: 1,
-                          backgroundColor: '#E5E7EB',
-                          marginVertical: 6,
-                        }}
-                      />
-                    )}
-                  </View>
-                ))
-              ) : (
-                <Text
-                  style={{
-                    color: '#9CA3AF',
-                    fontSize: 12,
-                    textAlign: 'center',
-                    marginTop: 10,
-                  }}>
-                  No Transaction History available
-                </Text>
-              )}
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          backgroundColor:
+                            index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
+                          borderRadius:
+                            index === transactionHistory.length - 1 ? 12 : 0,
+                        }}>
+                        <View style={{flex: 1}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#6B7280',
+                              textAlign: 'center',
+                            }}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <View style={{flex: 3}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#4B5563',
+                            }}>
+                            {item.DateModified}
+                          </Text>
+                        </View>
+                        <View style={{flex: 5}}>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: '#1F2937',
+                              fontWeight: '500',
+                            }}>
+                            {item.Status}
+                          </Text>
+                        </View>
+                        <View style={{flex: 3}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#6B7280',
+                              textAlign: 'right',
+                              marginEnd: 10,
+                            }}>
+                            {removeHtmlTags(item.Completion)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {index !== transactionHistory.length - 1 && (
+                        <View
+                          style={{
+                            height: 1,
+                            backgroundColor: '#E5E7EB',
+                            marginVertical: 6,
+                          }}
+                        />
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <Text
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: 12,
+                      textAlign: 'center',
+                      marginTop: 10,
+                    }}>
+                    No Transaction History available
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
-        </View>
 
           <View style={{height: 500}} />
         </ScrollView>
@@ -1792,516 +1980,655 @@ const DetailScreen = ({route, navigation}) => {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
-                <View style={styles.cardContainer}>
-                <View style={styles.cardHeader}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
                 <Text style={styles.headerText}>GENERAL INFORMATION</Text>
-                </View>
-                {[
-                  {label: 'Office', value: genInformationData.OfficeName?.replace(/\\/g, ''),},
-                  {label: 'Status', value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,},
-                  {label: 'Claimant', value: genInformationData.Claimant},
-                  {label: 'Classification', value: genInformationData.ComplexLabel},
-                  {label: 'ADV Number', value:  genInformationData.ADV === '0' ? '' : genInformationData.ADV},
-                  {label: 'OBR Number', value: genInformationData.OBR_Number},
-                  {label: 'PR Sched', value: genInformationData.PR_Sched},
-                  {label: 'Fund', value: genInformationData.Fund},
-                  {label: 'Check Number', value: genInformationData.CheckNumber},
-                  {label: 'Check Date', value: genInformationData.CheckDate},
-                  {label: 'Net Amount', value: insertCommas(genInformationData.NetAmount)},
-                  {label: 'PR TN', value: genInformationData.PO_PRTN},
-                  {label: 'PO TN', value: genInformationData.TrackingPartner},
-                  {label: 'PO Number', value: genInformationData.PO_Number},
-                  {label: 'Retention TN', value: genInformationData.RetentionTN},
-                  {label: 'Nature', value: genInformationData.PO_Nature},
-                  {label: 'Specifics', value: genInformationData.PO_Specifics},
-                  {label: 'Receipt Type', value: genInformationData.SuppType},
-                  {label: 'Business Type', value: genInformationData.SuppClassification},
-                  {label: 'Mode of PR', value: genInformationData.ModeOfProcTitle},
-                  {label: 'Payment Term', value: genInformationData.PaymentTermLabel},
-                  {label: 'Invoice Number', value: genInformationData.InvoiceNumber},
-                  {label: 'Invoice Date', value: genInformationData.InvoiceDate},
-                  {label: 'Encoded By', value: genInformationData.EncodedBy},
-                  {label: 'Date Encoded', value: genInformationData.DateEncoded},
-                  {label: 'Date Updated', value: genInformationData.DateModified},
-                ].map((item, index) => (
-                  <View key={index} style={{ marginVertical: 5 }}>
+              </View>
+              {[
+                {
+                  label: 'Office',
+                  value: genInformationData.OfficeName?.replace(/\\/g, ''),
+                },
+                {
+                  label: 'Status',
+                  value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
+                },
+                {label: 'Claimant', value: genInformationData.Claimant},
+                {
+                  label: 'Classification',
+                  value: genInformationData.ComplexLabel,
+                },
+                {
+                  label: 'ADV Number',
+                  value:
+                    genInformationData.ADV === '0'
+                      ? ''
+                      : genInformationData.ADV,
+                },
+                {label: 'OBR Number', value: genInformationData.OBR_Number},
+                {label: 'PR Sched', value: genInformationData.PR_Sched},
+                {label: 'Fund', value: genInformationData.Fund},
+                {label: 'Check Number', value: genInformationData.CheckNumber},
+                {label: 'Check Date', value: genInformationData.CheckDate},
+                {
+                  label: 'Net Amount',
+                  value: insertCommas(genInformationData.NetAmount),
+                },
+                {label: 'PR TN', value: genInformationData.PO_PRTN},
+                {label: 'PO TN', value: genInformationData.TrackingPartner},
+                {label: 'PO Number', value: genInformationData.PO_Number},
+                {label: 'Retention TN', value: genInformationData.RetentionTN},
+                {label: 'Nature', value: genInformationData.PO_Nature},
+                {label: 'Specifics', value: genInformationData.PO_Specifics},
+                {label: 'Receipt Type', value: genInformationData.SuppType},
+                {
+                  label: 'Business Type',
+                  value: genInformationData.SuppClassification,
+                },
+                {
+                  label: 'Mode of PR',
+                  value: genInformationData.ModeOfProcTitle,
+                },
+                {
+                  label: 'Payment Term',
+                  value: genInformationData.PaymentTermLabel,
+                },
+                {
+                  label: 'Invoice Number',
+                  value: genInformationData.InvoiceNumber,
+                },
+                {label: 'Invoice Date', value: genInformationData.InvoiceDate},
+                {label: 'Encoded By', value: genInformationData.EncodedBy},
+                {label: 'Date Encoded', value: genInformationData.DateEncoded},
+                {label: 'Date Updated', value: genInformationData.DateModified},
+              ].map((item, index) => (
+                <View key={index} style={{marginVertical: 5}}>
                   <View
                     style={{
                       flexDirection: 'row',
                       flexWrap: 'wrap',
                       paddingVertical: 4,
-                      paddingHorizontal:10
-                    }}
-                  >
+                      paddingHorizontal: 10,
+                    }}>
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#777', 
-                        fontWeight: '400', 
+                        color: '#777',
+                        fontWeight: '400',
                         width: '35%',
-                      }}
-                    >
+                      }}>
                       {item.label}
                     </Text>
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#222', 
+                        color: '#222',
                         fontWeight: 'bold',
                         width: '65%',
                         paddingLeft: 12,
-                      }}
-                    >
+                      }}>
                       {item.value || '—'}
                     </Text>
                   </View>
                   {index !== item.length - 1 && (
-                    <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
+                    <View
+                      style={{height: 1, backgroundColor: '#eee', marginTop: 6}}
+                    />
                   )}
                 </View>
-                ))}
-              </View>
+              ))}
+            </View>
           </View>
 
-          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
               <View style={styles.cardHeader}>
                 <Text style={styles.headerText}>PARTICULARS</Text>
-                </View>
+              </View>
 
-                <View style={styles.obrRow}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontFamily: 'Oswald-Light',
-                      color: 'silver',
-                      padding: 10,
-                      paddingHorizontal: 10,
-                    }}>
-                    {genInformationData.Particulars}
-                    TO PAYMENT FOR OF THE{' '}
-                    <Text style={styles.particularsText}>
-                      {genInformationData.OfficeName.replace(/\\/g, '')}
-                    </Text>{' '}
-                    UNDER P.O#{' '}
-                    <Text style={styles.particularsText}>
-                      {genInformationData.PO_Number}
-                    </Text>{' '}
-                    DATED{' '}
-                    <Text style={styles.particularsText}>
-                      {genInformationData.PoDate}
-                    </Text>{' '}
-                    WITH INV#{' '}
-                    <Text style={styles.particularsText}>
-                      {genInformationData.InvoiceNumber}
-                    </Text>{' '}
-                    DATED:{' '}
-                    <Text style={styles.particularsText}>
-                      {genInformationData.InvoiceDate}
-                    </Text>{' '}
-                    AS PER SUPPORTING DOCUMENTS HERETO ATTACHED.
-                  </Text>
-                </View>
-                </View>
-          </View>
-
-          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>AUDIT AND COMPLIANCE OFFICERS</Text>
-                </View>
-                <View
+              <View style={styles.obrRow}>
+                <Text
                   style={{
-                    flexDirection: 'row',
+                    fontSize: 12,
+                    fontFamily: 'Oswald-Light',
+                    color: 'silver',
                     padding: 10,
                     paddingHorizontal: 10,
                   }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Light',
-                      fontSize: 14,
-                      color: 'silver',
-                    }}>
-                    Accounting Evaluator{' '}
-                  </Text>
-                  <Text
-                    style={{
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: 'gray',
-                      marginStart: 10,
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 14,
-                      color: 'black',
-                    }}>
-                    {genInformationData.CAOOfficerName &&
-                    genInformationData.CAOOfficerName !== null
-                      ? genInformationData.CAOOfficerName
-                      : '            '}
-                  </Text>
-                </View>
+                  {genInformationData.Particulars}
+                  TO PAYMENT FOR OF THE{' '}
+                  <Text style={styles.particularsText}>
+                    {genInformationData.OfficeName.replace(/\\/g, '')}
+                  </Text>{' '}
+                  UNDER P.O#{' '}
+                  <Text style={styles.particularsText}>
+                    {genInformationData.PO_Number}
+                  </Text>{' '}
+                  DATED{' '}
+                  <Text style={styles.particularsText}>
+                    {genInformationData.PoDate}
+                  </Text>{' '}
+                  WITH INV#{' '}
+                  <Text style={styles.particularsText}>
+                    {genInformationData.InvoiceNumber}
+                  </Text>{' '}
+                  DATED:{' '}
+                  <Text style={styles.particularsText}>
+                    {genInformationData.InvoiceDate}
+                  </Text>{' '}
+                  AS PER SUPPORTING DOCUMENTS HERETO ATTACHED.
+                </Text>
               </View>
+            </View>
           </View>
 
-          <View ref={prDetailsRef} style={{ marginTop: 20 }}>
-              <View>
-                {paymentBreakdown &&
-                computationBreakdown ? (
-                  <View style={styles.cardContainer}>
-                     <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>PAYMENT BREAKDOWN</Text>
-                </View>
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>
+                  AUDIT AND COMPLIANCE OFFICERS
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  padding: 10,
+                  paddingHorizontal: 10,
+                }}>
+                <Text
+                  style={{
+                    fontFamily: 'Oswald-Light',
+                    fontSize: 14,
+                    color: 'silver',
+                  }}>
+                  Accounting Evaluator{' '}
+                </Text>
+                <Text
+                  style={{
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: 'gray',
+                    marginStart: 10,
+                    fontFamily: 'Oswald-Regular',
+                    fontSize: 14,
+                    color: 'black',
+                  }}>
+                  {genInformationData.CAOOfficerName &&
+                  genInformationData.CAOOfficerName !== null
+                    ? genInformationData.CAOOfficerName
+                    : '            '}
+                </Text>
+              </View>
+            </View>
+          </View>
 
-                <ScrollView horizontal>
+          <View ref={prDetailsRef} style={{marginTop: 20}}>
+            <View>
+              {paymentBreakdown && computationBreakdown ? (
+                <View style={styles.cardContainer}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.headerText}>PAYMENT BREAKDOWN</Text>
+                  </View>
+
+                  <ScrollView horizontal>
+                    <View>
+                      <DataTable>
+                        {/* Table Header */}
+                        <DataTable.Header style={{backgroundColor: '#E5E7EB'}}>
+                          <DataTable.Title
+                            style={{width: 100, justifyContent: 'center'}}>
+                            QTY
+                          </DataTable.Title>
+                          <DataTable.Title
+                            style={{width: 80, justifyContent: 'center'}}>
+                            COST
+                          </DataTable.Title>
+                          <DataTable.Title
+                            style={{width: 100, justifyContent: 'center'}}>
+                            TOTAL COST
+                          </DataTable.Title>
+                          <DataTable.Title
+                            style={{width: 100, justifyContent: 'center'}}>
+                            DAYS DELAYED
+                          </DataTable.Title>
+                          <DataTable.Title
+                            style={{width: 80, justifyContent: 'center'}}>
+                            LD
+                          </DataTable.Title>
+                          <DataTable.Title
+                            style={{width: 100, justifyContent: 'flex-end'}}>
+                            TOTAL
+                          </DataTable.Title>
+                        </DataTable.Header>
+
+                        {/* Vertical Scroll */}
+                        <ScrollView style={{maxHeight: 400}}>
+                          {paymentBreakdown.map((item, index) => (
+                            <View
+                              key={index}
+                              style={{
+                                borderBottomWidth: 1,
+                                borderBottomColor: '#D1D5DB',
+                                paddingBottom: 10,
+                                marginBottom: 10,
+                              }}>
+                              <DataTable.Row>
+                                <DataTable.Cell
+                                  style={{
+                                    width: 100,
+                                    justifyContent: 'center',
+                                  }}>
+                                  {item.Qty} {item.Unit}
+                                </DataTable.Cell>
+                                <DataTable.Cell
+                                  style={{width: 80, justifyContent: 'center'}}>
+                                  {item.Amount}
+                                </DataTable.Cell>
+                                <DataTable.Cell
+                                  style={{
+                                    width: 100,
+                                    justifyContent: 'center',
+                                  }}>
+                                  {item.Total}
+                                </DataTable.Cell>
+                                <DataTable.Cell
+                                  style={{
+                                    width: 100,
+                                    justifyContent: 'center',
+                                  }}>
+                                  {Math.floor(item.Days)}
+                                </DataTable.Cell>
+                                <DataTable.Cell
+                                  style={{width: 80, justifyContent: 'center'}}>
+                                  {item.LiquidatedDamages}
+                                </DataTable.Cell>
+                                <DataTable.Cell
+                                  style={{
+                                    width: 100,
+                                    justifyContent: 'flex-end',
+                                  }}>
+                                  {item.TotalLD}
+                                </DataTable.Cell>
+                              </DataTable.Row>
+
+                              {/* Description Below Row */}
+                              <View style={{paddingTop: 10}}>
+                                <Text
+                                  style={{
+                                    fontFamily: 'Oswald-Regular',
+                                    paddingStart: 10,
+                                    color: 'orange',
+                                  }}>
+                                  Description
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => toggleDescription(index)}>
+                                  <Text
+                                    style={{
+                                      flex: 1,
+                                      fontSize: 14,
+                                      fontFamily: 'Oswald-Light',
+                                      paddingRight: 10,
+                                      marginStart: 10,
+                                      color: 'silver',
+                                      marginBottom: 10,
+                                    }}
+                                    numberOfLines={
+                                      expandedIndex === index ? undefined : 3
+                                    }
+                                    ellipsizeMode={
+                                      expandedIndex === index ? 'clip' : 'tail'
+                                    }>
+                                    {removeHtmlTags(item.Description)}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                        </ScrollView>
+                      </DataTable>
+                    </View>
+                  </ScrollView>
+
                   <View>
-                    <DataTable>
-                      {/* Table Header */}
-                      <DataTable.Header style={{ backgroundColor: '#E5E7EB' }}>
-                        <DataTable.Title style={{ width: 100, justifyContent: 'center' }}>QTY</DataTable.Title>
-                        <DataTable.Title style={{ width: 80, justifyContent: 'center' }}>COST</DataTable.Title>
-                        <DataTable.Title style={{ width: 100, justifyContent: 'center' }}>TOTAL COST</DataTable.Title>
-                        <DataTable.Title style={{ width: 100, justifyContent: 'center' }}>DAYS DELAYED</DataTable.Title>
-                        <DataTable.Title style={{ width: 80, justifyContent: 'center' }}>LD</DataTable.Title>
-                        <DataTable.Title style={{ width: 100, justifyContent: 'flex-end' }}>TOTAL</DataTable.Title>
-                      </DataTable.Header>
+                    <View
+                      style={{
+                        alignItems: 'flex-end',
+                        marginRight: 5,
+                        marginTop: 10,
+                        paddingBottom: 10,
+                      }}>
+                      <Text
+                        style={{
+                          textAlign: 'right',
+                          fontFamily: 'Oswald-Regular',
+                          fontSize: 20,
+                          paddingEnd: 10,
+                          color: '#252525',
+                        }}>
+                        {insertCommas(gross.toFixed(2))}
+                      </Text>
+                    </View>
 
-                      {/* Vertical Scroll */}
-                      <ScrollView style={{ maxHeight: 400 }}>
-                        {paymentBreakdown.map((item, index) => (
-                          <View key={index} style={{ borderBottomWidth: 1, borderBottomColor: '#D1D5DB', paddingBottom: 10, marginBottom: 10 }}>
-                            <DataTable.Row>
-                              <DataTable.Cell style={{ width: 100, justifyContent: 'center' }}>
-                                {item.Qty} {item.Unit}
-                              </DataTable.Cell>
-                              <DataTable.Cell style={{ width: 80, justifyContent: 'center' }}>{item.Amount}</DataTable.Cell>
-                              <DataTable.Cell style={{ width: 100, justifyContent: 'center' }}>{item.Total}</DataTable.Cell>
-                              <DataTable.Cell style={{ width: 100, justifyContent: 'center' }}>{Math.floor(item.Days)}</DataTable.Cell>
-                              <DataTable.Cell style={{ width: 80, justifyContent: 'center' }}>{item.LiquidatedDamages}</DataTable.Cell>
-                              <DataTable.Cell style={{ width: 100, justifyContent: 'flex-end' }}>{item.TotalLD}</DataTable.Cell>
-                            </DataTable.Row>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        padding: 10,
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontFamily: 'Oswald-Medium',
+                          color: 'skyblue',
+                        }}>
+                        Computation Breakdown
+                      </Text>
+                    </View>
 
-                            {/* Description Below Row */}
-                            <View style={{ paddingTop: 10 }}>
+                    <View
+                      style={{
+                        padding: 10,
+                        borderWidth: 1,
+                        borderStyle: 'dashed',
+                        borderColor: 'rgba(255,255,255, 0.5)',
+                        margin: 10,
+                      }}>
+                      <View style={{alignItems: 'flex-end'}}>
+                        <View style={{flexDirection: 'row'}}>
+                          <Text
+                            style={{
+                              color: 'silver',
+                              fontFamily: 'Oswald-Regular',
+                            }}>
+                            Gross
+                          </Text>
+                          <Text
+                            style={{
+                              width: 100,
+                              textAlign: 'right',
+                              fontFamily: 'Oswald-Regular',
+                              fontSize: 16,
+                              color: '#252525',
+                            }}>
+                            {insertCommas(gross.toFixed(2))
+                              ? insertCommas(gross.toFixed(2))
+                              : ''}
+                          </Text>
+                        </View>
+
+                        <View style={{flexDirection: 'row'}}>
+                          <Text
+                            style={{
+                              color: 'orange',
+                              textShadowRadius: 1,
+                              textShadowColor: 'gold',
+                              fontFamily: 'Oswald-Regular',
+                            }}>
+                            LESS
+                          </Text>
+                          <Text
+                            style={{
+                              color: 'silver',
+                              fontFamily: 'Oswald-Regular',
+                            }}>
+                            : Liquidated Damages
+                          </Text>
+                          <Text
+                            style={{
+                              width: 100,
+                              textAlign: 'right',
+                              //color: '#F93232',
+                              color: '#252525',
+                              fontFamily: 'Oswald-Regular',
+                              fontSize: 16,
+                            }}>
+                            {computationBreakdown[0].LiquidatedDamages}
+                          </Text>
+                        </View>
+                        <View
+                          style={{
+                            width: 100,
+                            borderWidth: 0.8,
+                            borderColor: 'gray',
+                            borderStyle: 'dashed',
+                          }}></View>
+                        <View style={{flexDirection: 'row'}}>
+                          <Text
+                            style={{
+                              color: 'silver',
+                              fontFamily: 'Oswald-Regular',
+                            }}>
+                            Total
+                          </Text>
+                          <Text
+                            style={{
+                              width: 100,
+                              textAlign: 'right',
+                              fontFamily: 'Oswald-Regular',
+                              fontSize: 16,
+                              color: '#252525',
+                            }}>
+                            {insertCommas(computationBreakdown[0].Amount)}
+                          </Text>
+                        </View>
+
+                        <View style={{flexDirection: 'row', marginTop: 10}}>
+                          <Text
+                            style={{
+                              color: 'silver',
+                              fontFamily: 'Oswald-Regular',
+                            }}>
+                            Non Taxable (5%)
+                          </Text>
+                          <Text
+                            style={{
+                              width: 100,
+                              textAlign: 'right',
+                              fontFamily: 'Oswald-Regular',
+                              fontSize: 16,
+                              color: '#252525',
+                              opacity: 0.8,
+                            }}>
+                            {paymentBreakdown[0].Taxable === '1'
+                              ? '0.00'
+                              : paymentBreakdown[0].Taxable}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <ScrollView
+                        style={
+                          {
+                            /* paddingHorizontal: 10, paddingTop: 20 */
+                          }
+                        }>
+                        {computationBreakdown &&
+                        computationBreakdown[0].Percentage !== 0 ? (
+                          <View>
+                            <Text
+                              style={{
+                                color: 'skyblue',
+                                fontFamily: 'Oswald-Regular',
+                                marginBottom: 10,
+                              }}>
+                              Tax Breakdown
+                            </Text>
+
+                            {/* Line 1 */}
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                              }}>
+                              <Text
+                                style={{
+                                  color: '#252525',
+                                  fontFamily: 'Oswald-Light',
+                                }}>
+                                {computationBreakdown[0]?.CodeType}{' '}
+                                {insertCommas(computationBreakdown[0]?.Amount)}{' '}
+                                / 1.12 (
+                                {insertCommas(
+                                  computationBreakdown[0]?.BaseAmount,
+                                )}
+                                ) × {computationBreakdown[0]?.Percentage}%
+                              </Text>
                               <Text
                                 style={{
                                   fontFamily: 'Oswald-Regular',
-                                  paddingStart: 10,
-                                  color: 'orange',
+                                  color: 'black',
                                 }}>
-                                Description
+                                {computationBreakdown[0]?.PercentageAmount}
                               </Text>
-                              <TouchableOpacity onPress={() => toggleDescription(index)}>
-                                <Text
-                                  style={{
-                                    flex: 1,
-                                    fontSize: 14,
-                                    fontFamily: 'Oswald-Light',
-                                    paddingRight: 10,
-                                    marginStart: 10,
-                                    color: 'silver',
-                                    marginBottom:10
-                                  }}
-                                  numberOfLines={expandedIndex === index ? undefined : 3}
-                                  ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
-                                  {removeHtmlTags(item.Description)}
-                                </Text>
-                              </TouchableOpacity>
+                            </View>
+
+                            {/* Line 2 */}
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                marginTop: 5,
+                              }}>
+                              <Text
+                                style={{
+                                  color: '#252525',
+                                  fontFamily: 'Oswald-Light',
+                                }}>
+                                {computationBreakdown[1]?.CodeType}{' '}
+                                {insertCommas(computationBreakdown[1]?.Amount)}{' '}
+                                / 1.12 (
+                                {insertCommas(
+                                  computationBreakdown[1]?.BaseAmount,
+                                )}
+                                ) × {computationBreakdown[1]?.Percentage}%
+                              </Text>
+                              <Text
+                                style={{
+                                  fontFamily: 'Oswald-Regular',
+                                  color: 'black',
+                                }}>
+                                {computationBreakdown[1]?.PercentageAmount}
+                              </Text>
                             </View>
                           </View>
-                        ))}
-                      </ScrollView>
-                    </DataTable>
-                  </View>
-                </ScrollView>
+                        ) : (
+                          <Text style={{color: 'skyblue'}}>
+                            Tax Breakdown{' '}
+                            <Text style={{color: 'gray'}}>(Tax Exempt)</Text>
+                          </Text>
+                        )}
 
-                    <View>
-                      <View
-                        style={{
-                          alignItems: 'flex-end',
-                          marginRight: 5,
-                          marginTop: 10,
-                          paddingBottom: 10,
-                        }}>
-                        <Text
+                        {/* Dashed line */}
+                        <View
                           style={{
-                            textAlign: 'right',
-                            fontFamily: 'Oswald-Regular',
-                            fontSize: 20,
-                            paddingEnd: 10,
-                            color: '#252525',
-                          }}>
-                          {insertCommas(gross.toFixed(2))}
-                        </Text>
-                      </View>
+                            borderTopWidth: 1,
+                            borderColor: 'gray',
+                            borderStyle: 'dashed',
+                            marginVertical: 10,
+                          }}
+                        />
 
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          padding: 10,
-                        }}>
-                        <Text
+                        {/* Total Tax */}
+                        <View
                           style={{
-                            fontSize: 15,
-                            fontFamily: 'Oswald-Medium',
-                            color:'skyblue',
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
                           }}>
-                          Computation Breakdown
-                        </Text>
-                      </View>
-
-                      <View
-                        style={{
-                          padding: 10,
-                          borderWidth: 1,
-                          borderStyle: 'dashed',
-                          borderColor: 'rgba(255,255,255, 0.5)',
-                          margin: 10,
-                        }}>
-                        <View style={{alignItems: 'flex-end'}}>
-                          <View style={{flexDirection: 'row'}}>
-                            <Text
-                              style={{
-                                color: 'silver',
-                                fontFamily: 'Oswald-Regular',
-                              }}>
-                              Gross
-                            </Text>
-                            <Text
-                              style={{
-                                width: 100,
-                                textAlign: 'right',
-                                fontFamily: 'Oswald-Regular',
-                                fontSize: 16,
-                                color: '#252525',
-                              }}>
-                              {insertCommas(gross.toFixed(2))
-                                ? insertCommas(gross.toFixed(2))
-                                : ''}
-                            </Text>
-                          </View>
-
-                          <View style={{flexDirection: 'row'}}>
+                          <Text>
                             <Text
                               style={{
                                 color: 'orange',
-                                textShadowRadius: 1,
-                                textShadowColor: 'gold',
                                 fontFamily: 'Oswald-Regular',
                               }}>
                               LESS
-                            </Text>
+                            </Text>{' '}
                             <Text
                               style={{
                                 color: 'silver',
                                 fontFamily: 'Oswald-Regular',
                               }}>
-                              : Liquidated Damages
+                              : Total Tax
                             </Text>
-                            <Text
-                              style={{
-                                width: 100,
-                                textAlign: 'right',
-                                //color: '#F93232',
-                                color: '#252525',
-                                fontFamily: 'Oswald-Regular',
-                                fontSize: 16,
-                              }}>
-                              {computationBreakdown[0].LiquidatedDamages}
-                            </Text>
-                          </View>
+                          </Text>
+                          <Text
+                            style={{
+                              fontFamily: 'Oswald-Regular',
+                              fontSize: 16,
+                              color: '#F93232',
+                            }}>
+                            {insertCommas(
+                              (
+                                parseFloat(
+                                  computationBreakdown[0]?.PercentageAmount ||
+                                    0,
+                                ) +
+                                parseFloat(
+                                  computationBreakdown[1]?.PercentageAmount ||
+                                    0,
+                                )
+                              ).toFixed(2),
+                            )}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            marginTop: 10,
+                          }}>
+                          <Text
+                            style={{
+                              color: 'silver',
+                              fontFamily: 'Oswald-Regular',
+                            }}>
+                            Retention
+                          </Text>
+                          <Text
+                            style={{
+                              fontFamily: 'Oswald-Regular',
+                              fontSize: 16,
+                              color: '#F93232',
+                            }}>
+                            {computationBreakdown[0]?.Retention || '0.00'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={{
+                            borderTopWidth: 1,
+                            borderColor: '#ccc',
+                            borderStyle: 'dashed',
+                            marginTop: 15,
+                            paddingTop: 10,
+                          }}>
                           <View
                             style={{
-                              width: 100,
-                              borderWidth: 0.8,
-                              borderColor: 'gray',
-                              borderStyle: 'dashed',
-                            }}></View>
-                          <View style={{flexDirection: 'row'}}>
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                            }}>
                             <Text
                               style={{
-                                color: 'silver',
+                                color: 'gray',
                                 fontFamily: 'Oswald-Regular',
                               }}>
-                              Total
+                              Net Amount
                             </Text>
                             <Text
                               style={{
-                                width: 100,
-                                textAlign: 'right',
                                 fontFamily: 'Oswald-Regular',
-                                fontSize: 16,
+                                fontSize: 20,
                                 color: '#252525',
                               }}>
-                              {insertCommas(computationBreakdown[0].Amount)}
-                            </Text>
-                          </View>
-
-                          <View style={{flexDirection: 'row', marginTop: 10}}>
-                            <Text
-                              style={{
-                                color: 'silver',
-                                fontFamily: 'Oswald-Regular',
-                              }}>
-                              Non Taxable (5%)
-                            </Text>
-                            <Text
-                              style={{
-                                width: 100,
-                                textAlign: 'right',
-                                fontFamily: 'Oswald-Regular',
-                                fontSize: 16,
-                                color: '#252525',
-                                opacity: 0.8,
-                              }}>
-                              {paymentBreakdown[0].Taxable === '1'
-                                ? '0.00'
-                                : paymentBreakdown[0].Taxable}
+                              {insertCommas(computationBreakdown[0].NetAmount)}
                             </Text>
                           </View>
                         </View>
+                      </ScrollView>
+                    </View>
 
-                        <ScrollView style={{ /* paddingHorizontal: 10, paddingTop: 20 */ }}>
-  {computationBreakdown && computationBreakdown[0].Percentage !== 0 ? (
-    <View>
-      <Text
-        style={{
-          color: 'skyblue',
-          fontFamily: 'Oswald-Regular',
-          marginBottom: 10,
-        }}>
-        Tax Breakdown
-      </Text>
-
-      {/* Line 1 */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: '#252525', fontFamily: 'Oswald-Light' }}>
-          {computationBreakdown[0]?.CodeType}{' '}
-          {insertCommas(computationBreakdown[0]?.Amount)} / 1.12 (
-          {insertCommas(computationBreakdown[0]?.BaseAmount)}) ×{' '}
-          {computationBreakdown[0]?.Percentage}%
-        </Text>
-        <Text style={{ fontFamily: 'Oswald-Regular', color:'black' }}>
-          {computationBreakdown[0]?.PercentageAmount}
-        </Text>
-      </View>
-
-      {/* Line 2 */}
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginTop: 5,
-        }}>
-        <Text style={{ color: '#252525', fontFamily: 'Oswald-Light' }}>
-          {computationBreakdown[1]?.CodeType}{' '}
-          {insertCommas(computationBreakdown[1]?.Amount)} / 1.12 (
-          {insertCommas(computationBreakdown[1]?.BaseAmount)}) ×{' '}
-          {computationBreakdown[1]?.Percentage}%
-        </Text>
-        <Text style={{ fontFamily: 'Oswald-Regular', color:'black' }}>
-          {computationBreakdown[1]?.PercentageAmount}
-        </Text>
-      </View>
-    </View>
-  ) : (
-    <Text style={{ color: 'skyblue' }}>
-      Tax Breakdown <Text style={{ color: 'gray' }}>(Tax Exempt)</Text>
-    </Text>
-  )}
-
-  {/* Dashed line */}
-  <View
-    style={{
-      borderTopWidth: 1,
-      borderColor: 'gray',
-      borderStyle: 'dashed',
-      marginVertical: 10,
-    }}
-  />
-
-  {/* Total Tax */}
-  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-    <Text>
-      <Text
-        style={{
-          color: 'orange',
-          fontFamily: 'Oswald-Regular',
-        }}>
-        LESS
-      </Text>{' '}
-      <Text
-        style={{
-          color: 'silver',
-          fontFamily: 'Oswald-Regular',
-        }}>
-        : Total Tax
-      </Text>
-    </Text>
-    <Text
-      style={{
-        fontFamily: 'Oswald-Regular',
-        fontSize: 16,
-        color: '#F93232',
-      }}>
-      {insertCommas(
-        (
-          parseFloat(computationBreakdown[0]?.PercentageAmount || 0) +
-          parseFloat(computationBreakdown[1]?.PercentageAmount || 0)
-        ).toFixed(2)
-      )}
-    </Text>
-  </View>
-
-  <View
-    style={{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 10,
-    }}>
-    <Text style={{ color: 'silver', fontFamily: 'Oswald-Regular' }}>
-      Retention
-    </Text>
-    <Text
-      style={{
-        fontFamily: 'Oswald-Regular',
-        fontSize: 16,
-        color: '#F93232',
-      }}>
-      {computationBreakdown[0]?.Retention || '0.00'}
-    </Text>
-  </View>
-
-  <View
-    style={{
-      borderTopWidth: 1,
-      borderColor: '#ccc',
-      borderStyle: 'dashed',
-      marginTop: 15,
-      paddingTop: 10,
-    }}>
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      <Text
-        style={{
-          color: 'gray',
-          fontFamily: 'Oswald-Regular',
-        }}>
-        Net Amount
-      </Text>
-      <Text
-        style={{
-          fontFamily: 'Oswald-Regular',
-          fontSize: 20,
-          color: '#252525',
-        }}>
-                          {insertCommas(computationBreakdown[0].NetAmount)}
-                          </Text>
-    </View>
-  </View>
-</ScrollView>
-                      </View>
-
-                     {/*  <View
+                    {/*  <View
                         style={{
                           flexDirection: 'row',
                           alignItems: 'center',
@@ -2329,304 +2656,339 @@ const DetailScreen = ({route, navigation}) => {
                           {insertCommas(computationBreakdown[0].NetAmount)}
                         </Text>
                       </View> */}
-                    </View>
                   </View>
+                </View>
+              ) : (
+                <Text>No Breakdown available</Text>
+              )}
+            </View>
+          </View>
+
+          <View ref={remarksRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>REMARKS</Text>
+              </View>
+              <View
+                style={[
+                  styles.cardTable,
+                  {paddingHorizontal: 10, paddingVertical: 10},
+                ]}>
+                {genInformationData?.Remarks1 ? (
+                  <Text style={styles.remarksText}>
+                    {removeHtmlTags(genInformationData.Remarks1)}
+                  </Text>
                 ) : (
-                  <Text>No Breakdown available</Text>
+                  <Text style={styles.noDataText}>No remarks available.</Text>
                 )}
               </View>
             </View>
+          </View>
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>REMARKS</Text>
-          </View>
-            <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-              {genInformationData?.Remarks1 ? (
-                <Text style={styles.remarksText}>
-                  {removeHtmlTags(genInformationData.Remarks1)}
-                </Text>
-              ) : (
-                <Text style={styles.noDataText}>No remarks available.</Text>
-              )}
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>PENDING NOTE</Text>
+              </View>
+              <View
+                style={[
+                  styles.cardTable,
+                  {paddingHorizontal: 10, paddingVertical: 10},
+                ]}>
+                {genInformationData?.Remarks ? (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: '#92400E',
+                      lineHeight: 20,
+                    }}>
+                    {genInformationData.Remarks}
+                  </Text>
+                ) : (
+                  <Text style={styles.noDataText}>
+                    No pending note provided.
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
-          </View>
-
-          <View ref={remarksRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PENDING NOTE</Text>
-          </View>
-            <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-            {genInformationData?.Remarks ? (
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: '#92400E',
-                  lineHeight: 20,
-                }}>
-                {genInformationData.Remarks}
-              </Text>
-            ) : (
-              <Text
-              style={styles.noDataText}>
-                No pending note provided.
-              </Text>
-            )}
-            </View>
-          </View>
           </View>
 
           {genInformationData.Year === '2025' && procurement === '1' && (
-          <View  style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-            <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>DIGITAL COPIES</Text>
-          </View>
+            <View style={{marginTop: 20}}>
+              <View style={styles.cardContainer}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.headerText}>DIGITAL COPIES</Text>
+                </View>
 
-              <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-              {formTypeMap.PX.map((formType, index) => {
-                  const formTypeFiles =
-                    attachmentsFiles?.filter(
-                      fileUrl => fileUrl.split('~')[2] === formType,
-                    ) || [];
+                <View
+                  style={[
+                    styles.cardTable,
+                    {paddingHorizontal: 10, paddingVertical: 10},
+                  ]}>
+                  {formTypeMap.PX.map((formType, index) => {
+                    const formTypeFiles =
+                      attachmentsFiles?.filter(
+                        fileUrl => fileUrl.split('~')[2] === formType,
+                      ) || [];
 
-                  const hasFiles = formTypeFiles.length > 0;
+                    const hasFiles = formTypeFiles.length > 0;
 
-                  return (
-                    <View
-                      key={formType}
-                      style={{
-                        marginVertical: 10,
-                        paddingBottom: 10,
-                        borderBottomWidth: 1,
-                        borderColor: '#e5e7eb',
-                      }}>
+                    return (
                       <View
-                        style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
-                        <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
-                          {`${index + 1}. ${formType}`}
-                        </Text>
-
-                        <TouchableOpacity
-                          disabled={hasFiles}
-                          onPress={() => handleAttachFiles(formType)}
+                        key={formType}
+                        style={{
+                          marginVertical: 10,
+                          paddingBottom: 10,
+                          borderBottomWidth: 1,
+                          borderColor: '#e5e7eb',
+                        }}>
+                        <View
                           style={{
-                            backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                            paddingVertical: 6,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            marginRight: 10,
-                            opacity: hasFiles ? 0.5 : 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            marginBottom: 6,
                           }}>
-                          <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>
-                            Attach Files
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              flex: 1,
+                              fontWeight: 'bold',
+                              color: '#1e293b',
+                            }}>
+                            {`${index + 1}. ${formType}`}
                           </Text>
-                        </TouchableOpacity>
 
-                        <TouchableOpacity
-                          disabled={!hasFiles}
-                          onPress={() => handleRemove(year, trackingNumber, formType)}
-                          style={{
-                            backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-                            paddingVertical: 4,
-                            paddingHorizontal: 12,
-                            borderRadius: 5,
-                            opacity: !hasFiles ? 0.5 : 1,
-                          }}>
-                          <Icon name={'trash-outline'} size={20} color={'white'} />
-                        </TouchableOpacity>
-                      </View>
+                          <TouchableOpacity
+                            disabled={hasFiles}
+                            onPress={() => handleAttachFiles(formType)}
+                            style={{
+                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
+                              paddingVertical: 6,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              marginRight: 10,
+                              opacity: hasFiles ? 0.5 : 1,
+                            }}>
+                            <Text
+                              style={{
+                                color: '#fff',
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                              }}>
+                              Attach Files
+                            </Text>
+                          </TouchableOpacity>
 
-                      <View style={{marginTop: 5}}>
-                        {hasFiles ? (
-                          formTypeFiles.map((fileUrl, fileIndex) => {
-                            const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-                            const fileExtension = fileUrl.split('.').pop();
-                            const uniqueKey = `file-${formType}-${fileIndex}`;
+                          <TouchableOpacity
+                            disabled={!hasFiles}
+                            onPress={() =>
+                              handleRemove(year, trackingNumber, formType)
+                            }
+                            style={{
+                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
+                              paddingVertical: 4,
+                              paddingHorizontal: 12,
+                              borderRadius: 5,
+                              opacity: !hasFiles ? 0.5 : 1,
+                            }}>
+                            <Icon
+                              name={'trash-outline'}
+                              size={20}
+                              color={'white'}
+                            />
+                          </TouchableOpacity>
+                        </View>
 
-                            return (
-                              <View
-                                key={uniqueKey}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  marginTop: 5,
-                                  backgroundColor: '#f1f5f9',
-                                  padding: 10,
-                                  borderRadius: 6,
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    if (fileExtension === 'pdf') {
-                                      Linking.openURL(uniqueUri);
-                                    } else {
-                                      handleImagePress(uniqueUri);
-                                    }
+                        <View style={{marginTop: 5}}>
+                          {hasFiles ? (
+                            formTypeFiles.map((fileUrl, fileIndex) => {
+                              const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
+                              const fileExtension = fileUrl.split('.').pop();
+                              const uniqueKey = `file-${formType}-${fileIndex}`;
+
+                              return (
+                                <View
+                                  key={uniqueKey}
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    marginTop: 5,
+                                    backgroundColor: '#f1f5f9',
+                                    padding: 10,
+                                    borderRadius: 6,
                                   }}>
-                                  <Text style={{color: '#1e293b', fontSize: 12}}>
-                                    {fileUrl.split('~').slice(-2).join('~')}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            );
-                          })
-                        ) : (
-                          <Text style={{color: '#9ca3af', fontSize: 12}}>
-                            No attached files
-                          </Text>
-                        )}
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      if (fileExtension === 'pdf') {
+                                        Linking.openURL(uniqueUri);
+                                      } else {
+                                        handleImagePress(uniqueUri);
+                                      }
+                                    }}>
+                                    <Text
+                                      style={{color: '#1e293b', fontSize: 12}}>
+                                      {fileUrl.split('~').slice(-2).join('~')}
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              );
+                            })
+                          ) : (
+                            <Text style={{color: '#9ca3af', fontSize: 12}}>
+                              No attached files
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </View>
             </View>
-          </View>
           )}
 
-        <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 3,
-              elevation: 2,
-              marginHorizontal: 16,
-              overflow: 'hidden',
-            }}>
-           <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
-          </View>
-
-            <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-              {/* Table Header */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  paddingBottom: 8,
-                  borderBottomWidth: 1,
-                  borderColor: '#E5E7EB',
-                  marginBottom: 6,
-                }}>
-                <View style={{ flex: 1 }} />
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    DATE
-                  </Text>
-                </View>
-                <View style={{ flex: 5 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    STATUS
-                  </Text>
-                </View>
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                      textAlign: 'right',
-                    }}>
-                    COMPLETION
-                  </Text>
-                </View>
+          <View ref={transactionHistoryRef} style={{marginTop: 20}}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                shadowColor: '#000',
+                shadowOffset: {width: 0, height: 1},
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+                marginHorizontal: 16,
+                overflow: 'hidden',
+              }}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
               </View>
 
-              {/* Table Body */}
-              {transactionHistory && transactionHistory.length > 0 ? (
-                transactionHistory.map((item, index) => (
-                  <View key={index}>
-                    <View
+              <View style={{paddingVertical: 12, paddingHorizontal: 14}}>
+                {/* Table Header */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    paddingBottom: 8,
+                    borderBottomWidth: 1,
+                    borderColor: '#E5E7EB',
+                    marginBottom: 6,
+                  }}>
+                  <View style={{flex: 1}} />
+                  <View style={{flex: 3}}>
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
-                        borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
                       }}>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'center',
-                          }}>
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#4B5563',
-                          }}>
-                          {item.DateModified}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 5 }}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: '#1F2937',
-                            fontWeight: '500',
-                          }}>
-                          {item.Status}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'right',
-                            marginEnd:10
-                          }}>
-                          {removeHtmlTags(item.Completion)}
-                        </Text>
-                      </View>
-                    </View>
+                      DATE
+                    </Text>
+                  </View>
+                  <View style={{flex: 5}}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                      }}>
+                      STATUS
+                    </Text>
+                  </View>
+                  <View style={{flex: 3}}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                        textAlign: 'right',
+                      }}>
+                      COMPLETION
+                    </Text>
+                  </View>
+                </View>
 
-                    {index !== transactionHistory.length - 1 && (
+                {/* Table Body */}
+                {transactionHistory && transactionHistory.length > 0 ? (
+                  transactionHistory.map((item, index) => (
+                    <View key={index}>
                       <View
                         style={{
-                          height: 1,
-                          backgroundColor: '#E5E7EB',
-                          marginVertical: 6,
-                        }}
-                      />
-                    )}
-                  </View>
-                ))
-              ) : (
-                <Text
-                  style={{
-                    color: '#9CA3AF',
-                    fontSize: 12,
-                    textAlign: 'center',
-                    marginTop: 10,
-                  }}>
-                  No Transaction History available
-                </Text>
-              )}
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          backgroundColor:
+                            index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
+                          borderRadius:
+                            index === transactionHistory.length - 1 ? 12 : 0,
+                        }}>
+                        <View style={{flex: 1}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#6B7280',
+                              textAlign: 'center',
+                            }}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <View style={{flex: 3}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#4B5563',
+                            }}>
+                            {item.DateModified}
+                          </Text>
+                        </View>
+                        <View style={{flex: 5}}>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: '#1F2937',
+                              fontWeight: '500',
+                            }}>
+                            {item.Status}
+                          </Text>
+                        </View>
+                        <View style={{flex: 3}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#6B7280',
+                              textAlign: 'right',
+                              marginEnd: 10,
+                            }}>
+                            {removeHtmlTags(item.Completion)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {index !== transactionHistory.length - 1 && (
+                        <View
+                          style={{
+                            height: 1,
+                            backgroundColor: '#E5E7EB',
+                            marginVertical: 6,
+                          }}
+                        />
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <Text
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: 12,
+                      textAlign: 'center',
+                      marginTop: 10,
+                    }}>
+                    No Transaction History available
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
-        </View>
 
           <View style={{height: 500}} />
         </ScrollView>
@@ -2648,121 +3010,176 @@ const DetailScreen = ({route, navigation}) => {
     ) {
       return (
         <ScrollView ref={scrollViewRef}>
-
           <View ref={genInfoRef} style={{marginTop: 10}}>
-                <View style={styles.cardContainer}>
-                <View style={styles.cardHeader}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
                 <Text style={styles.headerText}>GENERAL INFORMATION</Text>
-                </View>
-                {[
-                  {label: 'Office', value: genInformationData.OfficeName?.replace(/\\/g, ''),},
-                  {label: 'Status', value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,},
-                  {label: 'Classification', value: genInformationData.ComplexLabel},
-                  { label: 'Claimant', value: genInformationData.Claimant },
-                  ...(genInformationData.TrackingPartner ? [{ label: 'TN Partner', value: genInformationData.TrackingPartner }] : []),
-                  ...(genInformationData.BatchTracking ? [{ label: 'SLP Tracking', value: genInformationData.BatchTracking }] : []),
-                  ...(genInformationData.DocumentType === 'SLP' && genInformationData.ControlNo
-                    ? [{ label: 'Ctrl Number', value: genInformationData.ControlNo }]
-                    : []),
-                    ...(genInformationData.ControlNo && genInformationData.ControlNo >= 1
-                      ? [{ label: 'Ctrl Number', value: genInformationData.ControlNo }]
-                      : []),
-                      ...(genInformationData.PR_ProgramCode || genInformationData.ADV || genInformationData.OBR_Number
+              </View>
+              {[
+                {
+                  label: 'Office',
+                  value: genInformationData.OfficeName?.replace(/\\/g, ''),
+                },
+                {
+                  label: 'Status',
+                  value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
+                },
+                {
+                  label: 'Classification',
+                  value: genInformationData.ComplexLabel,
+                },
+                {label: 'Claimant', value: genInformationData.Claimant},
+                ...(genInformationData.TrackingPartner
+                  ? [
+                      {
+                        label: 'TN Partner',
+                        value: genInformationData.TrackingPartner,
+                      },
+                    ]
+                  : []),
+                ...(genInformationData.BatchTracking
+                  ? [
+                      {
+                        label: 'SLP Tracking',
+                        value: genInformationData.BatchTracking,
+                      },
+                    ]
+                  : []),
+                ...(genInformationData.DocumentType === 'SLP' &&
+                genInformationData.ControlNo
+                  ? [
+                      {
+                        label: 'Ctrl Number',
+                        value: genInformationData.ControlNo,
+                      },
+                    ]
+                  : []),
+                ...(genInformationData.ControlNo &&
+                genInformationData.ControlNo >= 1
+                  ? [
+                      {
+                        label: 'Ctrl Number',
+                        value: genInformationData.ControlNo,
+                      },
+                    ]
+                  : []),
+                ...(genInformationData.PR_ProgramCode ||
+                genInformationData.ADV ||
+                genInformationData.OBR_Number
+                  ? [
+                      ...(genInformationData.ADV
+                        ? [{label: 'ADV Number', value: genInformationData.ADV}]
+                        : []),
+                      ...(genInformationData.OBR_Number
                         ? [
-                            ...(genInformationData.ADV ? [{ label: 'ADV Number', value: genInformationData.ADV }] : []),
-                            ...(genInformationData.OBR_Number ? [{ label: 'OBR Number', value: genInformationData.OBR_Number }] : []),
+                            {
+                              label: 'OBR Number',
+                              value: genInformationData.OBR_Number,
+                            },
                           ]
                         : []),
-                      
-                  {label: 'Document', value: genInformationData.DocumentType},
-                  {label: 'Period', value: genInformationData.PeriodMonth},
-                  {label: 'Claim Type', value: genInformationData.ClaimType},
-                  {label: 'Fund', value: genInformationData.Fund},
-                  ...(genInformationData.DocumentType?.startsWith('WAGES')
+                    ]
+                  : []),
+
+                {label: 'Document', value: genInformationData.DocumentType},
+                {label: 'Period', value: genInformationData.PeriodMonth},
+                {label: 'Claim Type', value: genInformationData.ClaimType},
+                {label: 'Fund', value: genInformationData.Fund},
+                ...(genInformationData.DocumentType?.startsWith('WAGES')
                   ? []
                   : [
-                      { label: 'Check Number', value: genInformationData.CheckNumber },
-                      { label: 'Check Date', value: genInformationData.CheckDate },
+                      {
+                        label: 'Check Number',
+                        value: genInformationData.CheckNumber,
+                      },
+                      {
+                        label: 'Check Date',
+                        value: genInformationData.CheckDate,
+                      },
                     ]),
-                                  {label: 'Net Amount', value: insertCommas(genInformationData.NetAmount)},
-                  {label: 'Encoded By', value: genInformationData.EncodedBy},
-                  {label: 'Date Encoded', value: genInformationData.DateEncoded},
-                  {label: 'Date Updated', value: genInformationData.DateModified},
-                ].map((item, index) => (
-                  <View key={index} style={{ marginVertical: 5 }}>
+                {
+                  label: 'Net Amount',
+                  value: insertCommas(genInformationData.NetAmount),
+                },
+                {label: 'Encoded By', value: genInformationData.EncodedBy},
+                {label: 'Date Encoded', value: genInformationData.DateEncoded},
+                {label: 'Date Updated', value: genInformationData.DateModified},
+              ].map((item, index) => (
+                <View key={index} style={{marginVertical: 5}}>
                   <View
                     style={{
                       flexDirection: 'row',
                       flexWrap: 'wrap',
                       paddingVertical: 4,
-                      paddingHorizontal:10
-                    }}
-                  >
+                      paddingHorizontal: 10,
+                    }}>
                     <Text
                       style={{
                         fontSize: 12,
-                        color: '#777', 
-                        fontWeight: '400', 
+                        color: '#777',
+                        fontWeight: '400',
                         width: '35%',
-                      }}
-                    >
+                      }}>
                       {item.label}
                     </Text>
                     <Text
                       style={{
                         fontSize: 14,
-                        color: '#222', 
+                        color: '#222',
                         fontWeight: 'bold',
                         width: '65%',
                         paddingLeft: 12,
-                      }}
-                    >
+                      }}>
                       {item.value || '—'}
                     </Text>
                   </View>
                   {index !== item.length - 1 && (
-                    <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
+                    <View
+                      style={{height: 1, backgroundColor: '#eee', marginTop: 6}}
+                    />
                   )}
                 </View>
-                ))}
-              </View>
+              ))}
+            </View>
           </View>
 
-          <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
               <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>AUDIT AND COMPLIANCE OFFICERS</Text>
-                </View>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    paddingHorizontal: 10,
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Light',
-                      fontSize: 14,
-                      color: 'silver',
-                    }}>
-                    Accounting Evaluator{' '}
-                  </Text>
-                  <Text
-                    style={{
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: 'gray',
-                      marginStart: 10,
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 14,
-                      color: 'black',
-                    }}>
-                    {genInformationData.CAOOfficerName &&
-                    genInformationData.CAOOfficerName !== null
-                      ? genInformationData.CAOOfficerName
-                      : '            '}
-                  </Text>
-                </View>
+                <Text style={styles.headerText}>
+                  AUDIT AND COMPLIANCE OFFICERS
+                </Text>
               </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  padding: 10,
+                  paddingHorizontal: 10,
+                }}>
+                <Text
+                  style={{
+                    fontFamily: 'Oswald-Light',
+                    fontSize: 14,
+                    color: 'silver',
+                  }}>
+                  Accounting Evaluator{' '}
+                </Text>
+                <Text
+                  style={{
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: 'gray',
+                    marginStart: 10,
+                    fontFamily: 'Oswald-Regular',
+                    fontSize: 14,
+                    color: 'black',
+                  }}>
+                  {genInformationData.CAOOfficerName &&
+                  genInformationData.CAOOfficerName !== null
+                    ? genInformationData.CAOOfficerName
+                    : '            '}
+                </Text>
+              </View>
+            </View>
           </View>
 
           {genInformationData.DocumentType.includes('SLP') && (
@@ -2927,253 +3344,282 @@ const DetailScreen = ({route, navigation}) => {
             !genInformationData.DocumentType.includes('SLP')  */}
 
           {genInformationData.PR_ProgramCode && (
-           <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-           <View style={styles.cardContainer}>
-           <View style={styles.cardHeader}>
-           <Text style={styles.headerText}>OBR INFORMATION</Text>
-           </View>
- 
-             <View style={styles.cardTable}>
-               <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
-               <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
-                 <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
-                 <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
-               </View>
- 
-               {OBRInformation && OBRInformation.length > 0 ? (
-             OBRInformation.map((item, index) => (
-               <View
-                 key={index}
-                 style={[
-                   styles.tableRow,
-                   {
-                     flexDirection: 'row',
-                     borderBottomWidth: 1,
-                     borderBottomColor: '#E5E7EB',
-                     paddingVertical: 5,
-                     alignItems:'baseline'
-                   },
-                 ]}
-               >
-                 {/* PROGRAM */}
-                 <View style={{ flex: 1 }}>
-                   <View>
-                     <Text style={styles.tableRowMain}>{item.PR_ProgramCode}</Text>
-                   </View>
-                   <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
-                 </View>
- 
-                 {/* CODE */}
-                 <View style={{ flex: 1 }}>
-                   <View>
-                     <Text style={styles.tableRowMain}>{item.PR_AccountCode}</Text>
-                   </View>
-                   <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
-                 </View>
- 
-                 {/* AMOUNT */}
-                 <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
-                   <Text style={styles.tableRowMain}>{insertCommas(item.Amount)}</Text>
-                 </View>
-               </View>
-             ))
-           ) : (
-             <Text style={styles.noDataText}>No data available</Text>
-           )}
- 
- 
-               <View style={styles.totalContainer}>
-                 <Text style={[styles.totalAmount, {marginEnd:5}]}>
-                   {insertCommas(totalAmount.toFixed(2))}
-                 </Text>
-               </View>
-             </View>
-           </View>
-           </View>
+            <View ref={obrInfoRef} style={{marginTop: 20}}>
+              <View style={styles.cardContainer}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.headerText}>OBR INFORMATION</Text>
+                </View>
+
+                <View style={styles.cardTable}>
+                  <View
+                    style={[styles.tableHeader, {backgroundColor: '#E5E7EB'}]}>
+                    <Text style={[styles.tableHeaderText, {flex: 1}]}>
+                      PROGRAM
+                    </Text>
+                    <Text style={[styles.tableHeaderText, {flex: 1}]}>
+                      CODE
+                    </Text>
+                    <Text style={[styles.tableHeaderTextRight, {flex: 1}]}>
+                      AMOUNT
+                    </Text>
+                  </View>
+
+                  {OBRInformation && OBRInformation.length > 0 ? (
+                    OBRInformation.map((item, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.tableRow,
+                          {
+                            flexDirection: 'row',
+                            borderBottomWidth: 1,
+                            borderBottomColor: '#E5E7EB',
+                            paddingVertical: 5,
+                            alignItems: 'baseline',
+                          },
+                        ]}>
+                        {/* PROGRAM */}
+                        <View style={{flex: 1}}>
+                          <View>
+                            <Text style={styles.tableRowMain}>
+                              {item.PR_ProgramCode}
+                            </Text>
+                          </View>
+                          <Text style={styles.tableRowSub}>
+                            {item.ProgramName}
+                          </Text>
+                        </View>
+
+                        {/* CODE */}
+                        <View style={{flex: 1}}>
+                          <View>
+                            <Text style={styles.tableRowMain}>
+                              {item.PR_AccountCode}
+                            </Text>
+                          </View>
+                          <Text style={styles.tableRowSub}>
+                            {item.AccountTitle}
+                          </Text>
+                        </View>
+
+                        {/* AMOUNT */}
+                        <View
+                          style={{
+                            flex: 1,
+                            alignItems: 'flex-end',
+                            justifyContent: 'center',
+                          }}>
+                          <Text style={styles.tableRowMain}>
+                            {insertCommas(item.Amount)}
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.noDataText}>No data available</Text>
+                  )}
+
+                  <View style={styles.totalContainer}>
+                    <Text style={[styles.totalAmount, {marginEnd: 5}]}>
+                      {insertCommas(totalAmount.toFixed(2))}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
           )}
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-                    <View style={styles.cardContainer}>
-                    <View style={styles.cardHeader}>
-                    <Text style={styles.headerText}>REMARKS</Text>
-                    </View>
-                      <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-                        {genInformationData?.Remarks1 ? (
-                          <Text style={styles.remarksText}>
-                            {removeHtmlTags(genInformationData.Remarks1)}
-                          </Text>
-                        ) : (
-                          <Text style={styles.noDataText}>No remarks available.</Text>
-                        )}
-                      </View>
-                    </View>
-           </View>
-
-          <View ref={remarksRef} style={{ marginTop: 20 }}>
-          <View style={styles.cardContainer}>
-          <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>PENDING NOTE</Text>
-          </View>
-            <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-            {genInformationData?.Remarks ? (
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: '#92400E',
-                  lineHeight: 20,
-                }}>
-                {genInformationData.Remarks}
-              </Text>
-            ) : (
-              <Text
-              style={styles.noDataText}>
-                No pending note provided.
-              </Text>
-            )}
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>REMARKS</Text>
+              </View>
+              <View
+                style={[
+                  styles.cardTable,
+                  {paddingHorizontal: 10, paddingVertical: 10},
+                ]}>
+                {genInformationData?.Remarks1 ? (
+                  <Text style={styles.remarksText}>
+                    {removeHtmlTags(genInformationData.Remarks1)}
+                  </Text>
+                ) : (
+                  <Text style={styles.noDataText}>No remarks available.</Text>
+                )}
+              </View>
             </View>
           </View>
-          </View>
 
-          <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 3,
-              elevation: 2,
-              marginHorizontal: 16,
-              overflow: 'hidden',
-            }}>
-           <View style={styles.cardHeader}>
-          <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
-          </View>
-
-            <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-              {/* Table Header */}
+          <View ref={remarksRef} style={{marginTop: 20}}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>PENDING NOTE</Text>
+              </View>
               <View
-                style={{
-                  flexDirection: 'row',
-                  paddingBottom: 8,
-                  borderBottomWidth: 1,
-                  borderColor: '#E5E7EB',
-                  marginBottom: 6,
-                }}>
-                <View style={{ flex: 1 }} />
-                <View style={{ flex: 3 }}>
+                style={[
+                  styles.cardTable,
+                  {paddingHorizontal: 10, paddingVertical: 10},
+                ]}>
+                {genInformationData?.Remarks ? (
                   <Text
                     style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
+                      fontSize: 13,
+                      color: '#92400E',
+                      lineHeight: 20,
                     }}>
-                    DATE
+                    {genInformationData.Remarks}
                   </Text>
-                </View>
-                <View style={{ flex: 5 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                    }}>
-                    STATUS
+                ) : (
+                  <Text style={styles.noDataText}>
+                    No pending note provided.
                   </Text>
-                </View>
-                <View style={{ flex: 3 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: '#9CA3AF',
-                      fontWeight: '500',
-                      textAlign: 'right',
-                    }}>
-                    COMPLETION
-                  </Text>
-                </View>
+                )}
+              </View>
+            </View>
+          </View>
+
+          <View ref={transactionHistoryRef} style={{marginTop: 20}}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                shadowColor: '#000',
+                shadowOffset: {width: 0, height: 1},
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+                marginHorizontal: 16,
+                overflow: 'hidden',
+              }}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
               </View>
 
-              {/* Table Body */}
-              {transactionHistory && transactionHistory.length > 0 ? (
-                transactionHistory.map((item, index) => (
-                  <View key={index}>
-                    <View
+              <View style={{paddingVertical: 12, paddingHorizontal: 14}}>
+                {/* Table Header */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    paddingBottom: 8,
+                    borderBottomWidth: 1,
+                    borderColor: '#E5E7EB',
+                    marginBottom: 6,
+                  }}>
+                  <View style={{flex: 1}} />
+                  <View style={{flex: 3}}>
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
-                        borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
                       }}>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'center',
-                          }}>
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#4B5563',
-                          }}>
-                          {item.DateModified}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 5 }}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: '#1F2937',
-                            fontWeight: '500',
-                          }}>
-                          {item.Status}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: '#6B7280',
-                            textAlign: 'right',
-                            marginEnd:10
-                          }}>
-                          {removeHtmlTags(item.Completion)}
-                        </Text>
-                      </View>
-                    </View>
+                      DATE
+                    </Text>
+                  </View>
+                  <View style={{flex: 5}}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                      }}>
+                      STATUS
+                    </Text>
+                  </View>
+                  <View style={{flex: 3}}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                        textAlign: 'right',
+                      }}>
+                      COMPLETION
+                    </Text>
+                  </View>
+                </View>
 
-                    {index !== transactionHistory.length - 1 && (
+                {/* Table Body */}
+                {transactionHistory && transactionHistory.length > 0 ? (
+                  transactionHistory.map((item, index) => (
+                    <View key={index}>
                       <View
                         style={{
-                          height: 1,
-                          backgroundColor: '#E5E7EB',
-                          marginVertical: 6,
-                        }}
-                      />
-                    )}
-                  </View>
-                ))
-              ) : (
-                <Text
-                  style={{
-                    color: '#9CA3AF',
-                    fontSize: 12,
-                    textAlign: 'center',
-                    marginTop: 10,
-                  }}>
-                  No Transaction History available
-                </Text>
-              )}
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          backgroundColor:
+                            index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
+                          borderRadius:
+                            index === transactionHistory.length - 1 ? 12 : 0,
+                        }}>
+                        <View style={{flex: 1}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#6B7280',
+                              textAlign: 'center',
+                            }}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <View style={{flex: 3}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#4B5563',
+                            }}>
+                            {item.DateModified}
+                          </Text>
+                        </View>
+                        <View style={{flex: 5}}>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: '#1F2937',
+                              fontWeight: '500',
+                            }}>
+                            {item.Status}
+                          </Text>
+                        </View>
+                        <View style={{flex: 3}}>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: '#6B7280',
+                              textAlign: 'right',
+                              marginEnd: 10,
+                            }}>
+                            {removeHtmlTags(item.Completion)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {index !== transactionHistory.length - 1 && (
+                        <View
+                          style={{
+                            height: 1,
+                            backgroundColor: '#E5E7EB',
+                            marginVertical: 6,
+                          }}
+                        />
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <Text
+                    style={{
+                      color: '#9CA3AF',
+                      fontSize: 12,
+                      textAlign: 'center',
+                      marginTop: 10,
+                    }}>
+                    No Transaction History available
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
-        </View>
 
           <View style={{height: 500}} />
         </ScrollView>
@@ -3213,26 +3659,30 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const parallaxHeaderTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT * PARALLAX_FACTOR], // Moves up
+    extrapolate: 'clamp', // Clamps the output so it doesn't go beyond the range
+  });
+
+  // Optional: Scale the header slightly for a more immersive effect
+  const parallaxHeaderScale = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0, HEADER_HEIGHT], // Allow pull-down effect
+    outputRange: [1.2, 1, 1], // Scales up when pulled down, normal when at top, normal when scrolled
+    extrapolate: 'clamp',
+  });
+
   return (
     <BottomSheetModalProvider>
-        <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-        <StatusBar barStyle="light-content"  backgroundColor="#1E3A8A" />
-        <View style={styles.container}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 10,
-              position: 'relative',
-              paddingTop: 20,
-              borderBottomWidth:1,
-              borderBottomColor:'#E5E7EB'
-            }}>
-            <View
+      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+       {/*  <StatusBar barStyle="light-content" translucent={true} /> */}
+        <View
               style={{
                 position: 'absolute',
                 left: 10,
+                marginTop:50,
                 borderRadius: 999,
                 overflow: 'hidden',
               }}>
@@ -3251,82 +3701,67 @@ const DetailScreen = ({route, navigation}) => {
                 <Icon name="chevron-back-outline" size={26} color="gray" />
               </Pressable>
             </View>
-            <View style={{alignItems: 'center', rowGap: -5}}>
-              {genInformationData ? (
-                <>
-                  <Text
-                    style={{
-                      color: '#252525',
-                      fontSize: 20,
-                      fontFamily: 'Oswald-Medium',
-                      lineHeight: 22,
-                    }}>
-                    {genInformationData.TrackingNumber}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontFamily: 'Oswald-Regular',
-                      color: 'gray',
-                      fontStyle: 'italic',
-                    }}>
-                    Doctrack{' '}
-                    <Text
-                      style={{
-                        fontFamily: 'Oswald-Medium',
-                        fontSize: 12,
-                        lineHeight: 20,
-                        color: '#252525',
-                        fontStyle: 'italic',
-                      }}>
-                      {year}
-                    </Text>
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontSize: 20,
-                      fontFamily: 'Oswald-Medium',
-                      lineHeight: 22,
-                    }}>
-                    {''}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontFamily: 'Oswald-Regular',
-                      color: '#FFFFFF',
-                    }}></Text>
-                </>
-              )}
-            </View>
-          </View>
-
-          {genInfoLoading ? (
-            <View>
-              <Loading />
-            </View>
-            
-          ) : (
-            <View style={{height: '100%', paddingBottom: 55}}>
-              {(() => {
-                switch (selectedItem.TrackingType) {
-                  case 'PR':
-                    return renderDetailsPRRequest();
-                  case 'PO':
-                    return renderDetailsPOOrder();
-                  case 'PX':
-                    return renderDetailsPayment();
-                  default:
-                    return renderOtherDetails();
-                }
-              })()}
-            </View>
+        <Animated.ScrollView
+          // Use Animated.ScrollView for direct linking of scroll events to Animated.Value
+          onScroll={Animated.event(
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: true}, // Crucial for performance
           )}
-        </View>
+          scrollEventThrottle={16} // Fires the event every 16ms (for 60fps)
+          showsVerticalScrollIndicator={false} // Hide scroll indicator
+        >
+          <Animated.View
+            style={[
+              styles.parallaxHeaderContainer,
+              {
+                transform: [
+                  {translateY: parallaxHeaderTranslateY},
+                  {scale: parallaxHeaderScale},
+                ],
+              },
+            ]}>
+            <ImageBackground
+              source={require('../../assets/images/CirclesBG.png')} // Replace with your image
+              style={styles.backgroundImage}
+              resizeMode="cover">
+                 
+              <View style={styles.headerContent}>
+                
+                <Text style={styles.headerTitle}>
+                  {genInformationData?.TrackingType} -{' '}
+                  {genInformationData?.Status}
+                </Text>
+                <Text style={styles.headerSubtitle}>
+                  {genInformationData?.Year} -{' '}
+                  {genInformationData?.TrackingNumber}
+                </Text>
+              </View>
+            </ImageBackground>
+          </Animated.View>
+
+          <View style={styles.contentContainer}>
+            {genInfoLoading ? (
+              <View>
+                <Loading />
+              </View>
+            ) : (
+              <View style={{height: '100%', paddingBottom: 55}}>
+                {(() => {
+                  switch (selectedItem.TrackingType) {
+                    case 'PR':
+                      return renderDetailsPRRequest();
+                    case 'PO':
+                      return renderDetailsPOOrder();
+                    case 'PX':
+                      return renderDetailsPayment();
+                    default:
+                      return renderOtherDetails();
+                  }
+                })()}
+              </View>
+            )}
+          </View>
+        </Animated.ScrollView>
 
         <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
           <View
@@ -3483,25 +3918,24 @@ const styles = StyleSheet.create({
   },
   column: {
     //marginHorizontal: 6,
-    marginRight:10,
+    marginRight: 10,
     //paddingHorizontal:10,
     //borderWidth:1
     //minWidth: 80,
     //borderRightWidth:1,
-    borderRightColor:'silver'
+    borderRightColor: 'silver',
   },
   columnHeader: {
     fontSize: 12,
     marginBottom: 6,
     textAlign: 'center',
-    paddingVertical:5,
-    borderBottomWidth:1
+    paddingVertical: 5,
+    borderBottomWidth: 1,
   },
   columnValue: {
     fontSize: 11,
     textAlign: 'center',
     fontWeight: 'bold',
-
   },
   label: {
     width: 75,
@@ -3601,7 +4035,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Oswald-Light',
     fontSize: 10,
     paddingRight: 5,
-    color: 'white', 
+    color: 'white',
   },
   particularsText: {
     fontSize: 14,
@@ -3609,12 +4043,12 @@ const styles = StyleSheet.create({
   },
   zoomableContainer: {
     flex: 1,
-    position: 'absolute', 
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', 
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -3627,21 +4061,21 @@ const styles = StyleSheet.create({
   cardHeader: {
     paddingVertical: 10,
     paddingHorizontal: 15,
-    borderBottomWidth:1,
-    borderColor:'silver'
+    borderBottomWidth: 1,
+    borderColor: 'silver',
   },
   headerText: {
     fontSize: 15,
     //color: '#ffffff',
-    fontWeight:'700',
-    color:'rgb(63,129,160)',
+    fontWeight: '700',
+    color: 'rgb(63,129,160)',
     //letterSpacing: 0.5,
   },
   cardDetails: {
     paddingVertical: 16,
     paddingHorizontal: 18,
     backgroundColor: '#f9f9f9',
-    justifyContent:'space-between'
+    justifyContent: 'space-between',
   },
   label: {
     fontSize: 13,
@@ -3669,7 +4103,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
-    backgroundColor:'#CCCCCC'
+    backgroundColor: '#CCCCCC',
   },
 
   tableHeaderText: {
@@ -3677,7 +4111,7 @@ const styles = StyleSheet.create({
     //fontFamily: 'Inter_28pt-Regular',
     color: '#252525',
     fontSize: 10,
-    marginHorizontal:10,
+    marginHorizontal: 10,
   },
 
   tableHeaderTextRight: {
@@ -3685,9 +4119,8 @@ const styles = StyleSheet.create({
     //fontFamily: 'Inter_28pt-Regular',
     color: '#252525',
     fontSize: 12,
-    marginHorizontal:10,
+    marginHorizontal: 10,
     textAlign: 'right',
-
   },
   tableRowHeader: {
     flexDirection: 'row',
@@ -3700,13 +4133,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 6,
-    marginHorizontal:10,
+    marginHorizontal: 10,
     //alignItems:'center'
   },
 
   tableRowMain: {
     //fontFamily: 'Inter_28pt-Regular',
-    fontWeight:'500',
+    fontWeight: '500',
     fontSize: 13,
     color: '#252525',
   },
@@ -3726,8 +4159,8 @@ const styles = StyleSheet.create({
   noDataText: {
     color: 'silver',
     paddingVertical: 5,
-    padding:10,
-    fontWeight:'400',
+    padding: 10,
+    fontWeight: '400',
   },
 
   totalContainer: {
@@ -3740,6 +4173,53 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 20,
     fontFamily: 'Oswald-Regular',
+  },
+  parallaxHeaderContainer: {
+    height: HEADER_HEIGHT,
+    width: width,
+    overflow: 'hidden', // Crucial to prevent content from spilling out during transform
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerContent: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 50,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    fontSize: 18,
+    color: '#fff',
+  },
+  contentContainer: {
+    backgroundColor: '#fff',
+    // padding: 20,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    marginTop: -15, // Bring content slightly over the header image
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#333',
+  },
+  bodyText: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 10,
+    color: '#555',
   },
 });
 

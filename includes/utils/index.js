@@ -21,7 +21,7 @@ export const years = Array.from(
 
 export const currentYear = new Date().getFullYear();
 
-export const {width} = Dimensions.get('window');
+export const {width, height} = Dimensions.get('window');
 
 export const removeHtmlTags = text => {
   if (!text) return '';

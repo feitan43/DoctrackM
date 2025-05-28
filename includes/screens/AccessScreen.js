@@ -376,7 +376,6 @@ const AccessScreen = ({navigation}) => {
         </View>
       </View>
 
-      {/* System Filters */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={styles.filterToggleButton}

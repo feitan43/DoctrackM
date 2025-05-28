@@ -85,7 +85,6 @@ const SystemAccessToggle = ({system, employeeAccess, onToggle, currentlyUpdating
   );
 };
 
-
 const SuperAccessScreen = ({navigation}) => {
   const [searchText, setSearchText] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -95,7 +94,6 @@ const SuperAccessScreen = ({navigation}) => {
   const {mutateAsync: fetchAccess, isPending, error} = useUserSuperAccess();
   const {mutateAsync: updateUserAccess} = useUpdateUserSuperAccess();
   const { data: dynamicSystemsList, isLoading: loadingSystems, error: systemsError } = useSystemsList();
-  console.log(dynamicSystemsList)
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim();

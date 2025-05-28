@@ -40,7 +40,7 @@ const useSearchTrack = (searchText, selectedYear, search, searchQuery) => {
 
       if (response.ok) {
         data = await response.json();
-        console.log('DATA: ', data)
+        //console.log('DATA: ', data)
         setSearchTrackData(data);
       } else {
         setSearchTrackData(null);

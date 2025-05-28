@@ -30,19 +30,42 @@ const SettingItem = ({
   disabled = false, // Add a disabled prop for visual feedback
 }) => {
   return (
-    <View style={[settingItemStyles.settingItemContainer, disabled && settingItemStyles.disabledContainer]}>
+    <View
+      style={[
+        settingItemStyles.settingItemContainer,
+        disabled && settingItemStyles.disabledContainer,
+      ]}>
       <View style={settingItemStyles.settingIconTextWrapper}>
-        <Icon name={iconName} size={28} color={disabled ? '#BDBDBD' : '#424242'} style={settingItemStyles.settingIcon} />
+        <Icon
+          name={iconName}
+          size={28}
+          color={disabled ? '#BDBDBD' : '#424242'}
+          style={settingItemStyles.settingIcon}
+        />
         <View style={settingItemStyles.settingTextContent}>
           <View style={settingItemStyles.titleAndBadge}>
-            <Text style={[settingItemStyles.settingTitle, disabled && settingItemStyles.disabledText]}>{title}</Text>
+            <Text
+              style={[
+                settingItemStyles.settingTitle,
+                disabled && settingItemStyles.disabledText,
+              ]}>
+              {title}
+            </Text>
             {showStatusBadge && (
-              <Text style={[settingItemStyles.statusBadge, { backgroundColor: statusColor }]}>
+              <Text
+                style={[
+                  settingItemStyles.statusBadge,
+                  {backgroundColor: statusColor},
+                ]}>
                 {statusText}
               </Text>
             )}
           </View>
-          <Text style={[settingItemStyles.settingDescription, disabled && settingItemStyles.disabledText]}>
+          <Text
+            style={[
+              settingItemStyles.settingDescription,
+              disabled && settingItemStyles.disabledText,
+            ]}>
             {description}
           </Text>
         </View>
@@ -50,7 +73,7 @@ const SettingItem = ({
       <Switch
         value={switchValue}
         onValueChange={onToggle}
-        trackColor={{ false: '#9E9E9E', true: '#66BB6A' }} // Muted grey for false, vibrant green for true
+        trackColor={{false: '#9E9E9E', true: '#66BB6A'}} // Muted grey for false, vibrant green for true
         thumbColor={switchValue ? '#FFFFFF' : '#F4F3F4'}
         ios_backgroundColor="#E0E0E0"
         disabled={disabled} // Apply disabled state to switch
@@ -71,7 +94,7 @@ const settingItemStyles = StyleSheet.create({
     borderRadius: 12, // More rounded corners
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.08, // Subtle shadow
     shadowRadius: 4,
     elevation: 3, // Android shadow
@@ -139,27 +162,39 @@ const ActionableSettingItem = ({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({pressed}) => [
         settingItemStyles.settingItemContainer, // Reusing base container styles
         pressed && settingItemStyles.actionableItemPressed,
       ]}
-      android_ripple={{ color: '#E0E0E0', borderless: false, radius: 25 }} // Android ripple effect
+      android_ripple={{color: '#E0E0E0', borderless: false, radius: 25}} // Android ripple effect
     >
       <View style={settingItemStyles.settingIconTextWrapper}>
-        <Icon name={iconName} size={28} color="#424242" style={settingItemStyles.settingIcon} />
+        <Icon
+          name={iconName}
+          size={28}
+          color="#424242"
+          style={settingItemStyles.settingIcon}
+        />
         <View style={settingItemStyles.settingTextContent}>
           <View style={settingItemStyles.titleAndBadge}>
             <Text style={settingItemStyles.settingTitle}>{title}</Text>
             {showStatusBadge && (
-              <Text style={[settingItemStyles.statusBadge, { backgroundColor: statusColor }]}>
+              <Text
+                style={[
+                  settingItemStyles.statusBadge,
+                  {backgroundColor: statusColor},
+                ]}>
                 {statusText}
               </Text>
             )}
           </View>
-          <Text style={settingItemStyles.settingDescription}>{description}</Text>
+          <Text style={settingItemStyles.settingDescription}>
+            {description}
+          </Text>
         </View>
       </View>
-      <Icon name="chevron-forward-outline" size={24} color="#BDBDBD" /> {/* Chevron indicator */}
+      <Icon name="chevron-forward-outline" size={24} color="#BDBDBD" />{' '}
+      {/* Chevron indicator */}
     </Pressable>
   );
 };
@@ -270,7 +305,6 @@ const NotificationScreen = ({navigation}) => {
 
         {Platform.OS === 'android' && (
           <>
-            <View style={styles.sectionDivider} />
             <SettingItem
               iconName="battery-charging-outline" // More appropriate icon for battery
               title="Battery Optimization"
@@ -278,8 +312,12 @@ const NotificationScreen = ({navigation}) => {
               switchValue={isBatteryOptimizationDisabled} // true if disabled, false if enabled
               onToggle={handleToggleBatteryOptimization}
               showStatusBadge={true}
-              statusText={isBatteryOptimizationDisabled ? 'Disabled' : 'Enabled'}
-              statusColor={isBatteryOptimizationDisabled ? '#4CAF50' : '#FF9800'} // Green for disabled, Orange for enabled (warning)
+              statusText={
+                isBatteryOptimizationDisabled ? 'Disabled' : 'Enabled'
+              }
+              statusColor={
+                isBatteryOptimizationDisabled ? '#4CAF50' : '#FF9800'
+              } // Green for disabled, Orange for enabled (warning)
             />
 
             {/* Conditional "How to" guide for battery optimization */}

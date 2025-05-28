@@ -23,10 +23,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {Image} from 'react-native-ui-lib';
 import {useQueryClient} from '@tanstack/react-query';
 import {useInspectorImages} from '../hooks/useInspection';
-import {
-  useRequestInspection,
-  useOnSchedule,
-} from '../hooks/useInspectionScheduler';
 import CustomModal from '../components/CustomModal';
 
 const DoctrackScreen = ({

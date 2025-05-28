@@ -319,7 +319,7 @@ const LoginScreen = ({navigation}) => {
         Alert.alert('Error', 'An error occurred while processing your request.');
       }
     } finally {
-      clearTimeout(timeout);  // Clear the timeout once the fetch is completed
+      clearTimeout(timeout);  
       setLoading(false);
     }
   };
@@ -419,6 +419,7 @@ const LoginScreen = ({navigation}) => {
                 </Text>
               </TouchableOpacity>
             </View>
+            
             <View style={{width: '80%'}}>
               <TouchableOpacity
                 style={[

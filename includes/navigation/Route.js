@@ -513,11 +513,6 @@ const handleUpdate = async updateUrl => {
 
   return (
     <NavigationContainer ref={NavigationService.setTopLevelNavigator}>
-     {/*  <StatusBar
-        barStyle="light-content"
-        backgroundColor={'transparent'}
-        translucent
-      /> */}
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{

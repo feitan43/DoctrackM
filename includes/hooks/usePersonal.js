@@ -73,7 +73,6 @@ export const useUpdateUserAccess = () => {
 
   return mutation;
 };
-
 // ---end
 
 //SUPERACCESS
