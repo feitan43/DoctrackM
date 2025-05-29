@@ -26,148 +26,42 @@ import useUserInfo from '../api/useUserInfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
-  // const modifiedDate = item.DateModified.split(' ')[0];
-  // const isDateMatched = modifiedDate === formattedDate;
-  // const dateTextColor = isDateMatched ? 'rgba(6, 70, 175, 1)' : 'gray';
-
   return (
-    <View
-      style={{
-        backgroundColor: 'white',
-        //marginHorizontal: 10,
-        marginTop: 10,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: 'silver',
-        //elevation: 2,
-      }}>
-      <View
-        style={{
-          backgroundColor: 'white',
-          //paddingBottom: 10,
-          //borderWidth: 1,
-          //borderColor: '#252525',
-        }}>
-        <TouchableOpacity onPress={() => onPressItem(index, item)}>
-          <View style={{flexDirection: 'row'}}>
-            <View
-              style={{
-                backgroundColor: 'rgba(134, 140, 163, 0.2)',
-                alignSelf: 'baseline',
-              }}>
-              <Text
-                style={{
-                  //backgroundColor: dateTextColor,
-                  // backgroundColor: 'rgba(37, 89, 200, 1)',
-                  backgroundColor: 'rgba(0, 116, 255, 0.7)',
-
-                  paddingHorizontal: 15,
-                  fontFamily: 'Oswald-Regular',
-                  fontSize: 16,
-                  color: 'white',
-                  textAlign: 'center',
-                }}>
-                {index + 1}
-              </Text>
-            </View>
-            <View style={{flex: 1}}>
-              <LinearGradient
-                colors={['rgba(0, 116, 255, 0.7)', 'rgba(0, 116, 255, 0.7)']}
-                start={{x: 0, y: 0}}
-                end={{x: 3, y: 0}}
-                style={{elevation: 1}}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: '#252525',
-                    fontSize: 16,
-                    color: 'white',
-                    paddingStart: 5,
-                  }}>
-                  {item.TrackingNumber ? item.TrackingNumber : ''}
-                </Text>
-              </LinearGradient>
-              <View
-                style={{
-                  /* marginVertical: 5,  */ /* paddingStart: 10, */
-                  paddingBottom: 10,
-                  paddingStart: 5,
-                }}>
-                <View style={{rowGap: -5}}>
-                  <Text
-                    style={{
-                      /* color: item.Status.includes('Pending')
-                        ? 'rgba(250, 135, 0, 1)'
-                        : 'rgba(252, 191, 27, 1)', */
-                      color: '#252525',
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 18,
-                      //textShadowRadius: 1,
-                      //elevation: 1,
-                      //textShadowOffset: {width: 1, height: 2},
-                    }}>
-                    {item.Status ? item.Status : ''}
-                  </Text>
-                  <Text
-                    style={{
-                      color: 'silver',
-                      fontFamily: 'Oswald-Light',
-                      fontSize: 12,
-                    }}>
-                    {item.DateModified ? item.DateModified : ''}
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    color: '#252525',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                    marginTop: 5,
-                  }}>
-                  {item.DocumentType ? item.DocumentType : ''}
-                </Text>
-                <Text
-                  style={{
-                    color: '#252525',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {
-                    /* insertCommas */ item.Amount
-                      ? /* insertCommas */ item.Amount
-                      : ''
-                  }
-                </Text>
-                <Text
-                  style={{
-                    color: '#252525',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {
-                    /* insertCommas */ item.PeriodMonth
-                      ? /* insertCommas */ item.PeriodMonth
-                      : ''
-                  }
-                </Text>
-              </View>
-            </View>
-            <View>
-              <Text
-                style={{
-                  backgroundColor: 'rgba(0, 116, 255, 0.7)',
-                  paddingHorizontal: 10,
-                  fontFamily: 'Oswald-Regular',
-                  color: 'white',
-                  fontSize: 16,
-                  textAlign: 'center',
-                }}>
-                {item.Year ? item.Year : ''}
-              </Text>
-            </View>
+    <View style={styles.card}>
+      <TouchableOpacity onPress={() => onPressItem(index, item)} style={styles.touchable}>
+        <View style={styles.headerContainer}>
+          <View style={styles.indexBadge}>
+            <Text style={styles.indexText}>{index + 1}</Text>
           </View>
-        </TouchableOpacity>
-      </View>
+          <LinearGradient
+            colors={['#0074FF', '#005BBF']} // Slightly darker blue for a more modern feel
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}} // Changed end x to 1 for a more subtle gradient
+            style={styles.trackingNumberGradient}>
+            <Text style={styles.trackingNumberText}>
+              {item.TrackingNumber || 'N/A'}
+            </Text>
+          </LinearGradient>
+          <View style={styles.yearBadge}>
+            <Text style={styles.yearText}>{item.Year || 'N/A'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.detailsContainer}>
+          <Text style={styles.statusText}>{item.Status || 'N/A'}</Text>
+          <Text style={styles.dateModifiedText}>
+            {item.DateModified || 'N/A'}</Text>
+          <Text style={styles.detailText}>
+            {item.DocumentType || 'N/A'}
+          </Text>
+         {/*  <Text style={styles.detailText}>
+            {item.Amount ? `Amount: ${item.Amount}` : 'N/A'}
+          </Text>
+          <Text style={styles.detailText}>
+            {item.PeriodMonth ? `Period: ${item.PeriodMonth}` : 'N/A'}
+          </Text> */}
+        </View>
+      </TouchableOpacity>
     </View>
   );
 });
@@ -246,6 +140,7 @@ const removeSearchItem = async (item) => {
 
 const handleHistorySelect = (item) => {
   setSearchText(item);
+  searchTrackingNumber();
 };
 
 useEffect(() => {
@@ -649,7 +544,7 @@ const saveSearchHistory = async (newHistory) => {
                     styles.searchBarInput,
                     {
                       fontSize: 14,
-                      color: 'black' /* textTransform:'uppercase' */,
+                      color: 'black' ,
                     },
                   ]}
                   autoCapitalize="characters"
@@ -667,7 +562,6 @@ const saveSearchHistory = async (newHistory) => {
             <TouchableOpacity
               style={{
                 width: '20%',
-                //backgroundColor: 'rgba(3, 92, 251, 1)',
                 backgroundColor: 'rgba(34, 150, 243, 1)',
                 paddingHorizontal: 5,
                 paddingRight: 5,
@@ -715,37 +609,6 @@ const saveSearchHistory = async (newHistory) => {
             </View>
             <View
               style={{width: '30%', padding: 10, paddingVertical: 20}}></View>
-            {/* <View
-              style={{
-                width: '30%',
-                //backgroundColor: 'rgba(3, 92, 251, 1)',
-                backgroundColor: 'rgba(34, 150, 243, 1)',
-                paddingHorizontal: 5,
-                paddingRight: 5,
-                elevation: 5,
-                borderWidth: 0.5,
-                borderColor: 'silver',
-                padding: 10,
-              }}
-              //onPress={searchPayrollName}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-evenly',
-                }}>
-                <Icon name="search" size={20} style={{}} color="transparent" />
-
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                  }}>
-                  Search
-                </Text>
-              </View>
-            </View> */}
           </View>
         </>
       );
@@ -954,6 +817,11 @@ const saveSearchHistory = async (newHistory) => {
     closeYearModal();
     closeMenu();
   };
+   const handleSearchTextChange = (text) => {
+    setSearchText(text.toUpperCase()); // Convert to uppercase here
+  };
+    const searchInputRef = useRef(null); // Create a ref for the TextInput
+
 
   const renderYearItem = ({item}) => (
     <TouchableOpacity style={styles.modalItem} onPress={() => selectYear(item)}>
@@ -1072,81 +940,92 @@ const saveSearchHistory = async (newHistory) => {
           </View>
         </Modal>
 
-         {/* <View
-          style={{
-            backgroundColor: 'rgba(232, 232, 232, 1)',
-            backgroundColor: 'white',
-            flex: 1,
-            paddingHorizontal: 20,
-          }}>
-          {selectedView === 'DocumentSearch'
-            ? renderData()
-            : renderDataPayroll()}
-        </View> */}
-
-        <Modal visible={searchModalVisible} transparent animationType="slide">
-          <View style={styles.fullScreenModal}>
-            <View style={styles.searchHeader}>
-              <TouchableOpacity
-                onPress={() => setSearchModalVisible(false)}
-                style={styles.backButton}>
-              <Icon name="arrow-back" size={24} color="#252525" />
-              </TouchableOpacity>
-
-              <View style={styles.searchInputContainer}>
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search tracking number"
-                  value={searchText}
-                  onChangeText={setSearchText}
-                  autoFocus={true}
-                  clearButtonMode="never"
-                  underlineColorAndroid="transparent"
-                  placeholderTextColor="#999"
-                  
-                />
-                {searchText.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSearchText('')}
-                    style={styles.clearButton}>
-                    <Text style={styles.clearIcon}>×</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
+         <Modal
+      visible={searchModalVisible}
+      transparent={false} // Usually better for a full dedicated screen
+      animationType="slide"
+      onRequestClose={() => setSearchModalVisible(false)} // Good for Android back button
+    >
+      <View style={styles.safeArea}>
+        <View style={styles.fullScreenModal}>
+          <View style={styles.searchHeader}>
             <TouchableOpacity
-              style={[
-                styles.searchButton,
-                searchText.trim().length === 0 && styles.searchButtonDisabled,
-              ]}
-              onPress={searchTrackingNumber}
-              disabled={searchText.trim().length === 0}>
-              <Text style={styles.searchButtonText}>Search</Text>
+              onPress={() => setSearchModalVisible(false)}
+              style={styles.backButton}
+            >
+              <Icon name="arrow-back" size={28} color="#333" />
             </TouchableOpacity>
-
-              <View style={styles.historyContainer}>
-      {searchHistory.length > 0 && (
-        <Text style={styles.historyTitle}>Search History:</Text>
-      )}
-      {searchHistory.map((item, index) => (
-        <View key={index} style={styles.historyItem}>
-          <TouchableOpacity onPress={() => handleHistorySelect(item)}>
-            <Text style={styles.historyText}>{item}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => removeSearchItem(item)}>
-            <Text style={styles.removeIcon}>×</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-    </View>
-
-            <View>
-              {renderData()}
+            <View style={styles.searchInputOuterContainer}>
+              <Icon name="search" size={22} color="#888" style={styles.inputSearchIcon} />
+             <TextInput
+        ref={searchInputRef} // Assign the ref to the TextInput
+        style={styles.searchInput}
+        placeholder="Search tracking number"
+        value={searchText}
+        onChangeText={handleSearchTextChange} // Use the new handler
+        // autoFocus={true} // REMOVE THIS PROP
+        clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'} // 'never' is default on Android, 'while-editing' is useful on iOS
+        underlineColorAndroid="transparent" // Only for Android, hides the default underline
+        placeholderTextColor="#999"
+        autoCapitalize="characters" // Suggests uppercase keyboard on iOS (doesn't force on Android, so onChangeText is crucial)
+        // inputMode="search" // Modern alternative to keyboardType='default' for search fields
+        returnKeyType="search" // Changes the keyboard return key to "Search"
+      />
+              {searchText.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchText('')}
+                  style={styles.clearButton}
+                >
+                  <Icon name="close" size={22} color="#888" />
+                </TouchableOpacity>
+              )}
             </View>
-              
           </View>
-        </Modal>
+
+          <TouchableOpacity
+            style={[
+              styles.searchActionButton,
+              searchText.trim().length === 0 && styles.searchButtonDisabled,
+            ]}
+            onPress={searchTrackingNumber}
+            disabled={searchText.trim().length === 0}
+          >
+            <Text style={styles.searchButtonText}>Search</Text>
+          </TouchableOpacity>
+
+          <View style={styles.contentArea}>
+            {searchHistory.length > 0 && (
+              <View style={styles.historySection}>
+                <Text style={styles.historyTitle}>Search History</Text>
+                {searchHistory.map((item, index) => (
+                  <View key={index} style={styles.historyItem}>
+                    <TouchableOpacity
+                      onPress={() => handleHistorySelect(item)}
+                      style={styles.historyItemTextContainer}
+                    >
+                      <Icon name="search-outline" size={20} color="#555" style={styles.historyItemIcon} />
+                      <Text style={styles.historyText} numberOfLines={1}>{item}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removeSearchItem(item)}
+                      style={styles.removeHistoryButton}
+                    >
+                      <Icon name="close" size={20} color="#777" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+            {searchHistory.length === 0 && !renderData() && ( // Show if no history and no initial results
+                 <Text style={styles.noHistoryText}>No recent searches.</Text>
+            )}
+
+
+            <View style={styles.resultsContainer}>{renderData()}</View>
+          </View>
+        </View>
+      </View>
+    </Modal>
       </ImageBackground>
     </SafeAreaView>
   );
@@ -1331,6 +1210,199 @@ removeIcon: {
   color: '#f00',
   paddingHorizontal: 10,
 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF', // Modal background color
+  },
+  fullScreenModal: {
+    flex: 1,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  backButton: {
+    padding: 8, // Increased touch area
+    marginRight: 8,
+  },
+  searchInputOuterContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 25, // More rounded for modern look
+    paddingHorizontal: 15,
+    height: 48, // Standard height
+  },
+  inputSearchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333333',
+    paddingVertical: 10, // Ensure text is centered
+  },
+  clearButton: {
+    padding: 8, // Increased touch area
+    marginLeft: 8,
+  },
+  searchActionButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10, // Space before history or content
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchButtonDisabled: {
+    backgroundColor: '#B0C4DE',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  searchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10, // Space after search button
+  },
+  historySection: {
+    marginBottom: 20,
+  },
+  historyTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 12,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  historyItemTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10, // Space before the close icon
+  },
+  historyItemIcon: {
+    marginRight: 10,
+  },
+  historyText: {
+    fontSize: 16,
+    color: '#444444',
+    flexShrink: 1, // Allow text to shrink if container is too small
+  },
+  removeHistoryButton: {
+    padding: 8, // Increased touch area
+  },
+  noHistoryText: {
+    textAlign: 'center',
+    color: '#777777',
+    fontSize: 15,
+    marginTop: 40, // Give some space if no history and no initial results
+  },
+  resultsContainer: {
+    flex: 1, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
+  },
+   card: {
+    backgroundColor: 'white',
+    marginHorizontal: 5, // Add some horizontal margin
+    marginTop: 10,
+    marginBottom: 5, // Reduce bottom margin slightly
+    borderRadius: 8, // Rounded corners for a softer look
+    borderWidth: 1,
+    borderColor: '#E0E0E0', // Lighter border color
+    elevation: 3, // Subtle shadow for depth
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  touchable: {
+    padding: 0, // Remove padding from touchable, will add to inner views
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch', // Stretch items to fill height
+    borderTopLeftRadius: 8, // Apply radius to the top of the header
+    borderTopRightRadius: 8,
+    overflow: 'hidden', // Ensure children respect border radius
+  },
+  indexBadge: {
+    backgroundColor: '#0074FF', // Primary blue for consistency
+    paddingHorizontal: 12, // Adjust padding
+    justifyContent: 'center', // Center text vertically
+    alignItems: 'center', // Center text horizontally
+  },
+  indexText: {
+    fontFamily: 'Oswald-Regular',
+    fontSize: 18, // Slightly larger for prominence
+    color: 'white',
+  },
+  trackingNumberGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10, // Add vertical padding
+    paddingStart: 10,
+  },
+  trackingNumberText: {
+    fontFamily: 'Oswald-Regular',
+    color: 'white',
+    fontSize: 17, // Consistent with index
+  },
+  yearBadge: {
+    backgroundColor: '#0074FF', // Primary blue for consistency
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearText: {
+    fontFamily: 'Oswald-Regular',
+    color: 'white',
+    fontSize: 16, // Consistent with index
+    textAlign: 'center',
+  },
+  detailsContainer: {
+    padding: 15, // Uniform padding for details section
+  },
+  statusText: {
+    fontFamily: 'Oswald-Regular',
+    fontSize: 19, // More prominent status
+    color: '#252525', // Darker text for readability
+    marginBottom: 5, // Space between status and date
+  },
+  dateModifiedText: {
+    fontFamily: 'Oswald-Light',
+    color: 'gray', // Softer gray for less important info
+    fontSize: 13,
+    marginBottom: 10, // More space after date
+  },
+  detailText: {
+    fontFamily: 'Oswald-Light',
+    color: '#4A4A4A', // Slightly darker gray for better contrast
+    fontSize: 14,
+    marginBottom: 3, // Small margin for each detail line
+  },
+
 });
 
 export default SearchScreen;

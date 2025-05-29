@@ -40,6 +40,7 @@ const ForInspection = ({navigation}) => {
   const queryClient = useQueryClient();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
+
   const offices = [
     {label: 'All Offices', value: null, key: 'all-offices'},
     ...Array.from(
@@ -81,36 +82,36 @@ const ForInspection = ({navigation}) => {
   };
 
  const filteredInspectionListData = Array.isArray(data)
-  ? data.filter(item => {
-      const searchTerm = searchQuery?.toLowerCase() || '';
+    ? data.filter(item => {
+        const searchTerm = searchQuery?.toLowerCase() || '';
 
-      const {
-        OfficeName = '', // These defaults are good for the initial assignment
-        TrackingNumber = '',
-        RefTrackingNumber = '',
-        CategoryName = '',
-        Year,
-      } = item;
+        const {
+          OfficeName = '', // These defaults are good for the initial assignment
+          TrackingNumber = '',
+          RefTrackingNumber = '',
+          CategoryName = '',
+          Year,
+        } = item;
 
-      if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-        return false;
-      }
+        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+          return false;
+        }
 
-      if (selectedYear && Year !== selectedYear) {
-        return false;
-      }
+        if (selectedYear && Year !== selectedYear) {
+          return false;
+        }
 
-      if (
-        !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
-        !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
-        !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
-        !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
-      ) {
-        return false;
-      }
+        if (
+          !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
+          !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+        ) {
+          return false;
+        }
 
-      return true;
-    })
+        return true;
+      })
   : [];
 
   const handleOfficeSelect = office => {
@@ -125,10 +126,6 @@ const ForInspection = ({navigation}) => {
 
   const handleFiltersPress = () => {
     setMenuVisible(prev => !prev);
-  };
-
-  const toggleSearch = () => {
-    setShowSearch(prevState => !prevState);
   };
 
   const onPressItem = (item, filteredInspectionList) => {
@@ -148,17 +145,6 @@ const ForInspection = ({navigation}) => {
     setOpenYearSheet(true);
     yearBottomSheetRef.current?.expand();
   };
-
-  /* const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await inspectionList();
-    } catch (error) {
-      console.error('Error fetching inspection items:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }; */
 
   const toggleSearchBar = () => {
     setShowSearch(!showSearch);

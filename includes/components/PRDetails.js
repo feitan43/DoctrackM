@@ -27,7 +27,6 @@ export const GeneralInformationCard = ({genInformationData}) => (
       {
         label: 'TN',
         value: genInformationData.TrackingNumber,
-        icon: 'receipt-outline',
       },
       {
         label: 'ADV Number',
@@ -36,35 +35,29 @@ export const GeneralInformationCard = ({genInformationData}) => (
       {
         label: 'OBR Number',
         value: genInformationData.OBR_Number,
-        icon: 'document-text-outline',
       },
       {
         label: 'PR Number',
         value: genInformationData.PR_Number,
-        icon: 'receipt-outline',
       },
       {
         label: 'PR Sched',
         value: genInformationData.PR_Sched,
-        icon: 'calendar-outline',
       },
-      {label: 'Fund', value: genInformationData.Fund, icon: 'cash-outline'},
-      {label: 'PO TN', value: genInformationData.Fund, icon: 'cash-outline'},
+      {label: 'Fund', value: genInformationData.Fund},
+      {label: 'PO TN', value: genInformationData.Fund},
 
       {
         label: 'Encoded By',
         value: genInformationData.EncodedBy,
-        icon: 'person-outline',
       },
       {
         label: 'Date Encoded',
         value: genInformationData.DateEncoded,
-        icon: 'time-outline',
       },
       {
         label: 'Date Updated',
         value: genInformationData.DateModified,
-        icon: 'refresh-outline',
       },
     ].map((item, index, arr) => (
       <View key={index} style={styles.listItemContainer}>
@@ -117,7 +110,7 @@ export const OBRInformationCard = ({
               </Text>
               <Text style={styles.tableRowSubText}>{item.ProgramName}</Text>
             </View>
-            <View style={{flex: 1, alignItems: 'center'}}>
+            <View style={{flex: 1, alignItems: 'center' }}>
               <Text
                 style={[
                   styles.tableRowMainText,
@@ -430,7 +423,7 @@ export const TransactionHistoryCard = ({
           <Text style={styles.transactionListHeaderText}>DATE</Text>
         </View>
         <View style={{flex: 5}}>
-          <Text style={styles.transactionListHeaderText}>STATUS</Text>
+          <Text style={[styles.transactionListHeaderText, {textAlign:'center'}]}>STATUS</Text>
         </View>
         <View style={{flex: 3, alignItems: 'flex-end'}}>
           <Text style={styles.transactionListHeaderText}>COMPLETION</Text>

@@ -40,14 +40,24 @@ import {insertCommas} from '../utils/insertComma';
 import {formTypeMap} from '../utils/formTypeMap';
 import Loading from '../utils/Loading';
 import {
-  GeneralInformationCard,
-  OBRInformationCard,
+  GeneralInformationCard as PRGeneralInformationCard,
+  OBRInformationCard as PROBRInformationCard,
   PRDetailsCard,
-  RemarksCard,
-  PendingNoteCard,
-  DigitalCopiesCard,
-  TransactionHistoryCard,
+  RemarksCard as PRRemarksCard,
+  PendingNoteCard as PRPendingNoteCard,
+  DigitalCopiesCard as PRDigitalCopiesCard,
+  TransactionHistoryCard as PRTransactionHistoryCard,
 } from './../components/PRDetails';
+
+import {
+  GeneralInformationCard as POGeneralInformationCard,
+  OBRInformationCard as POOBRInformationCard,
+  PODetailsCard,
+  RemarksCard as PORemarksCard,
+  PendingNoteCard as POPendingNoteCard,
+  DigitalCopiesCard as PODigitalCopiesCard,
+  TransactionHistoryCard as POTransactionHistoryCard,
+} from './../components/PODetails';
 import {width, height} from '../utils';
 const HEADER_HEIGHT = 250;
 const PARALLAX_FACTOR = 0.6;
@@ -511,522 +521,12 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
-  // const renderDetailsPRRequest = () => {
-  //   if (selectedItem.TrackingType === 'PR') {
-  //     return (
-  //       <ScrollView ref={scrollViewRef}>
-
-  //         <View ref={genInfoRef} style={{marginTop: 10}}>
-  //         <View style={styles.cardContainer}>
-
-  //         <View style={styles.cardHeader}>
-  //               <Text style={styles.headerText}>GENERAL INFORMATION</Text>
-  //               </View>
-
-  //               {[
-  //                 {
-  //                   label: 'Office',
-  //                   value: genInformationData.OfficeName?.replace(/\\/g, ''),
-  //                 },
-  //                 {
-  //                   label: 'Status',
-  //                   value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
-  //                 },
-  //                 {label: 'OBR Number', value: genInformationData.OBR_Number},
-  //                 {label: 'PR Number', value: genInformationData.PR_Number},
-  //                 {label: 'PR Sched', value: genInformationData.PR_Sched},
-  //                 {label: 'Fund', value: genInformationData.Fund},
-  //                 {label: 'Encoded By', value: genInformationData.EncodedBy},
-  //                 {
-  //                   label: 'Date Encoded',
-  //                   value: genInformationData.DateEncoded,
-  //                 },
-  //                 {
-  //                   label: 'Date Updated',
-  //                   value: genInformationData.DateModified,
-  //                 },
-  //               ].map((item, index) => (
-  //                 <View key={index} style={{ marginVertical: 5 }}>
-  //                 <View
-  //                   style={{
-  //                     flexDirection: 'row',
-  //                     flexWrap: 'wrap',
-  //                     paddingVertical: 4,
-  //                     paddingHorizontal:10
-  //                   }}
-  //                 >
-  //                   <Text
-  //                     style={{
-  //                       fontSize: 14,
-  //                       color: '#777',
-  //                       fontWeight: '400',
-  //                       width: '35%',
-  //                     }}
-  //                   >
-  //                     {item.label}
-  //                   </Text>
-  //                   <Text
-  //                     style={{
-  //                       fontSize: 14,
-  //                       color: '#222',
-  //                       fontWeight: 'bold',
-  //                       width: '65%',
-  //                       paddingLeft: 12,
-  //                     }}
-  //                   >
-  //                     {item.value || '—'}
-  //                   </Text>
-  //                 </View>
-  //                 {index !== item.length - 1 && (
-  //                   <View style={{ height: 1, backgroundColor: '#eee', marginTop: 6 }} />
-  //                 )}
-  //               </View>
-  //               ))}
-  //             </View>
-  //           </View>
-
-  //         <View ref={obrInfoRef} style={{ marginTop: 20 }}>
-  //         <View style={styles.cardContainer}>
-  //         <View style={styles.cardHeader}>
-  //         <Text style={styles.headerText}>OBR INFORMATION</Text>
-  //         </View>
-
-  //           <View style={styles.cardTable}>
-  //             <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB' }]}>
-  //             <Text style={[styles.tableHeaderText, { flex: 1 }]}>PROGRAM</Text>
-  //               <Text style={[styles.tableHeaderText, { flex: 1 }]}>CODE</Text>
-  //               <Text style={[styles.tableHeaderTextRight, { flex: 1 }]}>AMOUNT</Text>
-  //             </View>
-
-  //             {OBRInformation && OBRInformation.length > 0 ? (
-  //               OBRInformation.map((item, index) => (
-  //                 <View
-  //                 key={index}
-  //                 style={[
-  //                   styles.tableRow,
-  //                   {
-  //                     flexDirection: 'row',
-  //                     borderBottomWidth: 1,
-  //                     borderBottomColor: '#E5E7EB',
-  //                     paddingVertical: 5,
-  //                   },
-  //                 ]}
-  //               >
-  //                 <View style={{ flex: 1 }}>
-  //                   <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_ProgramCode}</Text>
-  //                   <Text style={styles.tableRowSub}>{item.ProgramName}</Text>
-  //                 </View>
-
-  //                 <View style={{ flex: 1 }}>
-  //                 <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>{item.PR_AccountCode}</Text>
-  //                   <Text style={styles.tableRowSub}>{item.AccountTitle}</Text>
-  //                 </View>
-
-  //                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
-  //                 <Text style={[styles.tableRowMain, { paddingVertical: 10 }]}>
-  //                     {insertCommas(item.Amount)}
-  //                   </Text>
-  //                 </View>
-  //               </View>
-
-  //               ))
-  //             ) : (
-  //               <Text style={styles.noDataText}>No data available</Text>
-  //             )}
-
-  //             <View style={styles.totalContainer}>
-  //               <Text style={[styles.totalAmount, {marginEnd:5}]}>
-  //                 {insertCommas(totalAmount.toFixed(2))}
-  //               </Text>
-  //             </View>
-  //           </View>
-  //         </View>
-  //         </View>
-
-  //         <View ref={prDetailsRef} style={{ marginTop: 20 }}>
-  //           <View style={styles.cardContainer}>
-  //           <View style={styles.cardHeader}>
-  //         <Text style={styles.headerText}>PR DETAILS</Text>
-  //         </View>
-
-  //             <View style={styles.cardTable}>
-  //               <View style={[styles.tableHeader, { backgroundColor: '#E5E7EB', }]}>
-  //                 <View style={{ flex: 2 }}>
-  //                   <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
-  //                 </View>
-  //                 <View style={{ flex: 1, alignItems: 'center' }}>
-  //                   <Text style={styles.tableHeaderText}>QTY | COST</Text>
-  //                 </View>
-  //                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
-  //                   <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
-  //                 </View>
-  //               </View>
-
-  //               {prpopxDetails && prpopxDetails.length > 0 ? (
-  //                 prpopxDetails.map((detail, index) => (
-  //                   <View key={index}>
-  //                     <View style={[styles.tableRow,{  flexDirection: 'row',
-  //                     borderBottomWidth: 1,
-  //                     borderBottomColor: '#E5E7EB',
-  //                     paddingVertical: 10,}]}>
-  //                       <View style={{ flex: 2 }}>
-  //                         <TouchableOpacity onPress={() => toggleDescription(index)}>
-  //                           <Text
-  //                             style={styles.tableRowSub}
-  //                             numberOfLines={expandedIndex === index ? undefined : 3}
-  //                             ellipsizeMode={expandedIndex === index ? 'clip' : 'tail'}>
-  //                             {detail.Description}
-  //                           </Text>
-  //                         </TouchableOpacity>
-  //                       </View>
-
-  //                       <View style={{ flex: 1, alignItems: 'center' }}>
-  //                         <Text style={styles.tableRowMain}>
-  //                           {Math.floor(detail.Qty)}{' '}
-  //                           <Text style={styles.tableRowSub}>{detail.Unit}</Text>
-  //                         </Text>
-  //                         <Text style={styles.tableRowSub}>
-  //                           {insertCommas(detail.Amount)}
-  //                         </Text>
-  //                       </View>
-
-  //                       <View style={{ flex: 1, alignItems: 'flex-end' }}>
-  //                         <Text
-  //                           style={[
-  //                             styles.tableRowMain,
-  //                             {paddingVertical: 5 },
-  //                           ]}>
-  //                           {insertCommas(detail.Total)}
-  //                         </Text>
-  //                       </View>
-  //                     </View>
-
-  //                   </View>
-  //                 ))
-  //               ) : (
-  //                 <Text style={styles.noDataText}>No data available</Text>
-  //               )}
-
-  //               <View style={styles.totalContainer}>
-  //               <Text style={[styles.totalAmount, {marginEnd:5}]}>
-  //                   {insertCommas(prpopxTotalAmount.toFixed(2))}
-  //                 </Text>
-  //               </View>
-  //             </View>
-  //           </View>
-  //         </View>
-
-  //         <View ref={remarksRef} style={{marginTop: 20}}>
-  //         <View style={styles.cardContainer}>
-  //         <View style={styles.cardHeader}>
-  //         <Text style={styles.headerText}>REMARKS</Text>
-  //         </View>
-
-  //           <View  style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-  //             {genInformationData?.Remarks1 ? (
-  //               <Text style={styles.remarksText}>
-  //                 {removeHtmlTags(genInformationData.Remarks1)}
-  //               </Text>
-  //             ) : (
-  //               <Text style={styles.noDataText}>No remarks available.</Text>
-  //             )}
-  //           </View>
-  //         </View>
-  //         </View>
-
-  //         <View style={{ marginTop: 20 }}>
-  //         <View style={styles.cardContainer}>
-  //         <View style={styles.cardHeader}>
-  //         <Text style={styles.headerText}>PENDING NOTE</Text>
-  //         </View>
-
-  //           <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-  //           {genInformationData?.Remarks ? (
-  //             <Text
-  //               style={{
-  //                 fontSize: 13,
-  //                 color: '#92400E',
-  //                 lineHeight: 20,
-  //               }}>
-  //               {genInformationData.Remarks}
-  //             </Text>
-  //           ) : (
-  //             <Text
-  //             style={styles.noDataText}>
-  //               No pending note provided.
-  //             </Text>
-  //           )}
-  //           </View>
-  //         </View>
-  //         </View>
-
-  //        {genInformationData.Year === '2025' && procurement === '1' && (
-  //         <View  style={{marginTop: 20}}>
-  //           <View style={styles.cardContainer}>
-  //           <View style={styles.cardHeader}>
-  //         <Text style={styles.headerText}>DIGITAL COPIES</Text>
-  //         </View>
-
-  //             <View style={[styles.cardTable,{paddingHorizontal:10,paddingVertical:10}]}>
-  //             {formTypeMap.PR.map((formType, index) => {
-  //                 const formTypeFiles =
-  //                   attachmentsFiles?.filter(
-  //                     fileUrl => fileUrl.split('~')[2] === formType,
-  //                   ) || [];
-
-  //                 const hasFiles = formTypeFiles.length > 0;
-
-  //                 return (
-  //                   <View
-  //                     key={formType}
-  //                     style={{
-  //                       marginVertical: 10,
-  //                       paddingBottom: 10,
-  //                       borderBottomWidth: 1,
-  //                       borderColor: '#e5e7eb',
-  //                     }}>
-  //                     <View
-  //                       style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
-  //                       <Text style={{fontSize: 14, flex: 1, fontWeight: 'bold', color: '#1e293b'}}>
-  //                         {`${index + 1}. ${formType}`}
-  //                       </Text>
-
-  //                       <TouchableOpacity
-  //                         disabled={hasFiles}
-  //                         onPress={() => handleAttachFiles(formType)}
-  //                         style={{
-  //                           backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-  //                           paddingVertical: 6,
-  //                           paddingHorizontal: 12,
-  //                           borderRadius: 5,
-  //                           marginRight: 10,
-  //                           opacity: hasFiles ? 0.5 : 1,
-  //                         }}>
-  //                         <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>
-  //                           Attach Files
-  //                         </Text>
-  //                       </TouchableOpacity>
-
-  //                       <TouchableOpacity
-  //                         disabled={!hasFiles}
-  //                         onPress={() => handleRemove(year, trackingNumber, formType)}
-  //                         style={{
-  //                           backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-  //                           paddingVertical: 4,
-  //                           paddingHorizontal: 12,
-  //                           borderRadius: 5,
-  //                           opacity: !hasFiles ? 0.5 : 1,
-  //                         }}>
-  //                         <Icon name={'trash-outline'} size={20} color={'#FF6347'} />
-  //                       </TouchableOpacity>
-  //                     </View>
-
-  //                     <View style={{marginTop: 5}}>
-  //                       {hasFiles ? (
-  //                         formTypeFiles.map((fileUrl, fileIndex) => {
-  //                           const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-  //                           const fileExtension = fileUrl.split('.').pop();
-  //                           const uniqueKey = `file-${formType}-${fileIndex}`;
-
-  //                           return (
-  //                             <View
-  //                               key={uniqueKey}
-  //                               style={{
-  //                                 flexDirection: 'row',
-  //                                 alignItems: 'center',
-  //                                 marginTop: 5,
-  //                                 backgroundColor: '#f1f5f9',
-  //                                 padding: 10,
-  //                                 borderRadius: 6,
-  //                               }}>
-  //                               <TouchableOpacity
-  //                                 onPress={() => {
-  //                                   if (fileExtension === 'pdf') {
-  //                                     Linking.openURL(uniqueUri);
-  //                                   } else {
-  //                                     handleImagePress(uniqueUri);
-  //                                   }
-  //                                 }}>
-  //                                 <Text style={{color: '#1e293b', fontSize: 12}}>
-  //                                   {fileUrl.split('~').slice(-2).join('~')}
-  //                                 </Text>
-  //                               </TouchableOpacity>
-  //                             </View>
-  //                           );
-  //                         })
-  //                       ) : (
-  //                         <Text style={{color: '#9ca3af', fontSize: 12}}>
-  //                           No attached files
-  //                         </Text>
-  //                       )}
-  //                     </View>
-  //                   </View>
-  //                 );
-  //               })}
-  //             </View>
-  //           </View>
-  //         </View>
-  //         )}
-
-  //       <View ref={transactionHistoryRef} style={{ marginTop: 20 }}>
-  //         <View
-  //           style={{
-  //             backgroundColor: '#fff',
-  //             borderRadius: 16,
-  //             shadowColor: '#000',
-  //             shadowOffset: { width: 0, height: 1 },
-  //             shadowOpacity: 0.05,
-  //             shadowRadius: 3,
-  //             elevation: 2,
-  //             marginHorizontal: 16,
-  //             overflow: 'hidden',
-  //           }}>
-  //          <View style={styles.cardHeader}>
-  //         <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
-  //         </View>
-
-  //           <View style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-  //             {/* Table Header */}
-  //             <View
-  //               style={{
-  //                 flexDirection: 'row',
-  //                 paddingBottom: 8,
-  //                 borderBottomWidth: 1,
-  //                 borderColor: '#E5E7EB',
-  //                 marginBottom: 6,
-  //               }}>
-  //               <View style={{ flex: 1 }} />
-  //               <View style={{ flex: 3 }}>
-  //                 <Text
-  //                   style={{
-  //                     fontSize: 11,
-  //                     color: '#9CA3AF',
-  //                     fontWeight: '500',
-  //                   }}>
-  //                   DATE
-  //                 </Text>
-  //               </View>
-  //               <View style={{ flex: 5 }}>
-  //                 <Text
-  //                   style={{
-  //                     fontSize: 11,
-  //                     color: '#9CA3AF',
-  //                     fontWeight: '500',
-  //                   }}>
-  //                   STATUS
-  //                 </Text>
-  //               </View>
-  //               <View style={{ flex: 3 }}>
-  //                 <Text
-  //                   style={{
-  //                     fontSize: 11,
-  //                     color: '#9CA3AF',
-  //                     fontWeight: '500',
-  //                     textAlign: 'right',
-  //                   }}>
-  //                   COMPLETION
-  //                 </Text>
-  //               </View>
-  //             </View>
-
-  //             {/* Table Body */}
-  //             {transactionHistory && transactionHistory.length > 0 ? (
-  //               transactionHistory.map((item, index) => (
-  //                 <View key={index}>
-  //                   <View
-  //                     style={{
-  //                       flexDirection: 'row',
-  //                       alignItems: 'center',
-  //                       paddingVertical: 10,
-  //                       backgroundColor: index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
-  //                       borderRadius: index === transactionHistory.length - 1 ? 12 : 0,
-  //                     }}>
-  //                     <View style={{ flex: 1 }}>
-  //                       <Text
-  //                         style={{
-  //                           fontSize: 11,
-  //                           color: '#6B7280',
-  //                           textAlign: 'center',
-  //                         }}>
-  //                         {index + 1}
-  //                       </Text>
-  //                     </View>
-  //                     <View style={{ flex: 3 }}>
-  //                       <Text
-  //                         style={{
-  //                           fontSize: 11,
-  //                           color: '#4B5563',
-  //                         }}>
-  //                         {item.DateModified}
-  //                       </Text>
-  //                     </View>
-  //                     <View style={{ flex: 5 }}>
-  //                       <Text
-  //                         style={{
-  //                           fontSize: 12,
-  //                           color: '#1F2937',
-  //                           fontWeight: '500',
-  //                         }}>
-  //                         {item.Status}
-  //                       </Text>
-  //                     </View>
-  //                     <View style={{ flex: 3 }}>
-  //                       <Text
-  //                         style={{
-  //                           fontSize: 11,
-  //                           color: '#6B7280',
-  //                           textAlign: 'right',
-  //                           marginEnd:10
-  //                         }}>
-  //                         {removeHtmlTags(item.Completion)}
-  //                       </Text>
-  //                     </View>
-  //                   </View>
-
-  //                   {index !== transactionHistory.length - 1 && (
-  //                     <View
-  //                       style={{
-  //                         height: 1,
-  //                         backgroundColor: '#E5E7EB',
-  //                         marginVertical: 6,
-  //                       }}
-  //                     />
-  //                   )}
-  //                 </View>
-  //               ))
-  //             ) : (
-  //               <Text
-  //                 style={{
-  //                   color: '#9CA3AF',
-  //                   fontSize: 12,
-  //                   textAlign: 'center',
-  //                   marginTop: 10,
-  //                 }}>
-  //                 No Transaction History available
-  //               </Text>
-  //             )}
-  //           </View>
-  //         </View>
-  //       </View>
-
-  //         <View style={{height: 500}} />
-  //       </ScrollView>
-  //     );
-  //   } else {
-  //     return (
-  //       <View>
-  //         <Text>No details available for this type.</Text>
-  //       </View>
-  //     );
-  //   }
-  // };
-
   const renderDetailsPRRequest = () => {
     if (selectedItem.TrackingType === 'PR') {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
-            <GeneralInformationCard
+            <PRGeneralInformationCard
               genInformationData={genInformationData}
               styles={styles}
             />
@@ -1034,7 +534,7 @@ const DetailScreen = ({route, navigation}) => {
           <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
           {/* <View style={{height:10, width:'100%', borderWidth:5}}/> */}
           <View ref={obrInfoRef} style={{marginTop: 20}}>
-            <OBRInformationCard
+            <PROBRInformationCard
               OBRInformation={OBRInformation}
               totalAmount={totalAmount}
               insertCommas={insertCommas}
@@ -1056,7 +556,7 @@ const DetailScreen = ({route, navigation}) => {
           <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-            <RemarksCard
+            <PRRemarksCard
               genInformationData={genInformationData}
               removeHtmlTags={removeHtmlTags}
               styles={styles}
@@ -1065,7 +565,7 @@ const DetailScreen = ({route, navigation}) => {
           <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View style={{marginTop: 20}}>
-            <PendingNoteCard
+            <PRPendingNoteCard
               genInformationData={genInformationData}
               styles={styles}
             />
@@ -1076,7 +576,7 @@ const DetailScreen = ({route, navigation}) => {
               <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
               <View style={{marginTop: 20}}>
-                <DigitalCopiesCard
+                <PRDigitalCopiesCard
                   formTypeMap={formTypeMap}
                   attachmentsFiles={attachmentsFiles}
                   handleAttachFiles={handleAttachFiles}
@@ -1092,7 +592,7 @@ const DetailScreen = ({route, navigation}) => {
           <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View ref={transactionHistoryRef} style={{marginTop: 20}}>
-            <TransactionHistoryCard
+            <PRTransactionHistoryCard
               transactionHistory={transactionHistory}
               removeHtmlTags={removeHtmlTags}
               styles={styles}
@@ -1111,7 +611,98 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
-  const renderDetailsPOOrder = () => {
+   const renderDetailsPOOrder = () => {
+    if (selectedItem.TrackingType === 'PO') {
+      return (
+        <ScrollView ref={scrollViewRef}>
+          <View ref={genInfoRef} style={{marginTop: 10}}>
+            <POGeneralInformationCard
+              genInformationData={genInformationData}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <View style={{height:10, width:'100%', borderWidth:5}}/> */}
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <POOBRInformationCard
+              OBRInformation={OBRInformation}
+              totalAmount={POTOTAL}
+              insertCommas={insertCommas}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={prDetailsRef} style={{marginTop: 20}}>
+            <PODetailsCard
+              poDetails={prpopxDetails}
+              poTotalAmount={POTOTAL}
+              
+              insertCommas={insertCommas}
+              expandedIndex={expandedIndex}
+              toggleDescription={toggleDescription}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={remarksRef} style={{marginTop: 20}}>
+            <PORemarksCard
+              genInformationData={genInformationData}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View style={{marginTop: 20}}>
+            <POPendingNoteCard
+              genInformationData={genInformationData}
+              styles={styles}
+            />
+          </View>
+
+          {genInformationData.Year == '2025' && procurement === '1' && (
+            <>
+              <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+              <View style={{marginTop: 20}}>
+                <PODigitalCopiesCard
+                  formTypeMap={formTypeMap}
+                  attachmentsFiles={attachmentsFiles}
+                  handleAttachFiles={handleAttachFiles}
+                  handleRemove={handleRemove}
+                  year={genInformationData.Year}
+                  trackingNumber={trackingNumber} // Ensure trackingNumber is available
+                  handleImagePress={handleImagePress}
+                  styles={styles}
+                />
+              </View>
+            </>
+          )}
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={transactionHistoryRef} style={{marginTop: 20}}>
+            <POTransactionHistoryCard
+              transactionHistory={transactionHistory}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
+          </View>
+
+          <View style={{height: 500}} />
+        </ScrollView>
+      );
+    } else {
+      return (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text>No details available for this type.</Text>
+        </View>
+      );
+    }
+  };
+
+  const renderDetailsPOOrder2 = () => {
     if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -1348,7 +939,6 @@ const DetailScreen = ({route, navigation}) => {
                         </Text>
                       </View>
 
-                      {/* CODE */}
                       <View style={{flex: 1}}>
                         <View>
                           <Text style={styles.tableRowMain}>
@@ -1360,7 +950,6 @@ const DetailScreen = ({route, navigation}) => {
                         </Text>
                       </View>
 
-                      {/* AMOUNT */}
                       <View
                         style={{
                           flex: 1,
@@ -1435,7 +1024,6 @@ const DetailScreen = ({route, navigation}) => {
                           </TouchableOpacity>
                         </View>
 
-                        {/* Qty & Cost Column */}
                         <View style={{flex: 1, alignItems: 'center'}}>
                           <Text style={styles.tableRowMain}>
                             {Math.floor(detail.Qty)}{' '}
@@ -3695,6 +3283,9 @@ const DetailScreen = ({route, navigation}) => {
           backgroundColor:'white',
           flexDirection:'row',
           alignItems:'center',
+                        borderWidth:1,
+                        borderColor:'silver',
+
           zIndex: 1, 
         }}>
         <Pressable

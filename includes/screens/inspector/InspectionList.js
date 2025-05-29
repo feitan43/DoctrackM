@@ -8,9 +8,56 @@ export const InspectionList = ({item, index, onPressItem}) => {
     : [];
   const lastIndex = deliveryDates.length - 1;
 
+  const isForInspection = item.Status === 'For Inspection';
+  let inspectionDateInfo = null;
+
+  if (isForInspection && item.DeliveryDate) {
+    // Parse the date string 'YYYY-MM-DD HH:MM AM/PM'
+    const [datePart, timePart, ampmPart] = item.DeliveryDate.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    let [hours, minutes] = timePart.split(':').map(Number);
+
+    // Adjust hours for PM
+    if (ampmPart === 'PM' && hours < 12) {
+      hours += 12;
+    }
+    // Adjust hours for 12 AM (midnight)
+    if (ampmPart === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    // Create a Date object with the parsed components. Month is 0-indexed.
+    const inspectionDate = new Date(year, month - 1, day, hours, minutes);
+
+    const today = new Date();
+    // Set hours, minutes, seconds, milliseconds to 0 for today for accurate day comparison
+    today.setHours(0, 0, 0, 0);
+    // Set hours, minutes, seconds, milliseconds to 0 for inspectionDate for accurate day comparison
+    inspectionDate.setHours(0, 0, 0, 0);
+
+    const diffTime = inspectionDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Calculate days difference
+
+    if (diffDays < 0) {
+      inspectionDateInfo = {
+        text: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`,
+        style: styles.overdueText,
+      };
+    } else if (diffDays === 0) {
+      inspectionDateInfo = {
+        text: 'Today is the inspection day!',
+        style: styles.todayInspectionText,
+      };
+    } else {
+      inspectionDateInfo = {
+        text: `${diffDays} day${diffDays === 1 ? '' : 's'} till inspection`,
+        style: styles.daysTillInspectionText,
+      };
+    }
+  }
+
   return (
     <View style={styles.card}>
-      {/* Header Section: Index, Year, and Tracking Number */}
       <View style={styles.headerContainer}>
         <View style={styles.indexCircle}>
           <Text style={styles.indexText}>{index + 1}</Text>
@@ -19,18 +66,16 @@ export const InspectionList = ({item, index, onPressItem}) => {
         <View style={styles.trackingInfo}>
           <Text style={styles.trackingText}>
             <Text style={styles.yearText}>{item.Year}</Text>
-            {'  '}
+            {'   '}
             <Text style={styles.separator}>|</Text>
-            {'  '}
+            {'   '}
             {item.TrackingNumber || item.RefTrackingNumber}
           </Text>
         </View>
       </View>
 
-      {/* Divider */}
       <View style={styles.divider} />
 
-      {/* Details Section */}
       <View style={styles.detailsContainer}>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Office</Text>
@@ -43,7 +88,6 @@ export const InspectionList = ({item, index, onPressItem}) => {
           </Text>
         </View>
 
-        {/* Delivery Section */}
         <Text style={styles.deliveryHeader}>Delivery</Text>
 
         <View style={styles.detailRow}>
@@ -60,9 +104,17 @@ export const InspectionList = ({item, index, onPressItem}) => {
           <Text style={styles.detailLabel}>Date</Text>
           <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
         </View>
+
+        {isForInspection && inspectionDateInfo && (
+          <View style={styles.inspectionInfoRow}>
+            <Text style={styles.detailLabel}>{/* Inspection Status */}</Text>
+            <Text style={[styles.detailValue, inspectionDateInfo.style]}>
+              {inspectionDateInfo.text}
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* See Inspection Button - Enhanced but not overwhelming */}
       <Pressable
         style={({pressed}) => [styles.enhancedButton, pressed && styles.enhancedButtonPressed]}
         android_ripple={{color: 'rgba(243, 156, 18, 0.1)', borderless: false}}
@@ -88,23 +140,22 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(10),
   },
 
-  // --- Header Styles ---
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: verticalScale(10),
   },
   indexCircle: {
-    width: moderateScale(32), // Smaller circle
+    width: moderateScale(32),
     height: moderateScale(32),
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: moderateScale(16), // Perfect circle for new size
+    borderRadius: moderateScale(16),
     backgroundColor: '#E6EEF9',
     marginRight: moderateScale(15),
   },
   indexText: {
-    fontSize: moderateScale(16), // Smaller font size for the index
+    fontSize: moderateScale(16),
     fontWeight: '700',
     color: '#2980B9',
   },
@@ -125,14 +176,12 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(16),
   },
 
-  // --- Divider ---
   divider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: '#EAECEE',
     marginVertical: verticalScale(10),
   },
 
-  // --- Details Section ---
   detailsContainer: {
     paddingVertical: verticalScale(5),
   },
@@ -140,7 +189,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: verticalScale(6),
-   // alignItems: 'center',
   },
   detailLabel: {
     fontSize: moderateScale(14),
@@ -156,7 +204,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // --- Delivery Header ---
   deliveryHeader: {
     fontSize: moderateScale(15),
     fontWeight: 'bold',
@@ -165,27 +212,49 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(8),
   },
 
-  // --- Enhanced Button Styles ---
+  inspectionInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(6),
+    paddingTop: verticalScale(5),
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EAECEE',
+  },
+  overdueText: {
+    color: '#E74C3C',
+    fontWeight: 'bold',
+    fontSize: moderateScale(14),
+  },
+  todayInspectionText: {
+    color: '#27AE60',
+    fontWeight: 'bold',
+    fontSize: moderateScale(14),
+  },
+  daysTillInspectionText: {
+    color: '#3498DB',
+    fontWeight: 'bold',
+    fontSize: moderateScale(14),
+  },
+
   enhancedButton: {
     alignSelf: 'flex-end',
     marginTop: verticalScale(15),
-    paddingHorizontal: moderateScale(12), // Added back some padding
-    paddingVertical: verticalScale(6),   // Added back some padding
-    backgroundColor: 'rgba(243, 156, 18, 0.1)', // Very light orange background
-    borderRadius: moderateScale(8),     // Slightly rounded corners
-    borderWidth: 1,                     // Subtle border
-    borderColor: 'rgba(243, 156, 18, 0.3)', // Lighter orange border
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(8),
+    borderColor: 'rgba(243, 156, 18, 0.3)',
     shadowColor: 'transparent',
     elevation: 0,
   },
   enhancedButtonText: {
-    color: '#F39C12', // Keep the accent orange color
+    color: '#F39C12',
     fontSize: moderateScale(14),
-    fontWeight: '700', // Bolder to stand out more than just a link
-    textDecorationLine: 'none', // Remove underline
+    fontWeight: '700',
+    textDecorationLine: 'none',
   },
   enhancedButtonPressed: {
-    backgroundColor: 'rgba(243, 156, 18, 0.2)', // Slightly darker orange on press
+    backgroundColor: 'rgba(243, 156, 18, 0.2)',
     opacity: 0.9,
   },
 });

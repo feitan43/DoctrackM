@@ -112,7 +112,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
   // --- Table Styles (for OBR and PR Details Sections) ---
   sectionTable: {
     // Renamed from cardTable
-    paddingHorizontal: SPACING.m,
+    paddingHorizontal: SPACING.s,
     paddingVertical: SPACING.s,
   },
   tableHeader: {
@@ -137,7 +137,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    //alignItems: 'center',
     paddingVertical: SPACING.s,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderColor,
@@ -298,20 +298,22 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
+   transactionListContainer: {
+    // This view wraps the table content, applying consistent horizontal padding
+    paddingHorizontal: SPACING.xxs,
+  },
   transactionListHeader: {
     flexDirection: 'row',
     paddingVertical: SPACING.s,
-    backgroundColor: COLORS.tableHeaderBackground, // More distinct header background // Removed borderRadius here, will be handled by the parent container if needed
+    backgroundColor: COLORS.lightGrey, // More distinct header background // Removed borderRadius here, will be handled by the parent container if needed
     marginBottom: SPACING.s,
     alignItems: 'center',
     paddingHorizontal: SPACING.s, // Add horizontal padding for column alignment
   },
   transactionListHeaderText: {
-    fontWeight: '600', // Slightly less bold for header text
-    color: COLORS.primaryDark, // Use a darker primary color for header text
-    fontSize: FONT_SIZES.small,
-    textAlign: 'center',
-    textTransform: 'uppercase', // Make headers uppercase for distinction
+      fontSize: FONT_SIZES.small,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
   },
   transactionRow: {
     flexDirection: 'row',
@@ -333,14 +335,14 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontWeight: 'normal',
   },
   transactionDateText: {
-    fontSize: FONT_SIZES.medium,
+    fontSize: FONT_SIZES.small,
     color: COLORS.textPrimary,
     textAlign: 'center',
     fontWeight: '300', // Slightly bolder for date
   },
   transactionStatusText: {
-    fontSize: FONT_SIZES.large,
-    fontWeight: '600', // Make status text more prominent
+    fontSize: FONT_SIZES.medium,
+    fontWeight: '500', // Make status text more prominent
     textAlign: 'center',
     // We'll use a dynamic style for status color directly in the component
     // Example usage in component: style={{ color: getStatusColor(item.Status) }}
@@ -356,11 +358,11 @@ export const GLOBAL_STYLES = StyleSheet.create({
     color: COLORS.statusFailed,
   },
   transactionCompletionText: {
-    fontSize: FONT_SIZES.medium,
+    fontSize: FONT_SIZES.small,
     color: COLORS.textPrimary,
     textAlign: 'right',
     paddingRight: SPACING.xs, // Slightly less padding for a tighter look
-    fontWeight: '500',
+    fontWeight: '400',
   },
   descriptionToggleIcon: {
     marginLeft: SPACING.xs,
