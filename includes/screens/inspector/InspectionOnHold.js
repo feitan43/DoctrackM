@@ -83,35 +83,38 @@ const InspectionOnHold = ({navigation}) => {
   };
 
   const filteredInspectionListData = Array.isArray(data)
-    ? data.filter(item => {
-        const searchTerm = searchQuery?.toLowerCase() || '';
+  ? data.filter(item => {
+      const searchTerm = searchQuery?.toLowerCase() || '';
 
-        const {
-          OfficeName = '',
-          TrackingNumber = '',
-          CategoryName = '',
-          Year,
-        } = item;
+      const {
+        OfficeName = '', // These defaults are good for the initial assignment
+        TrackingNumber = '',
+        RefTrackingNumber = '',
+        CategoryName = '',
+        Year,
+      } = item;
 
-        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-          return false;
-        }
+      if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+        return false;
+      }
 
-        if (selectedYear && Year !== selectedYear) {
-          return false;
-        }
+      if (selectedYear && Year !== selectedYear) {
+        return false;
+      }
 
-        if (
-          !OfficeName.toLowerCase().includes(searchTerm) &&
-          !TrackingNumber.toLowerCase().includes(searchTerm) &&
-          !CategoryName.toLowerCase().includes(searchTerm)
-        ) {
-          return false;
-        }
+      if (
+        !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
+        !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+        !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
+        !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+      ) {
+        return false;
+      }
 
-        return true;
-      })
-    : [];
+      return true;
+    })
+  : [];
+
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);

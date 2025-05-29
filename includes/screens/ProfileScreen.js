@@ -19,13 +19,15 @@ const ProfileScreen = ({navigation}) => {
     officeName,
     officeCode,
     accountType,
+    procurement,
+    officeAdmin,
     gsoInspection,
     caoReceiver,
     caoEvaluator,
     cboReceiver,
   } = useUserInfo();
 
-  // Helper function to map accountType to readable string
+
   const getAccountTypeName = type => {
     switch (parseInt(type)) {
       case 1:
@@ -53,17 +55,22 @@ const ProfileScreen = ({navigation}) => {
     }
   };
 
-  // Helper function to get additional privilege names based on flags
   const getPrivilegeNames = () => {
     const privileges = [];
-    if (gsoInspection === 1) {
+    if (procurement === '1') {
+      privileges.push('Procurement');
+    }
+    if (officeAdmin === '1') {
+      privileges.push('Office Admin');
+    }
+    if (gsoInspection === '1') {
       privileges.push('Inspector');
     }
     // Combine caoReceiver and cboReceiver into a single 'Receiver' privilege
-    if (caoReceiver === 1 || cboReceiver === 1) {
+    if (caoReceiver === '1' || cboReceiver === '1') {
       privileges.push('Receiver');
     }
-    if (caoEvaluator === 1) {
+    if (caoEvaluator === '1') {
       privileges.push('Evaluator');
     }
     return privileges;

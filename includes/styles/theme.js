@@ -74,7 +74,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontSize: FONT_SIZES.title,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    
+
     //textTransform: 'uppercase',
   },
 
@@ -91,7 +91,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
   listItemLabel: {
     fontSize: FONT_SIZES.medium,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: '300',
     flex: 1,
     marginRight: SPACING.s,
   },
@@ -99,6 +99,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontSize: FONT_SIZES.medium,
     color: COLORS.textPrimary,
     textAlign: 'right',
+    fontWeight:'600',
     flex: 1.5,
   },
   divider: {
@@ -273,58 +274,110 @@ export const GLOBAL_STYLES = StyleSheet.create({
   },
 
   // --- Transaction History Styles ---
-  transactionListContainer: {
+  transactionHistoryContainer: {
+    backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.m,
-    paddingVertical: SPACING.s,
+    paddingBottom: SPACING.m, // Add padding bottom for the whole container
+    borderRadius: SPACING.s, // Slightly rounded corners for the whole section
+    shadowColor: COLORS.darkGrey,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2, // Android shadow
+    marginVertical: SPACING.m,
+    marginHorizontal: SPACING.m,
   },
-  transactionListHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  transactionHeaderWrapper: {
     paddingVertical: SPACING.s,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.dividerColor,
-    backgroundColor: COLORS.backgroundLight,
-    marginBottom: SPACING.xs,
+    borderBottomColor: COLORS.borderColor,
+    marginBottom: SPACING.s,
   },
-  transactionListHeaderText: {
-    fontSize: FONT_SIZES.medium,
+  transactionHeaderText: {
+    fontSize: FONT_SIZES.title,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
+  transactionListHeader: {
+    flexDirection: 'row',
+    paddingVertical: SPACING.s,
+    backgroundColor: COLORS.tableHeaderBackground, // More distinct header background // Removed borderRadius here, will be handled by the parent container if needed
+    marginBottom: SPACING.s,
+    alignItems: 'center',
+    paddingHorizontal: SPACING.s, // Add horizontal padding for column alignment
+  },
+  transactionListHeaderText: {
+    fontWeight: '600', // Slightly less bold for header text
+    color: COLORS.primaryDark, // Use a darker primary color for header text
+    fontSize: FONT_SIZES.small,
+    textAlign: 'center',
+    textTransform: 'uppercase', // Make headers uppercase for distinction
+  },
   transactionRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     paddingVertical: SPACING.s,
+    alignItems: 'center',
+    minHeight: 40,
+    paddingHorizontal: SPACING.s, // Consistent horizontal padding for rows
   },
   transactionRowEven: {
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: COLORS.tableRowEven, // Lighter background for even rows
   },
   transactionRowOdd: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.tableRowOdd, // White for odd rows
   },
   transactionIndexText: {
     fontSize: FONT_SIZES.medium,
-    color: COLORS.textSecondary,
-    fontWeight: 'bold',
-    marginRight: SPACING.xs,
+    color: COLORS.textSecondary, // A bit softer color for index
     textAlign: 'center',
-    width: SPACING.l,
+    fontWeight: 'normal',
   },
   transactionDateText: {
     fontSize: FONT_SIZES.medium,
     color: COLORS.textPrimary,
-    flex: 3,
+    textAlign: 'center',
+    fontWeight: '300', // Slightly bolder for date
   },
   transactionStatusText: {
-    fontSize: FONT_SIZES.medium,
-    color: COLORS.textPrimary,
-    flex: 5,
+    fontSize: FONT_SIZES.large,
+    fontWeight: '600', // Make status text more prominent
+    textAlign: 'center',
+    // We'll use a dynamic style for status color directly in the component
+    // Example usage in component: style={{ color: getStatusColor(item.Status) }}
+  },
+  // Define specific status colors
+  statusCompleted: {
+    color: COLORS.statusCompleted,
+  },
+  statusPending: {
+    color: COLORS.statusPending,
+  },
+  statusFailed: {
+    color: COLORS.statusFailed,
   },
   transactionCompletionText: {
-    fontSize: FONT_SIZES.small,
-    color: COLORS.textSecondary,
-    flex: 3,
+    fontSize: FONT_SIZES.medium,
+    color: COLORS.textPrimary,
     textAlign: 'right',
+    paddingRight: SPACING.xs, // Slightly less padding for a tighter look
+    fontWeight: '500',
+  },
+  descriptionToggleIcon: {
+    marginLeft: SPACING.xs,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.dividerColor, // Adjust margin here for better flow within the list items
+    marginVertical: SPACING.xxs, // Smaller vertical margin for dividers within the list
+    marginHorizontal: 0,
+  },
+  // No data text
+  noTransactionDataText: {
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.medium,
+    paddingVertical: SPACING.m,
+    fontStyle: 'italic',
   },
   descriptionToggleIcon: {
     marginLeft: SPACING.xs,

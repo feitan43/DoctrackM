@@ -77,12 +77,13 @@ const InspectionDetails = ({route, navigation}) => {
     data: inspectorImages,
     isLoading: inspectorImagesLoading,
     error: inspectorImagesError,
-  } = useInspectorImages(selectedYear, item.TrackingNumber);
+  } = useInspectorImages(selectedYear, item.TrackingNumber || item.RefTrackingNumber);
   const {
     data: data,
     isLoading: DetailsLoading,
     error: DetailsError,
   } = useInspectionDetails(selectedYear, item.TrackingPartner);
+
   const {
     data: prData,
     isLoading: prLoading,
@@ -101,16 +102,22 @@ const InspectionDetails = ({route, navigation}) => {
     isPending: uploading,
     isLoading,
   } = useUploadInspector();
-  const {mutate: removeInspectorImage, isPending: removing} = useRemoveInspectorImage();
-  const {mutate: editDeliveryDate, isPending: editDeliveryDateLoading} = useEditDeliveryDate();
-  const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] = useState(false);
-  const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] = useState(false);
+  const {mutate: removeInspectorImage, isPending: removing} =
+    useRemoveInspectorImage();
+  const {mutate: editDeliveryDate, isPending: editDeliveryDateLoading} =
+    useEditDeliveryDate();
+  const [invoiceBottomSheetVisible, setInvoiceBottomSheetVisible] =
+    useState(false);
+  const [addScheduleBottomSheetVisible, setAddScheduleBottomSheetVisible] =
+    useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [remarksBottomSheetVisible, setRemarksBottomSheetVisible] = useState(false);
+  const [remarksBottomSheetVisible, setRemarksBottomSheetVisible] =
+    useState(false);
   const [selectedRemark, setSelectedRemark] = useState('');
   const [remarks, setRemarks] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [dateTimeBottomSheetVisible, setDateTimeBottomSheetVisible] = useState(false);
+  const [dateTimeBottomSheetVisible, setDateTimeBottomSheetVisible] =
+    useState(false);
 
   const handleOpenSheet = () => setBottomSheetOpen(true);
   const handleCloseSheet = () => setBottomSheetOpen(false);
@@ -213,13 +220,11 @@ const InspectionDetails = ({route, navigation}) => {
     setImagePath(newImagePath);
   };
 
-  const handleUpload = () => {
-    //const year = dataItems?.vouchers?.[0]?.Year;
-    //const pxTN = dataItems?.vouchers?.[0]?.TrackingNumber;
-
+const handleUpload = () => {
     const year = dataItems?.vouchers?.[0]?.Year || item?.Year;
     const pxTN =
-      dataItems?.vouchers?.[0]?.TrackingNumber || item?.TrackingNumber;
+      dataItems?.vouchers?.[0]?.TrackingNumber || item?.TrackingNumber || item?.RefTrackingNumber;
+
     if (!imagePath || imagePath.length === 0) {
       showMessage({
         message: 'No image selected for upload.',
@@ -228,36 +233,37 @@ const InspectionDetails = ({route, navigation}) => {
       });
       return;
     }
+
+    setShowUploading(true); 
+
     uploadInspector(
-      {imagePath, year, pxTN},
+      { imagePath, year, pxTN, employeeNumber },
       {
-        onSuccess: () => {
+        onSuccess: (data) => { 
           showMessage({
-            message: 'Upload successful!',
+            message: data.message || 'Upload successful!', 
             type: 'success',
             icon: 'success',
             floating: true,
             duration: 3000,
           });
 
-          queryClient.invalidateQueries(['inspectorImages', year, pxTN]);
-
           setImagePath([]);
-
-          setShowUploading(false);
-          bottomSheetRef.current?.close();
+          setShowUploading(false); 
+          bottomSheetRef.current?.close(); 
         },
-        onError: error => {
+        onError: (error) => { 
           showMessage({
             message: 'Upload failed!',
-            description: error.message || 'Something went wrong',
+            description: /* error.message || */ 'Something went wrong',
             type: 'danger',
             icon: 'danger',
             floating: true,
             duration: 3000,
           });
+          setShowUploading(false); 
         },
-      },
+      }
     );
   };
 
@@ -371,20 +377,20 @@ const InspectionDetails = ({route, navigation}) => {
     );
   };
 
-  const handleEditDeliveryDate = (dateTime) => {
+  const handleEditDeliveryDate = dateTime => {
     const year = dateTime.getFullYear();
     const month = String(dateTime.getMonth() + 1).padStart(2, '0');
     const day = String(dateTime.getDate()).padStart(2, '0');
-  
+
     let hours = dateTime.getHours();
     const minutes = String(dateTime.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
-  
+
     hours = hours % 12;
     hours = hours === 0 ? 12 : hours;
-  
+
     const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
-    const deliveryId = item?.Id; 
+    const deliveryId = item?.Id;
     const itemYear = item?.Year;
     const trackingNumber = item?.TrackingNumber;
 
@@ -396,10 +402,9 @@ const InspectionDetails = ({route, navigation}) => {
         trackingNumber: trackingNumber,
       });
     } catch (error) {
-      console.error("Failed to update delivery date:", error);
+      console.error('Failed to update delivery date:', error);
     }
   };
-  
 
   const sanitizeInput = input => {
     if (!input || typeof input !== 'string') return ''; // Handle null, undefined, or non-string values
@@ -540,7 +545,11 @@ const InspectionDetails = ({route, navigation}) => {
             />
           ) : (
             <View style={{paddingHorizontal: 10}}>
-              {DetailsLoading || ItemsLoading ? (
+              {item.TrackingPartner === null ? (
+                  <View>
+                    <Text>No PO Tracking Number included on delivery call Project Doctrack'</Text>
+                  </View>
+              ) : DetailsLoading || ItemsLoading ? (
                 <View style={styles.loadingContainer}>
                   {[...Array(5)].map((_, index) => (
                     <Shimmer key={index} />
@@ -589,7 +598,9 @@ const InspectionDetails = ({route, navigation}) => {
                           queryClient={queryClient}
                           handleUploadBottomSheet={handleUploadBottomSheet}
                           editDeliveryDate={editDeliveryDate}
-                          setDateTimeBottomSheetVisible={setDateTimeBottomSheetVisible}
+                          setDateTimeBottomSheetVisible={
+                            setDateTimeBottomSheetVisible
+                          }
                         />
                       )}
                       keyExtractor={item =>
@@ -677,17 +688,15 @@ const InspectionDetails = ({route, navigation}) => {
         isAdding={isAdding}
       />
 
-         {/* {bottomSheetOpen && ( */}
-            <DateTimeBottomSheet
-              item={item}
-              dataItems={dataItems}
-              visible={dateTimeBottomSheetVisible}
-              onClose={() => setDateTimeBottomSheetVisible(false)}
-              onConfirm={handleEditDeliveryDate}
-            />
-         {/*  )} */}
-
-
+      {/* {bottomSheetOpen && ( */}
+      <DateTimeBottomSheet
+        item={item}
+        dataItems={dataItems}
+        visible={dateTimeBottomSheetVisible}
+        onClose={() => setDateTimeBottomSheetVisible(false)}
+        onConfirm={handleEditDeliveryDate}
+      />
+      {/*  )} */}
 
       <RemarksBottomSheet
         visible={remarksBottomSheetVisible}
@@ -1033,13 +1042,13 @@ const Section = ({title, children, action}) => (
     <View
       style={{
         backgroundColor: '#fff',
-        padding: 15,
+        //padding: 15,
         borderRadius: 8,
         shadowColor: '#000',
         shadowOffset: {width: 0, height: 2},
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 3,
+        //elevation: 3,
         marginVertical: 10,
         marginHorizontal: 5,
       }}>
@@ -1455,8 +1464,6 @@ const InspectionActivitySection = ({
   );
 };
 
-
-
 export const RenderInspection = memo(
   ({
     item,
@@ -1586,7 +1593,6 @@ export const RenderInspection = memo(
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedDeliveryItem, setSelectedDeliveryItem] = useState(null);
 
-
     const handleEditDeliveryDate = (index, deliveryItem) => {
       setSelectedDeliveryItem(deliveryItem);
       setDateTimeBottomSheetVisible(true);
@@ -1702,7 +1708,6 @@ export const RenderInspection = memo(
             renderInspectorImage={renderInspectorImage}
             item={item}
           />
-       
         </View>
       </View>
     );
@@ -2700,7 +2705,13 @@ const AddSchedule = ({item, visible, onClose, onSubmit, isAdding}) => {
   );
 };
 
-const DateTimeBottomSheet = ({item, dataItems, visible, onClose, onConfirm}) => {
+const DateTimeBottomSheet = ({
+  item,
+  dataItems,
+  visible,
+  onClose,
+  onConfirm,
+}) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [openDate, setOpenDate] = useState(false);
   const [openTime, setOpenTime] = useState(false);
@@ -2735,15 +2746,15 @@ const DateTimeBottomSheet = ({item, dataItems, visible, onClose, onConfirm}) => 
         </View>
 
         <View>
-        <Text style={{ fontSize: 12 }}>
-          Prev delivery date: {
-          dataItems.delivery[0].DeliveryDatesHistory
-            .split(', ')
-            .slice(-1)[0] 
-        }
-        </Text>
-      </View>
-
+          <Text style={{fontSize: 12}}>
+            Prev delivery date:{' '}
+            {
+              dataItems.delivery[0].DeliveryDatesHistory.split(', ').slice(
+                -1,
+              )[0]
+            }
+          </Text>
+        </View>
 
         {/* Date Picker */}
         <View style={{marginTop: 20}}>
@@ -2863,6 +2874,7 @@ const PRInspection = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [images, setImages] = useState(inspectorImages || []);
   const [fetchTimestamp, setFetchTimestamp] = useState(Date.now());
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
   useEffect(() => {
     if (prData && prData.length > 0) {
@@ -3259,257 +3271,115 @@ const PRInspection = ({
     </View>
   );
 
+  const toggleDescription = prIndex => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [prIndex]: !prev[prIndex],
+    }));
+  };
+
   return (
     <>
       <View style={{}}>
         <ScrollView
           contentContainerStyle={{
-            padding: 10,
+            //padding: 10,
             backgroundColor: '#f4f4f4',
             paddingBottom: 200,
           }}
           style={{}}>
-          <View
-            style={{
-              backgroundColor: '#fff',
-              padding: 20,
-              marginBottom: 15,
-              borderRadius: 8,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 4},
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-              borderWidth: 1,
-              borderColor: '#e0e0e0',
-              marginHorizontal: 10,
-            }}>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '600',
-                marginBottom: 12,
-                color: '#333',
-              }}>
-              PR Details
-            </Text>
-            <View
-              style={{
-                height: 1,
-                backgroundColor: '#e0e0e0',
-                marginBottom: 10,
-              }}
-            />
-
-            {/* Header Section */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                paddingVertical: 5,
-              }}>
-              <Text
-                style={{
-                  fontSize: moderateScale(13),
-                  fontFamily: 'Inter_28pt-Light',
-                  color: '#1A508C',
-                  width: '20%',
-                  fontWeight: 'bold',
-                }}>
-                Program
-              </Text>
-              <Text
-                style={{
-                  fontSize: moderateScale(13),
-                  fontFamily: 'Inter_28pt-Light',
-                  color: '#1A508C',
-                  width: '20%',
-                  fontWeight: 'bold',
-                }}>
-                Qty
-              </Text>
-              <Text
-                style={{
-                  fontSize: moderateScale(13),
-                  fontFamily: 'Inter_28pt-Light',
-                  color: '#1A508C',
-                  width: '20%',
-                  fontWeight: 'bold',
-                }}>
-                Cost
-              </Text>
-              <Text
-                style={{
-                  fontSize: moderateScale(13),
-                  fontFamily: 'Inter_28pt-Light',
-                  color: '#1A508C',
-                  width: '20%',
-                  fontWeight: 'bold',
-                }}>
-                Total
-              </Text>
-            </View>
-
-            {/* PR Data */}
-            {prData.map((dataItem, prIndex) => {
-              const prDataDetails = [
-                {label: 'TN', value: dataItem.TrackingNumber},
-                {label: 'Year', value: itemYear},
-                {label: 'Category', value: dataItem.Category},
-                {label: 'Code', value: dataItem.Code},
-                {label: 'Program', value: dataItem.ProgramCode},
-                {label: 'Cost', value: insertCommas(dataItem.Amount)},
-                {label: 'Unit', value: dataItem.Unit},
-                {label: 'Qty', value: dataItem.Qty},
-                {label: 'Total', value: insertCommas(dataItem.Total)},
-                {label: 'Description', value: dataItem.Description},
-              ];
-
-              return (
-                <View
-                  key={dataItem.RefTrackingNumber || prIndex}
-                  style={{paddingTop: 10}}>
-                  {/* Subheader Section for ProgramCode and Category */}
+         
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Details</Text>
+            <View style={styles.divider} />
+            {item && (
+              <View style={styles.detailsContainer}>
+                {[
+                  {label: 'Year', value: item.Year},
+                  {label: 'TN', value: item.RefTrackingNumber},
+                  {label: 'Office', value: item.OfficeName},
+                  {label: 'Category', value: item.CategoryCode},
+                ].map((detail, index) => (
                   <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      paddingVertical: 5,
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '20%',
-                      }}>
-                      {dataItem.ProgramCode}{' '}
-                      {/* Displaying the ProgramCode value */}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '20%',
-                      }}>
-                      {dataItem.Category} {/* Displaying the Category value */}
-                    </Text>
+                    key={detail.label + index} 
+                    style={styles.detailRow}>
+                    <Text style={styles.detailIndex}>{index + 1}.</Text>
+                    <Text style={styles.detailLabel}>{detail.label}</Text>
+                    <Text style={styles.detailValue}>{detail.value}</Text>
                   </View>
-
-                  {/* Displaying other PR data */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      paddingVertical: 5,
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '20%',
-                      }}>
-                      {dataItem.Code}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '20%',
-                      }}>
-                      {dataItem.Qty}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '20%',
-                      }}>
-                      {insertCommas(dataItem.Amount)}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '20%',
-                      }}>
-                      {insertCommas(dataItem.Total)}
-                    </Text>
-                  </View>
-
-                  {/* Description Section */}
-                  <View
-                    style={{
-                      paddingTop: 10,
-                      paddingLeft: 10,
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#2C3E50',
-                      }}
-                      numberOfLines={expanded ? undefined : 3}
-                      ellipsizeMode="tail">
-                      {dataItem.Description}
-                    </Text>
-                    {dataItem.Description.length > 50 && (
-                      <TouchableOpacity onPress={() => setExpanded(!expanded)}>
-                        <Text
-                          style={{
-                            color: '#1A508C',
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            alignSelf: 'flex-end',
-                          }}>
-                          {expanded ? 'Show Less' : 'Show More'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
+                ))}
+              </View>
+            )}
           </View>
 
-          <View
-            style={{
-              backgroundColor: '#fff',
-              padding: 15,
-              marginBottom: 15,
-              borderRadius: 8,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 4},
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-              borderWidth: 1,
-              borderColor: '#e0e0e0',
-              marginHorizontal: 10,
-            }}>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '600',
-                marginBottom: 12,
-                color: '#333',
-              }}>
-              Delivery
-            </Text>
-            <View
-              style={{
-                height: 1,
-                backgroundColor: '#e0e0e0',
-                marginBottom: 10,
-              }}
-            />
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>PR Details</Text>
+            <View style={styles.divider} />
+
+            <View style={styles.headerRow}>
+              <Text style={styles.headerTextNo}></Text>
+              <Text style={styles.headerText}>Qty</Text>
+              <Text style={styles.headerText}>Cost</Text>
+              <Text style={styles.headerText}>Total</Text>
+            </View>
+
+            {prData.map((dataItem, prIndex) => (
+              <View
+                key={dataItem.RefTrackingNumber || prIndex}
+                style={styles.dataItemContainer}>
+                <View style={styles.dataRow}>
+                  <Text style={styles.dataTextNo}>{prIndex + 1}.</Text>
+                  <Text style={styles.dataText}>
+                    {dataItem.Qty}
+                    {'\n'}
+                    {dataItem.Unit}
+                  </Text>
+                  <Text style={styles.dataText}>
+                    {insertCommas(dataItem.Amount)}
+                  </Text>
+                  <Text style={styles.dataText}>
+                    {insertCommas(dataItem.Total)}
+                  </Text>
+                </View>
+
+                <View style={styles.descriptionContainer}>
+                  <Text
+                    style={styles.descriptionText}
+                    numberOfLines={
+                      expandedDescriptions[prIndex] ? undefined : 2
+                    }
+                    ellipsizeMode="tail">
+                    <Text style={styles.descriptionLabel}>
+                      Description:{'\n'}
+                    </Text>
+                    {dataItem.Description}
+                  </Text>
+                  {dataItem.Description && dataItem.Description.length > 70 && (
+                    <TouchableOpacity
+                      onPress={() => toggleDescription(prIndex)}
+                      style={styles.toggleButton}>
+                      <Text style={styles.toggleButtonText}>
+                        {expandedDescriptions[prIndex]
+                          ? 'Show Less'
+                          : 'Show More'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {prIndex < prData.length - 1 && (
+                  <View style={styles.itemDivider} />
+                )}
+              </View>
+            ))}
+          </View>
+
+        
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Delivery</Text>
+            <View style={styles.divider} />
             {item && (
-              <View style={{paddingTop: 10}}>
+              <View style={styles.detailsContainer}>
                 {[
                   {label: 'Contact', value: item.ContactNumber},
                   {label: 'Person', value: item.ContactPerson},
@@ -3518,41 +3388,11 @@ const PRInspection = ({
                   {label: 'Status', value: item.Status},
                 ].map((detail, index) => (
                   <View
-                    key={detail.label + index}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingVertical: 5,
-                    }}>
-                    <Text
-                      key={index}
-                      style={{
-                        fontSize: 14,
-                        fontWeight: '500',
-                        color: '#666',
-                        width: 20,
-                      }}>
-                      {index + 1}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-Light',
-                        color: '#1A508C',
-                        width: '25%',
-                        marginRight: 10,
-                      }}>
-                      {detail.label}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: moderateScale(13),
-                        fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#2C3E50',
-                        flex: 1,
-                      }}>
-                      {detail.value}
-                    </Text>
+                    key={detail.label + index} 
+                    style={styles.detailRow}>
+                    <Text style={styles.detailIndex}>{index + 1}.</Text>
+                    <Text style={styles.detailLabel}>{detail.label}</Text>
+                    <Text style={styles.detailValue}>{detail.value}</Text>
                   </View>
                 ))}
               </View>
@@ -3808,6 +3648,151 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 20, // Increased padding for more breathing room
+    marginBottom: 15,
+    borderRadius: 12, // Slightly more rounded corners
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 5}, // Deeper shadow
+    shadowOpacity: 0.15, // Slightly more visible shadow
+    shadowRadius: 8, // Larger blur for shadow
+    //elevation: 6, // Increased elevation for Android
+    //borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginHorizontal: 10,
+  },
+  cardTitle: {
+    fontSize: 18, // Larger, bolder title
+    fontWeight: '800',
+    color: '#2C3E50', // Darker, more prominent color
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginBottom: 20, // Consistent spacing
+  },
+  detailsContainer: {
+    // No specific padding top, handled by detailRow vertical padding
+  },
+  detailRow: {
+    flexDirection: 'row',
+    //alignItems: 'center',
+    paddingVertical: 5, // Increased vertical padding for each row
+    borderBottomWidth: StyleSheet.hairlineWidth, // Thin, subtle line between rows
+    borderBottomColor: '#f0f0f0', // Very light line color
+    marginBottom: 0, // No bottom margin, border handles separation
+  },
+  detailIndex: {
+    fontSize: moderateScale(14), // Slightly larger font for index
+    fontWeight: '600', // Bolder index
+    color: '#666',
+    width: 30, // Fixed width for index, adjust as needed based on max index count
+    textAlign: 'center', // Center index
+    marginRight: 5, // Space between index and label
+  },
+  detailLabel: {
+    fontSize: moderateScale(14), // Consistent font size with index
+    fontFamily: 'Inter_28pt-SemiBold', // Bolder font for labels
+    color: '#1A508C', // Primary color for labels
+    width: '30%', // Adjusted width for labels (Year, TN, Office, Category)
+    marginRight: 10,
+  },
+  detailValue: {
+    fontSize: moderateScale(14), // Consistent font size with label
+    fontFamily: 'Inter_28pt-Regular', // Regular font for values
+    color: '#2C3E50', // Darker color for values
+    flex: 1, // Takes up remaining space
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Changed to space-between for better alignment with "No."
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dcdcdc',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  headerTextNo: {
+    // Specific style for the "No." header
+    fontSize: moderateScale(14),
+    fontFamily: 'Inter_28pt-SemiBold',
+    color: '#1A508C',
+    width: '10%', // Smaller width for the index column
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  headerText: {
+    fontSize: moderateScale(14),
+    fontFamily: 'Inter_28pt-SemiBold',
+    color: '#1A508C',
+    width: '30%', // Adjusted width for Qty, Cost, Total
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  dataItemContainer: {
+    paddingVertical: 10,
+  },
+  dataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Changed to space-between for better alignment with "No."
+    paddingVertical: 8,
+    marginBottom: 5,
+  },
+  dataTextNo: {
+    // Specific style for the "No." data
+    fontSize: moderateScale(13.5),
+    fontFamily: 'Inter_28pt-Regular',
+    color: '#34495E',
+    width: '10%', // Smaller width for the index column
+    textAlign: 'center',
+  },
+  dataText: {
+    fontSize: moderateScale(13.5),
+    fontFamily: 'Inter_28pt-Regular',
+    color: '#34495E',
+    width: '30%', // Adjusted width for Qty, Cost, Total
+    textAlign: 'center',
+  },
+  descriptionContainer: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#fcfcfc',
+    borderRadius: 8,
+    marginTop: 5,
+    borderWidth: 0.5,
+    borderColor: '#eee',
+  },
+  descriptionLabel: {
+    fontWeight: '600',
+    color: '#2C3E50',
+  },
+  descriptionText: {
+    fontSize: moderateScale(13),
+    fontFamily: 'Inter_28pt-Regular',
+    color: '#555',
+    lineHeight: moderateScale(22),
+  },
+  toggleButton: {
+    marginTop: 10,
+    alignSelf: 'flex-end',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    backgroundColor: '#eaf4ff',
+  },
+  toggleButtonText: {
+    color: '#1A508C',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  itemDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 15,
   },
 });
 

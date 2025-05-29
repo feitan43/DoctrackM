@@ -7,130 +7,67 @@ export const InspectionList = ({item, index, onPressItem}) => {
     ? item.DeliveryDatesHistory.split(',')
     : [];
   const lastIndex = deliveryDates.length - 1;
+
   return (
     <View style={styles.card}>
-      <View
-        style={{
-          flexDirection: 'row',
-          //backgroundColor: 'rgba(230, 234, 245, 1)',
-          alignItems: 'center',
-          borderRadius: 5,
-        }}>
-        <View
-          style={{
-            width: 35,
-            height: 35,
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderRadius: 10,
-            backgroundColor: 'rgba(230, 234, 245, 1)',
-          }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: 'rgb(7, 84, 252)',
-              textAlign: 'center',
-            }}>
-            {index + 1}
-          </Text>
+      {/* Header Section: Index, Year, and Tracking Number */}
+      <View style={styles.headerContainer}>
+        <View style={styles.indexCircle}>
+          <Text style={styles.indexText}>{index + 1}</Text>
         </View>
 
-        <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
-          <Text style={{flex: 0.15, fontSize: 14, color: '#555'}}>{''}</Text>
-          <Text
-            style={{
-              flex: 0.7,
-              fontSize: 16,
-              fontWeight: 'bold',
-              color: '#333',
-            }}>
-            {item.Year}{' '}
-            <Text
-              style={{
-                fontSize: 16,
-                textAlign: 'center',
-                color: 'rgb(80, 161, 247)',
-              }}>
-              |
-            </Text>{' '}
+        <View style={styles.trackingInfo}>
+          <Text style={styles.trackingText}>
+            <Text style={styles.yearText}>{item.Year}</Text>
+            {'  '}
+            <Text style={styles.separator}>|</Text>
+            {'  '}
             {item.TrackingNumber || item.RefTrackingNumber}
-            </Text>
+          </Text>
         </View>
       </View>
 
+      {/* Divider */}
       <View style={styles.divider} />
 
+      {/* Details Section */}
       <View style={styles.detailsContainer}>
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Office</Text>
-          <Text style={styles.value}>{item.OfficeName}</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Office</Text>
+          <Text style={styles.detailValue}>{item.OfficeName}</Text>
         </View>
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Category</Text>
-          <Text style={styles.value}>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Category</Text>
+          <Text style={styles.detailValue}>
             {item.CategoryCode} - {item.CategoryName}
           </Text>
         </View>
 
-          <View
-                style={{
-                  alignSelf: 'center',
-                  height: 1,
-                  backgroundColor: '#ddd',
-                  width: '100%',
-                  marginVertical: 5,
-                  borderRadius: 10,
-                }}
-              />
+        {/* Delivery Section */}
+        <Text style={styles.deliveryHeader}>Delivery</Text>
 
-        <Text
-              style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                color: '#0754FC',
-                marginBottom: 5,
-              }}>
-              Delivery
-            </Text>
-
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Address</Text>
-          <Text style={styles.value}>{item.Address || 'N/A'}</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Address</Text>
+          <Text style={styles.detailValue}>{item.Address || 'N/A'}</Text>
         </View>
 
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Contact</Text>
-          <Text style={styles.value}>{item.ContactPerson || 'N/A'}</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Contact</Text>
+          <Text style={styles.detailValue}>{item.ContactPerson || 'N/A'}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Date</Text>
+          <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
         </View>
       </View>
 
-      <View style={styles.textRow}>
-          <Text style={styles.label}>Date</Text>
-          <Text style={styles.value}>{item.DeliveryDate || 'N/A'}</Text>
-
-          {/* <View style={styles.deliveryContainer}>
-          {deliveryDates.length > 0 ? (
-            <View
-              style={[styles.deliveryIndexContainer, styles.latestDelivery]}>
-              <Text style={[styles.deliveryIndex, styles.latestDeliveryIndex]}>
-                {deliveryDates.length}
-              </Text>
-              <Text style={styles.deliveryDate}>
-                {deliveryDates[lastIndex].trim()}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.value}>N/A</Text>
-          )}
-          </View> */}
-        </View>
-
+      {/* See Inspection Button - Enhanced but not overwhelming */}
       <Pressable
-        style={({pressed}) => [styles.button, pressed && styles.buttonPressed]}
-        android_ripple={{color: '#B9B9B9', borderless: false}}
+        style={({pressed}) => [styles.enhancedButton, pressed && styles.enhancedButtonPressed]}
+        android_ripple={{color: 'rgba(243, 156, 18, 0.1)', borderless: false}}
         onPress={() => onPressItem(item)}>
-        <Text style={styles.buttonText}>See Inspection</Text>
+        <Text style={styles.enhancedButtonText}>See Inspection</Text>
       </Pressable>
     </View>
   );
@@ -138,122 +75,118 @@ export const InspectionList = ({item, index, onPressItem}) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: scale(10),
-    padding: scale(12),
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(12),
+    padding: moderateScale(16),
     marginVertical: verticalScale(8),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: verticalScale(3)},
-    shadowOpacity: 0.12,
-    shadowRadius: scale(5),
-    elevation: scale(4),
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginHorizontal: 10,
+    shadowOffset: {width: 0, height: verticalScale(4)},
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(6),
+    elevation: 6,
+    borderWidth: 0,
+    marginHorizontal: moderateScale(10),
   },
-  container: {
+
+  // --- Header Styles ---
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(10),
+  },
+  indexCircle: {
+    width: moderateScale(32), // Smaller circle
+    height: moderateScale(32),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: moderateScale(16), // Perfect circle for new size
+    backgroundColor: '#E6EEF9',
+    marginRight: moderateScale(15),
+  },
+  indexText: {
+    fontSize: moderateScale(16), // Smaller font size for the index
+    fontWeight: '700',
+    color: '#2980B9',
+  },
+  trackingInfo: {
+    flex: 1,
+  },
+  trackingText: {
+    fontSize: moderateScale(17),
+    fontWeight: 'bold',
+    color: '#34495E',
+  },
+  yearText: {
+    fontWeight: 'normal',
+    color: '#7F8C8D',
+  },
+  separator: {
+    color: '#BDC3C7',
+    fontSize: moderateScale(16),
+  },
+
+  // --- Divider ---
+  divider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EAECEE',
+    marginVertical: verticalScale(10),
+  },
+
+  // --- Details Section ---
+  detailsContainer: {
+    paddingVertical: verticalScale(5),
+  },
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: verticalScale(6),
+   // alignItems: 'center',
   },
-  index: {
-    width: 35,
-    height: 35,
-    textAlign: 'center',
-    fontSize: moderateScale(18),
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: 'rgb(7, 84, 252)',
-    backgroundColor: 'rgba(230, 234, 245, 1)',
-    paddingHorizontal: scale(6),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(4),
-  },
-  officeName: {
-    fontSize: moderateScale(15),
-    fontFamily: 'Inter_28pt-Medium',
-    color: '#2C3E50',
-    flex: 1, // Take the remaining space
-    //marginLeft: scale(8),
-  },
-  divider: {
-    borderBottomWidth: 1,
-    borderColor: '#BDC3C7',
-    marginVertical: verticalScale(6),
-  },
-  detailsContainer: {
-    marginTop: verticalScale(8),
-  },
-  textRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: verticalScale(2),
-  },
-  label: {
-    fontSize: moderateScale(13),
-    fontFamily: 'Inter_28pt-Light',
-    color: '#1A508C',
-    width: '25%',
-    marginTop: verticalScale(2),
-  },
-  value: {
-    fontSize: moderateScale(13),
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: '#2C3E50',
-    flex: 1,
-  },
-  deliveryContainer: {
-    flex: 1,
-  },
-  deliveryIndexContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: verticalScale(2),
-  },
-  deliveryIndex: {
-    //backgroundColor: '#D6EAF8',
-    paddingHorizontal: scale(6),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(4),
-    marginRight: scale(6),
+  detailLabel: {
     fontSize: moderateScale(14),
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: '#2C3E50',
+    fontWeight: '500',
+    color: '#607D8B',
+    width: '30%',
   },
-  deliveryDate: {
-    fontSize: moderateScale(14),
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: '#2C3E50',
-  },
-  // Latest Delivery Styles
-  latestDelivery: {
-    backgroundColor: '#EAF2F8', // Light blueish background for latest delivery container
-    borderRadius: scale(4),
-    padding: verticalScale(2),
-  },
-  latestDeliveryIndex: {
-    backgroundColor: '#5DADE2', // Blueish background for latest index
-    color: '#FFF', // White text for better contrast
-  },
-  previousDelivery: {
-    backgroundColor: '#E5E7EB', // Light gray for previous deliveries
-    borderRadius: scale(4),
-    padding: verticalScale(2),
-  },
-  button: {
-    alignSelf: 'flex-end',
-    marginTop: verticalScale(10),
-    borderRadius: scale(4),
-    padding: verticalScale(2),
-    paddingVertical: verticalScale(6),
-    shadowColor: '#000',
-  },
-  buttonText: {
-    color: '#F39C12',
+  detailValue: {
     fontSize: moderateScale(14),
     fontWeight: '600',
+    color: '#2C3E50',
+    flex: 1,
+    textAlign: 'right',
   },
-  buttonPressed: {
-    opacity: 0.7, // Slight transparency effect for iOS
+
+  // --- Delivery Header ---
+  deliveryHeader: {
+    fontSize: moderateScale(15),
+    fontWeight: 'bold',
+    color: '#1A508C',
+    marginTop: verticalScale(15),
+    marginBottom: verticalScale(8),
+  },
+
+  // --- Enhanced Button Styles ---
+  enhancedButton: {
+    alignSelf: 'flex-end',
+    marginTop: verticalScale(15),
+    paddingHorizontal: moderateScale(12), // Added back some padding
+    paddingVertical: verticalScale(6),   // Added back some padding
+    backgroundColor: 'rgba(243, 156, 18, 0.1)', // Very light orange background
+    borderRadius: moderateScale(8),     // Slightly rounded corners
+    borderWidth: 1,                     // Subtle border
+    borderColor: 'rgba(243, 156, 18, 0.3)', // Lighter orange border
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
+  enhancedButtonText: {
+    color: '#F39C12', // Keep the accent orange color
+    fontSize: moderateScale(14),
+    fontWeight: '700', // Bolder to stand out more than just a link
+    textDecorationLine: 'none', // Remove underline
+  },
+  enhancedButtonPressed: {
+    backgroundColor: 'rgba(243, 156, 18, 0.2)', // Slightly darker orange on press
+    opacity: 0.9,
   },
 });
 

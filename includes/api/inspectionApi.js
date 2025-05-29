@@ -113,6 +113,8 @@ export const uploadInspector = async ({ imagePath, year, pxTN, employeeNumber })
     });
   });
 
+  console.log("f",formData);
+
   //const upload_URL = 'http://192.168.254.134/gord/ajax/dataprocessor.php';
   const upload_URL = 'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';
 

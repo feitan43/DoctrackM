@@ -20,6 +20,7 @@ import {ScrollView} from 'react-native-gesture-handler';
 import {Shimmer} from '../../utils/useShimmer';
 import {InspectionList} from './InspectionList';
 import {useQueryClient} from '@tanstack/react-query';
+import { FlashList } from '@shopify/flash-list'; // Import FlashList
 
 //import useInspection from '../../api/useInspection';
 import {useInspection} from '../../hooks/useInspection';
@@ -95,35 +96,37 @@ const Inspected = ({navigation}) => {
   };
 
   const filteredInspectionListData = Array.isArray(data)
-    ? data.filter(item => {
-        const searchTerm = searchQuery?.toLowerCase() || '';
+  ? data.filter(item => {
+      const searchTerm = searchQuery?.toLowerCase() || '';
 
-        const {
-          OfficeName = '',
-          TrackingNumber = '',
-          CategoryName = '',
-          Year,
-        } = item;
+      const {
+        OfficeName = '', // These defaults are good for the initial assignment
+        TrackingNumber = '',
+        RefTrackingNumber = '',
+        CategoryName = '',
+        Year,
+      } = item;
 
-        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-          return false;
-        }
+      if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+        return false;
+      }
 
-        if (selectedYear && Year !== selectedYear) {
-          return false;
-        }
+      if (selectedYear && Year !== selectedYear) {
+        return false;
+      }
 
-        if (
-          !OfficeName.toLowerCase().includes(searchTerm) &&
-          !TrackingNumber.toLowerCase().includes(searchTerm) &&
-          !CategoryName.toLowerCase().includes(searchTerm)
-        ) {
-          return false;
-        }
+      if (
+        !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
+        !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+        !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
+        !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+      ) {
+        return false;
+      }
 
-        return true;
-      })
-    : [];
+      return true;
+    })
+  : [];
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -240,10 +243,11 @@ const Inspected = ({navigation}) => {
             </Text>
           </View>
         ) : (
-          <FlatList
+         
+           <FlashList
             data={filteredInspectionList}
             keyExtractor={(item, index) =>
-              item && item.Id ? item.Id.toString() : index.toString()
+              item && item.Id ? item.Id.toString() : `item-${index}` // Fallback for keyExtractor
             }
             renderItem={({item, index}) => (
               <View style={styles.inspectionItemContainer}>
@@ -255,9 +259,9 @@ const Inspected = ({navigation}) => {
               </View>
             )}
             onRefresh={handleRefresh}
-            refreshing={refreshing}
-            initialNumToRender={10}
-            windowSize={5}
+            refreshing={refreshing || isFetching} // Show refreshing also when data is being fetched
+            estimatedItemSize={200} // Crucial for FlashList performance! Adjust based on your InspectionList item's average height.
+            contentContainerStyle={styles.flashListContentContainer} // Add padding/margin here if needed
           />
         )}
       </View>

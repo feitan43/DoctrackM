@@ -13,13 +13,13 @@ import {
   Modal,
   StatusBar,
   Animated,
-  //SafeAreaView
+  SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ActivityIndicator} from 'react-native-paper';
 import useGenInformation from '../api/useGenInformation';
 import {DataTable, Divider} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
+//import {SafeAreaView} from 'react-native-safe-area-context';
 import {pick} from '@react-native-documents/picker';
 import {
   BottomSheetModal,
@@ -50,7 +50,7 @@ import {
 } from './../components/PRDetails';
 import {width, height} from '../utils';
 const HEADER_HEIGHT = 250;
-const PARALLAX_FACTOR = 0.6; 
+const PARALLAX_FACTOR = 0.6;
 
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
@@ -265,6 +265,9 @@ const DetailScreen = ({route, navigation}) => {
     employeeNumber,
     onSuccessCallback,
   ) => {
+    console.log( items,
+    year,
+    tn,);
     if (!items || items.length === 0) {
       showMessage({
         message: 'No items selected for upload.',
@@ -274,6 +277,8 @@ const DetailScreen = ({route, navigation}) => {
       });
       return;
     }
+    
+
 
     if (!year || !tn || !employeeNumber) {
       showMessage({
@@ -3675,78 +3680,100 @@ const DetailScreen = ({route, navigation}) => {
   });
 
   return (
-    <BottomSheetModalProvider>
-      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-       {/*  <StatusBar barStyle="light-content" translucent={true} /> */}
-        <View
-              style={{
-                position: 'absolute',
-                left: 10,
-                marginTop:50,
-                borderRadius: 999,
-                overflow: 'hidden',
-              }}>
-              <Pressable
-                style={({pressed}) => [
-                  pressed && {backgroundColor: 'gray'},
-                  {
-                    backgroundColor: 'transparent',
-                    padding: 10,
-                    flexDirection: 'row',
-                    alignItems: 'flex-end',
-                  },
-                ]}
-                android_ripple={{color: 'gray'}}
-                onPress={() => navigation.goBack()}>
-                <Icon name="chevron-back-outline" size={26} color="gray" />
-              </Pressable>
-            </View>
-        <Animated.ScrollView
-          // Use Animated.ScrollView for direct linking of scroll events to Animated.Value
-          onScroll={Animated.event(
-            [{nativeEvent: {contentOffset: {y: scrollY}}}],
-            {useNativeDriver: true}, // Crucial for performance
-          )}
-          scrollEventThrottle={16} // Fires the event every 16ms (for 60fps)
-          showsVerticalScrollIndicator={false} // Hide scroll indicator
-        >
-          <Animated.View
-            style={[
-              styles.parallaxHeaderContainer,
-              {
-                transform: [
-                  {translateY: parallaxHeaderTranslateY},
-                  {scale: parallaxHeaderScale},
-                ],
-              },
-            ]}>
-            <ImageBackground
-              source={require('../../assets/images/CirclesBG.png')} // Replace with your image
-              style={styles.backgroundImage}
-              resizeMode="cover">
-                 
+<BottomSheetModalProvider>
+  <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+    {/* <StatusBar barStyle="light-content" translucent={true} /> */}
+
+    <View style={{flex: 1}}>
+      <View
+        style={{
+          position: 'absolute',
+          left: 10,
+          marginTop: 50,
+          borderRadius: 999,
+          overflow: 'hidden',
+          backgroundColor:'white',
+          flexDirection:'row',
+          alignItems:'center',
+          zIndex: 1, 
+        }}>
+        <Pressable
+          style={({pressed}) => [
+            pressed && {backgroundColor: 'gray'},
+            {
+              backgroundColor: 'transparent',
+              padding: 10,
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+            },
+          ]}
+          android_ripple={{color: 'gray'}}
+          onPress={() => navigation.goBack()}>
+          <Icon name="chevron-back-outline" size={26} color="gray" />
+        </Pressable>
+        <Text style={{}}>{genInformationData?.TrackingNumber || ''}</Text>
+      </View>
+
+      <Animated.ScrollView
+        // Use Animated.ScrollView for direct linking of scroll events to Animated.Value
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {useNativeDriver: true}, // Crucial for performance
+        )}
+        scrollEventThrottle={16} // Fires the event every 16ms (for 60fps)
+        showsVerticalScrollIndicator={false} // Hide scroll indicator
+      >
+        <Animated.View
+          style={[
+            styles.parallaxHeaderContainer,
+            {
+              transform: [
+                {translateY: parallaxHeaderTranslateY},
+                {scale: parallaxHeaderScale},
+              ],
+            },
+          ]}>
+          <ImageBackground
+            source={require('../../assets/images/CirclesBG.png')} // Replace with your image
+            style={styles.backgroundImage}
+            resizeMode="cover">
+            {/* The back button was here, now moved outside */}
+            <View style={styles.overlay}>
               <View style={styles.headerContent}>
-                
-                <Text style={styles.headerTitle}>
-                  {genInformationData?.TrackingType} -{' '}
-                  {genInformationData?.Status}
-                </Text>
-                <Text style={styles.headerSubtitle}>
+                {/* <Text style={styles.headerSubtitle}>
                   {genInformationData?.Year} -{' '}
                   {genInformationData?.TrackingNumber}
+                </Text> */}
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <Text
+                    style={{color: '#fff', textAlignVertical: 'center'}}>
+                    Status{' '}
+                  </Text>
+                  <Text style={styles.headerTitle}>
+                    {genInformationData?.TrackingType} -{' '}
+                    {genInformationData?.Status}
+                  </Text>
+                </View>
+
+                {/* Applied optional chaining here to prevent 'OfficeName' of null error */}
+                <Text style={{color: '#fff', fontWeight: '200'}}>
+                  {genInformationData?.OfficeName?.replace(/\\/g, '')}
                 </Text>
               </View>
-            </ImageBackground>
-          </Animated.View>
+            </View>
+          </ImageBackground>
+        </Animated.View>
 
-          <View style={styles.contentContainer}>
-            {genInfoLoading ? (
-              <View>
-                <Loading />
-              </View>
-            ) : (
-              <View style={{height: '100%', paddingBottom: 55}}>
-                {(() => {
+        <View style={styles.contentContainer}>
+          {genInfoLoading ? (
+            <View>
+              <Loading />
+            </View>
+          ) : (
+            <View style={{height: '100%', paddingBottom: 55}}>
+              {/* Added a check for selectedItem before the switch statement */}
+              {selectedItem ? (
+                (() => {
                   switch (selectedItem.TrackingType) {
                     case 'PR':
                       return renderDetailsPRRequest();
@@ -3757,128 +3784,133 @@ const DetailScreen = ({route, navigation}) => {
                     default:
                       return renderOtherDetails();
                   }
-                })()}
-              </View>
-            )}
-          </View>
-        </Animated.ScrollView>
-
-        <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
-          <View
-            style={{
-              flex: 1,
-              padding: 16,
-              backgroundColor: '#fff',
-              borderRadius: 12,
-              justifyContent: 'space-between',
-            }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                color: '#444',
-                marginBottom: 10,
-              }}>
-              {currentFormType === 'OBR Form'
-                ? 'OBR Form'
-                : currentFormType === 'PR Form'
-                ? 'PR Form'
-                : currentFormType === 'RFQ Form'
-                ? 'RFQ Form'
-                : currentFormType === 'PO Form'
-                ? 'PO Form'
-                : currentFormType === 'Acceptance Form'
-                ? 'Acceptance Form'
-                : currentFormType === 'RFI Form'
-                ? 'RFI Form'
-                : currentFormType === 'Request for Delivery Extension'
-                ? 'Request for Delivery Extension'
-                : currentFormType === 'DV Form'
-                ? 'DV Form'
-                : currentFormType === 'Abstract of Bids'
-                ? 'Abstract of Bids'
-                : currentFormType === 'Financial Proposal'
-                ? 'Financial Proposal'
-                : currentFormType === 'Invitation to Observer'
-                ? 'Invitation to Observer'
-                : currentFormType === 'Bid Evaluation'
-                ? 'Bid Evaluation'
-                : currentFormType === 'Post Qualification'
-                ? 'Post Qualification'
-                : currentFormType === 'Certificate of Eligibility'
-                ? 'Certificate of Eligibility'
-                : currentFormType === 'Philgeps Posting'
-                ? 'Philgeps Posting'
-                : currentFormType === 'Philgeps Award'
-                ? 'Philgeps Award'
-                : currentFormType === 'Certification (Mode, Award, Minutes)'
-                ? 'Certification (Mode, Award, Minutes)'
-                : currentFormType === 'Bac Cert (Conspicuous Place)'
-                ? 'Bac Cert (Conspicuous Place)'
-                : 'No form type selected'}
-            </Text>
-            <TouchableOpacity
-              onPress={pickFile}
-              style={{
-                borderWidth: 1,
-                borderColor: '#1976D2',
-                paddingVertical: 10,
-                paddingHorizontal: 18,
-                borderRadius: 6,
-                alignItems: 'center',
-              }}>
-              <Text style={{color: '#1976D2', fontSize: 16, fontWeight: '500'}}>
-                Browse
-              </Text>
-            </TouchableOpacity>
-
-            <View style={{flex: 1, alignItems: 'center'}}>
-              {selectedFiles?.length > 0 ? (
-                renderAttachmentPreview(selectedFiles, handleRemove)
+                })()
               ) : (
-                <Text style={{fontSize: 14, color: '#666', marginVertical: 10}}>
-                  No files attached
-                </Text>
+                <Text>No tracking item selected or data loading...</Text>
               )}
             </View>
+          )}
+        </View>
+      </Animated.ScrollView>
+    </View>
 
-            <TouchableOpacity
-              onPress={() =>
-                handleUpload(
-                  selectedFiles,
-                  genInformationData.Year,
-                  genInformationData.TrackingNumber,
-                  currentFormType,
-                  employeeNumber,
-                )
-              }
-              style={{
-                backgroundColor: uploadAttachLoading ? '#ccc' : '#1976D2',
-                paddingVertical: 12,
-                borderRadius: 6,
-                alignItems: 'center',
-              }}
-              disabled={uploadAttachLoading}>
-              <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
-                {uploadAttachLoading ? 'Uploading...' : 'Upload'}{' '}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </BottomSheetModal>
-        {selectedImage && (
-          <View style={styles.zoomableContainer}>
-            <ZoomableImage
-              key={selectedImage}
-              uri={selectedImage}
-              currentFormType={currentFormType}
-              close={() => setSelectedImage(null)}
-              loadedUris={loadedUris}
-              setLoadedUris={setLoadedUris}
-            />
-          </View>
-        )}
-      </SafeAreaView>
-    </BottomSheetModalProvider>
+    <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
+      <View
+        style={{
+          flex: 1,
+          padding: 16,
+          backgroundColor: '#fff',
+          borderRadius: 12,
+          justifyContent: 'space-between',
+        }}>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#444',
+            marginBottom: 10,
+          }}>
+          {currentFormType === 'OBR Form'
+            ? 'OBR Form'
+            : currentFormType === 'PR Form'
+            ? 'PR Form'
+            : currentFormType === 'RFQ Form'
+            ? 'RFQ Form'
+            : currentFormType === 'PO Form'
+            ? 'PO Form'
+            : currentFormType === 'Acceptance Form'
+            ? 'Acceptance Form'
+            : currentFormType === 'RFI Form'
+            ? 'RFI Form'
+            : currentFormType === 'Request for Delivery Extension'
+            ? 'Request for Delivery Extension'
+            : currentFormType === 'DV Form'
+            ? 'DV Form'
+            : currentFormType === 'Abstract of Bids'
+            ? 'Abstract of Bids'
+            : currentFormType === 'Financial Proposal'
+            ? 'Financial Proposal'
+            : currentFormType === 'Invitation to Observer'
+            ? 'Invitation to Observer'
+            : currentFormType === 'Bid Evaluation'
+            ? 'Bid Evaluation'
+            : currentFormType === 'Post Qualification'
+            ? 'Post Qualification'
+            : currentFormType === 'Certificate of Eligibility'
+            ? 'Certificate of Eligibility'
+            : currentFormType === 'Philgeps Posting'
+            ? 'Philgeps Posting'
+            : currentFormType === 'Philgeps Award'
+            ? 'Philgeps Award'
+            : currentFormType === 'Certification (Mode, Award, Minutes)'
+            ? 'Certification (Mode, Award, Minutes)'
+            : currentFormType === 'Bac Cert (Conspicuous Place)'
+            ? 'Bac Cert (Conspicuous Place)'
+            : 'No form type selected'}
+        </Text>
+        <TouchableOpacity
+          onPress={pickFile}
+          style={{
+            borderWidth: 1,
+            borderColor: '#1976D2',
+            paddingVertical: 10,
+            paddingHorizontal: 18,
+            borderRadius: 6,
+            alignItems: 'center',
+          }}>
+          <Text style={{color: '#1976D2', fontSize: 16, fontWeight: '500'}}>
+            Browse
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{flex: 1, alignItems: 'center'}}>
+          {selectedFiles?.length > 0 ? (
+            renderAttachmentPreview(selectedFiles, handleRemove)
+          ) : (
+            <Text style={{fontSize: 14, color: '#666', marginVertical: 10}}>
+              No files attached
+            </Text>
+          )}
+        </View>
+
+        <TouchableOpacity
+          onPress={() =>
+            handleUpload(
+              selectedFiles,
+              // Applied optional chaining here as well
+              genInformationData?.Year,
+              genInformationData?.TrackingNumber,
+              currentFormType,
+              employeeNumber,
+            )
+          }
+          style={{
+            backgroundColor: uploadAttachLoading ? '#ccc' : '#1976D2',
+            paddingVertical: 12,
+            borderRadius: 6,
+            alignItems: 'center',
+          }}
+          disabled={uploadAttachLoading}>
+          <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
+            {uploadAttachLoading ? 'Uploading...' : 'Upload'}{' '}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </BottomSheetModal>
+    {selectedImage && (
+      <View style={styles.zoomableContainer}>
+        <ZoomableImage
+          key={selectedImage}
+          uri={selectedImage}
+          currentFormType={currentFormType}
+          close={() => setSelectedImage(null)}
+          loadedUris={loadedUris}
+          setLoadedUis={setLoadedUris}
+        />
+      </View>
+    )}
+  </SafeAreaView>
+</BottomSheetModalProvider>
   );
 };
 
@@ -4181,25 +4213,30 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     width: '100%',
-    height: '100%',
+    height: 300, // Or whatever height you need
     justifyContent: 'center',
     alignItems: 'center',
   },
+  overlay: {
+    ...StyleSheet.absoluteFillObject, // This makes the overlay fill the parent
+    backgroundColor: 'rgba(0,0,0,0.3)', // The translucent black overlay
+    justifyContent: 'center', // Center content vertically within the overlay
+    alignItems: 'center', // Center content horizontally within the overlay
+  },
   headerContent: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 50,
-    borderRadius: 8,
-    alignItems: 'center',
+    // These styles will now apply to the content *inside* the overlay
+    paddingHorizontal: 20, // Add some padding
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: 'white', // Ensure text is visible on dark overlay
+    textAlign: 'center',
     marginBottom: 5,
   },
   headerSubtitle: {
     fontSize: 18,
-    color: '#fff',
+    color: 'rgba(255,255,255,0.8)', // Slightly less opaque white for subtitle
   },
   contentContainer: {
     backgroundColor: '#fff',
