@@ -28,7 +28,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   return (
     <View style={styles.card}>
-      <TouchableOpacity onPress={() => onPressItem(index, item)} style={styles.touchable}>
+      <TouchableOpacity
+        onPress={() => onPressItem(index, item)}
+        style={styles.touchable}>
         <View style={styles.headerContainer}>
           <View style={styles.indexBadge}>
             <Text style={styles.indexText}>{index + 1}</Text>
@@ -50,11 +52,10 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
         <View style={styles.detailsContainer}>
           <Text style={styles.statusText}>{item.Status || 'N/A'}</Text>
           <Text style={styles.dateModifiedText}>
-            {item.DateModified || 'N/A'}</Text>
-          <Text style={styles.detailText}>
-            {item.DocumentType || 'N/A'}
+            {item.DateModified || 'N/A'}
           </Text>
-         {/*  <Text style={styles.detailText}>
+          <Text style={styles.detailText}>{item.DocumentType || 'N/A'}</Text>
+          {/*  <Text style={styles.detailText}>
             {item.Amount ? `Amount: ${item.Amount}` : 'N/A'}
           </Text>
           <Text style={styles.detailText}>
@@ -67,7 +68,6 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
 });
 
 const STORAGE_KEY = '@search_history';
-
 
 const SearchScreen = ({}) => {
   const currentYear = new Date().getFullYear().toString();
@@ -97,7 +97,6 @@ const SearchScreen = ({}) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
 
-
   const {
     searchTrackData,
     setSearchTrackData,
@@ -111,50 +110,51 @@ const SearchScreen = ({}) => {
   } = useSearchTrack(searchText, selectedYear, search);
 
   const getSearchHistory = async () => {
-  try {
-    const history = await AsyncStorage.getItem(STORAGE_KEY);
-    if (history) {
-      setSearchHistory(JSON.parse(history));
+    try {
+      const history = await AsyncStorage.getItem(STORAGE_KEY);
+      if (history) {
+        setSearchHistory(JSON.parse(history));
+      }
+    } catch (error) {
+      console.log('Error retrieving search history:', error);
     }
-  } catch (error) {
-    console.log('Error retrieving search history:', error);
-  }
-};
+  };
 
+  const addSearchItem = async item => {
+    const trimmedItem = item.trim();
+    if (trimmedItem.length === 0) return;
 
-const addSearchItem = async (item) => {
-  const trimmedItem = item.trim();
-  if (trimmedItem.length === 0) return;
+    const newHistory = [
+      trimmedItem,
+      ...searchHistory.filter(i => i !== trimmedItem),
+    ];
+    const limitedHistory = newHistory.slice(0, 5);
+    setSearchHistory(limitedHistory);
+    await saveSearchHistory(limitedHistory);
+  };
 
-  const newHistory = [trimmedItem, ...searchHistory.filter(i => i !== trimmedItem)];
-  const limitedHistory = newHistory.slice(0, 5); 
-  setSearchHistory(limitedHistory);
-  await saveSearchHistory(limitedHistory);
-};
+  const removeSearchItem = async item => {
+    const updatedHistory = searchHistory.filter(i => i !== item);
+    setSearchHistory(updatedHistory);
+    await saveSearchHistory(updatedHistory);
+  };
 
-const removeSearchItem = async (item) => {
-  const updatedHistory = searchHistory.filter(i => i !== item);
-  setSearchHistory(updatedHistory);
-  await saveSearchHistory(updatedHistory);
-};
+  const handleHistorySelect = item => {
+    setSearchText(item);
+    searchTrackingNumber();
+  };
 
-const handleHistorySelect = (item) => {
-  setSearchText(item);
-  searchTrackingNumber();
-};
+  useEffect(() => {
+    getSearchHistory();
+  }, []);
 
-useEffect(() => {
-  getSearchHistory();
-}, []);
-
-const saveSearchHistory = async (newHistory) => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
-  } catch (error) {
-    console.log('Error saving search history:', error);
-  }
-};
-
+  const saveSearchHistory = async newHistory => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
+    } catch (error) {
+      console.log('Error saving search history:', error);
+    }
+  };
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
@@ -230,8 +230,11 @@ const saveSearchHistory = async (newHistory) => {
     }
     addSearchItem(searchText);
 
-    setSearchHistory((prev) => {
-      const newHistory = [searchText, ...prev.filter(item => item !== searchText)];
+    setSearchHistory(prev => {
+      const newHistory = [
+        searchText,
+        ...prev.filter(item => item !== searchText),
+      ];
       return newHistory.slice(0, 5); // Keep only the last 5 searches
     });
 
@@ -270,7 +273,7 @@ const saveSearchHistory = async (newHistory) => {
             ? searchText
             : data.results[0].TrackingNumber;
 
-            setSearchModalVisible(false);
+        setSearchModalVisible(false);
 
         navigation.navigate('Detail', {
           index: 0,
@@ -544,7 +547,7 @@ const saveSearchHistory = async (newHistory) => {
                     styles.searchBarInput,
                     {
                       fontSize: 14,
-                      color: 'black' ,
+                      color: 'black',
                     },
                   ]}
                   autoCapitalize="characters"
@@ -713,14 +716,14 @@ const saveSearchHistory = async (newHistory) => {
         </View>
       );
     }
-    if (searchTrackLoading) {
+   /*  if (searchTrackLoading) {
       return (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color="rgba(0, 116, 255, 0.7)" />
-          {/*   <Text style={styles.loadingText}>Loading...</Text> */}
+          
         </View>
       );
-    }
+    } */
 
     if (error) {
       return <Text style={styles.errorText}>Error loading data: {error}</Text>;
@@ -817,11 +820,10 @@ const saveSearchHistory = async (newHistory) => {
     closeYearModal();
     closeMenu();
   };
-   const handleSearchTextChange = (text) => {
+  const handleSearchTextChange = text => {
     setSearchText(text.toUpperCase()); // Convert to uppercase here
   };
-    const searchInputRef = useRef(null); // Create a ref for the TextInput
-
+  const searchInputRef = useRef(null); // Create a ref for the TextInput
 
   const renderYearItem = ({item}) => (
     <TouchableOpacity style={styles.modalItem} onPress={() => selectYear(item)}>
@@ -845,7 +847,7 @@ const saveSearchHistory = async (newHistory) => {
         <View
           style={{
             borderWidth: 1,
-            backgroundColor:'rgba(255,255,255,0.5)',
+            backgroundColor: 'rgba(255,255,255,0.5)',
             borderColor: '#eee',
             marginTop: 10,
             paddingStart: 10,
@@ -853,43 +855,43 @@ const saveSearchHistory = async (newHistory) => {
             marginBottom: 10,
             alignItems: 'flex-start',
           }}>
-         
-              {/* <TouchableOpacity
+          {/* <TouchableOpacity
               onPress={() => navigation.navigate('Receiver')}
               style={{ top: 10, right: 10}}>
               <Icons name="qrcode-scan" size={40} color="#252525" />
             </TouchableOpacity> */}
-        
-          <View style={{marginStart: 10, marginBottom: 20, marginTop:10}}>
-            <View style={{flexDirection:'row', justifyContent:'space-between'}}>
+
+          <View style={{marginStart: 10, marginBottom: 20, marginTop: 10}}>
+            <View
+              style={{flexDirection: 'row', justifyContent: 'space-between'}}>
               <View>
-            <Text
-              style={{
-                fontFamily: 'Inter_24pt-Bold',
-                fontSize: 24,
-                color: '#252525',
-              }}>
-              Search
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Inter_24pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-              }}>
-              Search tracking number
-            </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_24pt-Bold',
+                    fontSize: 24,
+                    color: '#252525',
+                  }}>
+                  Search
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_24pt-Regular',
+                    fontSize: 14,
+                    color: '#252525',
+                  }}>
+                  Search tracking number
+                </Text>
+              </View>
+              <View style={{alignItems: 'flex-end'}}>
+                {(caoReceiver === '1' || cboReceiver === '1') && (
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Receiver')}
+                    style={{top: 10, right: 20}}>
+                    <Icons name="qrcode-scan" size={40} color="black" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-            <View style={{alignItems:'flex-end'}}>
-             {(caoReceiver === '1' || cboReceiver === '1') &&(
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Receiver')}
-              style={{top: 10, right: 20}}>
-              <Icons name="qrcode-scan" size={40} color="black" />
-            </TouchableOpacity>
-          )}
-          </View>
-          </View>
             <View
               style={{
                 marginTop: 10,
@@ -900,11 +902,11 @@ const saveSearchHistory = async (newHistory) => {
                 style={{
                   height: 40,
                   width: '95%',
-                  marginEnd:20,
+                  marginEnd: 20,
                   borderColor: '#ccc',
                   borderWidth: 1,
                   paddingHorizontal: 10,
-                  marginTop:10,
+                  marginTop: 10,
                   borderRadius: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -940,92 +942,108 @@ const saveSearchHistory = async (newHistory) => {
           </View>
         </Modal>
 
-         <Modal
-      visible={searchModalVisible}
-      transparent={false} // Usually better for a full dedicated screen
-      animationType="slide"
-      onRequestClose={() => setSearchModalVisible(false)} // Good for Android back button
-    >
-      <View style={styles.safeArea}>
-        <View style={styles.fullScreenModal}>
-          <View style={styles.searchHeader}>
-            <TouchableOpacity
-              onPress={() => setSearchModalVisible(false)}
-              style={styles.backButton}
-            >
-              <Icon name="arrow-back" size={28} color="#333" />
-            </TouchableOpacity>
-            <View style={styles.searchInputOuterContainer}>
-              <Icon name="search" size={22} color="#888" style={styles.inputSearchIcon} />
-             <TextInput
-        ref={searchInputRef} // Assign the ref to the TextInput
-        style={styles.searchInput}
-        placeholder="Search tracking number"
-        value={searchText}
-        onChangeText={handleSearchTextChange} // Use the new handler
-        // autoFocus={true} // REMOVE THIS PROP
-        clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'} // 'never' is default on Android, 'while-editing' is useful on iOS
-        underlineColorAndroid="transparent" // Only for Android, hides the default underline
-        placeholderTextColor="#999"
-        autoCapitalize="characters" // Suggests uppercase keyboard on iOS (doesn't force on Android, so onChangeText is crucial)
-        // inputMode="search" // Modern alternative to keyboardType='default' for search fields
-        returnKeyType="search" // Changes the keyboard return key to "Search"
-      />
-              {searchText.length > 0 && (
+        <Modal
+          visible={searchModalVisible}
+          transparent={false} // Usually better for a full dedicated screen
+          animationType="slide"
+          onRequestClose={() => setSearchModalVisible(false)} // Good for Android back button
+        >
+          <View style={styles.safeArea}>
+            <View style={styles.fullScreenModal}>
+              <View style={styles.searchHeader}>
                 <TouchableOpacity
-                  onPress={() => setSearchText('')}
-                  style={styles.clearButton}
-                >
-                  <Icon name="close" size={22} color="#888" />
+                  onPress={() => setSearchModalVisible(false)}
+                  style={styles.backButton}>
+                  <Icon name="arrow-back" size={28} color="#333" />
                 </TouchableOpacity>
-              )}
+                <View style={styles.searchInputOuterContainer}>
+                  <Icon
+                    name="search"
+                    size={22}
+                    color="#888"
+                    style={styles.inputSearchIcon}
+                  />
+                  <TextInput
+                    ref={searchInputRef} // Assign the ref to the TextInput
+                    style={styles.searchInput}
+                    placeholder="Search tracking number"
+                    value={searchText}
+                    onChangeText={handleSearchTextChange} // Use the new handler
+                    // autoFocus={true} // REMOVE THIS PROP
+                    clearButtonMode={
+                      Platform.OS === 'ios' ? 'while-editing' : 'never'
+                    } // 'never' is default on Android, 'while-editing' is useful on iOS
+                    underlineColorAndroid="transparent" // Only for Android, hides the default underline
+                    placeholderTextColor="#999"
+                    autoCapitalize="characters" // Suggests uppercase keyboard on iOS (doesn't force on Android, so onChangeText is crucial)
+                    // inputMode="search" // Modern alternative to keyboardType='default' for search fields
+                    returnKeyType="search" // Changes the keyboard return key to "Search"
+                  />
+                  {searchText.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchText('')}
+                      style={styles.clearButton}>
+                      <Icon name="close" size={22} color="#888" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.searchActionButton,
+                  searchText.trim().length === 0 && styles.searchButtonDisabled,
+                ]}
+                onPress={searchTrackingNumber}
+                disabled={searchText.trim().length === 0 || searchTrackLoading} // Disable during loading as well
+              >
+                {searchTrackLoading ? (
+                  <ActivityIndicator size="small" color="#ffffff" /> // Or any color that fits your design
+                ) : (
+                  <Text style={styles.searchButtonText}>Search</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.contentArea}>
+                {searchHistory.length > 0 && (
+                  <View style={styles.historySection}>
+                    <Text style={styles.historyTitle}>Search History</Text>
+                    {searchHistory.map((item, index) => (
+                      <View key={index} style={styles.historyItem}>
+                        <TouchableOpacity
+                          onPress={() => handleHistorySelect(item)}
+                          style={styles.historyItemTextContainer}>
+                          <Icon
+                            name="search-outline"
+                            size={20}
+                            color="#555"
+                            style={styles.historyItemIcon}
+                          />
+                          <Text style={styles.historyText} numberOfLines={1}>
+                            {item}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => removeSearchItem(item)}
+                          style={styles.removeHistoryButton}>
+                          <Icon name="close" size={20} color="#777" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {searchHistory.length === 0 &&
+                  !renderData() && ( // Show if no history and no initial results
+                    <Text style={styles.noHistoryText}>
+                      No recent searches.
+                    </Text>
+                  )}
+
+                <View style={styles.resultsContainer}>{renderData()}</View>
+              </View>
             </View>
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.searchActionButton,
-              searchText.trim().length === 0 && styles.searchButtonDisabled,
-            ]}
-            onPress={searchTrackingNumber}
-            disabled={searchText.trim().length === 0}
-          >
-            <Text style={styles.searchButtonText}>Search</Text>
-          </TouchableOpacity>
-
-          <View style={styles.contentArea}>
-            {searchHistory.length > 0 && (
-              <View style={styles.historySection}>
-                <Text style={styles.historyTitle}>Search History</Text>
-                {searchHistory.map((item, index) => (
-                  <View key={index} style={styles.historyItem}>
-                    <TouchableOpacity
-                      onPress={() => handleHistorySelect(item)}
-                      style={styles.historyItemTextContainer}
-                    >
-                      <Icon name="search-outline" size={20} color="#555" style={styles.historyItemIcon} />
-                      <Text style={styles.historyText} numberOfLines={1}>{item}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => removeSearchItem(item)}
-                      style={styles.removeHistoryButton}
-                    >
-                      <Icon name="close" size={20} color="#777" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-            {searchHistory.length === 0 && !renderData() && ( // Show if no history and no initial results
-                 <Text style={styles.noHistoryText}>No recent searches.</Text>
-            )}
-
-
-            <View style={styles.resultsContainer}>{renderData()}</View>
-          </View>
-        </View>
-      </View>
-    </Modal>
+        </Modal>
       </ImageBackground>
     </SafeAreaView>
   );
@@ -1186,30 +1204,30 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   historyContainer: {
-  paddingHorizontal: 16,
-  paddingTop: 10,
-},
-historyTitle: {
-  fontSize: 14,
-  color: '#555',
-  marginBottom: 5,
-},
-historyItem: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  paddingVertical: 8,
-  borderBottomWidth: 1,
-  borderBottomColor: '#ddd',
-},
-historyText: {
-  fontSize: 16,
-  color: '#333',
-},
-removeIcon: {
-  fontSize: 18,
-  color: '#f00',
-  paddingHorizontal: 10,
-},
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  historyTitle: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 5,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  historyText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  removeIcon: {
+    fontSize: 18,
+    color: '#f00',
+    paddingHorizontal: 10,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF', // Modal background color
@@ -1260,7 +1278,7 @@ removeIcon: {
     marginTop: 20,
     marginBottom: 10, // Space before history or content
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -1323,7 +1341,7 @@ removeIcon: {
   resultsContainer: {
     flex: 1, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
   },
-   card: {
+  card: {
     backgroundColor: 'white',
     marginHorizontal: 5, // Add some horizontal margin
     marginTop: 10,
@@ -1402,7 +1420,6 @@ removeIcon: {
     fontSize: 14,
     marginBottom: 3, // Small margin for each detail line
   },
-
 });
 
 export default SearchScreen;

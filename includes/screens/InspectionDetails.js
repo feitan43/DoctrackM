@@ -77,7 +77,10 @@ const InspectionDetails = ({route, navigation}) => {
     data: inspectorImages,
     isLoading: inspectorImagesLoading,
     error: inspectorImagesError,
-  } = useInspectorImages(selectedYear, item.TrackingNumber || item.RefTrackingNumber);
+  } = useInspectorImages(
+    selectedYear,
+    item.TrackingNumber || item.RefTrackingNumber,
+  );
   const {
     data: data,
     isLoading: DetailsLoading,
@@ -220,10 +223,12 @@ const InspectionDetails = ({route, navigation}) => {
     setImagePath(newImagePath);
   };
 
-const handleUpload = () => {
+  const handleUpload = () => {
     const year = dataItems?.vouchers?.[0]?.Year || item?.Year;
     const pxTN =
-      dataItems?.vouchers?.[0]?.TrackingNumber || item?.TrackingNumber || item?.RefTrackingNumber;
+      dataItems?.vouchers?.[0]?.TrackingNumber ||
+      item?.TrackingNumber ||
+      item?.RefTrackingNumber;
 
     if (!imagePath || imagePath.length === 0) {
       showMessage({
@@ -234,14 +239,14 @@ const handleUpload = () => {
       return;
     }
 
-    setShowUploading(true); 
+    setShowUploading(true);
 
     uploadInspector(
-      { imagePath, year, pxTN, employeeNumber },
+      {imagePath, year, pxTN, employeeNumber},
       {
-        onSuccess: (data) => { 
+        onSuccess: data => {
           showMessage({
-            message: data.message || 'Upload successful!', 
+            message: data.message || 'Upload successful!',
             type: 'success',
             icon: 'success',
             floating: true,
@@ -249,10 +254,10 @@ const handleUpload = () => {
           });
 
           setImagePath([]);
-          setShowUploading(false); 
-          bottomSheetRef.current?.close(); 
+          setShowUploading(false);
+          bottomSheetRef.current?.close();
         },
-        onError: (error) => { 
+        onError: error => {
           showMessage({
             message: 'Upload failed!',
             description: /* error.message || */ 'Something went wrong',
@@ -261,9 +266,9 @@ const handleUpload = () => {
             floating: true,
             duration: 3000,
           });
-          setShowUploading(false); 
+          setShowUploading(false);
         },
-      }
+      },
     );
   };
 
@@ -546,9 +551,12 @@ const handleUpload = () => {
           ) : (
             <View style={{paddingHorizontal: 10}}>
               {item.TrackingPartner === null ? (
-                  <View>
-                    <Text>No PO Tracking Number included on delivery call Project Doctrack'</Text>
-                  </View>
+                <View>
+                  <Text>
+                    No PO Tracking Number included on delivery call Project
+                    Doctrack'
+                  </Text>
+                </View>
               ) : DetailsLoading || ItemsLoading ? (
                 <View style={styles.loadingContainer}>
                   {[...Array(5)].map((_, index) => (
@@ -1038,30 +1046,11 @@ const handleUpload = () => {
 };
 
 const Section = ({title, children, action}) => (
-  <View style={{paddingHorizontal: 5}}>
-    <View
-      style={{
-        backgroundColor: '#fff',
-        //padding: 15,
-        borderRadius: 8,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        //elevation: 3,
-        marginVertical: 10,
-        marginHorizontal: 5,
-      }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottomWidth: 1,
-          borderBottomColor: '#eee',
-          paddingBottom: 5,
-          marginBottom: 10,
-        }}>
+  <View style={{backgroundColor: '#f4f4f4'}}>
+    <View style={styles.card}>
+      <View style={{  flexDirection:'row',
+    justifyContent:'space-between',
+    alignItems: 'center'}}>
         <Text style={{fontSize: 16, fontWeight: 'bold', color: '#333'}}>
           {title}
         </Text>
@@ -1108,13 +1097,21 @@ const PaymentSection = ({dataItems}) => (
         <View
           key={index}
           style={{
-            paddingVertical: 8,
+           /*  paddingVertical: 8,
             borderBottomWidth: 1,
-            borderBottomColor: '#eee',
+            borderBottomColor: '#eee', */
           }}>
-          <InfoRow index={1} label="Year" value={voucher.Year} />
-          <InfoRow index={2} label="TN" value={voucher.TrackingNumber} />
-          <InfoRow index={3} label="Status" value={voucher.Status} />
+          {[
+            {label: 'Year', value: voucher.Year},
+            {label: 'TN', value: voucher.TrackingNumber},
+            {label: 'Status', value: voucher.Status},
+          ].map((detail, index) => (
+            <View key={detail.label + index} style={styles.detailRow}>
+              <Text style={styles.detailIndex}>{index + 1}.</Text>
+              <Text style={styles.detailLabel}>{detail.label}</Text>
+              <Text style={styles.detailValue}>{detail.value}</Text>
+            </View>
+          ))}
         </View>
       ))
     ) : (
@@ -1129,23 +1126,27 @@ const PODetailsSection = ({item}) => (
   <Section title="PO Details">
     {item ? (
       <View
-        style={{
-          paddingVertical: 8,
-          borderBottomWidth: 1,
-          borderBottomColor: '#eee',
-        }}>
-        <InfoRow
-          index={4}
-          label="Office"
-          value={item.OfficeName?.replace(/\\/g, '')}
-        />
-        <InfoRow index={5} label="Claimant" value={item.Claimant} />
-        <InfoRow index={6} label="PO TN" value={item.TrackingNumber} />
-        <InfoRow index={7} label="Status" value={item.Status} />
-        <InfoRow index={8} label="PO Number" value={item.PO_Number} />
-        <InfoRow index={9} label="Amount" value={insertCommas(item.Amount)} />
-        <InfoRow index={10} label="Conform" value={item.ConformDate} />
-      </View>
+          //key={index}
+          style={{
+            paddingVertical: 8,
+            /* borderBottomWidth: 1,
+            borderBottomColor: '#eee', */
+          }}>
+          {[
+            {label: 'Claimant', value: item.Year},
+            {label: 'PO TN', value: item.TrackingNumber},
+            {label: 'Status', value: item.Status},
+            {label: 'PO Number', value: item.PO_Number},
+            {label: 'Amount', value: insertCommas(item.Amount)},
+            {label: 'Conform', value: item.ConformDate},
+          ].map((detail, index) => (
+            <View key={detail.label + index} style={styles.detailRow}>
+              <Text style={styles.detailIndex}>{index + 4}.</Text>
+              <Text style={styles.detailLabel}>{detail.label}</Text>
+              <Text style={styles.detailValue}>{detail.value}</Text>
+            </View>
+          ))}
+        </View>
     ) : (
       <Text style={{fontSize: 13, color: '#777', textAlign: 'center'}}>
         No Record Found
@@ -1162,24 +1163,28 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
           key={index}
           style={{
             paddingVertical: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: '#eee',
+            /* borderBottomWidth: 1,
+            borderBottomColor: '#eee', */
           }}>
-          <InfoRow
-            index={11}
-            label="Contact"
-            value={deliveryItem.ContactNumber || 'N/A'}
-          />
-          <InfoRow
-            index={12}
-            label="Address"
-            value={deliveryItem.Address || 'N/A'}
-          />
-          <InfoRow
-            index={13}
-            label="Status"
-            value={deliveryItem.Status || 'N/A'}
-          />
+ <View
+          key={index}
+          style={{
+            paddingVertical: 8,
+           /*  borderBottomWidth: 1,
+            borderBottomColor: '#eee', */
+          }}>
+          {[
+            {label: 'Contact', value: deliveryItem.ContactNumber},
+            {label: 'Address', value: deliveryItem.Address},
+            {label: 'Status', value: deliveryItem.Status},
+          ].map((detail, index) => (
+            <View key={detail.label + index} style={styles.detailRow}>
+              <Text style={styles.detailIndex}>{index + 10}.</Text>
+              <Text style={styles.detailLabel}>{detail.label}</Text>
+              <Text style={styles.detailValue}>{detail.value}</Text>
+            </View>
+          ))}
+        </View>
 
           {deliveryItem.DeliveryDatesHistory && (
             <View
@@ -1280,14 +1285,26 @@ const ItemsSection = ({
   handleSelectAll,
   handleCheck,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+
+  const [expanded, setExpanded] = useState({}); 
+  const insertCommas = (num) => {
+    if (typeof num !== 'number' && typeof num !== 'string') return '';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  };
+
+  const toggleExpanded = (index) => {
+    setExpanded(prevExpanded => ({
+      ...prevExpanded,
+      [index]: !prevExpanded[index], 
+    }));
+  };
 
   return (
     <Section
       title="Items"
       action={
         <TouchableOpacity onPress={handleSelectAll}>
-          <Text style={{color: '#007bff', fontWeight: 'bold'}}>
+          <Text style={{ color: '#007bff', fontWeight: 'bold' }}>
             {checkedItems.length === dataItems?.poRecord?.length &&
             checkedItems.every(item => item)
               ? 'Deselect All'
@@ -1299,94 +1316,63 @@ const ItemsSection = ({
         dataItems.poRecord.map((dataItem, index) => (
           <View
             key={index}
-            style={{
-              borderWidth: checkedItems[index] ? 3 : 1,
-              borderColor: checkedItems[index] ? 'rgb(23, 162, 255)' : '#ccc',
-              borderRadius: 5,
-              paddingVertical: 10,
-              paddingHorizontal: 10,
-              marginVertical: 5,
-              backgroundColor: '#fff', // Optional: Keeps items visually distinct
-              shadowColor: '#000',
-              shadowOpacity: 0.1,
-              shadowOffset: {width: 0, height: 2},
-              shadowRadius: 3,
-            }}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Text
-                style={{
-                  width: '10%',
-                  textAlign: 'center',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  color: '#224E83',
-                }}>
-                {index + 1}
-              </Text>
-              <View style={{width: '35%'}}>
-                <Text style={{fontSize: 13, color: 'gray'}}>Quantity</Text>
-                <Text style={{fontSize: 14, fontWeight: 'bold'}}>
+            style={[
+              styles.itemCard,
+              checkedItems[index] && styles.itemCardChecked,
+            ]}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemIndex}>{index + 1}</Text>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemLabel}>Quantity</Text>
+                <Text style={styles.itemValue}>
                   {Math.floor(dataItem.Qty)} <Text>{dataItem.Unit}</Text>
                 </Text>
               </View>
-              <View style={{width: '35%'}}>
-                <Text style={{fontSize: 13, color: 'gray'}}>Total</Text>
-                <Text style={{fontSize: 14, fontWeight: 'bold'}}>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemLabel}>Total</Text>
+                <Text style={styles.itemValue}>
                   {insertCommas(dataItem.Total)}
                 </Text>
               </View>
+              {/* Assuming CheckBox is imported and available */}
               <CheckBox
                 checked={checkedItems[index]}
                 onPress={() => handleCheck(index)}
-                containerStyle={{
-                  padding: 10,
-                  backgroundColor: 'transparent',
-                  alignSelf: 'center',
-                }}
+                containerStyle={styles.checkboxContainer}
                 checkedColor="#ECAD0D"
                 uncheckedColor="gray"
               />
             </View>
-            <View style={{marginLeft: 10, marginTop: 10}}>
-              <Text style={{fontSize: 12, color: 'gray', padding: 5}}>
-                Description
-              </Text>
+            <View style={styles.descriptionContainer}>
               <Text
-                style={{
-                  fontSize: 14,
-                  color: 'black',
-                  lineHeight: 18,
-                  margin: 5,
-                }}
-                numberOfLines={expanded ? undefined : 3}
+                style={styles.descriptionText}
+                numberOfLines={expanded[index] ? undefined : 2}
                 ellipsizeMode="tail">
+                <Text style={styles.descriptionLabel}>
+                  Description:{'\n'}
+                </Text>
                 {dataItem.Description}
               </Text>
-              {dataItem.Description.length > 100 && (
+              {dataItem.Description && dataItem.Description.length > 30 && (
                 <TouchableOpacity
-                  onPress={() => setExpanded(!expanded)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginLeft: 5,
-                  }}>
-                  <Text style={{color: 'blue', marginRight: 5}}>
-                    {expanded ? 'Show Less' : 'Show More'}
+                  onPress={() => toggleExpanded(index)} // Call toggleExpanded with the current index
+                  style={styles.toggleButton}>
+                  <Text style={styles.toggleButtonText}>
+                    {expanded[index] ? 'Show Less' : 'Show More'}
                   </Text>
-                  <Icon
-                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                  {/* Assuming Icon is imported and available */}
+                  {/* <Icon
+                    name={expanded[index] ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="blue"
-                  />
+                    color="#007bff"
+                  /> */}
                 </TouchableOpacity>
               )}
             </View>
           </View>
         ))
       ) : (
-        <Text style={{textAlign: 'center', color: '#999'}}>
-          No items available.
-        </Text>
+        <Text style={styles.noItemsText}>No items available.</Text>
       )}
     </Section>
   );
@@ -3116,7 +3102,7 @@ const PRInspection = ({
     removeInspectorImage(uri, {
       onSuccess: async results => {
         const year = item?.Year;
-        const prTN = item?.TrackingNumber;
+        const prTN = item?.TrackingNumber || item?.RefTrackingNumber;
 
         console.log('uri', uri, year, prTN);
 
@@ -3288,7 +3274,6 @@ const PRInspection = ({
             paddingBottom: 200,
           }}
           style={{}}>
-         
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Details</Text>
             <View style={styles.divider} />
@@ -3300,9 +3285,7 @@ const PRInspection = ({
                   {label: 'Office', value: item.OfficeName},
                   {label: 'Category', value: item.CategoryCode},
                 ].map((detail, index) => (
-                  <View
-                    key={detail.label + index} 
-                    style={styles.detailRow}>
+                  <View key={detail.label + index} style={styles.detailRow}>
                     <Text style={styles.detailIndex}>{index + 1}.</Text>
                     <Text style={styles.detailLabel}>{detail.label}</Text>
                     <Text style={styles.detailValue}>{detail.value}</Text>
@@ -3374,7 +3357,6 @@ const PRInspection = ({
             ))}
           </View>
 
-        
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Delivery</Text>
             <View style={styles.divider} />
@@ -3387,9 +3369,7 @@ const PRInspection = ({
                   {label: 'Date', value: item.DeliveryDate},
                   {label: 'Status', value: item.Status},
                 ].map((detail, index) => (
-                  <View
-                    key={detail.label + index} 
-                    style={styles.detailRow}>
+                  <View key={detail.label + index} style={styles.detailRow}>
                     <Text style={styles.detailIndex}>{index + 1}.</Text>
                     <Text style={styles.detailLabel}>{detail.label}</Text>
                     <Text style={styles.detailValue}>{detail.value}</Text>
@@ -3651,17 +3631,15 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    padding: 20, // Increased padding for more breathing room
+    padding: 20,
     marginBottom: 15,
-    borderRadius: 12, // Slightly more rounded corners
+    borderRadius: 12, 
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 5}, // Deeper shadow
-    shadowOpacity: 0.15, // Slightly more visible shadow
-    shadowRadius: 8, // Larger blur for shadow
-    //elevation: 6, // Increased elevation for Android
-    //borderWidth: 1,
+    shadowOffset: {width: 0, height: 5},
+    shadowOpacity: 0.15, 
+    shadowRadius: 8, 
     borderColor: '#e0e0e0',
-    marginHorizontal: 10,
+    //marginHorizontal: 10,
   },
   cardTitle: {
     fontSize: 18, // Larger, bolder title
@@ -3675,6 +3653,7 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     // No specific padding top, handled by detailRow vertical padding
+  
   },
   detailRow: {
     flexDirection: 'row',
@@ -3793,6 +3772,52 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#f0f0f0',
     marginVertical: 15,
+  },
+  itemCard: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginVertical: 5,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+    elevation: 2, // For Android shadow
+  },
+  itemCardChecked: {
+    borderWidth: 3,
+    borderColor: 'rgb(23, 162, 255)',
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  itemIndex: {
+    width: '10%',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#224E83',
+  },
+  itemInfo: {
+    width: '35%',
+  },
+  itemLabel: {
+    fontSize: 12,
+    color: 'gray',
+  },
+  itemValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  noItemsText: {
+    textAlign: 'center',
+    color: '#999',
+    paddingVertical: 20, // Add some vertical padding for better appearance
   },
 });
 

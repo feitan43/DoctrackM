@@ -23,52 +23,86 @@ export const GeneralInformationCard = ({genInformationData}) => (
       <Text style={styles.headerText}>General Information</Text>
     </View>
     {[
-        {
+      {
+        label: 'Classification',
+        value: genInformationData?.ComplexLabel,
+      },
+      {
         label: 'TN',
         value: genInformationData.TrackingNumber,
       },
       {label: 'Claimant', value: genInformationData.Claimant},
-      {
-        label: 'Classification',
-        value: genInformationData.ComplexLabel,
-      },
-      {
-        label: 'ADV Number',
-        value: genInformationData.ADV === '0' ? '' : genInformationData.ADV,
-      },
-      {label: 'OBR Number', value: genInformationData.OBR_Number},
-      {label: 'PR Sched', value: genInformationData.PR_Sched},
+      ...(genInformationData.TrackingPartner
+        ? [
+            {
+              label: 'TN Partner',
+              value: genInformationData.TrackingPartner,
+            },
+          ]
+        : []),
+      ...(genInformationData.BatchTracking
+        ? [
+            {
+              label: 'SLP Tracking',
+              value: genInformationData.BatchTracking,
+            },
+          ]
+        : []),
+      ...(genInformationData.DocumentType === 'SLP' &&
+      genInformationData.ControlNo
+        ? [
+            {
+              label: 'Ctrl Number',
+              value: genInformationData.ControlNo,
+            },
+          ]
+        : []),
+      ...(genInformationData.ControlNo && genInformationData.ControlNo >= 1
+        ? [
+            {
+              label: 'Ctrl Number',
+              value: genInformationData.ControlNo,
+            },
+          ]
+        : []),
+      ...(genInformationData.PR_ProgramCode ||
+      genInformationData.ADV ||
+      genInformationData.OBR_Number
+        ? [
+            ...(genInformationData.ADV
+              ? [{label: 'ADV Number', value: genInformationData.ADV}]
+              : []),
+            ...(genInformationData.OBR_Number
+              ? [
+                  {
+                    label: 'OBR Number',
+                    value: genInformationData.OBR_Number,
+                  },
+                ]
+              : []),
+          ]
+        : []),
+
+      {label: 'Document', value: genInformationData.DocumentType},
+      {label: 'Period', value: genInformationData.PeriodMonth},
+      {label: 'Claim Type', value: genInformationData.ClaimType},
       {label: 'Fund', value: genInformationData.Fund},
-      {label: 'Check Number', value: genInformationData.CheckNumber},
-      {label: 'Check Date', value: genInformationData.CheckDate},
+      ...(genInformationData.DocumentType?.startsWith('WAGES')
+        ? []
+        : [
+            {
+              label: 'Check Number',
+              value: genInformationData.CheckNumber,
+            },
+            {
+              label: 'Check Date',
+              value: genInformationData.CheckDate,
+            },
+          ]),
       {
         label: 'Net Amount',
         value: insertCommas(genInformationData.NetAmount),
       },
-      {label: 'PR TN', value: genInformationData.PO_PRTN},
-      {label: 'PO TN', value: genInformationData.TrackingPartner},
-      {label: 'PO Number', value: genInformationData.PO_Number},
-      {label: 'Retention TN', value: genInformationData.RetentionTN},
-      {label: 'Nature', value: genInformationData.PO_Nature},
-      {label: 'Specifics', value: genInformationData.PO_Specifics},
-      {label: 'Receipt Type', value: genInformationData.SuppType},
-      {
-        label: 'Business Type',
-        value: genInformationData.SuppClassification,
-      },
-      {
-        label: 'Mode of PR',
-        value: genInformationData.ModeOfProcTitle,
-      },
-      {
-        label: 'Payment Term',
-        value: genInformationData.PaymentTermLabel,
-      },
-      {
-        label: 'Invoice Number',
-        value: genInformationData.InvoiceNumber,
-      },
-      {label: 'Invoice Date', value: genInformationData.InvoiceDate},
       {label: 'Encoded By', value: genInformationData.EncodedBy},
       {label: 'Date Encoded', value: genInformationData.DateEncoded},
       {label: 'Date Updated', value: genInformationData.DateModified},
@@ -87,36 +121,73 @@ export const GeneralInformationCard = ({genInformationData}) => (
   </View>
 );
 
-export const ParticularsCard = ({genInformationData, removeHtmlTags}) => (
+export const OBRInformationCard = ({
+  OBRInformation,
+  totalAmount,
+  insertCommas,
+}) => (
   <View style={styles.sectionContainer}>
     <View style={styles.sectionHeader}>
-      <Text style={styles.headerText}>Particulars </Text>
+      <Text style={styles.headerText}>OBR Information</Text>
     </View>
-    <View style={styles.obrRow}>
-      <Text style={styles.particularsDescription}>
-        {genInformationData.Particulars}
-        TO PAYMENT FOR OF THE{' '}
-        <Text style={styles.particularsText}>
-          {genInformationData.OfficeName.replace(/\\/g, '')}
-        </Text>{' '}
-        UNDER P.O#{' '}
-        <Text style={styles.particularsText}>
-          {genInformationData.PO_Number}
-        </Text>{' '}
-        DATED{' '}
-        <Text style={styles.particularsText}>
-          {genInformationData.PoDate}
-        </Text>{' '}
-        WITH INV#{' '}
-        <Text style={styles.particularsText}>
-          {genInformationData.InvoiceNumber}
-        </Text>{' '}
-        DATED:{' '}
-        <Text style={styles.particularsText}>
-          {genInformationData.InvoiceDate}
-        </Text>{' '}
-        AS PER SUPPORTING DOCUMENTS HERETO ATTACHED.
-      </Text>
+    <View style={styles.sectionTable}>
+      <View style={styles.tableHeader}>
+        <Text style={[styles.tableHeaderText, {flex: 1}]}>PROGRAM</Text>
+        <Text style={[styles.tableHeaderText, {flex: 1, textAlign: 'center'}]}>
+          CODE
+        </Text>
+        <Text style={[styles.tableHeaderTextRight, {flex: 1}]}>AMOUNT</Text>
+      </View>
+      {OBRInformation && OBRInformation.length > 0 ? (
+        OBRInformation.map((item, index, arr) => (
+          <View
+            key={index}
+            style={[
+              styles.tableRow,
+              index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
+              index === arr.length - 1 && styles.tableRowLast,
+            ]}>
+            <View style={{flex: 1}}>
+              <Text
+                style={[
+                  styles.tableRowMainText,
+                  {paddingVertical: SPACING.xs},
+                ]}>
+                {item.PR_ProgramCode}
+              </Text>
+              <Text style={styles.tableRowSubText}>{item.ProgramName}</Text>
+            </View>
+            <View style={{flex: 1, alignItems: 'center'}}>
+              <Text
+                style={[
+                  styles.tableRowMainText,
+                  {paddingVertical: SPACING.xs},
+                ]}>
+                {item.PR_AccountCode}
+              </Text>
+              <Text style={styles.tableRowSubText}>{item.AccountTitle}</Text>
+            </View>
+            <View style={{flex: 1, alignItems: 'flex-end'}}>
+              <Text
+                style={[
+                  styles.tableRowMainText,
+                  {paddingVertical: SPACING.xs},
+                ]}>
+                {insertCommas(item.Amount)}
+              </Text>
+            </View>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.noDataText}>No data available</Text>
+      )}
+      {OBRInformation && OBRInformation.length > 0 && (
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalAmountText}>
+            TOTAL: {insertCommas(totalAmount.toFixed(2))}
+          </Text>
+        </View>
+      )}
     </View>
   </View>
 );

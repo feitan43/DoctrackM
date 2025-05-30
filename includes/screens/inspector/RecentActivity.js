@@ -1,5 +1,5 @@
 // RecentActivity.js
-import React, {useRef, useMemo} from 'react';
+import React, {useState, useMemo} from 'react'; // Import useState
 import {
   View,
   StyleSheet,
@@ -9,9 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-// Assuming InspectionImage is imported from a components directory relative to RecentActivity.js
-// You might need to adjust the path based on your project structure.
-import InspectionImage from './InspectionImage'; 
+import InspectionImage from './InspectionImage';
 
 const RecentActivity = ({
   recentActivityData,
@@ -19,7 +17,7 @@ const RecentActivity = ({
   recentActivityLoading,
   navigation,
 }) => {
-  const pageRef = useRef(1);
+  const [currentPage, setCurrentPage] = useState(1); // Use useState for currentPage
   const itemsPerPage = 5;
 
   const filteredData = useMemo(() => {
@@ -35,19 +33,19 @@ const RecentActivity = ({
   }, [recentActivityData]);
 
   const paginatedData = useMemo(() => {
-    const start = (pageRef.current - 1) * itemsPerPage;
+    const start = (currentPage - 1) * itemsPerPage; // Use currentPage
     return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData]);
+  }, [filteredData, currentPage]); // Add currentPage to dependency array
 
   const nextPage = () => {
-    if (pageRef.current * itemsPerPage < filteredData.length) {
-      pageRef.current += 1;
+    if (currentPage * itemsPerPage < filteredData.length) {
+      setCurrentPage(prevPage => prevPage + 1); // Update state with setCurrentPage
     }
   };
 
   const prevPage = () => {
-    if (pageRef.current > 1) {
-      pageRef.current -= 1;
+    if (currentPage > 1) {
+      setCurrentPage(prevPage => prevPage - 1); // Update state with setCurrentPage
     }
   };
 
@@ -88,11 +86,11 @@ const RecentActivity = ({
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity
               onPress={prevPage}
-              disabled={pageRef.current === 1}>
+              disabled={currentPage === 1}>
               <Icon
                 name="chevron-back"
                 size={24}
-                color={pageRef.current === 1 ? '#eee' : 'black'}
+                color={currentPage === 1 ? '#eee' : 'black'}
               />
             </TouchableOpacity>
             <Text
@@ -100,15 +98,15 @@ const RecentActivity = ({
                 marginHorizontal: 20,
                 fontSize: 14,
                 color: 'gray',
-              }}>{`${pageRef.current}`}</Text>
+              }}>{`${currentPage}`}</Text>
             <TouchableOpacity
               onPress={nextPage}
-              disabled={pageRef.current * itemsPerPage >= filteredData.length}>
+              disabled={currentPage * itemsPerPage >= filteredData.length}>
               <Icon
                 name="chevron-forward"
                 size={24}
                 color={
-                  pageRef.current * itemsPerPage >= filteredData.length
+                  currentPage * itemsPerPage >= filteredData.length
                     ? '#eee'
                     : 'black'
                 }

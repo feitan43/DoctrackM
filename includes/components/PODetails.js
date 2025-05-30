@@ -1,17 +1,14 @@
 // PODetails.js
 import React from 'react';
-import {View, Text, ScrollView, TouchableOpacity, Linking} from 'react-native';
+import {View, Text, ScrollView, TouchableOpacity, Linking, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-// Adjust the path according to your project structure
 import {
   GLOBAL_STYLES as styles,
   COLORS,
   SPACING,
   FONT_SIZES,
-} from './../styles/theme'; // Ensure path is correct
+} from './../styles/theme'; 
 
-// Helper functions (assumed to be passed as props or imported if used globally)
-// Define these functions in a utility file or a parent component and pass them down.
 
 export const GeneralInformationCard = ({genInformationData}) => (
   <View style={styles.sectionContainer}>
@@ -68,15 +65,15 @@ export const GeneralInformationCard = ({genInformationData}) => (
         value: genInformationData.RetentionTN,
       },
       {
-        label: 'P.O. Encoded By',
+        label: 'Encoded By',
         value: genInformationData.EncodedBy,
       },
       {
-        label: 'P.O. Date Encoded',
+        label: 'Date Encoded',
         value: genInformationData.DateEncoded,
       },
       {
-        label: 'P.O. Date Updated',
+        label: 'Date Updated',
         value: genInformationData.DateModified,
       },
     ].map((item, index, arr) => (
@@ -94,22 +91,115 @@ export const GeneralInformationCard = ({genInformationData}) => (
   </View>
 );
 
-export const PaymentHistoryCard = ({genInformationData, removeHtmlTags}) => (
-  <View style={styles.sectionContainer}>
+export const PaymentHistoryCard = ({
+  paymentHistory,
+  insertCommas
+}) => {
+  const columnWidths = {
+    TN: 1.2,
+    STATUS: 1,
+    GROSS: 1.5,
+    LD: 1.2,
+    TOTAL_TAX: 1.5,
+    RETENTION: 1.5,
+    ADJUSTMENT: 1.8,
+    NET: 1.5,
+  };
+
+  return (
+    <View style={styles.sectionContainer}>
     <View style={styles.sectionHeader}>
-      <Text style={styles.headerText}>Remarks</Text>
+      <Text style={styles.headerText}>Payment History</Text>
     </View>
-    <View style={styles.simpleTextSectionContent}>
-      {genInformationData?.Remarks1 ? (
-        <Text style={styles.remarksText}>
-          {removeHtmlTags(genInformationData.Remarks1)}
-        </Text>
-      ) : (
-        <Text style={styles.noDataText}>No remarks available.</Text>
-      )}
+
+      <View style={styles.sectionTable}>
+        {paymentHistory && paymentHistory.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+            <View>
+              <View style={[styles.tableHeader]}>
+                <View style={{ flex: columnWidths.TN, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>TN</Text>
+                </View>
+                <View style={{ flex: columnWidths.STATUS, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>STATUS</Text>
+                </View>
+                <View style={{ flex: columnWidths.GROSS, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>GROSS</Text>
+                </View>
+                <View style={{ flex: columnWidths.LD, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>LD</Text>
+                </View>
+                <View style={{ flex: columnWidths.TOTAL_TAX, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>TOTAL TAX</Text>
+                </View>
+                <View style={{ flex: columnWidths.RETENTION, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>RETENTION</Text>
+                </View>
+                <View style={{ flex: columnWidths.ADJUSTMENT, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>ADJUSTMENT</Text>
+                </View>
+                <View style={{ flex: columnWidths.NET, justifyContent: 'center' }}>
+                  <Text style={styles.paymentHistoryColumnHeader}>NET</Text>
+                </View>
+              </View>
+
+              {paymentHistory.map((payment, index) => (
+                <View
+                  key={`row-${index}`}
+                  style={[
+                    styles.transactionRow,
+                    index % 2 === 0 ? styles.transactionRowEven : styles.transactionRowOdd,
+                    index === paymentHistory.length - 1 && { borderBottomWidth: 0 } 
+                  ]}>
+                  <View style={{ flex: columnWidths.TN, justifyContent: 'center' }}>
+                    <Text style={[styles.paymentHistoryColumnValue, {fontWeight: 'bold', color:'rgba(34, 150, 243, 1)'}]}>{payment.TrackingNumber}</Text>
+                  </View>
+                  <View style={{ flex: columnWidths.STATUS, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>{payment.Status}</Text>
+                  </View>
+                  <View style={{ flex: columnWidths.GROSS, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>
+                      {insertCommas(payment.Gross)}
+                    </Text>
+                  </View>
+                  <View style={{ flex: columnWidths.LD, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>
+                      {insertCommas(payment.LiquidatedDamages)}
+                    </Text>
+                  </View>
+                  <View style={{ flex: columnWidths.TOTAL_TAX, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>
+                      {insertCommas(payment.TotalTax)}
+                    </Text>
+                  </View>
+                  <View style={{ flex: columnWidths.RETENTION, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>
+                      {insertCommas(payment.Retention)}
+                    </Text>
+                  </View>
+                  <View style={{ flex: columnWidths.ADJUSTMENT, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>
+                      {insertCommas(payment.AdjustmentAmount)}
+                    </Text>
+                  </View>
+                  <View style={{ flex: columnWidths.NET, justifyContent: 'center' }}>
+                    <Text style={styles.paymentHistoryColumnValue}>
+                      {insertCommas(payment.NetAmount)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noTransactionDataText}>No record found.</Text>
+          </View>
+        )}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 export const OBRInformationCard = ({
   OBRInformation,

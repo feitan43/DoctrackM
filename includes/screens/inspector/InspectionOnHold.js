@@ -83,38 +83,37 @@ const InspectionOnHold = ({navigation}) => {
   };
 
   const filteredInspectionListData = Array.isArray(data)
-  ? data.filter(item => {
-      const searchTerm = searchQuery?.toLowerCase() || '';
+    ? data.filter(item => {
+        const searchTerm = searchQuery?.toLowerCase() || '';
 
-      const {
-        OfficeName = '', // These defaults are good for the initial assignment
-        TrackingNumber = '',
-        RefTrackingNumber = '',
-        CategoryName = '',
-        Year,
-      } = item;
+        const {
+          OfficeName = '', // These defaults are good for the initial assignment
+          TrackingNumber = '',
+          RefTrackingNumber = '',
+          CategoryName = '',
+          Year,
+        } = item;
 
-      if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-        return false;
-      }
+        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+          return false;
+        }
 
-      if (selectedYear && Year !== selectedYear) {
-        return false;
-      }
+        if (selectedYear && Year !== selectedYear) {
+          return false;
+        }
 
-      if (
-        !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
-        !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
-        !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
-        !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
-      ) {
-        return false;
-      }
+        if (
+          !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
+          !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+        ) {
+          return false;
+        }
 
-      return true;
-    })
-  : [];
-
+        return true;
+      })
+    : [];
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -278,43 +277,44 @@ const InspectionOnHold = ({navigation}) => {
           source={require('../../../assets/images/CirclesBG.png')}
           style={styles.bgHeader}>
           <View style={styles.header}>
-                     {showSearch ? (
-                       <>
-                         <TextInput
-                           style={styles.searchInput}
-                           placeholder="Search..."
-                           value={searchQuery}
-                           onChangeText={setSearchQuery}
-                           autoFocus
-                         />
-                         <TouchableOpacity
-                           onPress={toggleSearchBar}
-                           style={styles.searchIcon}>
-                           <Icon name="close" size={24} color="#fff" />
-                         </TouchableOpacity>
-                       </>
-                     ) : (
-                       <>
-                         <TouchableOpacity
-                           onPress={() => navigation.goBack()}
-                           style={styles.backButton}>
-                           <Icon name="arrow-back" size={24} color="#fff" />
-                         </TouchableOpacity>
-                         <Text style={styles.headerTitle}>Inspection On Hold</Text>
-                         <TouchableOpacity
-                           onPress={toggleSearchBar}
-                           style={styles.searchIcon}>
-                           <Icon name="search" size={24} color="#fff" />
-                         </TouchableOpacity>
-                         <TouchableOpacity
-                           onPress={handleFiltersPress}
-                           style={styles.searchIcon}>
-                           <Icon name="ellipsis-vertical" size={20} color="#fff" />
-                         </TouchableOpacity>
-                       </>
-                     )}
-                   </View>
-          
+            {showSearch ? (
+              <>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                  autoCapitalize="characters" // Add this prop
+                />
+                <TouchableOpacity
+                  onPress={toggleSearchBar}
+                  style={styles.searchIcon}>
+                  <Icon name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Inspection On Hold</Text>
+                <TouchableOpacity
+                  onPress={toggleSearchBar}
+                  style={styles.searchIcon}>
+                  <Icon name="search" size={24} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleFiltersPress}
+                  style={styles.searchIcon}>
+                  <Icon name="ellipsis-vertical" size={20} color="#fff" />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -425,7 +425,6 @@ const InspectionOnHold = ({navigation}) => {
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -476,8 +475,7 @@ const styles = StyleSheet.create({
   menuItemTitle: {
     color: 'black',
   },
- 
-  
+
   filtersButton: {
     padding: 5,
     backgroundColor: '#F8F8F8',

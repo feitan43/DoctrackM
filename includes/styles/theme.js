@@ -390,4 +390,29 @@ export const GLOBAL_STYLES = StyleSheet.create({
     marginVertical: SPACING.s,
     marginHorizontal: 0,
   },
+    paymentHistoryColumnValue: { // New style for table column values
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.xs,
+  },
+  paymentHistoryColumnHeader: { // New style for table column headers
+    fontSize: FONT_SIZES.small,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+   particularsDescription: {
+    fontSize: 14,
+    fontFamily: 'Oswald-Light', // Assuming Oswald-Light is a valid font
+    color: 'silver',
+    padding: 10,
+    paddingHorizontal: 10,
+  },
+  particularsText: {
+    fontSize: 15, // Keeping the same font size for consistency
+    //fontFamily: 'Oswald-Medium', // Using a slightly bolder font for emphasized text
+    color: 'black', // Making the emphasized text stand out
+    // You might want to add other styles like fontWeight: 'bold' if Oswald-Medium isn't enough or if you don't have it.
+  },
 });

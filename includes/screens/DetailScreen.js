@@ -51,6 +51,7 @@ import {
 
 import {
   GeneralInformationCard as POGeneralInformationCard,
+  PaymentHistoryCard as POPaymentHistoryCard,
   OBRInformationCard as POOBRInformationCard,
   PODetailsCard,
   RemarksCard as PORemarksCard,
@@ -58,6 +59,24 @@ import {
   DigitalCopiesCard as PODigitalCopiesCard,
   TransactionHistoryCard as POTransactionHistoryCard,
 } from './../components/PODetails';
+import {
+  GeneralInformationCard as PXGeneralInformationCard,
+  ParticularsCard,
+  OBRInformationCard as PXOBRInformationCard,
+  RemarksCard as PXRemarksCard,
+  PendingNoteCard as PXPendingNoteCard,
+  DigitalCopiesCard as PXDigitalCopiesCard,
+  TransactionHistoryCard as PXTransactionHistoryCard,
+} from './../components/PXDetails';
+import {
+  GeneralInformationCard as PYGeneralInformationCard,
+  OBRInformationCard as PYOBRInformationCard,
+  RemarksCard as PYRemarksCard,
+  PendingNoteCard as PYPendingNoteCard,
+  DigitalCopiesCard as PYDigitalCopiesCard,
+  TransactionHistoryCard as PYTransactionHistoryCard,
+} from './../components/PYDetails';
+
 import {width, height} from '../utils';
 const HEADER_HEIGHT = 250;
 const PARALLAX_FACTOR = 0.6;
@@ -275,9 +294,7 @@ const DetailScreen = ({route, navigation}) => {
     employeeNumber,
     onSuccessCallback,
   ) => {
-    console.log( items,
-    year,
-    tn,);
+    console.log(items, year, tn);
     if (!items || items.length === 0) {
       showMessage({
         message: 'No items selected for upload.',
@@ -287,8 +304,6 @@ const DetailScreen = ({route, navigation}) => {
       });
       return;
     }
-    
-
 
     if (!year || !tn || !employeeNumber) {
       showMessage({
@@ -611,7 +626,7 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
-   const renderDetailsPOOrder = () => {
+  const renderDetailsPOOrder = () => {
     if (selectedItem.TrackingType === 'PO') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -622,6 +637,18 @@ const DetailScreen = ({route, navigation}) => {
             />
           </View>
           <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={paymentHistoryRef} style={{marginTop: 20}}>
+            <POPaymentHistoryCard
+              paymentHistory={paymentHistory}
+              removeHtmlTags={removeHtmlTags}
+              genInformationData={genInformationData}
+              insertCommas={insertCommas}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
           {/* <View style={{height:10, width:'100%', borderWidth:5}}/> */}
           <View ref={obrInfoRef} style={{marginTop: 20}}>
             <POOBRInformationCard
@@ -637,7 +664,6 @@ const DetailScreen = ({route, navigation}) => {
             <PODetailsCard
               poDetails={prpopxDetails}
               poTotalAmount={POTOTAL}
-              
               insertCommas={insertCommas}
               expandedIndex={expandedIndex}
               toggleDescription={toggleDescription}
@@ -702,858 +728,66 @@ const DetailScreen = ({route, navigation}) => {
     }
   };
 
-  const renderDetailsPOOrder2 = () => {
-    if (selectedItem.TrackingType === 'PO') {
+  const renderDetailsPayment = () => {
+    if (selectedItem.TrackingType === 'PX') {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>GENERAL INFORMATION</Text>
-              </View>
-              <View>
-                {[
-                  {
-                    label: 'Office',
-                    value: genInformationData.OfficeName?.replace(/\\/g, ''),
-                  },
-                  {
-                    label: 'Status',
-                    value: `${genInformationData.TrackingType} - ${genInformationData.Status}`,
-                  },
-                  {label: 'Supplier', value: genInformationData.Claimant},
-                  {
-                    label: 'Transaction Classification',
-                    value: genInformationData.ComplexLabel,
-                  },
-                  {label: 'PO Number', value: genInformationData.PO_Number},
-                  {label: 'PO Date', value: genInformationData.PoDate},
-                  {label: 'OBR Number', value: genInformationData.OBR_Number},
-                  {label: 'PR Number', value: genInformationData.PR_Number},
-                  {label: 'PR Sched', value: genInformationData.PR_Sched},
-                  {label: 'PR TN', value: genInformationData.PR_TrackingNumber},
-                  {label: 'Fund', value: genInformationData.Fund},
-                  {label: 'Nature', value: genInformationData.NatureOfPayment},
-                  {label: 'Specifics', value: genInformationData.Specifics},
-                  {label: 'Mode', value: genInformationData.ModeOfProcTitle},
-                  {
-                    label: 'Payment Term',
-                    value: genInformationData.PaymentTermLabel,
-                  },
-                  {
-                    label: 'Retention TN',
-                    value: genInformationData.RetentionTN,
-                  },
-                  {label: 'Encoded By', value: genInformationData.EncodedBy},
-                  {
-                    label: 'Date Encoded',
-                    value: genInformationData.DateEncoded,
-                  },
-                  {
-                    label: 'Date Updated',
-                    value: genInformationData.DateModified,
-                  },
-                ].map((item, index) => (
-                  <View key={index} style={{marginVertical: 5}}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        paddingVertical: 4,
-                        paddingHorizontal: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          color: '#777',
-                          fontWeight: '400',
-                          width: '35%',
-                        }}>
-                        {item.label}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          color: '#222',
-                          fontWeight: 'bold',
-                          width: '65%',
-                          paddingLeft: 12,
-                        }}>
-                        {item.value || '—'}
-                      </Text>
-                    </View>
-                    {index !== item.length - 1 && (
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: '#eee',
-                          marginTop: 6,
-                        }}
-                      />
-                    )}
-                  </View>
-                ))}
-              </View>
-            </View>
+            <PXGeneralInformationCard
+              genInformationData={genInformationData}
+              insertCommas={insertCommas}
+              styles={styles}
+            />
           </View>
-
-          <View ref={paymentHistoryRef} style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>PAYMENT HISTORY</Text>
-              </View>
-
-              <View style={styles.cardDetails}>
-                {paymentHistory && paymentHistory.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                    <View style={{flexDirection: 'row'}}>
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>TN</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text key={`tn-${index}`} style={styles.columnValue}>
-                            {payment.TrackingNumber}
-                          </Text>
-                        ))}
-                      </View>
-
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>STATUS</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text
-                            key={`status-${index}`}
-                            style={styles.columnValue}>
-                            {payment.Status}
-                          </Text>
-                        ))}
-                      </View>
-
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>GROSS</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text
-                            key={`gross-${index}`}
-                            style={styles.columnValue}>
-                            {payment.Gross}
-                          </Text>
-                        ))}
-                      </View>
-
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>LD</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text key={`ld-${index}`} style={styles.columnValue}>
-                            {payment.LiquidatedDamages}
-                          </Text>
-                        ))}
-                      </View>
-
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>TOTAL TAX</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text key={`tax-${index}`} style={styles.columnValue}>
-                            {payment.TotalTax}
-                          </Text>
-                        ))}
-                      </View>
-
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>RETENTION</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text key={`ret-${index}`} style={styles.columnValue}>
-                            {payment.Retention}
-                          </Text>
-                        ))}
-                      </View>
-
-                      {/* ADJUSTMENT COLUMN */}
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>ADJUSTMENT</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text key={`adj-${index}`} style={styles.columnValue}>
-                            {payment.AdjustmentAmount}
-                          </Text>
-                        ))}
-                      </View>
-
-                      {/* NET COLUMN */}
-                      <View style={styles.column}>
-                        <Text style={styles.columnHeader}>NET</Text>
-                        {paymentHistory.map((payment, index) => (
-                          <Text key={`net-${index}`} style={styles.columnValue}>
-                            {payment.NetAmount}
-                          </Text>
-                        ))}
-                      </View>
-                    </View>
-                  </ScrollView>
-                ) : (
-                  <View style={{}}>
-                    <Text style={styles.noDataText}>No record found.</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-
-          <View ref={obrInfoRef} style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>OBR INFORMATION</Text>
-              </View>
-
-              <View style={styles.cardTable}>
-                <View
-                  style={[styles.tableHeader, {backgroundColor: '#E5E7EB'}]}>
-                  <Text style={[styles.tableHeaderText, {flex: 1}]}>
-                    PROGRAM
-                  </Text>
-                  <Text style={[styles.tableHeaderText, {flex: 1}]}>CODE</Text>
-                  <Text style={[styles.tableHeaderTextRight, {flex: 1}]}>
-                    AMOUNT
-                  </Text>
-                </View>
-
-                {OBRInformation && OBRInformation.length > 0 ? (
-                  OBRInformation.map((item, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.tableRow,
-                        {
-                          flexDirection: 'row',
-                          borderBottomWidth: 1,
-                          borderBottomColor: '#E5E7EB',
-                          paddingVertical: 5,
-                          alignItems: 'baseline',
-                        },
-                      ]}>
-                      {/* PROGRAM */}
-                      <View style={{flex: 1}}>
-                        <View>
-                          <Text style={styles.tableRowMain}>
-                            {item.PR_ProgramCode}
-                          </Text>
-                        </View>
-                        <Text style={styles.tableRowSub}>
-                          {item.ProgramName}
-                        </Text>
-                      </View>
-
-                      <View style={{flex: 1}}>
-                        <View>
-                          <Text style={styles.tableRowMain}>
-                            {item.PR_AccountCode}
-                          </Text>
-                        </View>
-                        <Text style={styles.tableRowSub}>
-                          {item.AccountTitle}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={{
-                          flex: 1,
-                          alignItems: 'flex-end',
-                          justifyContent: 'center',
-                        }}>
-                        <Text style={styles.tableRowMain}>
-                          {insertCommas(item.PO_Amount)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noDataText}>No data available</Text>
-                )}
-
-                <View style={styles.totalContainer}>
-                  <Text style={[styles.totalAmount, {marginEnd: 5}]}>
-                    {insertCommas(POTOTAL.toFixed(2))}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View ref={prDetailsRef} style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>PO DETAILS</Text>
-              </View>
-
-              <View style={styles.cardTable}>
-                <View
-                  style={[styles.tableHeader, {backgroundColor: '#E5E7EB'}]}>
-                  <View style={{flex: 2}}>
-                    <Text style={styles.tableHeaderText}>DESCRIPTION</Text>
-                  </View>
-                  <View style={{flex: 1, alignItems: 'center'}}>
-                    <Text style={styles.tableHeaderText}>QTY | COST</Text>
-                  </View>
-                  <View style={{flex: 1, alignItems: 'flex-end'}}>
-                    <Text style={styles.tableHeaderTextRight}>TOTAL</Text>
-                  </View>
-                </View>
-
-                {prpopxDetails && prpopxDetails.length > 0 ? (
-                  prpopxDetails.map((detail, index) => (
-                    <View key={index}>
-                      <View
-                        style={[
-                          styles.tableRow,
-                          {
-                            flexDirection: 'row',
-                            borderBottomWidth: 1,
-                            borderBottomColor: '#E5E7EB',
-                            paddingVertical: 10,
-                          },
-                        ]}>
-                        <View style={{flex: 2}}>
-                          <TouchableOpacity
-                            onPress={() => toggleDescription(index)}>
-                            <Text
-                              style={styles.tableRowSub}
-                              numberOfLines={
-                                expandedIndex === index ? undefined : 3
-                              }
-                              ellipsizeMode={
-                                expandedIndex === index ? 'clip' : 'tail'
-                              }>
-                              {detail.Description}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={{flex: 1, alignItems: 'center'}}>
-                          <Text style={styles.tableRowMain}>
-                            {Math.floor(detail.Qty)}{' '}
-                            <Text style={styles.tableRowSub}>
-                              {detail.Unit}
-                            </Text>
-                          </Text>
-                          <Text style={styles.tableRowSub}>
-                            {insertCommas(detail.Amount)}
-                          </Text>
-                        </View>
-
-                        {/* Total Column */}
-                        <View style={{flex: 1, alignItems: 'flex-end'}}>
-                          <Text
-                            style={[styles.tableRowMain, {paddingVertical: 5}]}>
-                            {insertCommas(detail.Total)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/*  {index !== prpopxDetails.length - 1 && (
-                        <View style={styles.divider} />
-                      )} */}
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noDataText}>No data available</Text>
-                )}
-
-                <View style={styles.totalContainer}>
-                  <Text style={[styles.totalAmount, {marginEnd: 5}]}>
-                    {insertCommas(prpopxTotalAmount.toFixed(2))}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>REMARKS</Text>
-              </View>
-              <View
-                style={[
-                  styles.cardTable,
-                  {paddingHorizontal: 10, paddingVertical: 10},
-                ]}>
-                {genInformationData?.Remarks1 ? (
-                  <Text style={styles.remarksText}>
-                    {removeHtmlTags(genInformationData.Remarks1)}
-                  </Text>
-                ) : (
-                  <Text style={styles.noDataText}>No remarks available.</Text>
-                )}
-              </View>
-            </View>
+            <ParticularsCard genInformationData={genInformationData} />
           </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View ref={remarksRef} style={{marginTop: 20}}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>PENDING NOTE</Text>
-              </View>
+            <PXRemarksCard
+              genInformationData={genInformationData}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
-              <View
-                style={[
-                  styles.cardTable,
-                  {paddingHorizontal: 10, paddingVertical: 10},
-                ]}>
-                {genInformationData?.Remarks ? (
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: '#92400E',
-                      lineHeight: 20,
-                    }}>
-                    {genInformationData.Remarks}
-                  </Text>
-                ) : (
-                  <Text style={styles.noDataText}>
-                    No pending note provided.
-                  </Text>
-                )}
-              </View>
-            </View>
+          <View style={{marginTop: 20}}>
+            <PXPendingNoteCard
+              genInformationData={genInformationData}
+              styles={styles}
+            />
           </View>
 
-          {genInformationData.Year === '2025' && (
-            /* procurement === '1' &&  */ <View style={{marginTop: 20}}>
-              <View style={styles.cardContainer}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.headerText}>DIGITAL COPIES</Text>
-                </View>
+          {genInformationData.Year == '2025' && procurement === '1' && (
+            <>
+              <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
-                <View
-                  style={[
-                    styles.cardTable,
-                    {paddingHorizontal: 10, paddingVertical: 10},
-                  ]}>
-                  {formTypeMap.PO.map((formType, index) => {
-                    const formTypeFiles =
-                      attachmentsFiles?.filter(
-                        fileUrl => fileUrl.split('~')[2] === formType,
-                      ) || [];
-
-                    const hasFiles = formTypeFiles.length > 0;
-
-                    return (
-                      <View
-                        key={formType}
-                        style={{
-                          marginVertical: 10,
-                          paddingBottom: 10,
-                          borderBottomWidth: 1,
-                          borderColor: '#e5e7eb',
-                        }}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            marginBottom: 6,
-                          }}>
-                          <Text
-                            style={{
-                              fontSize: 14,
-                              flex: 1,
-                              fontWeight: 'bold',
-                              color: '#1e293b',
-                            }}>
-                            {`${index + 1}. ${formType}`}
-                          </Text>
-                          {procurement === '1' && (
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                              }}>
-                              <TouchableOpacity
-                                disabled={hasFiles}
-                                onPress={() => handleAttachFiles(formType)}
-                                style={{
-                                  backgroundColor: hasFiles
-                                    ? '#ccc'
-                                    : '#1976D2',
-                                  paddingVertical: 6,
-                                  paddingHorizontal: 12,
-                                  borderRadius: 5,
-                                  marginRight: 10,
-                                  opacity: hasFiles ? 0.5 : 1,
-                                }}>
-                                <Text
-                                  style={{
-                                    color: '#fff',
-                                    fontSize: 12,
-                                    fontWeight: 'bold',
-                                  }}>
-                                  Attach Files
-                                </Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity
-                                disabled={!hasFiles}
-                                onPress={() =>
-                                  handleRemove(year, trackingNumber, formType)
-                                }
-                                style={{
-                                  backgroundColor: !hasFiles
-                                    ? '#ccc'
-                                    : '#ebf8ff',
-                                  paddingVertical: 4,
-                                  paddingHorizontal: 12,
-                                  borderRadius: 5,
-                                  opacity: !hasFiles ? 0.5 : 1,
-                                }}>
-                                <Icon
-                                  name={'trash-outline'}
-                                  size={20}
-                                  color={'#252525'}
-                                />
-                              </TouchableOpacity>
-                            </View>
-                          )}
-                        </View>
-
-                        <View style={{marginTop: 5}}>
-                          {hasFiles ? (
-                            formTypeFiles.map((fileUrl, fileIndex) => {
-                              const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-                              const fileExtension = fileUrl.split('.').pop();
-                              const uniqueKey = `file-${formType}-${fileIndex}`;
-
-                              return (
-                                <View
-                                  key={uniqueKey}
-                                  style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    marginTop: 5,
-                                    backgroundColor: '#f1f5f9',
-                                    padding: 10,
-                                    borderRadius: 6,
-                                  }}>
-                                  <TouchableOpacity
-                                    onPress={() => {
-                                      if (fileExtension === 'pdf') {
-                                        Linking.openURL(uniqueUri);
-                                      } else {
-                                        handleImagePress(uniqueUri);
-                                      }
-                                    }}>
-                                    <Text
-                                      style={{color: '#1e293b', fontSize: 12}}>
-                                      {fileUrl.split('~').slice(-2).join('~')}
-                                    </Text>
-                                  </TouchableOpacity>
-                                </View>
-                              );
-                            })
-                          ) : (
-                            <Text style={{color: '#9ca3af', fontSize: 12}}>
-                              No attached files
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
+              <View style={{marginTop: 20}}>
+                <PXDigitalCopiesCard
+                  formTypeMap={formTypeMap}
+                  attachmentsFiles={attachmentsFiles}
+                  handleAttachFiles={handleAttachFiles}
+                  handleRemove={handleRemove}
+                  year={genInformationData.Year}
+                  trackingNumber={trackingNumber} // Ensure trackingNumber is available
+                  handleImagePress={handleImagePress}
+                  styles={styles}
+                />
               </View>
-            </View>
+            </>
           )}
-
-          {/* {genInformationData.Year === '2025' && procurement === '1' && (
-            <View style={styles.obrContainer}>
-              <View style={styles.detailsContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    padding: 10,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
-                  <Text
-                    style={{
-                      fontFamily: 'Oswald-Regular',
-                      color: 'white',
-                      fontSize: 16,
-                      textAlign: 'left',
-                      marginStart: 10,
-                      flex: 1,
-                    }}>
-                    DIGITAL COPIES
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    paddingHorizontal: 15,
-                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                  }}>
-                  {formTypeMap.PO.map((formType, index) => {
-                    const formTypeFiles =
-                      attachmentsFiles?.filter(
-                        fileUrl => fileUrl.split('~')[2] === formType,
-                      ) || [];
-
-                    const hasFiles = formTypeFiles.length > 0;
-                    return (
-                      <View
-                        key={formType}
-                        style={{
-                          marginVertical: 10,
-                          paddingBottom: 10,
-                          borderBottomWidth: 1,
-                          borderColor: 'silver',
-                        }}>
-                        <View
-                          style={{flexDirection: 'row', alignItems: 'center'}}>
-                          <Text style={{fontSize: 14, flex: 1, color: '#fff'}}>
-                            {`${index + 1}. ${formType}`}
-                          </Text>
-
-                          <TouchableOpacity
-                            disabled={hasFiles}
-                            onPress={() => handleAttachFiles(formType)}
-                            style={{
-                              backgroundColor: hasFiles ? '#ccc' : '#1976D2',
-                              paddingVertical: 6,
-                              paddingHorizontal: 12,
-                              borderRadius: 5,
-                              marginRight: 10,
-                              opacity: hasFiles ? 0.5 : 1,
-                            }}>
-                            <Text
-                              style={{
-                                color: '#FFFFFF',
-                                fontSize: 12,
-                                fontWeight: 'bold',
-                              }}>
-                              Attach Files
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            disabled={!hasFiles}
-                            onPress={() =>
-                              handleRemove(year, trackingNumber, formType)
-                            }
-                            style={{
-                              backgroundColor: !hasFiles ? '#ccc' : '#ebf8ff',
-                              paddingVertical: 4,
-                              paddingHorizontal: 12,
-                              borderRadius: 5,
-                              opacity: !hasFiles ? 0.5 : 1,
-                            }}>
-                            <Icon
-                              name={'trash-outline'}
-                              size={20}
-                              color={'#FF6347'}
-                            />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={{marginTop: 5}}>
-                          {attachmentsFiles &&
-                          attachmentsFiles.length > 0 &&
-                          attachmentsFiles.some(
-                            fileUrl => fileUrl.split('~')[2] === formType,
-                          ) ? (
-                            attachmentsFiles
-                              .filter(
-                                fileUrl => fileUrl.split('~')[2] === formType,
-                              )
-                              .map((fileUrl, index) => {
-                                const uniqueUri = `${fileUrl}?timestamp=${Date.now()}`;
-                                const uniqueKey = `file-${formType}-${index}`;
-                                const fileExtension = fileUrl.split('.').pop();
-
-                                return (
-                                  <View
-                                    key={uniqueKey}
-                                    style={{
-                                      flexDirection: 'row',
-                                      alignItems: 'center',
-                                      marginTop: 5,
-                                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                                      padding: 10,
-                                    }}>
-                                    <TouchableOpacity
-                                      onPress={() => {
-                                        if (fileExtension === 'pdf') {
-                                          Linking.openURL(uniqueUri);
-                                        } else {
-                                          handleImagePress(uniqueUri);
-                                        }
-                                      }}>
-                                      <Text
-                                        style={{
-                                          color: '#fff',
-                                          fontSize: 12,
-                                          flex: 1,
-                                        }}>
-                                        {fileUrl.split('~').slice(-2).join('~')}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                );
-                              })
-                          ) : (
-                            <Text
-                              style={{
-                                color: '#ccc',
-                                fontSize: 12,
-                                marginTop: 5,
-                              }}>
-                              No attached files
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-          )} */}
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
           <View ref={transactionHistoryRef} style={{marginTop: 20}}>
-            <View
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                shadowColor: '#000',
-                shadowOffset: {width: 0, height: 1},
-                shadowOpacity: 0.05,
-                shadowRadius: 3,
-                elevation: 2,
-                marginHorizontal: 16,
-                overflow: 'hidden',
-              }}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.headerText}>TRANSACTION HISTORY</Text>
-              </View>
-
-              <View style={{paddingVertical: 12, paddingHorizontal: 14}}>
-                {/* Table Header */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    paddingBottom: 8,
-                    borderBottomWidth: 1,
-                    borderColor: '#E5E7EB',
-                    marginBottom: 6,
-                  }}>
-                  <View style={{flex: 1}} />
-                  <View style={{flex: 3}}>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                      }}>
-                      DATE
-                    </Text>
-                  </View>
-                  <View style={{flex: 5}}>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                      }}>
-                      STATUS
-                    </Text>
-                  </View>
-                  <View style={{flex: 3}}>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: '#9CA3AF',
-                        fontWeight: '500',
-                        textAlign: 'right',
-                      }}>
-                      COMPLETION
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Table Body */}
-                {transactionHistory && transactionHistory.length > 0 ? (
-                  transactionHistory.map((item, index) => (
-                    <View key={index}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingVertical: 10,
-                          backgroundColor:
-                            index % 2 === 0 ? '#FAFAFA' : '#F4F4F5',
-                          borderRadius:
-                            index === transactionHistory.length - 1 ? 12 : 0,
-                        }}>
-                        <View style={{flex: 1}}>
-                          <Text
-                            style={{
-                              fontSize: 11,
-                              color: '#6B7280',
-                              textAlign: 'center',
-                            }}>
-                            {index + 1}
-                          </Text>
-                        </View>
-                        <View style={{flex: 3}}>
-                          <Text
-                            style={{
-                              fontSize: 11,
-                              color: '#4B5563',
-                            }}>
-                            {item.DateModified}
-                          </Text>
-                        </View>
-                        <View style={{flex: 5}}>
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: '#1F2937',
-                              fontWeight: '500',
-                            }}>
-                            {item.Status}
-                          </Text>
-                        </View>
-                        <View style={{flex: 3}}>
-                          <Text
-                            style={{
-                              fontSize: 11,
-                              color: '#6B7280',
-                              textAlign: 'right',
-                              marginEnd: 10,
-                            }}>
-                            {removeHtmlTags(item.Completion)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {index !== transactionHistory.length - 1 && (
-                        <View
-                          style={{
-                            height: 1,
-                            backgroundColor: '#E5E7EB',
-                            marginVertical: 6,
-                          }}
-                        />
-                      )}
-                    </View>
-                  ))
-                ) : (
-                  <Text
-                    style={{
-                      color: '#9CA3AF',
-                      fontSize: 12,
-                      textAlign: 'center',
-                      marginTop: 10,
-                    }}>
-                    No Transaction History available
-                  </Text>
-                )}
-              </View>
-            </View>
+            <PXTransactionHistoryCard
+              transactionHistory={transactionHistory}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
           </View>
 
           <View style={{height: 500}} />
@@ -1561,14 +795,14 @@ const DetailScreen = ({route, navigation}) => {
       );
     } else {
       return (
-        <View>
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
           <Text>No details available for this type.</Text>
         </View>
       );
     }
   };
 
-  const renderDetailsPayment = () => {
+  const renderDetailsPayment2 = () => {
     if (selectedItem.TrackingType === 'PX') {
       return (
         <ScrollView ref={scrollViewRef}>
@@ -2604,6 +1838,89 @@ const DetailScreen = ({route, navigation}) => {
       return (
         <ScrollView ref={scrollViewRef}>
           <View ref={genInfoRef} style={{marginTop: 10}}>
+            <PYGeneralInformationCard
+              genInformationData={genInformationData}
+              insertCommas={insertCommas}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={obrInfoRef} style={{marginTop: 20}}>
+            <PYOBRInformationCard
+              OBRInformation={OBRInformation}
+              totalAmount={totalAmount}
+              insertCommas={insertCommas}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={remarksRef} style={{marginTop: 20}}>
+            <PYRemarksCard
+              genInformationData={genInformationData}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
+          </View>
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View style={{marginTop: 20}}>
+            <PYPendingNoteCard
+              genInformationData={genInformationData}
+              styles={styles}
+            />
+          </View>
+
+          {genInformationData?.Year === '2025' && procurement === '1' && (
+            <>
+              <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+              <View style={{marginTop: 20}}>
+                <PYDigitalCopiesCard
+                  formTypeMap={formTypeMap}
+                  attachmentsFiles={attachmentsFiles}
+                  handleAttachFiles={handleAttachFiles}
+                  handleRemove={handleRemove}
+                  year={genInformationData.Year}
+                  trackingNumber={trackingNumber} // Ensure trackingNumber is available
+                  handleImagePress={handleImagePress}
+                  styles={styles}
+                />
+              </View>
+            </>
+          )}
+          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+
+          <View ref={transactionHistoryRef} style={{marginTop: 20}}>
+            <PYTransactionHistoryCard
+              transactionHistory={transactionHistory}
+              removeHtmlTags={removeHtmlTags}
+              styles={styles}
+            />
+          </View>
+
+          <View style={{height: 500}} />
+        </ScrollView>
+      );
+    } else {
+      return (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text>No details available for this type.</Text>
+        </View>
+      );
+    }
+  };
+
+  const renderOtherDetails2 = () => {
+    if (
+      selectedItem.TrackingType !== 'PR' &&
+      selectedItem.TrackingType !== 'PO' &&
+      selectedItem.TrackingType !== 'PX'
+    ) {
+      return (
+        <ScrollView ref={scrollViewRef}>
+          <View ref={genInfoRef} style={{marginTop: 10}}>
             <View style={styles.cardContainer}>
               <View style={styles.cardHeader}>
                 <Text style={styles.headerText}>GENERAL INFORMATION</Text>
@@ -3268,240 +2585,240 @@ const DetailScreen = ({route, navigation}) => {
   });
 
   return (
-<BottomSheetModalProvider>
-  <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-    {/* <StatusBar barStyle="light-content" translucent={true} /> */}
+    <BottomSheetModalProvider>
+      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+        {/* <StatusBar barStyle="light-content" translucent={true} /> */}
 
-    <View style={{flex: 1}}>
-      <View
-        style={{
-          position: 'absolute',
-          left: 10,
-          marginTop: 50,
-          borderRadius: 999,
-          overflow: 'hidden',
-          backgroundColor:'white',
-          flexDirection:'row',
-          alignItems:'center',
-                        borderWidth:1,
-                        borderColor:'silver',
-
-          zIndex: 1, 
-        }}>
-        <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'gray'},
-            {
-              backgroundColor: 'transparent',
-              padding: 10,
+        <View style={{flex: 1}}>
+          <View
+            style={{
+              position: 'absolute',
+              left: 10,
+              marginTop: 50,
+              borderRadius: 999,
+              overflow: 'hidden',
+              backgroundColor: 'white',
               flexDirection: 'row',
-              alignItems: 'flex-end',
-            },
-          ]}
-          android_ripple={{color: 'gray'}}
-          onPress={() => navigation.goBack()}>
-          <Icon name="chevron-back-outline" size={26} color="gray" />
-        </Pressable>
-        <Text style={{}}>{genInformationData?.TrackingNumber || ''}</Text>
-      </View>
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'silver',
+              width: '30%',
+              zIndex: 1,
+            }}>
+            <Pressable
+              style={({pressed}) => [
+                pressed && {backgroundColor: 'gray'},
+                {
+                  backgroundColor: 'transparent',
+                  padding: 10,
+                  flexDirection: 'row',
+                  alignItems: 'flex-end',
+                },
+              ]}
+              android_ripple={{color: 'gray'}}
+              onPress={() => navigation.goBack()}>
+              <Icon name="chevron-back-outline" size={26} color="gray" />
+            </Pressable>
+            <Text style={{}}>{genInformationData?.TrackingNumber || ''}</Text>
+          </View>
 
-      <Animated.ScrollView
-        // Use Animated.ScrollView for direct linking of scroll events to Animated.Value
-        onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {y: scrollY}}}],
-          {useNativeDriver: true}, // Crucial for performance
-        )}
-        scrollEventThrottle={16} // Fires the event every 16ms (for 60fps)
-        showsVerticalScrollIndicator={false} // Hide scroll indicator
-      >
-        <Animated.View
-          style={[
-            styles.parallaxHeaderContainer,
-            {
-              transform: [
-                {translateY: parallaxHeaderTranslateY},
-                {scale: parallaxHeaderScale},
-              ],
-            },
-          ]}>
-          <ImageBackground
-            source={require('../../assets/images/CirclesBG.png')} // Replace with your image
-            style={styles.backgroundImage}
-            resizeMode="cover">
-            {/* The back button was here, now moved outside */}
-            <View style={styles.overlay}>
-              <View style={styles.headerContent}>
-                {/* <Text style={styles.headerSubtitle}>
+          <Animated.ScrollView
+            // Use Animated.ScrollView for direct linking of scroll events to Animated.Value
+            onScroll={Animated.event(
+              [{nativeEvent: {contentOffset: {y: scrollY}}}],
+              {useNativeDriver: true}, // Crucial for performance
+            )}
+            scrollEventThrottle={16} // Fires the event every 16ms (for 60fps)
+            showsVerticalScrollIndicator={false} // Hide scroll indicator
+          >
+            <Animated.View
+              style={[
+                styles.parallaxHeaderContainer,
+                {
+                  transform: [
+                    {translateY: parallaxHeaderTranslateY},
+                    {scale: parallaxHeaderScale},
+                  ],
+                },
+              ]}>
+              <ImageBackground
+                source={require('../../assets/images/CirclesBG.png')} // Replace with your image
+                style={styles.backgroundImage}
+                resizeMode="cover">
+                {/* The back button was here, now moved outside */}
+                <View style={styles.overlay}>
+                  <View style={styles.headerContent}>
+                    {/* <Text style={styles.headerSubtitle}>
                   {genInformationData?.Year} -{' '}
                   {genInformationData?.TrackingNumber}
                 </Text> */}
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                  <Text
-                    style={{color: '#fff', textAlignVertical: 'center'}}>
-                    Status{' '}
-                  </Text>
-                  <Text style={styles.headerTitle}>
-                    {genInformationData?.TrackingType} -{' '}
-                    {genInformationData?.Status}
-                  </Text>
+                    <View style={{flexDirection: 'row'}}>
+                      <Text
+                        style={{color: '#fff', textAlignVertical: 'center'}}>
+                        Status{' '}
+                      </Text>
+                      <Text style={styles.headerTitle}>
+                        {genInformationData?.TrackingType} -{' '}
+                        {genInformationData?.Status}
+                      </Text>
+                    </View>
+
+                    {/* Applied optional chaining here to prevent 'OfficeName' of null error */}
+                    <Text
+                      style={{color: '#fff', fontWeight: '200', fontSize: 12}}>
+                      {genInformationData?.OfficeName?.replace(/\\/g, '')}
+                    </Text>
+                  </View>
                 </View>
+              </ImageBackground>
+            </Animated.View>
 
-                {/* Applied optional chaining here to prevent 'OfficeName' of null error */}
-                <Text style={{color: '#fff', fontWeight: '200'}}>
-                  {genInformationData?.OfficeName?.replace(/\\/g, '')}
-                </Text>
-              </View>
-            </View>
-          </ImageBackground>
-        </Animated.View>
-
-        <View style={styles.contentContainer}>
-          {genInfoLoading ? (
-            <View>
-              <Loading />
-            </View>
-          ) : (
-            <View style={{height: '100%', paddingBottom: 55}}>
-              {/* Added a check for selectedItem before the switch statement */}
-              {selectedItem ? (
-                (() => {
-                  switch (selectedItem.TrackingType) {
-                    case 'PR':
-                      return renderDetailsPRRequest();
-                    case 'PO':
-                      return renderDetailsPOOrder();
-                    case 'PX':
-                      return renderDetailsPayment();
-                    default:
-                      return renderOtherDetails();
-                  }
-                })()
+            <View style={styles.contentContainer}>
+              {genInfoLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#1A508C" />
+                </View>
               ) : (
-                <Text>No tracking item selected or data loading...</Text>
+                <View style={{height: '100%', paddingBottom: 55}}>
+                  {selectedItem ? (
+                    (() => {
+                      switch (selectedItem.TrackingType) {
+                        case 'PR':
+                          return renderDetailsPRRequest();
+                        case 'PO':
+                          return renderDetailsPOOrder();
+                        case 'PX':
+                          return renderDetailsPayment();
+                        default:
+                          return renderOtherDetails();
+                      }
+                    })()
+                  ) : (
+                    <Text>No tracking item selected or data loading...</Text>
+                  )}
+                </View>
               )}
             </View>
-          )}
+          </Animated.ScrollView>
         </View>
-      </Animated.ScrollView>
-    </View>
 
-    <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
-      <View
-        style={{
-          flex: 1,
-          padding: 16,
-          backgroundColor: '#fff',
-          borderRadius: 12,
-          justifyContent: 'space-between',
-        }}>
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#444',
-            marginBottom: 10,
-          }}>
-          {currentFormType === 'OBR Form'
-            ? 'OBR Form'
-            : currentFormType === 'PR Form'
-            ? 'PR Form'
-            : currentFormType === 'RFQ Form'
-            ? 'RFQ Form'
-            : currentFormType === 'PO Form'
-            ? 'PO Form'
-            : currentFormType === 'Acceptance Form'
-            ? 'Acceptance Form'
-            : currentFormType === 'RFI Form'
-            ? 'RFI Form'
-            : currentFormType === 'Request for Delivery Extension'
-            ? 'Request for Delivery Extension'
-            : currentFormType === 'DV Form'
-            ? 'DV Form'
-            : currentFormType === 'Abstract of Bids'
-            ? 'Abstract of Bids'
-            : currentFormType === 'Financial Proposal'
-            ? 'Financial Proposal'
-            : currentFormType === 'Invitation to Observer'
-            ? 'Invitation to Observer'
-            : currentFormType === 'Bid Evaluation'
-            ? 'Bid Evaluation'
-            : currentFormType === 'Post Qualification'
-            ? 'Post Qualification'
-            : currentFormType === 'Certificate of Eligibility'
-            ? 'Certificate of Eligibility'
-            : currentFormType === 'Philgeps Posting'
-            ? 'Philgeps Posting'
-            : currentFormType === 'Philgeps Award'
-            ? 'Philgeps Award'
-            : currentFormType === 'Certification (Mode, Award, Minutes)'
-            ? 'Certification (Mode, Award, Minutes)'
-            : currentFormType === 'Bac Cert (Conspicuous Place)'
-            ? 'Bac Cert (Conspicuous Place)'
-            : 'No form type selected'}
-        </Text>
-        <TouchableOpacity
-          onPress={pickFile}
-          style={{
-            borderWidth: 1,
-            borderColor: '#1976D2',
-            paddingVertical: 10,
-            paddingHorizontal: 18,
-            borderRadius: 6,
-            alignItems: 'center',
-          }}>
-          <Text style={{color: '#1976D2', fontSize: 16, fontWeight: '500'}}>
-            Browse
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{flex: 1, alignItems: 'center'}}>
-          {selectedFiles?.length > 0 ? (
-            renderAttachmentPreview(selectedFiles, handleRemove)
-          ) : (
-            <Text style={{fontSize: 14, color: '#666', marginVertical: 10}}>
-              No files attached
+        <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={['80%']}>
+          <View
+            style={{
+              flex: 1,
+              padding: 16,
+              backgroundColor: '#fff',
+              borderRadius: 12,
+              justifyContent: 'space-between',
+            }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: '#444',
+                marginBottom: 10,
+              }}>
+              {currentFormType === 'OBR Form'
+                ? 'OBR Form'
+                : currentFormType === 'PR Form'
+                ? 'PR Form'
+                : currentFormType === 'RFQ Form'
+                ? 'RFQ Form'
+                : currentFormType === 'PO Form'
+                ? 'PO Form'
+                : currentFormType === 'Acceptance Form'
+                ? 'Acceptance Form'
+                : currentFormType === 'RFI Form'
+                ? 'RFI Form'
+                : currentFormType === 'Request for Delivery Extension'
+                ? 'Request for Delivery Extension'
+                : currentFormType === 'DV Form'
+                ? 'DV Form'
+                : currentFormType === 'Abstract of Bids'
+                ? 'Abstract of Bids'
+                : currentFormType === 'Financial Proposal'
+                ? 'Financial Proposal'
+                : currentFormType === 'Invitation to Observer'
+                ? 'Invitation to Observer'
+                : currentFormType === 'Bid Evaluation'
+                ? 'Bid Evaluation'
+                : currentFormType === 'Post Qualification'
+                ? 'Post Qualification'
+                : currentFormType === 'Certificate of Eligibility'
+                ? 'Certificate of Eligibility'
+                : currentFormType === 'Philgeps Posting'
+                ? 'Philgeps Posting'
+                : currentFormType === 'Philgeps Award'
+                ? 'Philgeps Award'
+                : currentFormType === 'Certification (Mode, Award, Minutes)'
+                ? 'Certification (Mode, Award, Minutes)'
+                : currentFormType === 'Bac Cert (Conspicuous Place)'
+                ? 'Bac Cert (Conspicuous Place)'
+                : 'No form type selected'}
             </Text>
-          )}
-        </View>
+            <TouchableOpacity
+              onPress={pickFile}
+              style={{
+                borderWidth: 1,
+                borderColor: '#1976D2',
+                paddingVertical: 10,
+                paddingHorizontal: 18,
+                borderRadius: 6,
+                alignItems: 'center',
+              }}>
+              <Text style={{color: '#1976D2', fontSize: 16, fontWeight: '500'}}>
+                Browse
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() =>
-            handleUpload(
-              selectedFiles,
-              // Applied optional chaining here as well
-              genInformationData?.Year,
-              genInformationData?.TrackingNumber,
-              currentFormType,
-              employeeNumber,
-            )
-          }
-          style={{
-            backgroundColor: uploadAttachLoading ? '#ccc' : '#1976D2',
-            paddingVertical: 12,
-            borderRadius: 6,
-            alignItems: 'center',
-          }}
-          disabled={uploadAttachLoading}>
-          <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
-            {uploadAttachLoading ? 'Uploading...' : 'Upload'}{' '}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </BottomSheetModal>
-    {selectedImage && (
-      <View style={styles.zoomableContainer}>
-        <ZoomableImage
-          key={selectedImage}
-          uri={selectedImage}
-          currentFormType={currentFormType}
-          close={() => setSelectedImage(null)}
-          loadedUris={loadedUris}
-          setLoadedUis={setLoadedUris}
-        />
-      </View>
-    )}
-  </SafeAreaView>
-</BottomSheetModalProvider>
+            <View style={{flex: 1, alignItems: 'center'}}>
+              {selectedFiles?.length > 0 ? (
+                renderAttachmentPreview(selectedFiles, handleRemove)
+              ) : (
+                <Text style={{fontSize: 14, color: '#666', marginVertical: 10}}>
+                  No files attached
+                </Text>
+              )}
+            </View>
+
+            <TouchableOpacity
+              onPress={() =>
+                handleUpload(
+                  selectedFiles,
+                  // Applied optional chaining here as well
+                  genInformationData?.Year,
+                  genInformationData?.TrackingNumber,
+                  currentFormType,
+                  employeeNumber,
+                )
+              }
+              style={{
+                backgroundColor: uploadAttachLoading ? '#ccc' : '#1976D2',
+                paddingVertical: 12,
+                borderRadius: 6,
+                alignItems: 'center',
+              }}
+              disabled={uploadAttachLoading}>
+              <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
+                {uploadAttachLoading ? 'Uploading...' : 'Upload'}{' '}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheetModal>
+        {selectedImage && (
+          <View style={styles.zoomableContainer}>
+            <ZoomableImage
+              key={selectedImage}
+              uri={selectedImage}
+              currentFormType={currentFormType}
+              close={() => setSelectedImage(null)}
+              loadedUris={loadedUris}
+              setLoadedUis={setLoadedUris}
+            />
+          </View>
+        )}
+      </SafeAreaView>
+    </BottomSheetModalProvider>
   );
 };
 
@@ -3848,6 +3165,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 10,
     color: '#555',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

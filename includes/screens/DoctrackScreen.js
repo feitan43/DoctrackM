@@ -31,6 +31,7 @@ const DoctrackScreen = ({
   officeDelaysLength,
   updatedNowData,
   regOfficeDelaysLength,
+  employeeNumber,
   officeCode,
   accountType,
   caoReceiver,
@@ -2157,7 +2158,7 @@ const DoctrackScreen = ({
         )}
 
          {/* Uploader */}
-        {procurement === '1' && (
+        {employeeNumber === '501573' && (
           <View
             style={{
               padding: 10,

@@ -284,6 +284,7 @@ const ForInspection = ({navigation}) => {
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   autoFocus
+                  autoCapitalize="characters" // Add this prop
                 />
                 <TouchableOpacity
                   onPress={toggleSearchBar}

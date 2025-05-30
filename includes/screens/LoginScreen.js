@@ -377,7 +377,7 @@ const LoginScreen = ({navigation}) => {
                 secureTextEntry={!isPasswordVisible}
                 value={password}
                 fontSize={18}
-                maxLength={16}
+                maxLength={20}
                 onFocus={() => handleFocus('password')}
                 onBlur={handleBlur}
                 onChangeText={text => setPassword(text)}
