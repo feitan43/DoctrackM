@@ -24,13 +24,13 @@ export const GeneralInformationCard = ({genInformationData}) => (
     </View>
     {[
       {
-        label: 'Classification',
-        value: genInformationData?.ComplexLabel,
-      },
-      {
         label: 'TN',
         value: genInformationData.TrackingNumber,
       },
+      {
+        label: 'Classification',
+        value: genInformationData?.ComplexLabel,
+      }, 
       {label: 'Claimant', value: genInformationData.Claimant},
       ...(genInformationData.TrackingPartner
         ? [

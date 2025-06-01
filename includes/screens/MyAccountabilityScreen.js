@@ -510,7 +510,7 @@ const MyAccountabilityScreen = ({navigation}) => {
                 onPress={() => onPressItem(index)}
                 activeOpacity={0.8}>
                 <View style={styles.cardInfo}>
-                  <Text style={styles.cardLabel}>Tracking No.</Text>
+                  <Text style={styles.cardLabel}>TN</Text>
                   <Text style={styles.cardValue}>
                     {item.Year} - {item.TrackingNumber}
                   </Text>

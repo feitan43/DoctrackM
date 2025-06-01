@@ -82,7 +82,8 @@ const SearchScreen = ({}) => {
   );
 
   const {caoReceiver, cboReceiver} = useUserInfo();
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState(selectedSearch);
+  const [selectedSearch, setSelectedSearch] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [modalVisible, setModalVisible] = useState(false);
@@ -139,9 +140,9 @@ const SearchScreen = ({}) => {
     await saveSearchHistory(updatedHistory);
   };
 
-  const handleHistorySelect = item => {
+  const handleHistorySelect = async item => {
+    console.log(item);
     setSearchText(item);
-    searchTrackingNumber();
   };
 
   useEffect(() => {
@@ -221,8 +222,8 @@ const SearchScreen = ({}) => {
     setSearchFirstName(text);
   };
 
-  const searchTrackingNumber = async () => {
-    if (!searchText || searchText.length < 3) {
+  /*  const searchTrackingNumber = async (searchFromHistory) => {
+    if (!searchText || searchText.length < 3 || searchFromHistory) {
       setDataError(true);
       triggerShakeAnimation();
       setErrorMessage('at least 3 characters.');
@@ -253,7 +254,8 @@ const SearchScreen = ({}) => {
 
     setSearchTrackData(null);
     try {
-      const data = await fetchDataSearchTrack();
+
+      const data = await fetchDataSearchTrack(searchText);
       if (
         !data ||
         data.count === 0 ||
@@ -274,6 +276,7 @@ const SearchScreen = ({}) => {
             : data.results[0].TrackingNumber;
 
         setSearchModalVisible(false);
+        setSearchText('');
 
         navigation.navigate('Detail', {
           index: 0,
@@ -294,7 +297,163 @@ const SearchScreen = ({}) => {
       triggerShakeAnimation(); // Trigger the shake animation
       setErrorMessage('Fetch error:', fetchError);
     }
-  };
+  }; */
+
+ /*  const searchTrackingNumber = async keywordParam => {
+    const keyword =
+      typeof keywordParam === 'string' ? keywordParam : searchText;
+
+    if (!keyword || keyword.length < 3) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage('At least 3 characters.');
+      return;
+    }
+
+    addSearchItem(keyword);
+
+    setSearchHistory(prev => {
+      const newHistory = [keyword, ...prev.filter(item => item !== keyword)];
+      return newHistory.slice(0, 5);
+    });
+
+    const validText = /^[a-zA-Z0-9-]*$/;
+    if (!validText.test(keyword)) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        'Only alphanumeric characters and hyphen (-) are allowed.',
+      );
+      return;
+    } else {
+      setDataError(false);
+    }
+
+    setSearchTrackData(null);
+
+    try {
+      const data = await fetchDataSearchTrack(keyword);
+
+      if (
+        !data ||
+        data.count === 0 ||
+        !data.results ||
+        data.results.length === 0
+      ) {
+        setDataError(true);
+        triggerShakeAnimation();
+        setErrorMessage('No results found.');
+        return;
+      }
+
+      if (data.count === 1 && data.results.length > 0) {
+        const trackingNumber =
+          keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
+            ? keyword
+            : data.results[0].TrackingNumber;
+
+        setSearchModalVisible(false);
+        setSearchText('');
+
+        navigation.navigate('Detail', {
+          index: 0,
+          selectedItem: {
+            Year: selectedYear,
+            TrackingNumber: trackingNumber,
+            TrackingType: data.results[0].TrackingType,
+            data: data.results[0],
+          },
+        });
+      } else {
+        console.log('No unique results found for the search.');
+      }
+
+      setSearch(true);
+    } catch (fetchError) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        `Fetch error: ${fetchError.message || fetchError.toString()}`,
+      );
+      console.error(fetchError);
+    }
+  }; */
+
+  const searchTrackingNumber = async keywordParam => {
+  const keyword = typeof keywordParam === 'string' ? keywordParam : searchText;
+
+  if (!keyword || keyword.length < 3) {
+    setDataError(true);
+    triggerShakeAnimation();
+    setErrorMessage('At least 3 characters.');
+    return;
+  }
+
+  const validText = /^[a-zA-Z0-9-]*$/;
+  if (!validText.test(keyword)) {
+    setDataError(true);
+    triggerShakeAnimation();
+    setErrorMessage('Only alphanumeric characters and hyphen (-) are allowed.');
+    return;
+  } else {
+    setDataError(false);
+  }
+
+  setSearchTrackData(null);
+
+  try {
+    const data = await fetchDataSearchTrack(keyword);
+
+    if (
+      !data ||
+      data.count === 0 ||
+      !data.results ||
+      data.results.length === 0
+    ) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage('No results found.');
+      return;
+    }
+
+    if (data.count === 1 && data.results.length > 0) {
+      const trackingNumber =
+        keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
+          ? keyword
+          : data.results[0].TrackingNumber;
+
+      // ✅ Add to history only on successful fetch
+      addSearchItem(keyword);
+      setSearchHistory(prev => {
+        const newHistory = [keyword, ...prev.filter(item => item !== keyword)];
+        return newHistory.slice(0, 5);
+      });
+
+      setSearchModalVisible(false);
+      setSearchText('');
+
+      navigation.navigate('Detail', {
+        index: 0,
+        selectedItem: {
+          Year: selectedYear,
+          TrackingNumber: trackingNumber,
+          TrackingType: data.results[0].TrackingType,
+          data: data.results[0],
+        },
+      });
+    } else {
+      console.log('No unique results found for the search.');
+    }
+
+    setSearch(true);
+  } catch (fetchError) {
+    setDataError(true);
+    triggerShakeAnimation();
+    setErrorMessage(`Fetch error: ${fetchError.message || fetchError.toString()}`);
+    console.error(fetchError);
+  }
+};
+
 
   const searchPayrollEmployeeNumber = async () => {
     // Clear any previous errors before starting a new search
@@ -703,7 +862,7 @@ const SearchScreen = ({}) => {
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(255,255,255,0.2)',
+           // backgroundColor: 'rgba(255,255,255,0.2)',
             marginTop: 10,
           }}>
           <Animated.View // Apply the shake animation to this View
@@ -716,7 +875,7 @@ const SearchScreen = ({}) => {
         </View>
       );
     }
-   /*  if (searchTrackLoading) {
+    /*  if (searchTrackLoading) {
       return (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color="rgba(0, 116, 255, 0.7)" />
@@ -944,10 +1103,9 @@ const SearchScreen = ({}) => {
 
         <Modal
           visible={searchModalVisible}
-          transparent={false} // Usually better for a full dedicated screen
+          transparent={false}
           animationType="slide"
-          onRequestClose={() => setSearchModalVisible(false)} // Good for Android back button
-        >
+          onRequestClose={() => setSearchModalVisible(false)}>
           <View style={styles.safeArea}>
             <View style={styles.fullScreenModal}>
               <View style={styles.searchHeader}>
@@ -964,11 +1122,11 @@ const SearchScreen = ({}) => {
                     style={styles.inputSearchIcon}
                   />
                   <TextInput
-                    ref={searchInputRef} // Assign the ref to the TextInput
+                    ref={searchInputRef}
                     style={styles.searchInput}
                     placeholder="Search tracking number"
                     value={searchText}
-                    onChangeText={handleSearchTextChange} // Use the new handler
+                    onChangeText={handleSearchTextChange}
                     // autoFocus={true} // REMOVE THIS PROP
                     clearButtonMode={
                       Platform.OS === 'ios' ? 'while-editing' : 'never'
@@ -979,7 +1137,7 @@ const SearchScreen = ({}) => {
                     // inputMode="search" // Modern alternative to keyboardType='default' for search fields
                     returnKeyType="search" // Changes the keyboard return key to "Search"
                   />
-                  {searchText.length > 0 && (
+                  {searchText?.length > 0 && (
                     <TouchableOpacity
                       onPress={() => setSearchText('')}
                       style={styles.clearButton}>
@@ -992,10 +1150,11 @@ const SearchScreen = ({}) => {
               <TouchableOpacity
                 style={[
                   styles.searchActionButton,
-                  searchText.trim().length === 0 && styles.searchButtonDisabled,
+                  searchText?.trim().length === 0 &&
+                    styles.searchButtonDisabled,
                 ]}
                 onPress={searchTrackingNumber}
-                disabled={searchText.trim().length === 0 || searchTrackLoading} // Disable during loading as well
+                disabled={searchText?.trim().length === 0 || searchTrackLoading} // Disable during loading as well
               >
                 {searchTrackLoading ? (
                   <ActivityIndicator size="small" color="#ffffff" /> // Or any color that fits your design
@@ -1004,6 +1163,8 @@ const SearchScreen = ({}) => {
                 )}
               </TouchableOpacity>
 
+              <View style={styles.resultsContainer}>{renderData()}</View>
+
               <View style={styles.contentArea}>
                 {searchHistory.length > 0 && (
                   <View style={styles.historySection}>
@@ -1011,7 +1172,7 @@ const SearchScreen = ({}) => {
                     {searchHistory.map((item, index) => (
                       <View key={index} style={styles.historyItem}>
                         <TouchableOpacity
-                          onPress={() => handleHistorySelect(item)}
+                          onPress={() => searchTrackingNumber(item)}
                           style={styles.historyItemTextContainer}>
                           <Icon
                             name="search-outline"
@@ -1038,8 +1199,6 @@ const SearchScreen = ({}) => {
                       No recent searches.
                     </Text>
                   )}
-
-                <View style={styles.resultsContainer}>{renderData()}</View>
               </View>
             </View>
           </View>
@@ -1111,17 +1270,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  errorContainer: {
-    marginTop: 10,
-    padding: 10,
-    //backgroundColor:'rgba(255,255,255,0.2)',
-    //backgroundColor: 'rgba(255, 0, 0, 0.1)', // Light red background for error
-    borderRadius: 5,
+    errorContainer: {
+    marginHorizontal: 20,
+    padding: 12,
+    backgroundColor: '#ffe5e5',
+    borderRadius: 10,
+    //borderWidth: 1,
+    //borderColor: '#ff4d4d',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   errorText: {
-    color: '#252525',
-    fontFamily: 'Oswald-Light',
-    fontSize: 16,
+    color: '#cc0000',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  overlay: {
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noDataContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
   },
   dropdown: {
     width: 80,
@@ -1339,7 +1522,7 @@ const styles = StyleSheet.create({
     marginTop: 40, // Give some space if no history and no initial results
   },
   resultsContainer: {
-    flex: 1, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
+    height: 80, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
   },
   card: {
     backgroundColor: 'white',

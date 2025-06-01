@@ -211,7 +211,7 @@ const SuperAccessScreen = ({navigation}) => {
             accessibilityLabel="Go back">
             <Icon name="arrow-back" size={24} color="#fff" />
           </Pressable>
-          <Text style={styles.headerTitle}>ADMIN</Text>
+          <Text style={styles.headerTitle}>Access</Text>
           <View style={{width: 40}} />
         </View>
       </ImageBackground>

@@ -2081,7 +2081,7 @@ const DoctrackScreen = ({
                 {
                 label: 'Attachments',
                 icon: true,
-                condition: officeAdmin === '1',
+                condition: procurement === '1',
                 screen: 'Attachments',
                 },
               

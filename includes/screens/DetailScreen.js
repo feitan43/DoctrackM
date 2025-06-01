@@ -76,10 +76,11 @@ import {
   DigitalCopiesCard as PYDigitalCopiesCard,
   TransactionHistoryCard as PYTransactionHistoryCard,
 } from './../components/PYDetails';
-
+import {useSafeAreaInsets} from 'react-native-safe-area-context'; // Import this
 import {width, height} from '../utils';
+import {Shimmer} from '../utils/useShimmer';
 const HEADER_HEIGHT = 250;
-const PARALLAX_FACTOR = 0.6;
+const PARALLAX_FACTOR = 0.2;
 
 const DetailScreen = ({route, navigation}) => {
   const {selectedItem} = route.params;
@@ -197,7 +198,7 @@ const DetailScreen = ({route, navigation}) => {
     return newText.replace(htmlRegex, ' ');
   }
 
-  useEffect(() => {
+  /* useEffect(() => {
     try {
       setLoading(genInfoLoading);
 
@@ -213,7 +214,7 @@ const DetailScreen = ({route, navigation}) => {
     } finally {
       setLoading(genInfoLoading);
     }
-  }, [genStatusGuide]);
+  }, [genStatusGuide]); */
 
   useEffect(() => {
     try {
@@ -2573,27 +2574,59 @@ const DetailScreen = ({route, navigation}) => {
 
   const parallaxHeaderTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
-    outputRange: [0, -HEADER_HEIGHT * PARALLAX_FACTOR], // Moves up
-    extrapolate: 'clamp', // Clamps the output so it doesn't go beyond the range
-  });
-
-  // Optional: Scale the header slightly for a more immersive effect
-  const parallaxHeaderScale = scrollY.interpolate({
-    inputRange: [-HEADER_HEIGHT, 0, HEADER_HEIGHT], // Allow pull-down effect
-    outputRange: [1.2, 1, 1], // Scales up when pulled down, normal when at top, normal when scrolled
+    outputRange: [0, -HEADER_HEIGHT * PARALLAX_FACTOR],
     extrapolate: 'clamp',
   });
+
+  const parallaxHeaderScale = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
+    outputRange: [1.2, 1, 1],
+    extrapolate: 'clamp',
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [80, 120],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const floatingBackOpacity = scrollY.interpolate({
+    inputRange: [80, 120],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const headerTranslate = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT / 2], // Header moves up at half the scroll speed
+    extrapolate: 'clamp',
+  });
+
+  const headerScale = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2], // Scale only in the first half of scroll
+    outputRange: [2, 0.8],
+    extrapolate: 'clamp',
+  });
+  const insets = useSafeAreaInsets();
+  const statusBarHeight =
+    Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
+
+  const statusBarContentStyle = 'light-content'; // Or 'dark-content'
 
   return (
     <BottomSheetModalProvider>
       <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-        {/* <StatusBar barStyle="light-content" translucent={true} /> */}
-
+        <StatusBar
+          translucent={true}
+          backgroundColor="transparent"
+          barStyle={statusBarContentStyle}
+        />
         <View style={{flex: 1}}>
-          <View
+          {/* Floating Back Button */}
+          <Animated.View
             style={{
               position: 'absolute',
-              left: 10,
+              left: 20,
               marginTop: 50,
               borderRadius: 999,
               overflow: 'hidden',
@@ -2602,84 +2635,147 @@ const DetailScreen = ({route, navigation}) => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: 'silver',
-              width: '30%',
-              zIndex: 1,
+              zIndex: 2,
+              opacity: floatingBackOpacity,
             }}>
             <Pressable
               style={({pressed}) => [
                 pressed && {backgroundColor: 'gray'},
                 {
                   backgroundColor: 'transparent',
-                  padding: 10,
+                  padding: 5,
                   flexDirection: 'row',
-                  alignItems: 'flex-end',
+                  alignItems: 'center',
                 },
               ]}
               android_ripple={{color: 'gray'}}
               onPress={() => navigation.goBack()}>
-              <Icon name="chevron-back-outline" size={26} color="gray" />
+              <Icon name="arrow-back-outline" size={24} color="gray" />
             </Pressable>
-            <Text style={{}}>{genInformationData?.TrackingNumber || ''}</Text>
-          </View>
+          </Animated.View>
 
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 60 + statusBarHeight,
+              backgroundColor: 'white', // This is the background of your header itself
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 15,
+              borderBottomWidth: 1,
+              borderColor: '#ccc',
+              opacity: headerOpacity,
+              zIndex: 3,
+              paddingTop: statusBarHeight,
+            }}>
+            <Pressable onPress={() => navigation.goBack()}>
+              <Icon name="chevron-back-outline" size={24} color="gray" />
+            </Pressable>
+            <Text
+              style={{
+                marginLeft: 10,
+                fontSize: 16,
+                fontWeight: '600',
+                color: '#333',
+              }}>
+              {genInformationData?.TrackingNumber || ''}
+            </Text>
+          </Animated.View>
+
+          {/* ScrollView */}
           <Animated.ScrollView
-            // Use Animated.ScrollView for direct linking of scroll events to Animated.Value
             onScroll={Animated.event(
               [{nativeEvent: {contentOffset: {y: scrollY}}}],
-              {useNativeDriver: true}, // Crucial for performance
+              {useNativeDriver: true},
             )}
-            scrollEventThrottle={16} // Fires the event every 16ms (for 60fps)
-            showsVerticalScrollIndicator={false} // Hide scroll indicator
-          >
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}>
+            {/* Parallax Header */}
             <Animated.View
-              style={[
-                styles.parallaxHeaderContainer,
-                {
-                  transform: [
-                    {translateY: parallaxHeaderTranslateY},
-                    {scale: parallaxHeaderScale},
-                  ],
-                },
-              ]}>
+              style={{
+                transform: [
+                  {translateY: parallaxHeaderTranslateY},
+                  {scale: parallaxHeaderScale},
+                ],
+              }}>
               <ImageBackground
-                source={require('../../assets/images/CirclesBG.png')} // Replace with your image
-                style={styles.backgroundImage}
+                source={require('../../assets/images/CirclesBG.png')}
+                style={{
+                  height: 220,
+                  justifyContent: 'flex-end',
+                }}
                 resizeMode="cover">
-                {/* The back button was here, now moved outside */}
-                <View style={styles.overlay}>
-                  <View style={styles.headerContent}>
-                    {/* <Text style={styles.headerSubtitle}>
-                  {genInformationData?.Year} -{' '}
-                  {genInformationData?.TrackingNumber}
-                </Text> */}
-                    <View style={{flexDirection: 'row'}}>
-                      <Text
-                        style={{color: '#fff', textAlignVertical: 'center'}}>
-                        Status{' '}
+                <View style={{padding: 20}}>
+                  <View
+                    style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+                    {genInfoLoading ? (
+                      <Shimmer width={140} height={20} borderRadius={4} />
+                    ) : (
+                      <Text style={{color: '#fff', fontSize: 14}}>
+                        {genInformationData?.Year}
+                        {'  |  '}
+                        <Text style={{fontWeight: '800', fontSize: 16}}>
+                          {genInformationData?.TrackingNumber}
+                        </Text>
                       </Text>
-                      <Text style={styles.headerTitle}>
-                        {genInformationData?.TrackingType} -{' '}
-                        {genInformationData?.Status}
-                      </Text>
-                    </View>
+                    )}
+                  </View>
 
-                    {/* Applied optional chaining here to prevent 'OfficeName' of null error */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      marginTop: 10,
+                      marginBottom:5,
+                      alignItems: 'baseline',
+                    }}>
+                    {genInfoLoading ? (
+                      <Shimmer width={180} height={25} borderRadius={4} />
+                    ) : (
+                      <>
+                        <Text style={{color: '#fff', fontWeight: '300'}}>
+                          Status{' '}
+                        </Text>
+                        <Text
+                          style={{
+                            color: '#fff',
+                            fontWeight: '800',
+                            fontSize: 20,
+                          }}>
+                          {genInformationData?.TrackingType} -{' '}
+                          {genInformationData?.Status}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+
+                  {genInfoLoading ? (
+                    <Shimmer width={250} height={20} borderRadius={4} />
+                  ) : (
                     <Text
-                      style={{color: '#fff', fontWeight: '200', fontSize: 12}}>
+                      style={{
+                        color: '#fff',
+                        fontWeight: '200',
+                        fontSize: 12,
+                        marginTop: 4,
+                      }}>
                       {genInformationData?.OfficeName?.replace(/\\/g, '')}
                     </Text>
-                  </View>
+                  )}
                 </View>
               </ImageBackground>
             </Animated.View>
 
-            <View style={styles.contentContainer}>
+            {/* Content */}
+            <View style={{padding: 10, paddingBottom: 55}}>
               {genInfoLoading ? (
-                <View style={styles.loadingContainer}>
+                <View style={{marginTop: 20, alignItems: 'center'}}>
                   <ActivityIndicator size="large" color="#1A508C" />
                 </View>
               ) : (
-                <View style={{height: '100%', paddingBottom: 55}}>
+                <>
                   {selectedItem ? (
                     (() => {
                       switch (selectedItem.TrackingType) {
@@ -2696,7 +2792,7 @@ const DetailScreen = ({route, navigation}) => {
                   ) : (
                     <Text>No tracking item selected or data loading...</Text>
                   )}
-                </View>
+                </>
               )}
             </View>
           </Animated.ScrollView>
