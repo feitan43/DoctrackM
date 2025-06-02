@@ -9,10 +9,14 @@ import {
   Pressable,
   StatusBar,
   ScrollView,
+  //SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {WebView} from 'react-native-webview';
+const statusBarContentStyle = 'dark-content';
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 const ContactUsScreen = ({navigation}) => {
   const [showMapWebView, setShowMapWebView] = useState(false);
@@ -101,7 +105,11 @@ const ContactUsScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle={statusBarContentStyle}
+      />
 
       <View style={styles.header}>
         <Pressable
@@ -169,20 +177,21 @@ const ContactUsScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: 'row',
+   flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fff',
     paddingVertical: 12,
     paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 4,
-    marginBottom: 8,
+    borderBottomWidth:1,
+    borderColor:'#ccc',
+    height: 30 + statusBarHeight,
   },
   backButton: {
     padding: 10,

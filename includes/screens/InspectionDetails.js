@@ -2861,6 +2861,7 @@ const PRInspection = ({
   const [images, setImages] = useState(inspectorImages || []);
   const [fetchTimestamp, setFetchTimestamp] = useState(Date.now());
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
+  const [checkedItems, setCheckedItems] = useState({}); // New state for checkboxes
 
   useEffect(() => {
     if (prData && prData.length > 0) {
@@ -2904,10 +2905,9 @@ const PRInspection = ({
         {
           text: 'Confirm',
           onPress: async () => {
-            const trackingNumber = item?.TrackingNumber;
+            const trackingNumber = item?.RefTrackingNumber;
             let inspectionStatus = 'InspectedPR';
             const deliveryId = item?.Id;
-
             try {
               const result = await inspectItems({
                 year: selectedYear,
@@ -2915,6 +2915,7 @@ const PRInspection = ({
                 trackingNumber,
                 inspectionStatus,
               });
+              console.log(result);
 
               if (result.status === 'success') {
                 showMessage({
@@ -2928,7 +2929,7 @@ const PRInspection = ({
                   duration: 3000,
                 });
 
-                navigation.goBack();
+               // navigation.goBack();
               } else {
                 showMessage({
                   message: 'Inspection Failed',
@@ -2972,7 +2973,7 @@ const PRInspection = ({
         {
           text: 'Confirm',
           onPress: async () => {
-            const trackingNumber = item?.TrackingNumber;
+            const trackingNumber = item?.RefTrackingNumber;
             let inspectionStatus = 'RevertPR';
             const deliveryId = item?.Id;
 
@@ -2995,7 +2996,7 @@ const PRInspection = ({
                   floating: true,
                   duration: 3000,
                 });
-                navigation.goBack();
+                //navigation.goBack();
               } else {
                 showMessage({
                   message: 'Revert Failed',
@@ -3039,7 +3040,7 @@ const PRInspection = ({
         {
           text: 'Confirm',
           onPress: async () => {
-            const trackingNumber = item?.TrackingNumber;
+            const trackingNumber = item?.RefTrackingNumber;
             let inspectionStatus = 'OnHoldPR';
             const deliveryId = item?.Id;
 
@@ -3062,7 +3063,7 @@ const PRInspection = ({
                   floating: true,
                   duration: 3000,
                 });
-                navigation.goBack();
+                //navigation.goBack();
               } else {
                 showMessage({
                   message: 'On Hold Failed',
@@ -3175,6 +3176,14 @@ const PRInspection = ({
       // Otherwise, select all
       setCheckedItems(Array(totalItems).fill(true));
     }
+  };
+
+  // Function to handle checkbox press
+  const toggleCheckbox = (prIndex) => {
+    setCheckedItems((prev) => ({
+      ...prev,
+      [prIndex]: !prev[prIndex],
+    }));
   };
 
   const renderInspectorImage = (uri, index) => (
@@ -3723,7 +3732,8 @@ const styles = StyleSheet.create({
   },
   dataTextNo: {
     // Specific style for the "No." data
-    fontSize: moderateScale(13.5),
+    fontSize: moderateScale(18.5),
+    fontWeight:'800',
     fontFamily: 'Inter_28pt-Regular',
     color: '#34495E',
     width: '10%', // Smaller width for the index column

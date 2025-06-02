@@ -100,7 +100,7 @@ const Inspected = ({navigation}) => {
         const searchTerm = searchQuery?.toLowerCase() || '';
 
         const {
-          OfficeName = '', // These defaults are good for the initial assignment
+          OfficeName = '', 
           TrackingNumber = '',
           RefTrackingNumber = '',
           CategoryName = '',
@@ -160,13 +160,45 @@ const Inspected = ({navigation}) => {
     yearBottomSheetRef.current?.expand();
   };
 
-  const filteredInspectionList = filteredInspectionListData?.filter(
+const filteredInspectionList = filteredInspectionListData
+  ?.filter(
     item =>
       item.DateInspected !== null &&
       item.DateInspected !== '' &&
       item?.Status?.toLowerCase() !== 'for inspection' &&
       item?.Status?.toLowerCase() !== 'inspection on hold',
-  );
+  )
+  .sort((a, b) => {
+    const getValidDate = (dateString) => {
+      if (!dateString || typeof dateString !== 'string') {
+        return null;
+      }
+      const datePart = dateString.substring(0, 10); 
+      const date = new Date(datePart);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
+    const dateA = getValidDate(a.DateInspected);
+    const dateB = getValidDate(b.DateInspected);
+
+    if (dateA && dateB) {
+      return dateB.getTime() - dateA.getTime();
+    }
+    else if (dateA) {
+      return -1;
+    }
+    else if (dateB) {
+      return 1;
+    }
+    else {
+      return 0;
+    }
+  });
+
+// You can now use filteredInspectionList
+// console.log(filteredInspectionList);
+
+
   const toggleSearchBar = () => {
     setShowSearch(!showSearch);
     setSearchQuery('');

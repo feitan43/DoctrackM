@@ -109,6 +109,7 @@ import AccessScreen from '../screens/AccessScreen';
 import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
 import EditOBRScreen from '../screens/receiver/EditOBRScreen';
 import SuperAccessScreen from '../screens/SuperAccessScreen';
+import FAQScreen from '../screens/FAQScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -600,6 +601,12 @@ const handleUpdate = async updateUrl => {
         <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
         <Stack.Screen name='MyAccess' component={AccessScreen}/>
         <Stack.Screen name='SuperAccess' component={SuperAccessScreen}/>
+
+         <Stack.Screen
+          name="FAQs"
+          component={FAQScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
 
 
         <Stack.Screen

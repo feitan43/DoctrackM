@@ -104,6 +104,10 @@ export const InspectionList = ({item, index, onPressItem}) => {
           <Text style={styles.detailLabel}>Date</Text>
           <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
         </View>
+        {/*  <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>DateInspected</Text>
+          <Text style={styles.detailValue}>{item.DateInspected || 'N/A'}</Text>
+        </View> */}
 
         {isForInspection && inspectionDateInfo && (
           <View style={styles.inspectionInfoRow}>

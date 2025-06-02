@@ -8,6 +8,7 @@ import {
   Pressable,
   StatusBar,
   ScrollView,
+  //SafeAreaView,
   Switch, // Ensure Switch is imported as it's used within SettingItem
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,6 +17,9 @@ import {useFocusEffect} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 // --- Reusable SettingItem Components (defined within the same file as requested) ---
+const statusBarContentStyle = 'dark-content';
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 // A reusable component for individual settings with a switch
 const SettingItem = ({
@@ -277,7 +281,11 @@ const NotificationScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle={statusBarContentStyle}
+      />
       <View style={styles.header}>
         <Pressable
           onPress={() => navigation.goBack()}
@@ -369,20 +377,22 @@ const NotificationScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F8FA', // Light grey background
+     // Light grey background
+     backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: Platform.OS === 'ios' ? 15 : 12, // Adjust padding for iOS vs Android
+    backgroundColor: '#fff',
+    paddingVertical: 12,
     paddingHorizontal: 10,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3}, // More pronounced shadow
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 6, // Increased elevation for Android
-    marginBottom: 15, // More space below header
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    borderBottomWidth:1,
+    borderColor:'#ccc',
+    height: 30 + statusBarHeight,
   },
   backButton: {
     padding: 10,
@@ -403,6 +413,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 15,
     paddingTop: 5, // Slightly less top padding as items have their own padding
+    backgroundColor: '#F5F8FA',
   },
   sectionDivider: {
     height: 4, // Thicker divider

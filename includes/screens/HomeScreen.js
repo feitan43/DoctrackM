@@ -62,7 +62,6 @@ import {
   useInspection,
   useInspectionRecentActivity,
 } from '../hooks/useInspection';
-import DocTrackReceiverScreen from './DocTrackReceiverScreen';
 
 const Drawer = createDrawerNavigator();
 

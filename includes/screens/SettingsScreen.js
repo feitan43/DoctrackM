@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   ImageBackground,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DeviceInfo from 'react-native-device-info';
@@ -16,6 +17,9 @@ import BASE_URL from '../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const version = DeviceInfo.getVersion();
+const statusBarContentStyle = 'dark-content';
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -24,6 +28,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   const handleProfile = () => navigation?.navigate('Profile');
   const handleNotifications = () => navigation?.navigate('Notifications');
   const handleContactUs = () => navigation?.navigate('ContactUs');
+  const handleFAQs = () => navigation?.navigate('FAQs');
 
   const logout = async () => {
     setModalVisible(false);
@@ -93,6 +98,11 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
             icon="call-outline"
             label="Contact Us"
             onPress={handleContactUs}
+          />
+          <SettingItem
+            icon="help-circle-outline" 
+            label="Help Center"
+            onPress={handleFAQs}
           />
           <SettingItem
             icon="exit-outline"
