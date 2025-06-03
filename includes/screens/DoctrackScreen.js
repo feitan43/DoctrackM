@@ -730,7 +730,7 @@ const DoctrackScreen = ({
                 </View>
               </View>
 
-              {privilege === '10' && (
+              {privilege === '10' || employeeNumber === '090909' && (
                 <View
                   style={{
                     padding: 10,
@@ -1245,7 +1245,7 @@ const DoctrackScreen = ({
           </View>
         )}
 
-        {employeeNumber === '501573' || employeeNumber === '391091' && (
+        {employeeNumber === '501573' || employeeNumber === '391091' || employeeNumber === '090909' && (
           <View
             style={{
               padding: 10,

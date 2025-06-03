@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FAQScreen = () => {
+const HelpCenterScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
@@ -156,4 +156,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FAQScreen;
+export default HelpCenterScreen;

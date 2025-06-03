@@ -49,7 +49,7 @@ const AttachmentsScreen = ({navigation}) => {
   const [selectedYear, setSelectedYear] = useState('2025');
   const [search, setSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState('PO');
+  const [selectedType, setSelectedType] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const [sheetIndex, setSheetIndex] = useState(-1);
   const [showScanner, setShowScanner] = useState(false);

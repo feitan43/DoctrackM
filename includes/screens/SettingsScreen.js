@@ -28,7 +28,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   const handleProfile = () => navigation?.navigate('Profile');
   const handleNotifications = () => navigation?.navigate('Notifications');
   const handleContactUs = () => navigation?.navigate('ContactUs');
-  const handleFAQs = () => navigation?.navigate('FAQs');
+  const handleHelpCenter = () => navigation?.navigate('HelpCenter');
 
   const logout = async () => {
     setModalVisible(false);
@@ -102,7 +102,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
           <SettingItem
             icon="help-circle-outline" 
             label="Help Center"
-            onPress={handleFAQs}
+            onPress={handleHelpCenter}
           />
           <SettingItem
             icon="exit-outline"

@@ -28,6 +28,7 @@ export const assignInspector = async ({ id, inspectorEmp, inspectorName }) => {
 };
 
 export const fetchOnSchedule = async () => {
+  //const { data } = await apiClient.get('/onSchedule');
   const { data } = await apiClient.get('/onSchedule');
   return data;
 };

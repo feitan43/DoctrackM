@@ -61,11 +61,34 @@ const RequestScreen = () => {
     return {label: year, value: year};
   });
 
-  const filteredData = requestData.filter(
-    item =>
-      item.Year.toString() === selectedYear &&
-      item.TrackingNumber.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+const filteredData = Array.isArray(requestData)
+    ? requestData.filter(item => {
+        const searchTerm = searchQuery?.toLowerCase() || '';
+
+        const {
+          OfficeName = '', 
+          TrackingNumber = '',
+          RefTrackingNumber = '',
+          CategoryName = '',
+          Year,
+        } = item;
+
+        if (selectedYear && Year !== selectedYear) {
+          return false;
+        }
+
+        if (
+          !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
+          !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+        ) {
+          return false;
+        }
+
+        return true;
+      })
+  : [];
 
   const toggleSearchBar = () => {
     setShowSearchBar(!showSearchBar);
