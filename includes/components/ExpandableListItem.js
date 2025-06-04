@@ -39,13 +39,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, // Softer, wider shadow
     shadowOpacity: 0.06,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 20, // Increased padding
+    paddingVertical: 10, // Increased padding
     paddingHorizontal: 25, // Increased padding
     backgroundColor: '#FFFFFF', // Keeping header white for consistency, relying on shadow for separation
   },

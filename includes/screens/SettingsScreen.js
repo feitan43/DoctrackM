@@ -15,6 +15,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import DeviceInfo from 'react-native-device-info';
 import BASE_URL from '../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Rate, {AndroidMarket} from 'react-native-rate';
+import {Linking, Platform} from 'react-native';
 
 const version = DeviceInfo.getVersion();
 const statusBarContentStyle = 'dark-content';
@@ -29,6 +31,33 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   const handleNotifications = () => navigation?.navigate('Notifications');
   const handleContactUs = () => navigation?.navigate('ContactUs');
   const handleHelpCenter = () => navigation?.navigate('HelpCenter');
+  /* const handleFeedback = () => {
+    const options = {
+      GooglePackageName: 'com.doctrackm',
+      preferredAndroidMarket: AndroidMarket.Google,
+      preferInApp: false,
+      openAppStoreIfInAppFails: true,
+    };
+
+    Rate.rate(options, success => {
+      if (success) {
+        console.log('User successfully interacted with the rating UI');
+      }
+    });
+  }; */
+
+  const handleFeedback = () => {
+  const packageName = 'com.doctrackm'; // 🔁 replace with your actual package name
+  const url = Platform.select({
+    android: `market://details?id=${packageName}`,
+    ios: `itms-apps://itunes.apple.com/app/idYOUR_APP_ID`, // optional for iOS
+  });
+
+  Linking.openURL(url).catch(() => {
+    // fallback to web URL
+    Linking.openURL(`https://play.google.com/store/apps/details?id=${packageName}`);
+  });
+};
 
   const logout = async () => {
     setModalVisible(false);
@@ -100,7 +129,12 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
             onPress={handleContactUs}
           />
           <SettingItem
-            icon="help-circle-outline" 
+            icon="chatbubbles-outline"
+            label="Feedback and Suggestions"
+            onPress={handleFeedback}
+          />
+          <SettingItem
+            icon="help-circle-outline"
             label="Help Center"
             onPress={handleHelpCenter}
           />

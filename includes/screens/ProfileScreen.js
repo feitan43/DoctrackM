@@ -7,20 +7,22 @@ import {
   TouchableOpacity,
   Pressable,
   StatusBar,
-  Platform, // Import Platform for OS-specific logic
+  //SafeAreaView
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Changed to MaterialIcons for consistency
+import Icon from 'react-native-vector-icons/Ionicons';
 import useUserInfo from '../api/useUserInfo';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // Import useSafeAreaInsets
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context'; // Import this
 
-const ProfileScreen = ({ navigation }) => {
-  const insets = useSafeAreaInsets(); // Get safe area insets
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
+const ProfileScreen = ({navigation}) => {
   const {
     employeeNumber,
     fullName,
     officeName,
-    officeCode, // Keeping this in case you need it later, but not displayed
+    officeCode,
     accountType,
     procurement,
     officeAdmin,
@@ -37,7 +39,7 @@ const ProfileScreen = ({ navigation }) => {
       case 2:
         return 'DTS Officer';
       case 3:
-        return 'DocTrack Administrator';
+        return 'Doctrack Administrator';
       case 4:
         return 'Master Receiver';
       case 5:
@@ -81,22 +83,21 @@ const ProfileScreen = ({ navigation }) => {
   const statusBarContentStyle = 'dark-content';
 
   return (
-    <SafeAreaView style={[styles.safeArea, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar
         translucent={true}
         backgroundColor="transparent"
         barStyle={statusBarContentStyle}
       />
-      
       <View style={styles.header}>
         <Pressable
           onPress={() => navigation.goBack()}
-          style={({ pressed }) => [
+          style={({pressed}) => [
             styles.backButton,
             pressed && styles.backButtonPressed,
           ]}
-          android_ripple={{ color: '#F0F0F0', borderless: true, radius: 24 }}>
-          <Icon name="arrow-back-ios" size={24} color="#555" />
+          android_ripple={{color: '#F0F0F0', borderless: true, radius: 24}}>
+          <Icon name="arrow-back" size={24} color="#424242" />
         </Pressable>
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
@@ -104,7 +105,7 @@ const ProfileScreen = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.profileImageContainer}>
           <Image
-            source={require('../../assets/images/davao.png')} // Make sure this path is correct
+            source={require('../../assets/images/davao.png')}
             style={styles.profileImage}
           />
           <Text style={styles.userName}>{fullName}</Text>
@@ -135,11 +136,6 @@ const ProfileScreen = ({ navigation }) => {
             </>
           )}
         </View>
-        
-        {/* Example of a modern button if you want to add one later */}
-        {/* <TouchableOpacity style={styles.modernButton} activeOpacity={0.8}>
-          <Text style={styles.modernButtonText}>Edit Profile</Text>
-        </TouchableOpacity> */}
       </View>
     </SafeAreaView>
   );
@@ -148,129 +144,130 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F0F4F8', // Consistent background color
+    backgroundColor: '#FFFFFF',
+    //backgroundColor: '#F5F8FA',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    //backgroundColor: '#FFFFFF', // White header background
-    paddingVertical: 15, // Increased padding
-    paddingHorizontal: 20, // Increased padding
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, // Subtle shadow
-    shadowRadius: 6,
-    //elevation: 3,
-    borderBottomWidth: 0, // Remove border, rely on shadow
-    marginBottom: 20, // Space below header
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    //borderBottomWidth: 1,
+    //borderColor: '#ccc',
+    height: 30 + statusBarHeight,
   },
   backButton: {
-    padding: 5,
-    marginRight: 10,
-    borderRadius: 24, // Keeps it circular
+    padding: 10,
+    borderRadius: 24,
+    marginRight: 5,
   },
   backButtonPressed: {
-    backgroundColor: 'rgba(0, 0, 0, 0.03)', // Lighter press effect
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   headerTitle: {
-    fontSize: 22, // Larger header title
-    fontWeight: '700', // Bolder font
-    color: '#2C3E50', // Darker, professional blue-grey
-    marginLeft: 0, // Remove previous margin
+    fontFamily: 'Inter_28pt-Bold',
+    fontSize: 18,
+    color: '#212121',
+    marginLeft: 5,
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20, // Increased horizontal padding
+    paddingHorizontal: 15,
+    backgroundColor: '#F5F8FA',
   },
   profileImageContainer: {
     alignItems: 'center',
-    paddingVertical: 35, // Increased padding
+    paddingVertical: 30,
     backgroundColor: '#FFFFFF',
-    borderRadius: 15, // More rounded corners
+    borderRadius: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 }, // Softer, wider shadow
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 5,
-    marginBottom: 25, // More space
-    marginTop: 0, // No top margin here, use padding on SafeAreaView
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
+    marginBottom: 20,
+    marginTop: 10,
   },
   profileImage: {
-    width: 130, // Slightly larger image
-    height: 130,
-    borderRadius: 65,
-    marginBottom: 20, // More space below image
-    borderWidth: 4, // Slightly thicker border
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 15,
+    borderWidth: 3,
     borderColor: '#E0E0E0',
+    opacity:0.7,
   },
   userName: {
-    fontSize: 24, // Larger name
-    fontWeight: '700', // Bolder name
-    color: '#2C3E50',
+    fontFamily: 'Inter_28pt-Bold',
+    fontSize: 22,
+    color: '#212121',
     textTransform: 'capitalize',
     marginBottom: 5,
   },
   userRole: {
-    fontSize: 16,
-    color: '#7F8C8D', // Softer grey for role
-    fontWeight: '500', // Medium weight
+    fontFamily: 'Inter_28pt-Regular',
+    fontSize: 15,
+    color: '#616161',
   },
   detailsContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15, // More rounded corners
+    borderRadius: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 5,
-    paddingHorizontal: 25, // Increased padding
-    paddingVertical: 20, // Increased padding
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
   detailItem: {
     flexDirection: 'row',
-    alignItems: 'center', // Center align items for cleaner look
-    justifyContent: 'space-between', // Distribute space
-    paddingVertical: 15, // Increased padding
+    alignItems: 'flex-start',
+    paddingVertical: 12,
   },
   detailLabel: {
-    fontSize: 14,
-    color: '#7F8C8D', // Softer grey
-    fontWeight: '500', // Medium weight
-    flex: 1, // Allow label to take space
+    fontFamily: 'Inter_28pt-Regular',
+    fontSize: 13,
+    color: '#757575',
+    width: 120,
+    marginRight: 10,
   },
   detailValue: {
-    fontSize: 16, // Larger value text
-    fontWeight: '600', // Semi-bold for values
-    color: '#34495E', // Darker blue-grey
+    fontFamily: 'Inter_28pt-Medium',
+    fontSize: 15,
+    color: '#212121',
     flex: 1,
     textAlign: 'right',
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F0F0', // Lighter divider
-    marginVertical: 0, // Removed vertical margin, letting padding handle it
+    backgroundColor: '#EEEEEE',
+    marginVertical: 0,
   },
-  // Example modern button style (uncomment and use if needed)
-  /*
-  modernButton: {
-    backgroundColor: '#3498DB', // A pleasant blue
-    paddingVertical: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+  editButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignSelf: 'center',
+    width: '90%',
     marginTop: 30,
-    shadowColor: '#3498DB',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#007BFF',
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  modernButtonText: {
+  editButtonText: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontFamily: 'Inter_28pt-Bold',
+    textAlign: 'center',
   },
-  */
 });
 
 export default ProfileScreen;

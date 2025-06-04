@@ -145,12 +145,7 @@ export const faqCategories = [
       {
         id: 'forgot_password',
         question: 'What if I forget my password?',
-        answer: 'On the login screen, tap "Forgot Password?" and follow the instructions to reset your password via your registered email address.',
-      },
-      {
-        id: 'contact_support',
-        question: 'How can I contact support?',
-        answer: 'You can reach our support team by emailing support@docmobile.com or by calling us at (123) 456-7890 during business hours (Mon-Fri, 9 AM - 5 PM).',
+        answer: 'Contact Project Doctrack for more information.',
       },
     ],
   },

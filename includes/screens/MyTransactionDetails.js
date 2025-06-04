@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   statusCard: {
-    borderRadius: 12,
+    borderRadius: 5,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
@@ -278,8 +278,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
   },
   detailsCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
@@ -360,8 +360,8 @@ const styles = StyleSheet.create({
   },
   historyCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 5,
+    padding: 10,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   highlightedRow: {
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    backgroundColor: '#FFA500',
   },
   noHistoryText: {
     textAlign: 'center',

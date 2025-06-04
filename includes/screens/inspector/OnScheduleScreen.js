@@ -127,7 +127,7 @@ const OnScheduleScreen = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await queryClient.invalidateQueries(['onSchedule']); 
+      await queryClient.invalidateQueries(['onSchedule']);
     } catch (error) {
       console.error('Error refreshing onSchedule data:', error);
     } finally {
@@ -215,6 +215,7 @@ const OnScheduleScreen = () => {
   const renderItem = useCallback(
     ({item, index}) => (
       <BSOnSchedule
+        key={item.Id} // ✅ unique key prop here
         item={item}
         index={index}
         handleAssignInspector={handleAssignInspector}
@@ -286,20 +287,50 @@ const OnScheduleScreen = () => {
   const clearFilter = () => {
     setSelectedInspector(null);
     setSearchQuery('');
-    setSelectedDate(''); 
+    setSelectedDate('');
   };
 
   const handleDayPress = useCallback(day => {
     setSelectedDate(day.dateString);
-    setIsBottomSheetVisible(true); 
-    bottomSheetRef.current?.expand(); 
+    setIsBottomSheetVisible(true);
+    bottomSheetRef.current?.expand();
   }, []);
 
   const handleSheetChanges = useCallback(index => {
     if (index === -1) {
-      setIsBottomSheetVisible(false); 
+      setIsBottomSheetVisible(false);
     }
   }, []);
+
+  const [overdueCount, setOverdueCount] = useState(0);
+
+  useEffect(() => {
+    const calculateOverdue = () => {
+      const today = new Date();
+      // Normalize today's date to the start of the day for accurate comparison
+      today.setHours(0, 0, 0, 0);
+
+      // Calculate the date 3 days ago from today
+      const threeDaysAgo = new Date(today);
+      threeDaysAgo.setDate(today.getDate() - 3);
+
+      // Filter scheduleData to find items where the DeliveryDate is more than 3 days in the past
+      const count = scheduleData?.filter(item => {
+        // Extract only the date part "YYYY-MM-DD" from the string
+        const deliveryDatePart = item.DeliveryDate.split(' ')[0];
+        const deliveryDate = new Date(deliveryDatePart);
+        // Normalize delivery date to the start of the day
+        deliveryDate.setHours(0, 0, 0, 0);
+
+        // An item is overdue if its delivery date is strictly earlier than 'threeDaysAgo'
+        return deliveryDate < threeDaysAgo;
+      }).length;
+
+      setOverdueCount(count);
+    };
+
+    calculateOverdue();
+  }, [scheduleData]);
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
@@ -340,6 +371,33 @@ const OnScheduleScreen = () => {
             )}
           </View>
         </ImageBackground>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            alignItems: 'stretch', // Crucial: Makes children stretch to fill height of tallest sibling
+            paddingHorizontal: 10,
+            marginTop:20
+          }}>
+          {/* Card 1: On Schedule */}
+          <View style={styles.card2}>
+            <Text style={styles.cardLabel}>On Schedule</Text>
+            <Text style={styles.cardValue}>{scheduleData?.length}</Text>
+          </View>
+
+          {/* Card 2: Inspectors */}
+          <View style={styles.card2}>
+            <Text style={styles.cardLabel}>Inspectors</Text>
+            <Text style={styles.cardValue}>{inspectors?.length}</Text>
+          </View>
+
+          {/* Card 3: Overdue */}
+          <View style={styles.card2}>
+            <Text style={styles.cardLabel}>Overdue</Text>
+            <Text style={[styles.cardValue, {color: 'red'}]}>{overdueCount}</Text>
+          </View>
+        </View>
 
         {/* Calendar Component */}
         <View style={styles.calendarContainer}>
@@ -872,6 +930,33 @@ const styles = StyleSheet.create({
     marginTop: 5,
     color: '#333',
     marginStart: 20,
+  },
+  card2: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 5, // Smaller margin to allow more flex space, or adjust paddingHorizontal on container
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flex: 1, // Ensures each card takes up equal available width
+    height: 80, // <-- Set a fixed height here for all cards
+    justifyContent: 'center', // Vertically center content inside the card
+    alignItems: 'center', // Horizontally center content inside the card
+  },
+  cardLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  cardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
   },
 });
 

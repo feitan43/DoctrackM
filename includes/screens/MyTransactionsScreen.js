@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: '#F5F8FA',
   },
   listContent: {
     paddingVertical: 8,
@@ -490,16 +490,17 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    marginBottom:10
+    //borderWidth: 1,
+    //borderColor: '#e0e0e0',
+    //shadowColor: '#000',
+    //shadowOffset: {width: 0, height: 1},
+    //shadowOpacity: 0.05,
+    //shadowRadius: 2,
+    marginBottom:10,
+    elevation:1
   },
   transactionCardPressed: {
-    backgroundColor: 'rgba(16, 112, 214, 0.05)',
+    backgroundColor: '#F5F8FA'
   },
   cardContainer: {
     flexDirection: 'row',

@@ -89,11 +89,13 @@ const AccessScreen = ({navigation}) => {
     filterUsers();
   }, [debouncedSearchQuery, selectedSystems, users]); // Use debouncedSearchQuery here
 
-  const filterUsers = useCallback(() => { // Wrap with useCallback
+  const filterUsers = useCallback(() => {
+    // Wrap with useCallback
     let result = [...users];
 
     // Apply search filter
-    if (debouncedSearchQuery) { // Use debounced search query
+    if (debouncedSearchQuery) {
+      // Use debounced search query
       result = result.filter(
         user =>
           (user.employeeNumber &&
@@ -101,7 +103,9 @@ const AccessScreen = ({navigation}) => {
               .toLowerCase()
               .includes(debouncedSearchQuery.toLowerCase())) ||
           (user.name &&
-            user.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())),
+            user.name
+              .toLowerCase()
+              .includes(debouncedSearchQuery.toLowerCase())),
       );
     }
 
@@ -127,22 +131,27 @@ const AccessScreen = ({navigation}) => {
   };
 
   // Count based on filteredUsers now
-  const {activeCount, inactiveCount, overallCount} = useMemo(() => { // Wrap with useMemo
+  const {activeCount, inactiveCount, overallCount} = useMemo(() => {
+    // Wrap with useMemo
     let active = 0;
     let inactive = 0;
     let overall = filteredUsers.length; // Count from filteredUsers
 
     filteredUsers.forEach(user => {
-      if (user.isActive) { // Use isActive from transformed data
+      if (user.isActive) {
+        // Use isActive from transformed data
         active++;
       } else {
         inactive++;
       }
     });
 
-    return {activeCount: active, inactiveCount: inactive, overallCount: overall};
+    return {
+      activeCount: active,
+      inactiveCount: inactive,
+      overallCount: overall,
+    };
   }, [filteredUsers]);
-
 
   const toggleSystemFilter = systemKey => {
     setSelectedSystems(prev =>
@@ -180,7 +189,6 @@ const AccessScreen = ({navigation}) => {
         ...prev,
         isActive: newStateForUser === '1',
       }));
-
     } else {
       const currentAccess = user.access[systemKey];
       newAccessValue = currentAccess === 'access' ? 'no-access' : 'access';
@@ -214,13 +222,20 @@ const AccessScreen = ({navigation}) => {
       const result = await updateUserAccess({
         employeeNumber: user.employeeNumber,
         system: systemKey,
-        access: newStateForUser !== null ? newStateForUser : (newAccessValue === 'access' ? '1' : '0'),
+        access:
+          newStateForUser !== null
+            ? newStateForUser
+            : newAccessValue === 'access'
+            ? '1'
+            : '0',
       });
 
       if (result.success) {
         showMessage({
           message: 'Update Successful',
-          description: `User ${systemKey === 'RegistrationState' ? 'account status' : 'access'} updated successfully.`,
+          description: `User ${
+            systemKey === 'RegistrationState' ? 'account status' : 'access'
+          } updated successfully.`,
           type: 'success',
           icon: 'success',
           backgroundColor: '#2E7D32',
@@ -267,48 +282,54 @@ const AccessScreen = ({navigation}) => {
     );
   };
 
-  const renderItem = useCallback(({item, index}) => (
-    <TouchableOpacity
-      style={styles.userCard}
-      onPress={() => {
-        setSelectedUser(item);
-        setEditModalVisible(true);
-      }}>
-      <View style={styles.rowContainer}>
-        <View style={styles.indexColumn}>
-          <Text style={styles.userIndex}>{index + 1}</Text>
-        </View>
-
-        <View style={styles.centerColumn}>
-          <Text style={styles.userName}>{item.employeeNumber}</Text>
-          <Text style={styles.userFullName}>{item.name}</Text>
-
-          <Text style={styles.userStatus}>
-            {'Status: '}
-            <Text
-              style={item.isActive ? styles.activeStatusText : styles.inactiveStatusText}>
-              {item.isActive ? 'Active' : 'Deactivated'}
-            </Text>
-          </Text>
-          <View style={styles.chipsContainer}>
-            {systems
-              .filter(system => item.access[system.key] === 'access')
-              .map(system => renderAccessChip(item, system))}
+  const renderItem = useCallback(
+    ({item, index}) => (
+      <TouchableOpacity
+        style={styles.userCard}
+        onPress={() => {
+          setSelectedUser(item);
+          setEditModalVisible(true);
+        }}>
+        <View style={styles.rowContainer}>
+          <View style={styles.indexColumn}>
+            <Text style={styles.userIndex}>{index + 1}</Text>
           </View>
+
+          <View style={styles.centerColumn}>
+            <Text style={styles.userName}>{item.employeeNumber}</Text>
+            <Text style={styles.userFullName}>{item.name}</Text>
+
+            <Text style={styles.userStatus}>
+              {'Status: '}
+              <Text
+                style={
+                  item.isActive
+                    ? styles.activeStatusText
+                    : styles.inactiveStatusText
+                }>
+                {item.isActive ? 'Active' : 'Deactivated'}
+              </Text>
+            </Text>
+            <View style={styles.chipsContainer}>
+              {systems
+                .filter(system => item.access[system.key] === 'access')
+                .map(system => renderAccessChip(item, system))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.settingsColumn}
+            onPress={() => {
+              setSelectedUser(item);
+              setEditModalVisible(true);
+            }}>
+            <Icon name="settings-outline" size={24} color="#ccc" />
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.settingsColumn}
-          onPress={() => {
-            setSelectedUser(item);
-            setEditModalVisible(true);
-          }}>
-          <Icon name="settings-outline" size={24} color="#ccc" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  ), [renderAccessChip]); 
-
+      </TouchableOpacity>
+    ),
+    [renderAccessChip],
+  );
 
   if (loading || userLoading) {
     return (
@@ -330,8 +351,8 @@ const AccessScreen = ({navigation}) => {
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.backButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // Added hitSlop
-              >
+              hitSlop={{top: 10, bottom: 10, left: 10, right: 10}} // Added hitSlop
+            >
               <Icon name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Access</Text>
@@ -351,11 +372,11 @@ const AccessScreen = ({navigation}) => {
           onChangeText={setSearchQuery} // Update immediate searchQuery state
           numberOfLines={1}
         />
-        {searchQuery.length > 0 && ( 
+        {searchQuery.length > 0 && (
           <TouchableOpacity
             onPress={() => setSearchQuery('')}
             style={styles.clearSearchButton}
-            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}>
+            hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}>
             <Icon name="close-circle" size={20} color="#999" />
           </TouchableOpacity>
         )}
@@ -430,7 +451,7 @@ const AccessScreen = ({navigation}) => {
                     </Text>
                     <TouchableOpacity
                       onPress={() => toggleSystemFilter(systemKey)}
-                      hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}>
+                      hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}>
                       <Icon name="close" size={16} color="#fff" />
                     </TouchableOpacity>
                   </View>
@@ -451,7 +472,7 @@ const AccessScreen = ({navigation}) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="person-remove-outline" size={50} color="#ccc" /> 
+            <Icon name="person-remove-outline" size={50} color="#ccc" />
             <Text style={styles.emptyText}>No users found</Text>
             {selectedSystems.length > 0 && (
               <Text style={styles.emptySubtext}>
@@ -463,83 +484,84 @@ const AccessScreen = ({navigation}) => {
       />
 
       <Modal
-  animationType="slide"
-  transparent={true}
-  visible={editModalVisible}
-  onRequestClose={() => setEditModalVisible(false)}
->
-  <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
-      {/* Modal Header with Close Button */}
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>Edit Access</Text>
-        <TouchableOpacity onPress={() => setEditModalVisible(false)} style={styles.modalCloseButton}>
-          <Icon name="close-circle-outline" size={28} color="#999" />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.modalSubtitle}>
-        {selectedUser?.name} ({selectedUser?.employeeNumber})
-      </Text>
-
-      {/* Account Status Section */}
-      <View style={styles.modalSection}>
-        <Text style={styles.modalSectionTitle}>Account Status</Text>
-        <View style={styles.modalRegistrationContainer}>
-          <Text style={styles.modalSystemLabel}>User Account</Text>
-          <TouchableOpacity
-            style={[
-              styles.modalToggleButton,
-              selectedUser?.isActive
-                ? styles.modalToggleButtonEnabled
-                : styles.modalToggleButtonDisabled,
-            ]}
-            onPress={() => toggleAccess(selectedUser, 'RegistrationState')}
-          >
-            <Text style={styles.modalToggleButtonText}>
-              {selectedUser?.isActive ? 'Deactivate' : 'Activate'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* System Access Section */}
-      <View style={styles.modalSection}>
-        <Text style={styles.modalSectionTitle}>System Access</Text>
-        {systems.map(system => {
-          const hasAccess = selectedUser?.access[system.key] === 'access';
-          return (
-            <View key={system.key} style={styles.modalSystemRow}>
-              <Text style={styles.modalSystemLabel}>{system.label}</Text>
+        animationType="fade"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {/* Modal Header with Close Button */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Access</Text>
               <TouchableOpacity
-                style={[
-                  styles.modalToggleButton,
-                  hasAccess
-                    ? styles.modalToggleButtonRevoke // Use a specific style for revoke
-                    : styles.modalToggleButtonGrant, // Use a specific style for grant
-                ]}
-                onPress={() => toggleAccess(selectedUser, system.key)}
-              >
-                <Text style={styles.modalToggleButtonText}>
-                  {hasAccess ? 'Revoke' : 'Grant'}
-                </Text>
+                onPress={() => setEditModalVisible(false)}
+                style={styles.modalCloseButton}>
+                <Icon name="close-circle-outline" size={28} color="#999" />
               </TouchableOpacity>
             </View>
-          );
-        })}
-      </View>
 
-      <View style={styles.modalButtons}>
+            <Text style={styles.modalSubtitle}>
+              {selectedUser?.name} ({selectedUser?.employeeNumber})
+            </Text>
+
+            {/* Account Status Section */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Account Status</Text>
+              <View style={styles.modalRegistrationContainer}>
+                <Text style={styles.modalSystemLabel}>User Account</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.modalToggleButton,
+                    selectedUser?.isActive
+                      ? styles.modalToggleButtonEnabled
+                      : styles.modalToggleButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    toggleAccess(selectedUser, 'RegistrationState')
+                  }>
+                  <Text style={styles.modalToggleButtonText}>
+                    {selectedUser?.isActive ? 'Deactivate' : 'Activate'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* System Access Section */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>System Access</Text>
+              {systems.map(system => {
+                const hasAccess = selectedUser?.access[system.key] === 'access';
+                return (
+                  <View key={system.key} style={styles.modalSystemRow}>
+                    <Text style={styles.modalSystemLabel}>{system.label}</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalToggleButton,
+                        hasAccess
+                          ? styles.modalToggleButtonRevoke // Use a specific style for revoke
+                          : styles.modalToggleButtonGrant, // Use a specific style for grant
+                      ]}
+                      onPress={() => toggleAccess(selectedUser, system.key)}>
+                      <Text style={styles.modalToggleButtonText}>
+                        {hasAccess ? 'Revoke' : 'Grant'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/*   <View style={styles.modalButtons}>
         <TouchableOpacity
           style={styles.doneButton}
           onPress={() => setEditModalVisible(false)}
         >
           <Text style={styles.doneButtonText}>Done</Text>
         </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
+      </View> */}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -556,7 +578,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     // iOS Shadow properties
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
@@ -595,7 +617,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  clearSearchButton: { // New style for clear button
+  clearSearchButton: {
+    // New style for clear button
     padding: 5,
     marginLeft: 10,
   },
@@ -664,7 +687,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 10,
-    maxHeight: 50, // Limit height, consider scrollable if many
+    //maxHeight: 80, // Limit height, consider scrollable if many
     overflow: 'hidden', // Hide overflow
   },
   chip: {
@@ -707,7 +730,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center', // Center text
   },
-    modalContainer: {
+  modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -721,11 +744,12 @@ const styles = StyleSheet.create({
     maxHeight: '85%', // Slightly more height
     elevation: 10, // Stronger shadow for Android
     shadowColor: '#000', // Stronger shadow for iOS
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
-  modalHeader: { // New style for header with close button
+  modalHeader: {
+    // New style for header with close button
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -738,7 +762,8 @@ const styles = StyleSheet.create({
     flex: 1, // Allow title to take space
     textAlign: 'center', // Center the title
   },
-  modalCloseButton: { // New style for close button
+  modalCloseButton: {
+    // New style for close button
     padding: 5,
   },
   modalSubtitle: {
@@ -750,10 +775,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     paddingBottom: 15,
   },
-  modalSection: { // New style for grouping sections
+  modalSection: {
+    // New style for grouping sections
     marginBottom: 20,
   },
-  modalSectionTitle: { // New style for section titles
+  modalSectionTitle: {
+    // New style for section titles
     fontSize: 18,
     fontWeight: '600',
     color: '#1a508c', // Primary app color for section titles
@@ -787,23 +814,27 @@ const styles = StyleSheet.create({
   },
   modalToggleButton: {
     paddingHorizontal: 18, // Slightly more horizontal padding
-    paddingVertical: 8,   // Slightly more vertical padding
-    borderRadius: 20,     // More rounded buttons
-    minWidth: 90,         // Ensure consistent width
+    paddingVertical: 8, // Slightly more vertical padding
+    borderRadius: 20, // More rounded buttons
+    minWidth: 90, // Ensure consistent width
     alignItems: 'center',
     justifyContent: 'center', // Center text vertically
     marginLeft: 10, // Space from label
   },
-  modalToggleButtonEnabled: { // For 'Deactivate' (account status)
+  modalToggleButtonEnabled: {
+    // For 'Deactivate' (account status)
     backgroundColor: '#D32F2F', // A stronger red for deactivation
   },
-  modalToggleButtonDisabled: { // For 'Activate' (account status)
+  modalToggleButtonDisabled: {
+    // For 'Activate' (account status)
     backgroundColor: '#388E3C', // A stronger green for activation
   },
-  modalToggleButtonRevoke: { // For 'Revoke' (system access)
+  modalToggleButtonRevoke: {
+    // For 'Revoke' (system access)
     backgroundColor: '#F44336', // Original red for revoke
   },
-  modalToggleButtonGrant: { // For 'Grant' (system access)
+  modalToggleButtonGrant: {
+    // For 'Grant' (system access)
     backgroundColor: '#4CAF50', // Original green for grant
   },
   modalToggleButtonText: {

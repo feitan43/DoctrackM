@@ -60,7 +60,7 @@ const RecentActivity = ({
         marginBottom: 10,
         backgroundColor: 'white',
         borderRadius: 5,
-        elevation: 8,
+        elevation: 1,
       }}>
       <View
         style={{

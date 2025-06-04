@@ -186,7 +186,6 @@ const DoctrackScreen = ({
     totalDocumentTypeOthersCount,
   );
 
-
   const LoadingModal = ({visible}) => {
     return (
       <Modal
@@ -203,7 +202,6 @@ const DoctrackScreen = ({
       </Modal>
     );
   };
-
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -279,7 +277,6 @@ const DoctrackScreen = ({
     }
   }, [permission, onRefresh, onRefreshInspector]);
 
-
   const [showAll, setShowAll] = useState(false);
 
   const renderUI = useCallback(() => {
@@ -304,10 +301,10 @@ const DoctrackScreen = ({
               <View
                 style={{
                   padding: 10,
-                    marginTop: 15,
-                    backgroundColor: 'white',
-                    borderRadius: 5,
-                    elevation: 1,
+                  marginTop: 15,
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  elevation: 1,
                 }}>
                 <View
                   style={{
@@ -319,7 +316,7 @@ const DoctrackScreen = ({
                   <Text
                     style={{
                       fontFamily: 'Inter_28pt-SemiBold',
-                      color: '#252525',
+                      color: '#5d5d5d',
                       paddingHorizontal: 10,
                       fontSize: 16,
                     }}>
@@ -621,7 +618,7 @@ const DoctrackScreen = ({
                   shadowOffset: {width: 0, height: 2},
                   shadowOpacity: 0.25,
                   shadowRadius: 3.84,
-                  elevation: 8,
+                  elevation: 1,
                   borderBottomWidth: 1,
                   borderBottomColor: 'silver',
                   borderRightWidth: 1,
@@ -637,7 +634,7 @@ const DoctrackScreen = ({
                   <Text
                     style={{
                       fontFamily: 'Inter_28pt-Bold',
-                      color: '#252525',
+                      color: '#5d5d5d',
                       fontSize: 15,
                       paddingHorizontal: 10,
                     }}>
@@ -730,122 +727,123 @@ const DoctrackScreen = ({
                 </View>
               </View>
 
-              {privilege === '10' || employeeNumber === '090909' && (
-                <View
-                  style={{
-                    padding: 10,
-                    marginTop: 10,
-                    backgroundColor: 'white',
-                    borderRadius: 5,
-                    shadowColor: '#000',
-                    shadowOffset: {width: 0, height: 2},
-                    shadowOpacity: 0.25,
-                    shadowRadius: 3.84,
-                    elevation: 8,
-                    borderBottomWidth: 1,
-                    borderBottomColor: 'silver',
-                    borderRightWidth: 1,
-                    borderRightColor: 'silver',
-                  }}>
+              {privilege === '10' ||
+                (employeeNumber === '090909' && (
                   <View
                     style={{
+                      padding: 10,
+                      marginTop: 20,
+                      backgroundColor: 'white',
+                      borderRadius: 5,
+                      shadowColor: '#000',
+                      shadowOffset: {width: 0, height: 2},
+                      shadowOpacity: 0.25,
+                      shadowRadius: 3.84,
+                      elevation: 1,
                       borderBottomWidth: 1,
-                      borderBottomColor: '#eee',
+                      borderBottomColor: 'silver',
+                      borderRightWidth: 1,
+                      borderRightColor: 'silver',
                     }}>
-                    <Text
+                    <View
                       style={{
-                        fontFamily: 'Inter_28pt-Bold',
-                        color: '#252525',
-                        fontSize: 15,
-                        paddingHorizontal: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#eee',
                       }}>
-                      Scheduler
-                    </Text>
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      marginTop: 5,
-                      gap: 15,
-                    }}>
-                    {requestsLoading ? (
-                      <View
+                      <Text
                         style={{
-                          flex: 1,
-                          alignItems: 'center',
-                          paddingVertical: 10,
+                          fontFamily: 'Inter_28pt-Bold',
+                          color: '#5d5d5d',
+                          fontSize: 15,
+                          paddingHorizontal: 10,
                         }}>
-                        <Text style={{fontSize: 16, color: '#252525'}}>
-                          Loading...
-                        </Text>
-                      </View>
-                    ) : (
-                      <>
-                        {[
-                          {
-                            label: 'Request',
-                            screen: 'RequestScreen',
-                            length: `${requestsLength}`,
-                          },
-                          {
-                            label: 'On Schedule',
-                            screen: 'OnScheduleScreen',
-                            length: `${OnScheduleLength}`,
-                          },
-                        ].map((item, index, arr) => (
-                          <Pressable
-                            key={index}
-                            onPress={() =>
-                              navigation.navigate(item.screen, item.params)
-                            }
-                            style={({pressed}) => [
-                              {
-                                width: '30%',
-                                alignItems: 'center',
-                                paddingVertical: 10,
-                                marginBottom: 10,
-                                borderRadius: 5,
-                                elevation: 1,
-                                backgroundColor: pressed
-                                  ? '#007bff'
-                                  : '#ffffff',
-                                borderBottomWidth: 2,
-                                borderBottomColor: 'silver',
-                                borderRightWidth: 2,
-                                borderRightColor: 'silver',
-                              },
-                            ]}
-                            android_ripple={{}}>
-                            {({pressed}) => (
-                              <>
-                                <Text
-                                  style={{
-                                    color: pressed ? 'white' : '#007bff',
-                                    fontFamily: 'Inter_28pt-Bold',
-                                    fontSize: 26,
-                                  }}>
-                                  {item.length || 0}
-                                </Text>
-                                <Text
-                                  style={{
-                                    color: pressed ? 'white' : '#252525',
-                                    fontFamily: 'Inter_28pt-Regular',
-                                    fontSize: 10,
-                                  }}>
-                                  {item.label}
-                                </Text>
-                              </>
-                            )}
-                          </Pressable>
-                        ))}
-                      </>
-                    )}
+                        Scheduler
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        marginTop: 5,
+                        gap: 15,
+                      }}>
+                      {requestsLoading ? (
+                        <View
+                          style={{
+                            flex: 1,
+                            alignItems: 'center',
+                            paddingVertical: 10,
+                          }}>
+                          <Text style={{fontSize: 16, color: '#252525'}}>
+                            Loading...
+                          </Text>
+                        </View>
+                      ) : (
+                        <>
+                          {[
+                            {
+                              label: 'Request',
+                              screen: 'RequestScreen',
+                              length: `${requestsLength}`,
+                            },
+                            {
+                              label: 'On Schedule',
+                              screen: 'OnScheduleScreen',
+                              length: `${OnScheduleLength}`,
+                            },
+                          ].map((item, index, arr) => (
+                            <Pressable
+                              key={index}
+                              onPress={() =>
+                                navigation.navigate(item.screen, item.params)
+                              }
+                              style={({pressed}) => [
+                                {
+                                  width: '30%',
+                                  alignItems: 'center',
+                                  paddingVertical: 10,
+                                  marginBottom: 10,
+                                  borderRadius: 5,
+                                  elevation: 1,
+                                  backgroundColor: pressed
+                                    ? '#007bff'
+                                    : '#ffffff',
+                                  borderBottomWidth: 2,
+                                  borderBottomColor: 'silver',
+                                  borderRightWidth: 2,
+                                  borderRightColor: 'silver',
+                                },
+                              ]}
+                              android_ripple={{}}>
+                              {({pressed}) => (
+                                <>
+                                  <Text
+                                    style={{
+                                      color: pressed ? 'white' : '#007bff',
+                                      fontFamily: 'Inter_28pt-Bold',
+                                      fontSize: 26,
+                                    }}>
+                                    {item.length || 0}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: pressed ? 'white' : '#252525',
+                                      fontFamily: 'Inter_28pt-Regular',
+                                      fontSize: 10,
+                                    }}>
+                                    {item.label}
+                                  </Text>
+                                </>
+                              )}
+                            </Pressable>
+                          ))}
+                        </>
+                      )}
+                    </View>
                   </View>
-                </View>
-              )}
+                ))}
 
               <View style={{marginTop: 20}}>
                 <RecentActivity
@@ -896,7 +894,7 @@ const DoctrackScreen = ({
                       <Text
                         style={{
                           fontFamily: 'Inter_28pt-SemiBold',
-                          color: '#252525',
+                          color: '#5d5d5d',
                           paddingHorizontal: 10,
                           fontSize: 16,
                         }}>
@@ -1008,7 +1006,7 @@ const DoctrackScreen = ({
                     <Text
                       style={{
                         fontFamily: 'Inter_28pt-SemiBold',
-                        color: '#252525',
+                        color: '#5d5d5d',
                         paddingHorizontal: 10,
                         fontSize: 16,
                       }}>
@@ -1136,7 +1134,7 @@ const DoctrackScreen = ({
               marginTop: 15,
               backgroundColor: 'white',
               borderRadius: 5,
-              elevation: 2,
+              elevation: 1,
             }}>
             <View
               style={{
@@ -1147,10 +1145,10 @@ const DoctrackScreen = ({
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#5d5d5d',
+                  fontSize: 15,
                   paddingHorizontal: 10,
-                  fontSize: 16,
                 }}>
                 Uploader
               </Text>
@@ -1167,12 +1165,17 @@ const DoctrackScreen = ({
               }}>
               {[
                 {
-                label: 'Attachments',
-                icon: true,
-                condition: procurement === '1',
-                screen: 'Attachments',
+                  label: 'Attachments',
+                  icon: true,
+                  condition: procurement === '1',
+                  screen: 'Attachments',
                 },
-              
+                /*  {
+                  label: 'BACAttachments',
+                  icon: true,
+                  condition: procurement === '1',
+                  screen: 'Attachments',
+                }, */
               ].map((item, index) => {
                 if (item.condition === false) {
                   return null;
@@ -1208,7 +1211,7 @@ const DoctrackScreen = ({
                       <>
                         {item.icon ? (
                           <View style={{paddingVertical: 5}}>
-                           {/*  <Image
+                            {/*  <Image
                               source={require('../../assets/images/access.png')}
                               style={{
                                 width: 30,
@@ -1216,7 +1219,11 @@ const DoctrackScreen = ({
                                 tintColor: pressed ? 'white' : '#007bff',
                               }}
                             /> */}
-                            <Icon name="document-attach-outline" size={28} color={pressed ? 'white' : '#007bff'}/>
+                            <Icon
+                              name="document-attach-outline"
+                              size={28}
+                              color={pressed ? 'white' : '#007bff'}
+                            />
                           </View>
                         ) : (
                           <Text
@@ -1245,7 +1252,9 @@ const DoctrackScreen = ({
           </View>
         )}
 
-        {employeeNumber === '501573' || employeeNumber === '391091' || employeeNumber === '090909' && (
+        {(employeeNumber === '501573' ||
+          employeeNumber === '391091' ||
+          employeeNumber === '090909') && (
           <View
             style={{
               padding: 10,
@@ -1263,10 +1272,10 @@ const DoctrackScreen = ({
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-SemiBold',
-                  color: '#252525',
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#5d5d5d',
+                  fontSize: 15,
                   paddingHorizontal: 10,
-                  fontSize: 16,
                 }}>
                 BOSS LEVEL
               </Text>
@@ -1283,12 +1292,11 @@ const DoctrackScreen = ({
               }}>
               {[
                 {
-                label: 'Access',
-                icon: true,
-                //condition: officeAdmin === '1',
-                screen: 'SuperAccess',
+                  label: 'Access',
+                  icon: true,
+                  //condition: officeAdmin === '1',
+                  screen: 'SuperAccess',
                 },
-              
               ].map((item, index) => {
                 if (item.condition === false) {
                   return null;
@@ -1324,7 +1332,7 @@ const DoctrackScreen = ({
                       <>
                         {item.icon ? (
                           <View style={{paddingVertical: 5}}>
-                           {/*  <Image
+                            {/*  <Image
                               source={require('../../assets/images/access.png')}
                               style={{
                                 width: 30,
@@ -1332,7 +1340,11 @@ const DoctrackScreen = ({
                                 tintColor: pressed ? 'white' : '#007bff',
                               }}
                             /> */}
-                            <Icon name="glasses-outline" size={30} color={pressed ? 'white' : '#007bff'}/>
+                            <Icon
+                              name="glasses-outline"
+                              size={30}
+                              color={pressed ? 'white' : '#007bff'}
+                            />
                           </View>
                         ) : (
                           <Text
@@ -1389,10 +1401,10 @@ const DoctrackScreen = ({
             }}>
             <Text
               style={{
-                fontFamily: 'Inter_28pt-SemiBold',
-                color: '#252525',
+                fontFamily: 'Inter_28pt-Bold',
+                color: '#5d5d5d',
+                fontSize: 15,
                 paddingHorizontal: 10,
-                fontSize: 16,
               }}>
               Personal
             </Text>
@@ -1424,7 +1436,6 @@ const DoctrackScreen = ({
                 condition: officeAdmin === '1',
                 screen: 'MyAccess',
               },
-              
             ].map((item, index) => {
               if (item.condition === false) {
                 return null;
@@ -1521,7 +1532,6 @@ const DoctrackScreen = ({
             }}
           />
         </View>
-
       </View>
     );
   });
@@ -1561,7 +1571,6 @@ const DoctrackScreen = ({
     </SafeAreaView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

@@ -47,12 +47,7 @@ const ContactUsScreen = ({navigation}) => {
   };
 
   const handleMapPress = () => {
-    //const address = "Mezzanine Floor, Room 17 Procurement Division, Room 15 Inventory Division, City Hall Building, San Pedro Street, Davao City, Davao del Sur";
-    // Encode the address for a URL
-    //const encodedAddress = encodeURIComponent(address);
-    // Construct the Google Maps URL for searching the address
     const mapURL = `https://maps.app.goo.gl/DeFtpdf1rEZXSMU68`;
-
     setCurrentMapUrl(mapURL);
     setShowMapWebView(true);
   };
@@ -124,9 +119,36 @@ const ContactUsScreen = ({navigation}) => {
         <Text style={styles.headerTitle}>Contact Us</Text>
       </View>
 
+      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContentContainer}>
+
+        {/* Banner */}
+               <View style={styles.bannerContainer}>
+              <Image
+                source={require('../../assets/images/trackyhelp.png')}
+                style={styles.bannerImage}
+                resizeMode="contain"
+              />
+              <View style={styles.bannerTextWrapper}>
+                <Text style={styles.bannerTitle}>Want quick answers?</Text>
+                <Text style={styles.bannerSubtitle}>
+                  Try our Help Center!
+                </Text>
+        
+                {/* Contact Us Button */}
+                <TouchableOpacity
+                  style={styles.helpcenterButton}
+                  onPress={() => navigation.navigate('HelpCenter')}
+                >
+                  <Text style={styles.helpcenterButtonText}>Help Center</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+
         <Text style={styles.sectionTitle}>Email Us</Text>
         <ContactItem
           imageSource={require('../../assets/images/gmail.png')}
@@ -189,8 +211,8 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    borderBottomWidth:1,
-    borderColor:'#ccc',
+    //borderBottomWidth:1,
+    //borderColor:'#ccc',
     height: 30 + statusBarHeight,
   },
   backButton: {
@@ -209,6 +231,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#F5F8FA'
   },
   scrollViewContentContainer: {
     paddingHorizontal: 15,
@@ -261,6 +284,46 @@ const styles = StyleSheet.create({
   },
   webView: {
     flex: 1,
+  },
+  bannerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F0FE',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 25,
+  },
+  bannerImage: {
+    width: 100,
+    height: 100,
+    marginRight: 15,
+  },
+  bannerTextWrapper: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2F4B99',
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    fontSize: 16,
+    color: '#3D3D3D',
+  },
+   helpcenterButton: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    alignSelf:'flex-end',
+    marginTop:10
+  },
+  helpcenterButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign:'right'
   },
 });
 

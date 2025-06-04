@@ -110,6 +110,7 @@ import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
 import EditOBRScreen from '../screens/receiver/EditOBRScreen';
 import SuperAccessScreen from '../screens/SuperAccessScreen';
 import HelpCenterScreen from '../screens/HelpCenterScreen';
+import FeedbackScreen from '../screens/FeedbackScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -521,8 +522,13 @@ const handleUpdate = async updateUrl => {
           gestureEnabled: true,
           gestureDirection: 'vertical',
           ...TransitionPresets.SlideFromRightIOS,
+          cardStyleInterpolator: ({ current }) => ({
+            cardStyle: {
+              opacity: current.progress,
+            },
+          }),
           navigationBarColor: 'transparent',
-          animationDuration: 500,
+          animationDuration: 1000,
           presentation: 'transparentModal',
           
         }}>
@@ -605,6 +611,11 @@ const handleUpdate = async updateUrl => {
          <Stack.Screen
           name="HelpCenter"
           component={HelpCenterScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+         <Stack.Screen
+          name="Feedback"
+          component={FeedbackScreen}
          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
 
