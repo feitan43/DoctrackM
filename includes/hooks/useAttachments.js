@@ -111,3 +111,26 @@ export const useTNAttachment = (year) => {
     retry: 2,
   });
 };
+
+const fetchBACAttachments = async () => {
+  const url = `/getBACAttachments`;
+  try {
+    const { data } = await apiClient.get(url);
+    return data;
+  } catch (err) {
+    console.error('Error fetching BAC attachments:', err);
+    return [];
+  }
+};
+
+export const useBACAttachments = () => {
+  return useQuery({
+    queryKey: ['BACAttachments'], 
+    queryFn: () => fetchBACAttachments(),
+    staleTime: 5 * 60 * 1000, 
+    retry: 2,
+  });
+};
+
+
+

@@ -611,43 +611,41 @@ const DoctrackScreen = ({
               <View
                 style={{
                   padding: 10,
-                  marginTop: 10,
+                  marginTop: 20,
                   backgroundColor: 'white',
                   borderRadius: 5,
                   shadowColor: '#000',
                   shadowOffset: {width: 0, height: 2},
                   shadowOpacity: 0.25,
                   shadowRadius: 3.84,
-                  elevation: 1,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'silver',
-                  borderRightWidth: 1,
+                  elevation: 2,
+                  //borderBottomWidth: 1,
+                  //borderBottomColor: 'silver',
+                  //borderRightWidth: 1,
                   borderRightColor: 'silver',
                 }}>
                 <View
                   style={{
                     borderBottomWidth: 1,
                     borderBottomColor: '#eee',
-                    paddingBottom: 5,
-                    marginBottom: 5,
                   }}>
                   <Text
                     style={{
                       fontFamily: 'Inter_28pt-Bold',
                       color: '#5d5d5d',
-                      fontSize: 15,
-                      paddingHorizontal: 10,
+                      fontSize: 18,
+                      marginStart: 10,
                     }}>
                     Inspection Status
                   </Text>
                 </View>
-
                 <View
                   style={{
                     flexDirection: 'row',
                     flexWrap: 'wrap',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    marginTop:5
                   }}>
                   {requestsLoading ? (
                     <View
@@ -739,11 +737,11 @@ const DoctrackScreen = ({
                       shadowOffset: {width: 0, height: 2},
                       shadowOpacity: 0.25,
                       shadowRadius: 3.84,
-                      elevation: 1,
-                      borderBottomWidth: 1,
-                      borderBottomColor: 'silver',
-                      borderRightWidth: 1,
-                      borderRightColor: 'silver',
+                      elevation: 2,
+                      //borderBottomWidth: 1,
+                      //borderBottomColor: 'silver',
+                      //borderRightWidth: 1,
+                      //borderRightColor: 'silver',
                     }}>
                     <View
                       style={{
@@ -754,8 +752,8 @@ const DoctrackScreen = ({
                         style={{
                           fontFamily: 'Inter_28pt-Bold',
                           color: '#5d5d5d',
-                          fontSize: 15,
-                          paddingHorizontal: 10,
+                          fontSize: 18,
+                          marginStart: 10,
                         }}>
                         Scheduler
                       </Text>
@@ -893,10 +891,10 @@ const DoctrackScreen = ({
                       }}>
                       <Text
                         style={{
-                          fontFamily: 'Inter_28pt-SemiBold',
+                          fontFamily: 'Inter_28pt-Bold',
                           color: '#5d5d5d',
-                          paddingHorizontal: 10,
-                          fontSize: 16,
+                          fontSize: 18,
+                          marginStart: 10,
                         }}>
                         Tracking Summary
                       </Text>
@@ -1005,10 +1003,10 @@ const DoctrackScreen = ({
                     }}>
                     <Text
                       style={{
-                        fontFamily: 'Inter_28pt-SemiBold',
+                        fontFamily: 'Inter_28pt-Bold',
                         color: '#5d5d5d',
-                        paddingHorizontal: 10,
-                        fontSize: 16,
+                        fontSize: 18,
+                        marginStart: 10,
                       }}>
                       Transaction Counter
                     </Text>
@@ -1147,8 +1145,8 @@ const DoctrackScreen = ({
                 style={{
                   fontFamily: 'Inter_28pt-Bold',
                   color: '#5d5d5d',
-                  fontSize: 15,
-                  paddingHorizontal: 10,
+                  fontSize: 18,
+                  marginStart: 10,
                 }}>
                 Uploader
               </Text>
@@ -1170,12 +1168,12 @@ const DoctrackScreen = ({
                   condition: procurement === '1',
                   screen: 'Attachments',
                 },
-                /*  {
+                 {
                   label: 'BACAttachments',
                   icon: true,
                   condition: procurement === '1',
-                  screen: 'Attachments',
-                }, */
+                  screen: 'BACAttachments',
+                },
               ].map((item, index) => {
                 if (item.condition === false) {
                   return null;
@@ -1258,7 +1256,7 @@ const DoctrackScreen = ({
           <View
             style={{
               padding: 10,
-              marginTop: 15,
+              marginTop: 20,
               backgroundColor: 'white',
               borderRadius: 5,
               elevation: 2,
@@ -1274,8 +1272,8 @@ const DoctrackScreen = ({
                 style={{
                   fontFamily: 'Inter_28pt-Bold',
                   color: '#5d5d5d',
-                  fontSize: 15,
-                  paddingHorizontal: 10,
+                  fontSize: 18,
+                  marginStart: 10,
                 }}>
                 BOSS LEVEL
               </Text>
@@ -1377,7 +1375,7 @@ const DoctrackScreen = ({
         <View
           style={{
             padding: 10,
-            marginTop: 15,
+            marginTop: 20,
             marginBottom: 60,
             backgroundColor: 'white',
             borderRadius: 5,
@@ -1403,8 +1401,8 @@ const DoctrackScreen = ({
               style={{
                 fontFamily: 'Inter_28pt-Bold',
                 color: '#5d5d5d',
-                fontSize: 15,
-                paddingHorizontal: 10,
+                fontSize: 18,
+                marginStart: 10,
               }}>
               Personal
             </Text>

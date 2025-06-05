@@ -78,15 +78,13 @@ const RecentActivity = ({
           <Text
             style={{
               fontFamily: 'Inter_28pt-Bold',
-              color: '#252525',
-              fontSize: 15,
+              color: '#5d5d5d',
+              fontSize: 18,
             }}>
             Recent Activity
           </Text>
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <TouchableOpacity
-              onPress={prevPage}
-              disabled={currentPage === 1}>
+            <TouchableOpacity onPress={prevPage} disabled={currentPage === 1}>
               <Icon
                 name="chevron-back"
                 size={24}

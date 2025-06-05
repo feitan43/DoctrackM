@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust preinstalled system CAs -->
+            <certificates src="system" />
+            <!-- Optionally trust user-added CAs (useful for dev/testing with Charles Proxy/Fiddler) -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- IMPORTANT: Configure specific domains that might be causing issues. -->
+    <!-- Replace 'YOUR_PROBLEM_DOMAIN_1.COM', 'YOUR_PROBLEM_DOMAIN_2.COM' etc.,
+         with the *actual domains* from which your PDFs are being served. -->
+    <!-- For the dummy URLs used in the code, these are: africau.edu, w3.org, orimi.com, iso.org -->
+    <domain-config>
+        <domain includeSubdomains="true">africau.edu</domain>
+        <domain includeSubdomains="true">w3.org</domain>
+        <domain includeSubdomains="true">orimi.com</domain>
+        <domain includeSubdomains="true">iso.org</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- If any of these domains use a custom or self-signed certificate,
+                 you would need to include that specific certificate here.
+                 Example: <certificates src="@raw/my_custom_ca_cert" />
+                 And place 'my_custom_ca_cert.pem' (or .crt) in `android/app/src/main/res/raw/` -->
+        </trust-anchors>
+    </domain-config>
+
+    <!-- WARNING: ONLY for extreme debugging in development. NEVER in production.
+         This allows all cleartext (HTTP) traffic. -->
+    <!-- <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config> -->
+
+</network-security-config>

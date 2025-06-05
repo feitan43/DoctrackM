@@ -111,6 +111,7 @@ import EditOBRScreen from '../screens/receiver/EditOBRScreen';
 import SuperAccessScreen from '../screens/SuperAccessScreen';
 import HelpCenterScreen from '../screens/HelpCenterScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
+import BACAttachmentsScreen from '../screens/BACAttachmentsScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -528,7 +529,7 @@ const handleUpdate = async updateUrl => {
             },
           }),
           navigationBarColor: 'transparent',
-          animationDuration: 1000,
+          animationDuration: 2000,
           presentation: 'transparentModal',
           
         }}>
@@ -616,6 +617,11 @@ const handleUpdate = async updateUrl => {
          <Stack.Screen
           name="Feedback"
           component={FeedbackScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+        <Stack.Screen
+          name="BACAttachments"
+          component={BACAttachmentsScreen}
          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
 

@@ -24,13 +24,13 @@ import {
 } from '../../hooks/useInspectionScheduler';
 import {useQueryClient} from '@tanstack/react-query';
 import {showMessage} from 'react-native-flash-message';
-import {Calendar, LocaleConfig} from 'react-native-calendars'; // Import Calendar components
+import {Calendar, LocaleConfig} from 'react-native-calendars';
 import BSOnSchedule from '../../components/BSOnSchedule';
 
-// Import BottomSheet components
 import BottomSheet from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {BottomSheetScrollView, BottomSheetBackdrop} from '@gorhom/bottom-sheet';
+import InspectorsList from '../../components/InspectorsList';
 
 LocaleConfig.locales['en'] = {
   monthNames: [
@@ -119,6 +119,9 @@ const OnScheduleScreen = () => {
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['30%', '60%', '90%'], []);
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+
+  const [showInspectors, setShowInspectors] = useState(false);
+
   const toggleSearchBar = () => {
     setShowSearchBar(!showSearchBar);
     setSearchQuery('');
@@ -174,8 +177,8 @@ const OnScheduleScreen = () => {
                 inspectorName: Inspector,
               });
 
-              queryClient.invalidateQueries(['onSchedule']); // Invalidate 'onSchedule' to refetch and update list
-              queryClient.invalidateQueries(['inspectionRequest']); // This might be for another list
+              queryClient.invalidateQueries(['onSchedule']);
+              queryClient.invalidateQueries(['inspectionRequest']);
 
               showMessage({
                 message: 'Success',
@@ -187,11 +190,7 @@ const OnScheduleScreen = () => {
                 floating: true,
               });
 
-              setModalVisible(false); // Close inspector assignment modal
-              // We'll keep the bottom sheet open or manage its state as needed
-
-              // You can uncomment this line if you want to send a notification after assignment
-              // await sendNotifInspector(itemTN, EmployeeNumber);
+              setModalVisible(false);
             } catch (err) {
               console.error('Error:', err);
               showMessage({
@@ -215,7 +214,7 @@ const OnScheduleScreen = () => {
   const renderItem = useCallback(
     ({item, index}) => (
       <BSOnSchedule
-        key={item.Id} // ✅ unique key prop here
+        key={item.Id}
         item={item}
         index={index}
         handleAssignInspector={handleAssignInspector}
@@ -228,11 +227,9 @@ const OnScheduleScreen = () => {
     let dataToFilter = scheduleData || [];
 
     if (selectedDate) {
-      // The DeliveryDate format is "YYYY-MM-DD HH:MM AM/PM"
-      // We need to extract just "YYYY-MM-DD" for comparison
-      const formattedSelectedDate = selectedDate; // selectedDate is already 'YYYY-MM-DD'
+      const formattedSelectedDate = selectedDate;
       dataToFilter = dataToFilter.filter(item => {
-        const itemDeliveryDate = item.DeliveryDate.split(' ')[0]; // Get 'YYYY-MM-DD'
+        const itemDeliveryDate = item.DeliveryDate.split(' ')[0];
         return itemDeliveryDate === formattedSelectedDate;
       });
     }
@@ -292,6 +289,7 @@ const OnScheduleScreen = () => {
 
   const handleDayPress = useCallback(day => {
     setSelectedDate(day.dateString);
+    setShowInspectors(false);
     setIsBottomSheetVisible(true);
     bottomSheetRef.current?.expand();
   }, []);
@@ -307,23 +305,16 @@ const OnScheduleScreen = () => {
   useEffect(() => {
     const calculateOverdue = () => {
       const today = new Date();
-      // Normalize today's date to the start of the day for accurate comparison
       today.setHours(0, 0, 0, 0);
 
-      // Calculate the date 3 days ago from today
-      const threeDaysAgo = new Date(today);
-      threeDaysAgo.setDate(today.getDate() - 3);
-
-      // Filter scheduleData to find items where the DeliveryDate is more than 3 days in the past
       const count = scheduleData?.filter(item => {
-        // Extract only the date part "YYYY-MM-DD" from the string
         const deliveryDatePart = item.DeliveryDate.split(' ')[0];
         const deliveryDate = new Date(deliveryDatePart);
-        // Normalize delivery date to the start of the day
         deliveryDate.setHours(0, 0, 0, 0);
 
-        // An item is overdue if its delivery date is strictly earlier than 'threeDaysAgo'
-        return deliveryDate < threeDaysAgo;
+        const isInspected = item.DateInspected && item.DateInspected !== '';
+
+        return deliveryDate <= today && !isInspected;
       }).length;
 
       setOverdueCount(count);
@@ -332,11 +323,18 @@ const OnScheduleScreen = () => {
     calculateOverdue();
   }, [scheduleData]);
 
+  const handleShowInspectors = () => {
+    setShowInspectors(true);
+    setIsBottomSheetVisible(true);
+    bottomSheetRef.current?.expand();
+    setSelectedDate('');
+  };
+
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <SafeAreaView style={styles.container}>
         <ImageBackground
-          source={require('../../../assets/images/CirclesBG.png')} // Change this to your background image
+          source={require('../../../assets/images/CirclesBG.png')}
           style={styles.bgHeader}>
           <View style={styles.header}>
             {showSearchBar ? (
@@ -376,73 +374,43 @@ const OnScheduleScreen = () => {
           style={{
             flexDirection: 'row',
             justifyContent: 'space-around',
-            alignItems: 'stretch', // Crucial: Makes children stretch to fill height of tallest sibling
+            alignItems: 'stretch',
             paddingHorizontal: 10,
-            marginTop:20
+            marginTop: 20,
           }}>
-          {/* Card 1: On Schedule */}
           <View style={styles.card2}>
             <Text style={styles.cardLabel}>On Schedule</Text>
             <Text style={styles.cardValue}>{scheduleData?.length}</Text>
           </View>
 
-          {/* Card 2: Inspectors */}
-          <View style={styles.card2}>
+          <Pressable style={styles.card2} onPress={handleShowInspectors}>
             <Text style={styles.cardLabel}>Inspectors</Text>
             <Text style={styles.cardValue}>{inspectors?.length}</Text>
-          </View>
+          </Pressable>
 
-          {/* Card 3: Overdue */}
           <View style={styles.card2}>
             <Text style={styles.cardLabel}>Overdue</Text>
-            <Text style={[styles.cardValue, {color: 'red'}]}>{overdueCount}</Text>
+            <Text style={[styles.cardValue, {color: 'red'}]}>
+              {overdueCount}
+            </Text>
           </View>
         </View>
 
-        {/* Calendar Component */}
         <View style={styles.calendarContainer}>
           <Calendar
-            onDayPress={handleDayPress} // Use the new handler
+            onDayPress={handleDayPress}
             markedDates={markedDates}
-            // Optional: customize calendar appearance
             theme={{
               selectedDayBackgroundColor: '#007bff',
               selectedDayTextColor: '#ffffff',
               todayTextColor: '#00adf5',
               arrowColor: '#007bff',
-              textDayFontFamily: 'Inter_28pt-Regular', // Assuming you have these fonts
+              textDayFontFamily: 'Inter_28pt-Regular',
               textMonthFontFamily: 'Inter_28pt-Bold',
               textDayHeaderFontFamily: 'Inter_28pt-Regular',
             }}
           />
         </View>
-
-        {/* Filter and Search Controls */}
-        {/*  <View style={styles.filterContainer}>
-          {selectedInspector || selectedDate || searchQuery ? ( // Show clear button if any filter is active
-            <TouchableOpacity style={styles.clearButton} onPress={clearFilter}>
-              <Text style={styles.buttonText}>Clear Filter</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View> */}
-
-        {/*  <View style={{alignSelf: 'flex-end'}}>
-          <Text style={{marginHorizontal: 10, paddingEnd: 10, paddingTop: 10}}>
-            {filteredScheduleData.length} results
-          </Text>
-        </View> */}
-
-        {/* Instead of a FlatList directly here, we use a button to open the bottom sheet */}
-        {/*   <TouchableOpacity
-          style={styles.openBottomSheetButton}
-          onPress={() => {
-            setIsBottomSheetVisible(true);
-            bottomSheetRef.current?.snapToIndex(0); // Snap to the first snap point (25%)
-          }}>
-          <Text style={styles.openBottomSheetButtonText}>
-            View Scheduled Inspections
-          </Text>
-        </TouchableOpacity> */}
 
         {isBottomSheetVisible && (
           <BottomSheet
@@ -454,43 +422,55 @@ const OnScheduleScreen = () => {
             backdropComponent={BottomSheetBackdrop}
             style={styles.bottomSheet}>
             <View style={styles.contentContainer}>
-              <Text style={styles.bottomSheetTitle}>
-                Schedules for {selectedDate || 'All Dates'}
-              </Text>
-              {scheduleLoading ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}>
-                  <ActivityIndicator size="large" color="#0000ff" />
-                </View>
-              ) : (
-                <BottomSheetScrollView
-                  contentContainerStyle={styles.listContainer}
-                  //onRefresh={handleRefresh}
-
-                  refreshing={refreshing}>
-                  {filteredScheduleData.length > 0 ? (
-                    filteredScheduleData.map((item, index) =>
-                      renderItem({item, index}),
-                    ) // Pass item and index
-                  ) : (
-                    <View style={styles.emptyListContainer}>
-                      <Text style={styles.emptyListText}>
-                        No inspections scheduled for this date or matching your
-                        search.
-                      </Text>
+              {showInspectors ? (
+                <>
+                  <Text style={styles.bottomSheetTitle}>Inspectors</Text>
+                  {inspectorsLoading ? (
+                    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                      <ActivityIndicator size="large" color="#0000ff" />
                     </View>
+                  ) : (
+                    <InspectorsList inspectors={inspectors} scheduleData={scheduleData} />
                   )}
-                </BottomSheetScrollView>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.bottomSheetTitle}>
+                    Schedules for {selectedDate || 'All Dates'}
+                  </Text>
+                  {scheduleLoading ? (
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+                      <ActivityIndicator size="large" color="#0000ff" />
+                    </View>
+                  ) : (
+                    <BottomSheetScrollView
+                      contentContainerStyle={styles.listContainer}
+                      refreshing={refreshing}>
+                      {filteredScheduleData.length > 0 ? (
+                        filteredScheduleData.map((item, index) =>
+                          renderItem({item, index}),
+                        )
+                      ) : (
+                        <View style={styles.emptyListContainer}>
+                          <Text style={styles.emptyListText}>
+                            No inspections scheduled for this date or matching your
+                            search.
+                          </Text>
+                        </View>
+                      )}
+                    </BottomSheetScrollView>
+                  )}
+                </>
               )}
             </View>
           </BottomSheet>
         )}
 
-        {/* Loading Overlay */}
         <Modal visible={loading} transparent={true} animationType="fade">
           <View
             style={{
@@ -515,7 +495,6 @@ const OnScheduleScreen = () => {
           </View>
         </Modal>
 
-        {/* Success Modal */}
         <Modal
           animationType="fade"
           transparent={true}
@@ -595,7 +574,6 @@ const OnScheduleScreen = () => {
           </View>
         </Modal>
 
-        {/* Error Modal */}
         <Modal
           animationType="fade"
           transparent={true}
@@ -662,7 +640,6 @@ const OnScheduleScreen = () => {
           </View>
         </Modal>
 
-        {/* Inspector Assignment Modal (remains a standard Modal) */}
         <Modal
           animationType="fade"
           transparent={true}
@@ -767,7 +744,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: {width: 0, height: 2},
-    paddingBottom: 10, // Add some padding at the bottom
+    paddingBottom: 10,
   },
   filterContainer: {
     backgroundColor: 'white',
@@ -775,7 +752,7 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     marginTop: 10,
-    backgroundColor: '#FF6B6B', // Red for clear filter button
+    backgroundColor: '#FF6B6B',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
@@ -795,7 +772,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-    paddingBottom: 50, // Add padding to ensure the last item is not hidden by the bottom sheet handle
+    paddingBottom: 50,
   },
   card: {
     backgroundColor: '#fff',
@@ -813,7 +790,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'silver',
   },
   row: {
-    flexDirection: 'row', // Align label and value horizontally
+    flexDirection: 'row',
     marginBottom: 5,
   },
   label: {
@@ -821,14 +798,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_28pt-ExtraLight',
     color: 'gray',
     textAlign: 'right',
-    flex: 0.3, // Label takes 30% width
+    flex: 0.3,
   },
   value: {
     paddingStart: 10,
     fontSize: 14,
     fontFamily: 'Inter_28pt-Regular',
     color: 'black',
-    flex: 0.7, // Value takes 70% width
+    flex: 0.7,
   },
   revertButton: {
     marginTop: 10,
@@ -908,12 +885,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#888',
   },
-  // New styles for the BottomSheet
   bottomSheet: {
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -5, // Shadow goes up from the bottom sheet
+      height: -5,
     },
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -921,7 +897,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    //alignItems: 'center',
   },
   bottomSheetTitle: {
     fontSize: 18,
@@ -935,16 +910,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 16,
-    marginHorizontal: 5, // Smaller margin to allow more flex space, or adjust paddingHorizontal on container
+    marginHorizontal: 5,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    flex: 1, // Ensures each card takes up equal available width
-    height: 80, // <-- Set a fixed height here for all cards
-    justifyContent: 'center', // Vertically center content inside the card
-    alignItems: 'center', // Horizontally center content inside the card
+    flex: 1,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardLabel: {
     fontSize: 12,

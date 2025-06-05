@@ -108,10 +108,6 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
               <Text style={styles.label}>Amount </Text>
               <Text style={styles.amountText}>{insertCommas(item.Amount)}</Text>
             </View>
-
-            {/*  <View style={styles.detailsButtonContainer}>
-              <Text style={styles.detailsButtonText}>See Details</Text>
-            </View> */}
           </View>
         </View>
       </View>
@@ -122,8 +118,10 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
 const MyTransactionsScreen = ({navigation}) => {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const {myTransactionsData, loading, error, fetchMyPersonal} =
+
+  const {myTransactionsData, isLoading: loading, error, refetch: fetchMyPersonal} =
     useMyTransactions(selectedYear);
+
   const [visibleItems, setVisibleItems] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -131,23 +129,9 @@ const MyTransactionsScreen = ({navigation}) => {
   const scrollY = new Animated.Value(0);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
 
-  const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['40%'], []);
-
-  const handleScroll = Animated.event(
-    [{nativeEvent: {contentOffset: {y: scrollY}}}],
-    {
-      listener: event => {
-        const offsetY = event.nativeEvent.contentOffset.y;
-        setShowTitleInHeader(offsetY > 10); // Adjust threshold as needed
-      },
-      useNativeDriver: false,
-    },
-  );
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchMyPersonal();
+    await fetchMyPersonal(); // Use refetch from react-query
     setRefreshing(false);
   }, [fetchMyPersonal]);
 
@@ -158,6 +142,17 @@ const MyTransactionsScreen = ({navigation}) => {
       });
     },
     [navigation],
+  );
+  
+    const handleScroll = Animated.event(
+    [{nativeEvent: {contentOffset: {y: scrollY}}}],
+    {
+      listener: event => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setShowTitleInHeader(offsetY > 10); // Adjust threshold as needed
+      },
+      useNativeDriver: false,
+    },
   );
 
   const handleLoadMore = useCallback(() => {
@@ -218,7 +213,7 @@ const MyTransactionsScreen = ({navigation}) => {
   const renderLoadingComponent = useCallback(
       () => (
         <View style={styles.loadingContainer}>
-          {[...Array(7)].map((_, index) => (
+          {[...Array(4)].map((_, index) => (
             <Shimmer key={`shimmer-${index}`} />
           ))}
         </View>
@@ -236,13 +231,13 @@ const MyTransactionsScreen = ({navigation}) => {
         </View>
       </View>
     ),
-    [selectedYear, showTitleInHeader],
+    [showTitleInHeader], // removed selectedYear as it's not used here
   );
 
   const handleSelectYear = year => {
     setSelectedYear(year);
     setBottomSheetVisible(false);
-    fetchMyPersonal(year);
+    // useQuery refetches automatically when queryKey changes (due to selectedYear)
   };
 
   return (
@@ -285,11 +280,12 @@ const MyTransactionsScreen = ({navigation}) => {
             </ImageBackground>
 
             <View style={styles.contentContainer}>
-              {loading && !refreshing ? (
+              {/* Prioritize showing loading if data is not yet available, regardless of 'loading' being undefined */}
+              {(!myTransactionsData && !error) || loading ? (
                 renderLoadingComponent()
               ) : error ? (
                 renderErrorComponent()
-              ) : (
+              ) : (myTransactionsData && myTransactionsData.length > 0) ? (
                 <FlatList
                   data={myTransactionsData?.slice(0, visibleItems) || []}
                   renderItem={({item, index}) => (
@@ -321,6 +317,8 @@ const MyTransactionsScreen = ({navigation}) => {
                   onScroll={handleScroll}
                   scrollEventThrottle={16}
                 />
+              ) : (
+                renderEmptyComponent()
               )}
             </View>
           </View>
@@ -490,12 +488,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     backgroundColor: '#fff',
-    //borderWidth: 1,
-    //borderColor: '#e0e0e0',
-    //shadowColor: '#000',
-    //shadowOffset: {width: 0, height: 1},
-    //shadowOpacity: 0.05,
-    //shadowRadius: 2,
     marginBottom:10,
     elevation:1
   },
@@ -577,9 +569,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loadingContainer: {
+    flex:1,
     paddingTop: 20,
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 10,
+    gap:10
   },
   emptyContainer: {
     flex: 1,

@@ -50,7 +50,12 @@ const EmployeeCard = ({employee, officeMap}) => (
   </View>
 );
 
-const SystemAccessToggle = ({system, employeeAccess, onToggle, currentlyUpdatingSystemKey}) => {
+const SystemAccessToggle = ({
+  system,
+  employeeAccess,
+  onToggle,
+  currentlyUpdatingSystemKey,
+}) => {
   const isUpdating = currentlyUpdatingSystemKey === system.key; // Check if this specific system is updating
 
   return (
@@ -63,7 +68,7 @@ const SystemAccessToggle = ({system, employeeAccess, onToggle, currentlyUpdating
       disabled={isUpdating} // Disable interaction while updating
       accessibilityLabel={`Toggle ${system.label} access`}>
       <View style={styles.systemInfo}>
-      {/*   <Icon
+        {/*   <Icon
           name={system.icon}
           size={20}
           color={employeeAccess === 1 ? '#28a745' : '#666'}
@@ -86,14 +91,19 @@ const SystemAccessToggle = ({system, employeeAccess, onToggle, currentlyUpdating
 };
 
 const SuperAccessScreen = ({navigation}) => {
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState('501573');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [currentlyUpdatingSystemKey, setCurrentlyUpdatingSystemKey] = useState(null); // New state for granular loading
+  const [currentlyUpdatingSystemKey, setCurrentlyUpdatingSystemKey] =
+    useState(null); // New state for granular loading
 
   const {mutateAsync: fetchAccess, isPending, error} = useUserSuperAccess();
   const {mutateAsync: updateUserAccess} = useUpdateUserSuperAccess();
-  const { data: dynamicSystemsList, isLoading: loadingSystems, error: systemsError } = useSystemsList();
+  const {
+    data: dynamicSystemsList,
+    isLoading: loadingSystems,
+    error: systemsError,
+  } = useSystemsList();
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim();
@@ -289,7 +299,8 @@ const SuperAccessScreen = ({navigation}) => {
 
             <View style={styles.systemsListContainer}>
               <Text style={styles.systemsNote}>
-                Toggle access for individual systems below. Changes are saved automatically.
+                Toggle access for individual systems below. Changes are saved
+                automatically.
               </Text>
               {dynamicSystemsList.map(item => (
                 <SystemAccessToggle
@@ -300,6 +311,10 @@ const SuperAccessScreen = ({navigation}) => {
                   currentlyUpdatingSystemKey={currentlyUpdatingSystemKey} // Pass the new state
                 />
               ))}
+
+              <View>
+                <Text>Permission</Text>
+              </View>
             </View>
 
             {/* Removed the 'Save' button as access is auto-saved */}
@@ -556,7 +571,7 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
-  saveButton: { 
+  saveButton: {
     backgroundColor: '#007bff',
     paddingVertical: 16,
     borderRadius: 10,
