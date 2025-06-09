@@ -11,6 +11,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  ImageBackground,
   LayoutAnimation,
   UIManager,
 } from 'react-native';
@@ -79,7 +80,8 @@ const BACAttachmentsScreen = ({navigation}) => {
   }, [searchText, groupedCertificates, selectedSupplierId, isLoading, isError]);
 
   const handleViewCertificate = certificate => {
-    const baseUrl = 'https://your-api.com/certificates/';
+    const baseUrl = 'https://davaocityportal.com/tempUpload/';
+    console.log('certificate', certificate);
     if (certificate.FileName) {
       const pdfUrl = `${baseUrl}${certificate.FileName}`;
       setSelectedPdfUrl(pdfUrl);
@@ -164,6 +166,7 @@ const BACAttachmentsScreen = ({navigation}) => {
           <Icon name="eye-outline" size={18} color="#FFFFFF" />
           <Text style={styles.actionButtonText}>View</Text>
         </TouchableOpacity>
+        
         <TouchableOpacity
           style={[styles.actionButton, styles.uploadButton]}
           onPress={() => handleUploadCertificate(certificate.Id)}
@@ -259,33 +262,34 @@ const BACAttachmentsScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar
+      {/*   <StatusBar
         translucent={true}
         backgroundColor="transparent"
         barStyle={'dark-content'}
-      />
-      <View style={styles.header}>
-        {selectedPdfUrl || selectedSupplierId ? (
-          <TouchableOpacity
-            onPress={handleBackToList}
-            style={styles.backButton}>
-            <Icon name="chevron-back-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        ) : null}
-        {selectedPdfUrl || selectedSupplierId ? null : (
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}>
-            <Icon name="chevron-back-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.backButtonText}></Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.headerTitle}>
-          BAC Attachments
-        </Text>
-      </View>
-
+      /> */}
+      <ImageBackground
+        source={require('../../assets/images/CirclesBG.png')}
+        style={styles.bgHeader}>
+        <View style={styles.header}>
+          {selectedPdfUrl || selectedSupplierId ? (
+            <TouchableOpacity
+              onPress={handleBackToList}
+              style={styles.backButton}>
+              <Icon name="chevron-back-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          ) : null}
+          {selectedPdfUrl || selectedSupplierId ? null : (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}>
+              <Icon name="chevron-back-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.backButtonText}></Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>BAC Attachments</Text>
+        </View>
+      </ImageBackground>
       {selectedPdfUrl ? (
         <PdfViewer pdfUrl={selectedPdfUrl} />
       ) : (
@@ -340,14 +344,22 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  bgHeader: {
+    paddingTop: 35,
+    height: 90,
+    backgroundColor: '#1a508c',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    elevation: 5,
   },
   header: {
-    backgroundColor: '#3498DB',
+    //backgroundColor: '#3498DB',
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2980B9',
+    //paddingHorizontal: 20,
+    //borderBottomWidth: 1,
+    //borderBottomColor: '#2980B9',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -355,7 +367,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.15,
     shadowRadius: 3,
-    elevation: 4,
+    //elevation: 4,
   },
   backButton: {
     position: 'absolute',
@@ -412,7 +424,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   supplierGroupContainer: {
-    backgroundColor: '#E6F7FF',
+    //backgroundColor: '#E6F7FF',
+    backgroundColor: '#FFFFFF',
+
     marginVertical: 8,
     borderRadius: 12,
     overflow: 'hidden',

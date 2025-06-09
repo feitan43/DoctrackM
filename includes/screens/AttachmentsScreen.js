@@ -583,7 +583,9 @@ const AttachmentsScreen = ({navigation}) => {
           <>
             <ImageBackground
               source={require('../../assets/images/CirclesBG.png')}
-              style={styles.bgHeader}>
+              style={styles.bgHeader}
+              imageStyle={styles.bgHeaderImageStyle} // Style for the image itself
+            >
               <View style={styles.header}>
                 <TouchableOpacity
                   onPress={() => navigation.goBack()}
@@ -1215,6 +1217,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     elevation: 5,
+  },
+  bgHeaderImageStyle: {
+    opacity: 0.2, // Make background image less prominent
   },
   header: {
     flexDirection: 'row',

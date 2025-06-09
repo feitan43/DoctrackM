@@ -112,6 +112,7 @@ import SuperAccessScreen from '../screens/SuperAccessScreen';
 import HelpCenterScreen from '../screens/HelpCenterScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import BACAttachmentsScreen from '../screens/BACAttachmentsScreen';
+import InventoryScreen from '../screens/InventoryScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -622,6 +623,11 @@ const handleUpdate = async updateUrl => {
         <Stack.Screen
           name="BACAttachments"
           component={BACAttachmentsScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+          <Stack.Screen
+          name="InventoryScreen"
+          component={InventoryScreen}
          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
 
