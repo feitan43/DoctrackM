@@ -137,11 +137,11 @@ export const faqCategories = [
     title: 'General Questions',
     type: 'faq',
     data: [
-      {
+   /*    {
         id: 'how_to_upload',
         question: 'How do I upload a document?',
         answer: 'To upload a document, navigate to the "Documents" tab and tap the "+" icon in the top right corner. Select the document type and follow the prompts to upload your file.',
-      },
+      }, */
       {
         id: 'forgot_password',
         question: 'What if I forget my password?',

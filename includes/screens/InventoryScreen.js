@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   Image,
   TouchableOpacity,
   StyleSheet,
@@ -13,6 +12,8 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Modal,
+  FlatList,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import BottomSheet, {
@@ -23,35 +24,27 @@ import BottomSheet, {
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {useInventory} from '../hooks/usePersonal';
 import {FlashList} from '@shopify/flash-list';
-
-const pickImage = async () => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const randomColor = Math.floor(Math.random() * 16777215)
-        .toString(16)
-        .padStart(6, '0');
-      resolve(
-        `https://placehold.co/150x150/${randomColor}/FFFFFF?text=Uploaded!`,
-      );
-    }, 1500);
-  });
-};
+import {launchImageLibrary} from 'react-native-image-picker';
+import CameraComponent from '../utils/CameraComponent'; // <--- ASSUMING THIS PATH AND NAME
 
 const InventoryScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const {data, isLoading, error} = useInventory();
 
-  const [inventoryItems, setInventoryItems] = useState([]);
-  const [originalInventoryItems, setOriginalInventoryItems] = useState([]);
+  const originalInventoryData = useRef([]);
+
   const [selectedItem, setSelectedItem] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImageUris, setPreviewImageUris] = useState([]);
+
+  const [isCameraVisible, setIsCameraVisible] = useState(false); // <--- ENSURE THIS IS HERE
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [availableYears, setAvailableYears] = useState([]);
-  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
-  const [currentView, setCurrentView] = useState('grouped');
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
+  const [modalGroupItems, setModalGroupItems] = useState([]);
+  const [modalGroupHeader, setModalGroupHeader] = useState(null);
 
   const imageUploadBottomSheetRef = useRef(null);
   const yearFilterBottomSheetRef = useRef(null);
@@ -59,14 +52,34 @@ const InventoryScreen = ({navigation}) => {
   const imageUploadSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
   const yearFilterSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
 
-  const handlePresentImageUploadSheet = useCallback(item => {
-    setSelectedItem(item);
-    imageUploadBottomSheetRef.current?.expand();
+  const getBaseImageUrl = useCallback(item => {
+    return `https://davaocityportal.com/tempUpload/${item?.Id || 'UnknownId'}~${
+      item?.Office || 'UnknownOffice'
+    }~${item?.TrackingNumber || 'UnknownTracking'}~`;
   }, []);
+
+  const handlePresentImageUploadSheet = useCallback(
+    item => {
+      let primaryImageUrl = item.imageUrl;
+
+      if (!primaryImageUrl && item.UploadFiles) {
+        const parts = item.UploadFiles.split('-');
+        if (parts.length === 1 && !isNaN(parseInt(parts[0], 10))) {
+          primaryImageUrl = `${getBaseImageUrl(item)}${parseInt(parts[0], 10)}`;
+        }
+      }
+
+      setSelectedItem({...item, imageUrl: primaryImageUrl});
+      setPreviewImageUris([]);
+      imageUploadBottomSheetRef.current?.expand();
+    },
+    [getBaseImageUrl],
+  );
 
   const handleCloseImageUploadSheet = useCallback(() => {
     imageUploadBottomSheetRef.current?.close();
     setSelectedItem(null);
+    setPreviewImageUris([]);
   }, []);
 
   const handlePresentYearFilterSheet = useCallback(() => {
@@ -77,13 +90,9 @@ const InventoryScreen = ({navigation}) => {
     yearFilterBottomSheetRef.current?.close();
   }, []);
 
-  const handleBottomSheetChange = useCallback(index => {
-    setIsBottomSheetOpen(index !== -1);
-  }, []);
-
   useEffect(() => {
     if (data && data.length > 0) {
-      setOriginalInventoryItems(data);
+      originalInventoryData.current = data;
       const years = [...new Set(data.map(item => item.Year))]
         .filter(Boolean)
         .sort((a, b) => parseInt(b) - parseInt(a));
@@ -91,41 +100,30 @@ const InventoryScreen = ({navigation}) => {
     }
   }, [data]);
 
-  useEffect(() => {
-    let filtered = originalInventoryItems;
+  const filteredInventoryItems = useMemo(() => {
+    let items = originalInventoryData.current;
+
+    if (selectedYear) {
+      items = items.filter(item => item.Year === selectedYear);
+    }
 
     if (searchQuery.trim() !== '') {
       const lowerCaseQuery = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        item =>
-          (item.Item || '').toLowerCase().includes(lowerCaseQuery) ||
-          (item.Description || '').toLowerCase().includes(lowerCaseQuery) ||
-          (item.Year || '').includes(lowerCaseQuery) ||
-          (item.TrackingNumber || '').toLowerCase().includes(lowerCaseQuery) ||
-          (item.Brand || '').toLowerCase().includes(lowerCaseQuery) ||
-          (item.CommonName || '').toLowerCase().includes(lowerCaseQuery) ||
-          (item.SerialNumber || '').toLowerCase().includes(lowerCaseQuery) ||
-          (item.ModelNumber || '').toLowerCase().includes(lowerCaseQuery),
+      items = items.filter(item =>
+        (item.TrackingNumber || '').toLowerCase().includes(lowerCaseQuery),
       );
     }
+    return items;
+  }, [searchQuery, selectedYear, data]);
 
-    if (selectedYear) {
-      filtered = filtered.filter(item => item.Year === selectedYear);
-    }
-
-    setInventoryItems(filtered);
-    setCurrentView('grouped');
-    setSelectedGroup(null);
-  }, [searchQuery, selectedYear, originalInventoryItems]);
-
-  const groupedAndFilteredData = useMemo(() => {
-    if (!inventoryItems.length && !isLoading) {
+  const displayData = useMemo(() => {
+    if (!filteredInventoryItems.length && !isLoading) {
       return [];
     }
 
-    if (currentView === 'grouped') {
+    if (searchQuery.trim() !== '') {
       const groups = {};
-      inventoryItems.forEach(item => {
+      filteredInventoryItems.forEach(item => {
         const tn = item.TrackingNumber || 'No TN';
         const year = item.Year || 'No Year';
         if (!groups[tn]) {
@@ -148,94 +146,240 @@ const InventoryScreen = ({navigation}) => {
                 type: 'groupHeader',
                 trackingNumber: tn,
                 year: year,
-                itemCount: groups[tn][year].length, // Added item count here
+                itemCount: groups[tn][year].length,
                 id: `group-${tn}-${year}`,
+                items: groups[tn][year],
               });
             });
         });
       return groupHeaders;
-    } else if (currentView === 'items' && selectedGroup) {
-      const items = inventoryItems.filter(
-        item =>
-          (item.TrackingNumber || 'No TN') === selectedGroup.trackingNumber &&
-          (item.Year || 'No Year') === selectedGroup.year,
-      );
-      return items.map((item, index) => ({
-        type: 'item',
-        data: item,
-        id: `${item.TrackingNumber || 'no-track'}-${
-          item.SerialNumber || 'no-sn'
-        }-${item.Item || 'no-item'}-${index}`,
-      }));
     }
-    return [];
-  }, [inventoryItems, currentView, selectedGroup, isLoading]);
 
-  const handleImageUpload = useCallback(async () => {
-    if (selectedItem) {
-      setUploadingImage(true);
-      try {
-        const newImageUrl = await pickImage();
-        setUploadingImage(false);
-
-        if (newImageUrl) {
-          const updatedOriginalItems = originalInventoryItems.map(item =>
-            item.TrackingNumber === selectedItem.TrackingNumber &&
-            item.SerialNumber === selectedItem.SerialNumber
-              ? {...item, imageUrl: newImageUrl}
-              : item,
-          );
-          setOriginalInventoryItems(updatedOriginalItems);
-          setSelectedItem(prev => ({...prev, imageUrl: newImageUrl}));
-          handleCloseImageUploadSheet();
-          Alert.alert(
-            'Success',
-            `${selectedItem.Item || 'Item'}'s image has been updated!`,
-          );
-        } else {
-          Alert.alert('Cancelled', 'Image picking cancelled.');
-        }
-      } catch (uploadError) {
-        setUploadingImage(false);
-        Alert.alert('Error', 'Failed to upload image. Please try again.');
-        console.error('Image upload error:', uploadError);
+    const groups = {};
+    filteredInventoryItems.forEach(item => {
+      const tn = item.TrackingNumber || 'No TN';
+      const year = item.Year || 'No Year';
+      if (!groups[tn]) {
+        groups[tn] = {};
       }
-    }
-  }, [selectedItem, originalInventoryItems, handleCloseImageUploadSheet]);
+      if (!groups[tn][year]) {
+        groups[tn][year] = [];
+      }
+      groups[tn][year].push(item);
+    });
 
-  const renderGroupedItem = useCallback(
+    const groupHeaders = [];
+    Object.keys(groups)
+      .sort()
+      .forEach(tn => {
+        Object.keys(groups[tn])
+          .sort((a, b) => parseInt(b) - parseInt(a))
+          .forEach(year => {
+            groupHeaders.push({
+              type: 'groupHeader',
+              trackingNumber: tn,
+              year: year,
+              itemCount: groups[tn][year].length,
+              id: `group-${tn}-${year}`,
+              items: groups[tn][year],
+            });
+          });
+      });
+    return groupHeaders;
+  }, [filteredInventoryItems, searchQuery, isLoading]);
+
+  const handlePickImagesForPreview = useCallback(
+    async source => {
+      if (selectedItem) {
+        try {
+          const options = {
+            mediaType: 'photo',
+            maxWidth: 800,
+            maxHeight: 800,
+            quality: 0.7,
+            includeBase64: false,
+            selectionLimit: 5,
+          };
+
+          let response;
+          if (source === 'camera') {
+            Alert.alert(
+              'Camera Not Integrated',
+              'Camera option not yet integrated. Please use "Select from Album".',
+            );
+            return;
+          } else {
+            response = await launchImageLibrary(options);
+          }
+
+          if (response.didCancel) {
+            //Alert.alert('Cancelled', 'Image picking cancelled.');
+          } else if (response.errorMessage) {
+            Alert.alert(
+              'Error',
+              `Image Picker Error: ${response.errorMessage}`,
+            );
+            console.error('Image Picker Error:', response.errorMessage);
+          } else if (response.assets && response.assets.length > 0) {
+            const uris = response.assets.map(asset => asset.uri);
+            setPreviewImageUris(uris);
+          } else {
+            Alert.alert('Info', 'No image(s) selected.');
+          }
+        } catch (pickerError) {
+          Alert.alert(
+            'Error',
+            'An unexpected error occurred during image selection.',
+          );
+          console.error('Image picking error:', pickerError);
+        }
+      }
+    },
+    [selectedItem],
+  );
+
+  const handlePhotoTakenFromCamera = useCallback(photoUri => {
+    if (photoUri) {
+      // Add the new photo URI to your preview array.
+      // If you only want to allow one photo at a time from camera,
+      // you might use `setPreviewImageUris([photoUri]);` instead.
+      setPreviewImageUris(prevUris => [...prevUris, photoUri]);
+    }
+    setIsCameraVisible(false); // Close the camera modal after photo is taken
+  }, []);
+
+  const handlePickImagesForPreview2 = useCallback(
+    async source => {
+      if (selectedItem) {
+        try {
+          const options = {
+            mediaType: 'photo',
+            maxWidth: 800,
+            maxHeight: 800,
+            quality: 0.7,
+            includeBase64: false,
+            selectionLimit: 0, // 0 for unlimited, 1 for single, or a specific number
+          };
+
+          if (source === 'camera') {
+            setIsCameraVisible(true); // <--- OPEN THE CAMERA COMPONENT
+            return; // Exit here as CameraComponent will handle the photo capture
+          } else {
+            // source === 'gallery'
+            const response = await launchImageLibrary(options);
+
+            if (response.didCancel) {
+              Alert.alert('Cancelled', 'Image picking cancelled.');
+            } else if (response.errorMessage) {
+              Alert.alert(
+                'Error',
+                `Image Picker Error: ${response.errorMessage}`,
+              );
+              console.error('Image Picker Error:', response.errorMessage);
+            } else if (response.assets && response.assets.length > 0) {
+              const uris = response.assets.map(asset => asset.uri);
+              setPreviewImageUris(uris); // Set the selected URIs for preview
+            } else {
+              Alert.alert('Info', 'No image(s) selected.');
+            }
+          }
+        } catch (pickerError) {
+          Alert.alert(
+            'Error',
+            'An unexpected error occurred during image selection.',
+          );
+          console.error('Image picking error:', pickerError);
+        }
+      }
+    },
+    [selectedItem],
+  );
+
+  const confirmUploadImages = useCallback(async () => {
+    if (!selectedItem || previewImageUris.length === 0) {
+      Alert.alert('No Images', 'Please select images for preview first.');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const uploadedImageUrls = [];
+      for (const imageUri of previewImageUris) {
+        console.log(`Simulating upload for: ${imageUri}`);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        uploadedImageUrls.push(imageUri);
+      }
+
+      const finalImageUrl = uploadedImageUrls[0] || null;
+
+      const updatedOriginalItems = originalInventoryData.current.map(item =>
+        item.Id === selectedItem.Id
+          ? {
+              ...item,
+              imageUrl: finalImageUrl,
+              allUploadFilesUris: uploadedImageUrls,
+            }
+          : item,
+      );
+      originalInventoryData.current = updatedOriginalItems;
+      setSelectedItem(prev => ({
+        ...prev,
+        imageUrl: finalImageUrl,
+        allUploadFilesUris: uploadedImageUrls,
+      }));
+
+      handleCloseImageUploadSheet();
+      Alert.alert(
+        'Success',
+        `${previewImageUris.length} image(s) for ${
+          selectedItem.Item || 'Item'
+        } updated!`,
+      );
+    } catch (uploadError) {
+      Alert.alert(
+        'Upload Error',
+        'Failed to upload images to server. Please try again.',
+      );
+      console.error('Image upload to server error:', uploadError);
+    } finally {
+      setUploadingImage(false);
+    }
+  }, [selectedItem, previewImageUris, handleCloseImageUploadSheet]);
+
+  const handleViewGroup = useCallback(group => {
+    setModalGroupItems(group.items);
+    setModalGroupHeader(group);
+    setIsGroupModalVisible(true);
+  }, []);
+
+  const handleCloseGroupModal = useCallback(() => {
+    setIsGroupModalVisible(false);
+    setModalGroupItems([]);
+    setModalGroupHeader(null);
+    setSearchQuery('');
+    setSelectedYear(null);
+  }, []);
+
+  const renderListItem = useCallback(
     ({item, index}) => {
       if (item.type === 'groupHeader') {
         return (
           <TouchableOpacity
             style={styles.groupHeaderContainer}
-            onPress={() => {
-              setSelectedGroup({
-                trackingNumber: item.trackingNumber,
-                year: item.year,
-              });
-              setCurrentView('items');
-              setSearchQuery('');
-            }}
+            onPress={() => handleViewGroup(item)}
             accessibilityLabel={`View ${
               item.itemCount || 0
             } items for tracking number ${item.trackingNumber} in year ${
               item.year
             }`}>
             <View style={styles.groupHeaderContent}>
-              <Text style={{paddingHorizontal: 10}}>{index + 1}</Text>
+              <Text style={styles.groupIndex}>{index + 1}</Text>
               <Text style={styles.groupHeaderText}>
-                {/*  TN:{' '} */}
-                <Text style={styles.groupHighlight}>
-                  <Text style={{fontWeight: 400, color: '#252525'}}>
-                    {item.year} |{' '}
-                  </Text>
+                <Text style={styles.groupHeaderYear}>{item.year} | </Text>
+                <Text style={styles.groupHeaderTrackingNumber}>
                   {item.trackingNumber}
                 </Text>
               </Text>
-              {/*  <Text style={styles.groupSubText}>
-                Year: <Text style={styles.groupHighlight}>{item.year}</Text>
-              </Text> */}
             </View>
             <View style={styles.groupRightSection}>
               {item.itemCount > 0 && (
@@ -246,8 +390,7 @@ const InventoryScreen = ({navigation}) => {
               <Icon
                 name="chevron-forward"
                 size={24}
-                color="#1a508c"
-                style={styles.groupHeaderIcon}
+                color={styles.groupHeaderIcon.color}
               />
             </View>
           </TouchableOpacity>
@@ -257,29 +400,42 @@ const InventoryScreen = ({navigation}) => {
         return (
           <TouchableOpacity
             style={styles.itemContainer}
-            onPress={() => {
-              handlePresentImageUploadSheet(inventoryItem);
-            }}
+            onPress={() => handlePresentImageUploadSheet(inventoryItem)}
             accessibilityLabel={`View details for ${
               inventoryItem.Item || 'No Item Name'
             }`}>
             <View style={styles.itemImageContainer}>
-              <Image
-                source={{
-                  uri:
-                    inventoryItem.imageUrl || // Keep existing imageUrl if it's already set (e.g., from an upload)
-                    `https://davaocityportal.com/tempUpload/${
-                      inventoryItem.Id
-                    }~${inventoryItem.Office || 'UnknownOffice'}~${
-                      inventoryItem.TrackingNumber || 'UnknownTracking'
-                    }~1`, // Dynamic URL for placeholder
-                }}
-                style={styles.itemImage}
-                resizeMode="cover"
-              />
+              {inventoryItem.imageUrl || inventoryItem.UploadFiles ? (
+                <Image
+                  source={{
+                    uri:
+                      inventoryItem.imageUrl ||
+                      (inventoryItem.UploadFiles &&
+                      !isNaN(
+                        parseInt(inventoryItem.UploadFiles.split('-')[0], 10),
+                      )
+                        ? `${getBaseImageUrl(inventoryItem)}${parseInt(
+                            inventoryItem.UploadFiles.split('-')[0],
+                            10,
+                          )}`
+                        : `${getBaseImageUrl(inventoryItem)}1`),
+                  }}
+                  style={styles.itemImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.noImagePlaceholder}>
+                  <Icon
+                    name="image-outline"
+                    size={30}
+                    color={styles.noImagePlaceholderText.color}
+                  />
+                  <Text style={styles.noImagePlaceholderText}>No image</Text>
+                </View>
+              )}
             </View>
             <View style={styles.itemDetails}>
-              <Text>{index + 1}</Text>
+              <Text style={styles.itemIndex}>{index + 1}</Text>
               <Text
                 style={styles.itemName}
                 numberOfLines={2}
@@ -293,56 +449,110 @@ const InventoryScreen = ({navigation}) => {
                 {inventoryItem.Description || 'No description provided.'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Id:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>Id:</Text>{' '}
                 {inventoryItem.Id || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Brand:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>Year:</Text>{' '}
+                {inventoryItem.Year || 'N/A'}
+              </Text>
+              <Text style={styles.itemMeta}>
+                <Text style={styles.itemMetaLabel}>Brand:</Text>{' '}
                 {inventoryItem.Brand || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Common Name:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>Common Name:</Text>{' '}
                 {inventoryItem.CommonName || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>S/N:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>S/N:</Text>{' '}
                 {inventoryItem.SerialNumber || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Model:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>Model:</Text>{' '}
                 {inventoryItem.ModelNumber || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Assigned to:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
                 {inventoryItem.NameAssignedTo || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Current user:</Text>{' '}
+                <Text style={styles.itemMetaLabel}>Current user:</Text>{' '}
                 {inventoryItem.CurrentUser || 'N/A'}
               </Text>
               <Text style={styles.itemMeta}>
-                <Text style={{fontWeight: 'bold'}}>Year:</Text>{' '}
-                {inventoryItem.Year || 'N/A'}
+                <Text style={styles.itemMetaLabel}>NumOfFiles:</Text>{' '}
+                {inventoryItem.NumOfFiles || 'N/A'}
+              </Text>
+              <Text style={styles.itemMeta}>
+                <Text style={styles.itemMetaLabel}>UploadFiles:</Text>{' '}
+                {inventoryItem.UploadFiles || 'N/A'}
               </Text>
             </View>
           </TouchableOpacity>
         );
       }
     },
-    [handlePresentImageUploadSheet],
+    [handlePresentImageUploadSheet, handleViewGroup, getBaseImageUrl],
   );
 
   const handleBack = useCallback(() => {
-    if (currentView === 'items') {
-      setCurrentView('grouped');
-      setSelectedGroup(null);
+    if (isGroupModalVisible) {
+      handleCloseGroupModal();
+    } else if (searchQuery.trim() !== '') {
+      setSearchQuery('');
+    } else if (selectedYear) {
+      setSelectedYear(null);
     } else {
       navigation.goBack();
     }
-  }, [currentView, navigation]);
+  }, [
+    isGroupModalVisible,
+    searchQuery,
+    selectedYear,
+    navigation,
+    handleCloseGroupModal,
+  ]);
+
+  const renderImageUploadBackdrop = useCallback(
+    props => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.3}
+        pressBehavior="close"
+      />
+    ),
+    [],
+  );
+
+  const getMultipleImageUrls = useCallback(
+    item => {
+      const baseUrl = getBaseImageUrl(item);
+
+      if (item?.UploadFiles) {
+        const parts = item.UploadFiles.split('-');
+        if (parts.length > 1) {
+          const start = parseInt(parts[0], 10);
+          const end = parseInt(parts[parts.length - 1], 10);
+
+          if (!isNaN(start) && !isNaN(end) && start <= end) {
+            const urls = [];
+            for (let i = start; i <= end; i++) {
+              urls.push(`${baseUrl}${i}`);
+            }
+            return urls;
+          }
+        }
+      }
+      return null;
+    },
+    [getBaseImageUrl],
+  );
 
   return (
-    <GestureHandlerRootView style={{flex: 1}}>
+    <GestureHandlerRootView style={styles.safeArea}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           <ImageBackground
@@ -363,23 +573,27 @@ const InventoryScreen = ({navigation}) => {
               <Icon
                 name="search-outline"
                 size={20}
-                color="#6C757D"
+                color={styles.searchIcon.color}
                 style={styles.searchIcon}
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search..."
+                placeholder="Search by TN..."
                 placeholderTextColor="#9CA3AF"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                accessibilityHint="Type to search for inventory items by name, description, tracking number, brand, model number, or year."
+                accessibilityHint="Type to search for inventory items by tracking number."
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
                   onPress={() => setSearchQuery('')}
                   style={styles.clearSearchButton}
                   accessibilityLabel="Clear search query">
-                  <Icon name="close-circle" size={20} color="#6C757D" />
+                  <Icon
+                    name="close-circle"
+                    size={20}
+                    color={styles.searchIcon.color}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -408,7 +622,7 @@ const InventoryScreen = ({navigation}) => {
           {isLoading ? (
             <ActivityIndicator
               size="large"
-              color="#1a508c"
+              color={styles.loadingIndicator.color}
               style={styles.loadingIndicator}
             />
           ) : error ? (
@@ -421,21 +635,23 @@ const InventoryScreen = ({navigation}) => {
               </Text>
             </View>
           ) : (
-            <FlashList // Changed from FlatList to FlashList
-              data={groupedAndFilteredData}
-              renderItem={renderGroupedItem}
+            <FlashList
+              data={displayData}
+              renderItem={renderListItem}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.listContent}
-              estimatedItemSize={150} // Added estimatedItemSize
+              estimatedItemSize={150}
               ListEmptyComponent={
                 <View style={styles.emptyStateContainer}>
-                  <Icon name="cube-outline" size={50} color="#6C757D" />
+                  <Icon
+                    name="cube-outline"
+                    size={50}
+                    color={styles.noItemsText.color}
+                  />
                   <Text style={styles.noItemsText}>No items found</Text>
                   <Text style={styles.noItemsSubText}>
                     {selectedYear
                       ? `No items found for year ${selectedYear}.`
-                      : currentView === 'items' && selectedGroup
-                      ? `No items found under TN ${selectedGroup.trackingNumber} for year ${selectedGroup.year}.`
                       : 'Try adjusting your search or filters.'}
                   </Text>
                 </View>
@@ -444,77 +660,12 @@ const InventoryScreen = ({navigation}) => {
           )}
 
           <BottomSheet
-            ref={imageUploadBottomSheetRef}
-            index={-1}
-            snapPoints={imageUploadSnapPoints}
-            enablePanDownToClose={true}
-            backdropComponent={BottomSheetBackdrop}
-            handleIndicatorStyle={styles.bottomSheetHandle}
-            onChange={handleBottomSheetChange}>
-            <BottomSheetScrollView
-              contentContainerStyle={styles.bottomSheetContent}>
-              <Text style={styles.modalTitle}>Upload Image for</Text>
-              <Text
-                style={[styles.modalTitle, {fontWeight: 'normal'}]}
-                numberOfLines={2}
-                ellipsizeMode="tail">
-                {selectedItem?.Item || 'Selected Item'}
-              </Text>
-              {selectedItem?.imageUrl ? (
-                <Image
-                  source={{uri: selectedItem.imageUrl}}
-                  style={styles.modalImagePreview}
-                  resizeMode="contain"
-                  accessibilityLabel={`Current image for ${
-                    selectedItem.Item || 'Selected Item'
-                  }`}
-                />
-              ) : (
-                <View style={styles.modalImagePlaceholder}>
-                  <Icon name="image-outline" size={60} color="#ADB5BD" />
-                  <Text style={styles.modalImagePlaceholderText}>
-                    No image yet
-                  </Text>
-                </View>
-              )}
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={handleImageUpload}
-                disabled={uploadingImage}
-                accessibilityLabel="Select and upload a new image">
-                {uploadingImage ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <Icon
-                      name="cloud-upload-outline"
-                      size={20}
-                      color="#FFFFFF"
-                      style={styles.uploadButtonIcon}
-                    />
-                    <Text style={styles.uploadButtonText}>
-                      Select and Upload Image
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={handleCloseImageUploadSheet}
-                accessibilityLabel="Cancel image upload">
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </BottomSheetScrollView>
-          </BottomSheet>
-
-          <BottomSheet
             ref={yearFilterBottomSheetRef}
             index={-1}
             snapPoints={yearFilterSnapPoints}
             enablePanDownToClose={true}
             backdropComponent={BottomSheetBackdrop}
-            handleIndicatorStyle={styles.bottomSheetHandle}
-            onChange={handleBottomSheetChange}>
+            handleIndicatorStyle={styles.bottomSheetHandle}>
             <BottomSheetFlatList
               data={['All Years', ...availableYears]}
               keyExtractor={item => item}
@@ -554,6 +705,232 @@ const InventoryScreen = ({navigation}) => {
               contentContainerStyle={styles.yearOptionsFlatListContent}
             />
           </BottomSheet>
+
+          <Modal
+            visible={isGroupModalVisible}
+            onRequestClose={handleCloseGroupModal}
+            animationType="slide"
+            presentationStyle="fullScreen">
+            <SafeAreaView style={styles.safeArea}>
+              <View style={styles.modalContainer}>
+                <ImageBackground
+                  source={require('../../assets/images/CirclesBG.png')}
+                  style={[styles.bgHeader, {paddingTop: 0}]}
+                  imageStyle={styles.bgHeaderImageStyle}>
+                  <View style={styles.header}>
+                    <TouchableOpacity
+                      onPress={handleCloseGroupModal}
+                      style={styles.backButton}>
+                      <Icon
+                        name="chevron-back-outline"
+                        size={26}
+                        color="#FFFFFF"
+                      />
+                      <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                    <View style={{width: 60}} />
+                  </View>
+                  <View style={styles.modalTitleContainer}>
+                    <Text style={styles.modalGroupTitle}>
+                      {modalGroupHeader?.trackingNumber || 'Grouped Items'}
+                    </Text>
+                    <Text style={styles.modalGroupSubtitle}>
+                      {modalGroupHeader?.year || ''} (
+                      {modalGroupHeader?.itemCount || 0} items)
+                    </Text>
+                  </View>
+                </ImageBackground>
+
+                {modalGroupItems.length > 0 ? (
+                  <FlashList
+                    data={modalGroupItems.map((item, index) => ({
+                      type: 'item',
+                      data: item,
+                      id: `${item.TrackingNumber || 'no-track'}-${
+                        item.SerialNumber || 'no-sn'
+                      }-${item.Item || 'no-item'}-${index}`,
+                    }))}
+                    renderItem={renderListItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    estimatedItemSize={150}
+                  />
+                ) : (
+                  <View style={styles.emptyStateContainer}>
+                    <Icon
+                      name="cube-outline"
+                      size={50}
+                      color={styles.noItemsText.color}
+                    />
+                    <Text style={styles.noItemsText}>
+                      No items in this group
+                    </Text>
+                    <Text style={styles.noItemsSubText}>
+                      This group currently has no items.
+                    </Text>
+                  </View>
+                )}
+
+                <BottomSheet
+                  ref={imageUploadBottomSheetRef}
+                  index={-1}
+                  snapPoints={imageUploadSnapPoints}
+                  enablePanDownToClose={true}
+                  backdropComponent={renderImageUploadBackdrop}
+                  handleIndicatorStyle={styles.bottomSheetHandle}>
+                  <BottomSheetScrollView
+                    contentContainerStyle={styles.bottomSheetContent}>
+                    <Text style={styles.modalTitle}>Upload Image for</Text>
+                    <Text
+                      style={[styles.modalTitle, {fontWeight: 'normal'}]}
+                      numberOfLines={2}
+                      ellipsizeMode="tail">
+                      {selectedItem?.Item || 'Selected Item'}
+                    </Text>
+
+                    {previewImageUris.length > 0 ? (
+                      <View style={styles.modalMultipleImagesContainer}>
+                        <FlatList
+                          data={previewImageUris}
+                          horizontal
+                          showsHorizontalScrollIndicator={true}
+                          keyExtractor={(item, index) => item + index}
+                          renderItem={({item: imageUrl}) => (
+                            <Image
+                              source={{uri: imageUrl}}
+                              style={styles.modalMultiImagePreview}
+                              resizeMode="contain"
+                            />
+                          )}
+                        />
+                        <Text style={styles.previewCountText}>
+                          {previewImageUris.length} image(s) selected for upload
+                        </Text>
+                      </View>
+                    ) : (
+                      (() => {
+                        const multipleImageUrls =
+                          getMultipleImageUrls(selectedItem);
+
+                        if (multipleImageUrls && multipleImageUrls.length > 0) {
+                          return (
+                            <View style={styles.modalMultipleImagesContainer}>
+                              <FlatList
+                                data={multipleImageUrls}
+                                horizontal
+                                showsHorizontalScrollIndicator={true}
+                                keyExtractor={(item, index) => item + index}
+                                renderItem={({item: imageUrl}) => (
+                                  <Image
+                                    source={{uri: imageUrl}}
+                                    style={styles.modalMultiImagePreview}
+                                    resizeMode="contain"
+                                  />
+                                )}
+                              />
+                            </View>
+                          );
+                        } else if (selectedItem?.imageUrl) {
+                          return (
+                            <Image
+                              source={{uri: selectedItem.imageUrl}}
+                              style={styles.modalImagePreview}
+                              resizeMode="contain"
+                            />
+                          );
+                        } else {
+                          return (
+                            <View style={styles.modalImagePlaceholder}>
+                              <Icon
+                                name="image-outline"
+                                size={60}
+                                color={styles.modalImagePlaceholderText.color}
+                              />
+                              <Text style={styles.modalImagePlaceholderText}>
+                                No image yet
+                              </Text>
+                            </View>
+                          );
+                        }
+                      })()
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.selectImageButton}
+                      onPress={() => handlePickImagesForPreview('gallery')}
+                      disabled={uploadingImage}
+                      accessibilityLabel="Select image(s) from your photo album for preview">
+                      <Icon
+                        name="images-outline"
+                        size={20}
+                        color="#FFFFFF"
+                        style={styles.uploadButtonIcon}
+                      />
+                      <Text style={styles.uploadButtonText}>
+                        Select Image(s)
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.selectImageButton}
+                      onPress={() => handlePickImagesForPreview('camera')} // <--- CALL WITH 'camera' SOURCE
+                      disabled={uploadingImage}
+                      accessibilityLabel="Take a new photo with camera for preview">
+                      <Icon
+                        name="camera-outline"
+                        size={20}
+                        color="#FFFFFF"
+                        style={styles.uploadButtonIcon}
+                      />
+                      <Text style={styles.uploadButtonText}>Take Photo</Text>
+                    </TouchableOpacity>
+
+                    {previewImageUris.length > 0 && (
+                      <TouchableOpacity
+                        style={styles.uploadNowButton}
+                        onPress={confirmUploadImages}
+                        disabled={uploadingImage}
+                        accessibilityLabel="Confirm and upload selected image(s)">
+                        {uploadingImage ? (
+                          <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                          <>
+                            <Icon
+                              name="cloud-upload-outline"
+                              size={20}
+                              color="#FFFFFF"
+                              style={styles.uploadButtonIcon}
+                            />
+                            <Text style={styles.uploadButtonText}>
+                              Upload Now
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={handleCloseImageUploadSheet}
+                      disabled={uploadingImage}
+                      accessibilityLabel="Cancel image selection and upload">
+                      <Text style={styles.secondaryButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </BottomSheetScrollView>
+                </BottomSheet>
+                <Modal
+                  visible={isCameraVisible}
+                  onRequestClose={() => setIsCameraVisible(false)} // Allows closing with hardware back button
+                  animationType="slide" // Or 'fade', 'none'
+                  presentationStyle="fullScreen">
+                  <CameraComponent
+                    onPhotoTaken={handlePhotoTakenFromCamera} // Pass the callback to get the photo URI
+                    onClose={() => setIsCameraVisible(false)} // Pass a callback to close the camera modal
+                  />
+                </Modal>
+              </View>
+            </SafeAreaView>
+          </Modal>
         </View>
       </SafeAreaView>
     </GestureHandlerRootView>
@@ -569,6 +946,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
+
   bgHeader: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 30,
     height: 130,
@@ -604,20 +982,13 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontWeight: '500',
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
-  },
+
   searchFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
     marginHorizontal: 15,
     marginTop: -40,
-    //zIndex: 10,
   },
   searchInputWrapper: {
     flex: 1,
@@ -638,6 +1009,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 8,
+    color: '#6C757D',
   },
   searchInput: {
     flex: 1,
@@ -673,14 +1045,102 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     padding: 2,
   },
+
   loadingIndicator: {
     marginTop: 50,
+    color: '#1a508c',
   },
   listContent: {
     paddingBottom: 20,
     paddingHorizontal: 15,
     paddingTop: 5,
   },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+    paddingHorizontal: 30,
+  },
+  noItemsText: {
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#495057',
+    marginBottom: 10,
+  },
+  noItemsSubText: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: '#868E96',
+    lineHeight: 22,
+  },
+
+  groupHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 15,
+    marginBottom: 10,
+    borderLeftWidth: 6,
+    borderColor: '#1a508c',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  groupHeaderContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  groupIndex: {
+    paddingHorizontal: 10,
+    color: '#495057',
+    fontSize: 15,
+  },
+  groupHeaderText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#343A40',
+    marginBottom: 4,
+  },
+  groupHeaderYear: {
+    fontWeight: '400',
+    color: '#252525',
+  },
+  groupHeaderTrackingNumber: {
+    fontWeight: 'bold',
+    color: '#1a508c',
+  },
+  groupRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  itemCountBadge: {
+    backgroundColor: '#1a508c',
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 10,
+    minWidth: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemCountText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  groupHeaderIcon: {
+    color: '#1a508c',
+  },
+
   itemContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -713,6 +1173,11 @@ const styles = StyleSheet.create({
   itemDetails: {
     flex: 1,
   },
+  itemIndex: {
+    fontSize: 13,
+    color: '#6C757D',
+    marginBottom: 4,
+  },
   itemName: {
     fontSize: 17,
     fontWeight: '700',
@@ -731,27 +1196,12 @@ const styles = StyleSheet.create({
     color: '#495057',
     marginBottom: 2,
   },
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 60,
-    paddingHorizontal: 30,
+  itemMetaLabel: {
+    fontWeight: 'bold',
   },
-  noItemsText: {
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#495057',
-    marginBottom: 10,
-  },
-  noItemsSubText: {
-    textAlign: 'center',
-    fontSize: 15,
-    color: '#868E96',
-    lineHeight: 22,
-  },
+
   bottomSheetContent: {
-    alignItems: 'center',
+    //alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
@@ -765,9 +1215,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 25,
     color: '#212529',
-    textAlign: 'center',
+    //textAlign: 'center',
+  },
+
+  modalMultipleImagesContainer: {
+    height: 200, // Fixed height for the horizontal FlatList
+    marginBottom: 25,
+    width: '100%',
+  },
+  modalMultiImagePreview: {
+    width: 200, // Each image width
+    height: 200, // Each image height
+    borderRadius: 15,
+    marginHorizontal: 5, // Spacing between images
+    backgroundColor: '#E9ECEF',
+    borderWidth: 1,
+    borderColor: '#DEE2E6',
   },
   modalImagePreview: {
+    // For single image display
     width: 200,
     height: 200,
     borderRadius: 15,
@@ -775,6 +1241,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#DEE2E6',
     borderWidth: 1,
     borderColor: '#CED4DA',
+    alignSelf: 'center', // Center the single image
   },
   modalImagePlaceholder: {
     width: 200,
@@ -786,6 +1253,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#D0D6DD',
+    alignSelf: 'center', // Center the placeholder
   },
   modalImagePlaceholderText: {
     marginTop: 10,
@@ -837,6 +1305,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
+
   yearOptionsFlatListContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -865,66 +1334,239 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  groupHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginTop: 15,
-    marginBottom: 10,
-    borderLeftWidth: 6,
-    borderColor: '#1a508c',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  groupHeaderContent: {
+
+  modalContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    backgroundColor: '#F8F9FA',
   },
-  groupHeaderText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#343A40',
-    marginBottom: 4,
-  },
-  groupSubText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#6C757D',
-  },
-  groupHighlight: {
-    fontWeight: 'bold',
-    color: '#1a508c',
-  },
-  groupRightSection: {
-    flexDirection: 'row',
+  modalTitleContainer: {
     alignItems: 'center',
-    marginLeft: 10,
+    marginTop: 10,
+    marginBottom: 20,
   },
-  itemCountBadge: {
-    backgroundColor: '#007BFF',
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginRight: 10,
-    minWidth: 30,
+  modalGroupTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  modalGroupSubtitle: {
+    fontSize: 16,
+    color: '#E9ECEF',
+    textAlign: 'center',
+  },
+  noImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#E0E0E0', // Light grey background
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  noImagePlaceholderText: {
+    fontSize: 12,
+    color: '#888888', // Darker grey text
+    marginTop: 5,
+  },
+  itemDetails: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingRight: 10,
+    justifyContent: 'center',
+  },
+  itemIndex: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    fontSize: 12,
+    color: '#ADB5BD',
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#343A40',
+    marginBottom: 2,
+  },
+  itemDescription: {
+    fontSize: 13,
+    color: '#6C757D',
+    marginBottom: 5,
+  },
+  itemMeta: {
+    fontSize: 12,
+    color: '#495057',
+    marginBottom: 1,
+  },
+  itemMetaLabel: {
+    fontWeight: 'bold',
+    color: '#343A40',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    marginTop: 50,
+  },
+  noItemsText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#495057',
+    marginTop: 15,
+  },
+  noItemsSubText: {
+    fontSize: 14,
+    color: '#6C757D',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  modalTitleContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    alignItems: 'flex-start',
+  },
+  modalGroupTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  modalGroupSubtitle: {
+    fontSize: 16,
+    color: '#DEE2E6',
+  },
+  bottomSheetHeader: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#343A40',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  bottomSheetContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 30, // Extra padding for buttons at the bottom
+  },
+  modalImagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    backgroundColor: '#E9ECEF',
+    marginBottom: 20,
+  },
+  modalImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    backgroundColor: '#E9ECEF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalImagePlaceholderText: {
+    color: '#6C757D',
+    marginTop: 10,
+  },
+  bottomSheetHandle: {
+    backgroundColor: '#CED4DA',
+    width: 50,
+  },
+  yearOptionsFlatListContent: {
+    paddingVertical: 10,
+  },
+  yearOptionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginHorizontal: 15,
+    marginBottom: 8,
+    borderRadius: 8,
+    backgroundColor: '#E9ECEF',
+  },
+  selectedYearOptionButton: {
+    backgroundColor: '#1a508c',
+  },
+  yearOptionText: {
+    fontSize: 16,
+    color: '#495057',
+    textAlign: 'center',
+  },
+  selectedYearOptionText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  modalMultipleImagesContainer: {
+    height: 150,
+    marginVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  itemCountText: {
+  modalMultiImagePreview: {
+    width: 120,
+    height: 120,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    backgroundColor: '#E0E0E0',
+  },
+  previewCountText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6C757D',
+    textAlign: 'center',
+  },
+  selectImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#28A745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  uploadNowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007BFF',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 10,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  uploadButtonIcon: {
+    marginRight: 8,
+  },
+  uploadButtonText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  groupHeaderIcon: {
-    // Styles applied directly to the Icon component
+  secondaryButton: {
+    backgroundColor: '#6C757D',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 10,
+    width: '90%',
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

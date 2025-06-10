@@ -264,7 +264,7 @@ export function Route() {
 const handleUpdate = async updateUrl => {
   const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
   const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
-  const path = `${RNBlobUtil.fs.dirs.DownloadDir}/update.apk`; // DownloadDir is more accessible for APK files
+  const path = `${RNBlobUtil.fs.dirs.DownloadDir}/update.apk`; 
 
   // Create Notifee channel
   const channelId = await notifee.createChannel({
@@ -315,10 +315,8 @@ const handleUpdate = async updateUrl => {
     .then(async res => {
       const filePath = res.path();
 
-      // Cancel progress notification
       await notifee.cancelNotification('download-progress');
 
-      // Show download complete notification
       await notifee.displayNotification({
         title: 'Download Complete',
         body: 'The update has been downloaded successfully.',

@@ -1104,7 +1104,7 @@ const SearchScreen = ({}) => {
         <Modal
           visible={searchModalVisible}
           transparent={false}
-          animationType="slide"
+          animationType="fade"
           onRequestClose={() => setSearchModalVisible(false)}>
           <View style={styles.safeArea}>
             <View style={styles.fullScreenModal}>

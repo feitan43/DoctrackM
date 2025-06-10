@@ -129,6 +129,12 @@ const MyTransactionsScreen = ({navigation}) => {
   const scrollY = new Animated.Value(0);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
 
+  // Declare bottomSheetRef using useRef
+  const bottomSheetRef = useRef(null);
+
+  // Define snap points for the BottomSheet
+  const snapPoints = useMemo(() => ['25%', '50%'], []); // Adjust snap points as needed
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchMyPersonal(); // Use refetch from react-query
@@ -143,8 +149,8 @@ const MyTransactionsScreen = ({navigation}) => {
     },
     [navigation],
   );
-  
-    const handleScroll = Animated.event(
+
+  const handleScroll = Animated.event(
     [{nativeEvent: {contentOffset: {y: scrollY}}}],
     {
       listener: event => {
@@ -237,6 +243,7 @@ const MyTransactionsScreen = ({navigation}) => {
   const handleSelectYear = year => {
     setSelectedYear(year);
     setBottomSheetVisible(false);
+    bottomSheetRef.current?.close(); // Close bottom sheet after selection
     // useQuery refetches automatically when queryKey changes (due to selectedYear)
   };
 
@@ -325,9 +332,9 @@ const MyTransactionsScreen = ({navigation}) => {
 
           {bottomSheetVisible && (
             <BottomSheet
-              ref={bottomSheetRef}
+              ref={bottomSheetRef} // Assign the ref here
               index={0}
-              snapPoints={snapPoints}
+              snapPoints={snapPoints} // Use snapPoints from useMemo
               backdropComponent={props => (
                 <BottomSheetBackdrop
                   {...props}

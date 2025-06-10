@@ -46,7 +46,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
     });
   }; */
 
-  const handleFeedback = () => {
+/*   const handleFeedback = () => {
   const packageName = 'com.doctrackm'; // 🔁 replace with your actual package name
   const url = Platform.select({
     android: `market://details?id=${packageName}`,
@@ -57,7 +57,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
     // fallback to web URL
     Linking.openURL(`https://play.google.com/store/apps/details?id=${packageName}`);
   });
-};
+}; */
 
   const logout = async () => {
     setModalVisible(false);
@@ -128,11 +128,11 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
             label="Contact Us"
             onPress={handleContactUs}
           />
-          <SettingItem
+         {/*  <SettingItem
             icon="chatbubbles-outline"
             label="Feedback and Suggestions"
             onPress={handleFeedback}
-          />
+          /> */}
           <SettingItem
             icon="help-circle-outline"
             label="Help Center"

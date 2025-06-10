@@ -61,7 +61,7 @@ const MyTransactionDetails = ({route, navigation}) => {
             styles.statusCard,
             {backgroundColor: getStatusColor(selectedItem.Status)},
           ]}>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
             <Text style={styles.trackingType}>
               {selectedItem.TrackingType} -{' '}
             </Text>
@@ -260,9 +260,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    paddingHorizontal:10
   },
   trackingType: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.8)',
     marginBottom: 4,

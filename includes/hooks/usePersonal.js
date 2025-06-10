@@ -75,25 +75,6 @@ export const useUpdateUserAccess = () => {
 };
 // ---end
 
-export const fetchInventory = async officeCode => {
-  if (!officeCode) throw new Error('Office Code are required');
-  const {data} = await apiClient.get(`/getInventory?OfficeCode=${officeCode}`);
-  return data;
-};
-
-export const useInventory = () => {
-  const {officeCode} = useUserInfo();
-
-  return useQuery({
-    queryKey: ['getInventory', officeCode],
-    queryFn: () => fetchInventory(officeCode),
-    enabled: Boolean(officeCode),
-    staleTime: 5 * 60 * 1000,
-    retry: 2,
-  });
-};
-
-
 //SUPERACCESS
 export const fetchUsersSuperAccess = async key => {
   if (!key) throw new Error('key are required');
