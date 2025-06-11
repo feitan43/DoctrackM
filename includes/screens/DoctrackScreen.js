@@ -1281,7 +1281,7 @@ const DoctrackScreen = ({
                   fontSize: 18,
                   marginStart: 10,
                 }}>
-                BOSS LEVEL
+                Boss Level
               </Text>
             </View>
 

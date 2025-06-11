@@ -14,6 +14,7 @@ import {
   StatusBar,
   Modal,
   FlatList,
+  PermissionsAndroid,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import BottomSheet, {
@@ -22,22 +23,27 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {useInventory} from '../hooks/usePersonal';
+import {useInventory, useInventoryImages} from '../hooks/useInventory';
 import {FlashList} from '@shopify/flash-list';
-import {launchImageLibrary} from 'react-native-image-picker';
-import CameraComponent from '../utils/CameraComponent'; // <--- ASSUMING THIS PATH AND NAME
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import CameraComponent from '../utils/CameraComponent';
+import useSearchTrack from '../api/useSearchTrack';
+import useUserInfo from '../api/useUserInfo';
 
 const InventoryScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const {data, isLoading, error} = useInventory();
+  const {officeCode} = useUserInfo();
 
   const originalInventoryData = useRef([]);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImageUris, setPreviewImageUris] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
 
-  const [isCameraVisible, setIsCameraVisible] = useState(false); // <--- ENSURE THIS IS HERE
+  const [isCameraVisible, setIsCameraVisible] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [availableYears, setAvailableYears] = useState([]);
@@ -49,7 +55,7 @@ const InventoryScreen = ({navigation}) => {
   const imageUploadBottomSheetRef = useRef(null);
   const yearFilterBottomSheetRef = useRef(null);
 
-  const imageUploadSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
+  const imageUploadSnapPoints = useMemo(() => ['25%', '50%', '100%'], []);
   const yearFilterSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
 
   const getBaseImageUrl = useCallback(item => {
@@ -58,7 +64,8 @@ const InventoryScreen = ({navigation}) => {
     }~${item?.TrackingNumber || 'UnknownTracking'}~`;
   }, []);
 
-  const handlePresentImageUploadSheet = useCallback(
+
+  /*  const handlePresentImageUploadSheet = useCallback(
     item => {
       let primaryImageUrl = item.imageUrl;
 
@@ -70,6 +77,38 @@ const InventoryScreen = ({navigation}) => {
       }
 
       setSelectedItem({...item, imageUrl: primaryImageUrl});
+      setPreviewImageUris([]);
+      imageUploadBottomSheetRef.current?.expand();
+    },
+    [getBaseImageUrl],
+  ); */
+
+  const handlePresentImageUploadSheet = useCallback(
+    item => {
+      let primaryImageUrl = item.imageUrl;
+      let existingMultipleImageUrls = [];
+
+      if (item.UploadFiles) {
+        const parts = item.UploadFiles.split('-');
+        const imageNumbers = parts.filter(
+          part => !isNaN(parseInt(part, 10)) && part.trim() !== '',
+        );
+
+        if (imageNumbers.length > 0) {
+          existingMultipleImageUrls = imageNumbers.map(
+            num => `${getBaseImageUrl(item)}${parseInt(num, 10)}`,
+          );
+          if (!primaryImageUrl && existingMultipleImageUrls.length > 0) {
+            primaryImageUrl = existingMultipleImageUrls[0];
+          }
+        }
+      }
+      setSelectedItem({
+        ...item,
+        imageUrl: primaryImageUrl,
+        multipleImageUrls: existingMultipleImageUrls,
+      });
+
       setPreviewImageUris([]);
       imageUploadBottomSheetRef.current?.expand();
     },
@@ -188,7 +227,35 @@ const InventoryScreen = ({navigation}) => {
     return groupHeaders;
   }, [filteredInventoryItems, searchQuery, isLoading]);
 
-  const handlePickImagesForPreview = useCallback(
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'Your app needs access to your camera to take photos.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleRemovePreviewImage = useCallback(indexToRemove => {
+    setPreviewImageUris(currentUris =>
+      currentUris.filter((_, index) => index !== indexToRemove),
+    );
+  }, []);
+
+  /* const handlePickImagesForPreview = useCallback(
     async source => {
       if (selectedItem) {
         try {
@@ -203,17 +270,24 @@ const InventoryScreen = ({navigation}) => {
 
           let response;
           if (source === 'camera') {
-            Alert.alert(
-              'Camera Not Integrated',
-              'Camera option not yet integrated. Please use "Select from Album".',
-            );
-            return;
-          } else {
+            const hasPermission = await requestCameraPermission();
+            if (!hasPermission) {
+              Alert.alert(
+                'Permission Denied',
+                'Camera permission is required.',
+              );
+              return;
+            }
+            response = await launchCamera(options);
+          } else if (source === 'gallery') {
             response = await launchImageLibrary(options);
+          } else {
+            Alert.alert('Error', 'Invalid image source provided.');
+            return;
           }
 
           if (response.didCancel) {
-            //Alert.alert('Cancelled', 'Image picking cancelled.');
+            // User cancelled
           } else if (response.errorMessage) {
             Alert.alert(
               'Error',
@@ -221,8 +295,9 @@ const InventoryScreen = ({navigation}) => {
             );
             console.error('Image Picker Error:', response.errorMessage);
           } else if (response.assets && response.assets.length > 0) {
-            const uris = response.assets.map(asset => asset.uri);
-            setPreviewImageUris(uris);
+            const newUris = response.assets.map(asset => asset.uri);
+            // This is the key: append new URIs to the existing ones
+            setPreviewImageUris(prevUris => [...prevUris, ...newUris]);
           } else {
             Alert.alert('Info', 'No image(s) selected.');
           }
@@ -236,52 +311,63 @@ const InventoryScreen = ({navigation}) => {
       }
     },
     [selectedItem],
-  );
+  ); */
 
-  const handlePhotoTakenFromCamera = useCallback(photoUri => {
-    if (photoUri) {
-      // Add the new photo URI to your preview array.
-      // If you only want to allow one photo at a time from camera,
-      // you might use `setPreviewImageUris([photoUri]);` instead.
-      setPreviewImageUris(prevUris => [...prevUris, photoUri]);
-    }
-    setIsCameraVisible(false); // Close the camera modal after photo is taken
-  }, []);
-
-  const handlePickImagesForPreview2 = useCallback(
+  const handlePickImagesForPreview = useCallback(
     async source => {
       if (selectedItem) {
+        if (previewImageUris.length >= 5) {
+          Alert.alert(
+            'Maximum Images Reached',
+            'You can only select up to 5 images for preview.',
+          );
+          return;
+        }
+
         try {
+          const remainingSlots = 5 - previewImageUris.length;
+
           const options = {
             mediaType: 'photo',
             maxWidth: 800,
             maxHeight: 800,
             quality: 0.7,
             includeBase64: false,
-            selectionLimit: 0, // 0 for unlimited, 1 for single, or a specific number
+            selectionLimit: remainingSlots,
           };
 
+          let response;
           if (source === 'camera') {
-            setIsCameraVisible(true); // <--- OPEN THE CAMERA COMPONENT
-            return; // Exit here as CameraComponent will handle the photo capture
-          } else {
-            // source === 'gallery'
-            const response = await launchImageLibrary(options);
-
-            if (response.didCancel) {
-              Alert.alert('Cancelled', 'Image picking cancelled.');
-            } else if (response.errorMessage) {
+            const hasPermission = await requestCameraPermission();
+            if (!hasPermission) {
               Alert.alert(
-                'Error',
-                `Image Picker Error: ${response.errorMessage}`,
+                'Permission Denied',
+                'Camera permission is required.',
               );
-              console.error('Image Picker Error:', response.errorMessage);
-            } else if (response.assets && response.assets.length > 0) {
-              const uris = response.assets.map(asset => asset.uri);
-              setPreviewImageUris(uris); // Set the selected URIs for preview
-            } else {
-              Alert.alert('Info', 'No image(s) selected.');
+              return;
             }
+            response = await launchCamera(options);
+          } else if (source === 'gallery') {
+            response = await launchImageLibrary(options);
+          } else {
+            Alert.alert('Error', 'Invalid image source provided.');
+            return;
+          }
+
+          if (response.didCancel) {
+          } else if (response.errorMessage) {
+            Alert.alert(
+              'Error',
+              `Image Picker Error: ${response.errorMessage}`,
+            );
+            console.error('Image Picker Error:', response.errorMessage);
+          } else if (response.assets && response.assets.length > 0) {
+            const newUris = response.assets.map(asset => asset.uri);
+
+            const combinedUris = [...previewImageUris, ...newUris];
+            setPreviewImageUris(combinedUris.slice(0, 5));
+          } else {
+            Alert.alert('Info', 'No image(s) selected.');
           }
         } catch (pickerError) {
           Alert.alert(
@@ -292,10 +378,17 @@ const InventoryScreen = ({navigation}) => {
         }
       }
     },
-    [selectedItem],
+    [selectedItem, previewImageUris], // Add previewImageUris to dependencies
   );
 
-  const confirmUploadImages = useCallback(async () => {
+  const handlePhotoTakenFromCamera = useCallback(photoUri => {
+    if (photoUri) {
+      setPreviewImageUris(prevUris => [...prevUris, photoUri]);
+    }
+    setIsCameraVisible(false);
+  }, []);
+
+  /* const confirmUploadImages = useCallback(async () => {
     if (!selectedItem || previewImageUris.length === 0) {
       Alert.alert('No Images', 'Please select images for preview first.');
       return;
@@ -344,6 +437,60 @@ const InventoryScreen = ({navigation}) => {
     } finally {
       setUploadingImage(false);
     }
+  }, [selectedItem, previewImageUris, handleCloseImageUploadSheet]); */
+
+  const confirmUploadImages = useCallback(async () => {
+    if (!selectedItem || previewImageUris.length === 0) {
+      Alert.alert('No Images', 'Please select images for preview first.');
+      return;
+    }
+
+    setUploadingImage(true);
+    setUploadProgress(0); // Reset progress at the start of upload**
+    try {
+      const uploadedImageUrls = [];
+      for (const imageUri of previewImageUris) {
+        console.log(`Simulating upload for: ${imageUri}`);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Shorter timeout for quicker demo
+        uploadedImageUrls.push(imageUri);
+        setUploadProgress(prev => prev + 1); // Increment progress after each "upload"**
+      }
+
+      const finalImageUrl = uploadedImageUrls[0] || null;
+
+      const updatedOriginalItems = originalInventoryData.current.map(item =>
+        item.Id === selectedItem.Id
+          ? {
+              ...item,
+              imageUrl: finalImageUrl,
+              allUploadFilesUris: uploadedImageUrls,
+            }
+          : item,
+      );
+      originalInventoryData.current = updatedOriginalItems;
+      setSelectedItem(prev => ({
+        ...prev,
+        imageUrl: finalImageUrl,
+        allUploadFilesUris: uploadedImageUrls,
+      }));
+
+      handleCloseImageUploadSheet();
+      Alert.alert(
+        'Success',
+        `${previewImageUris.length} image(s) for ${
+          selectedItem.Item || 'Item'
+        } updated!`,
+      );
+    } catch (uploadError) {
+      Alert.alert(
+        'Upload Error',
+        'Failed to upload images to server. Please try again.',
+      );
+      console.error('Image upload to server error:', uploadError);
+    } finally {
+      setUploadingImage(false);
+      setUploadProgress(0); // Reset progress after upload finishes (success or failure)**
+    }
   }, [selectedItem, previewImageUris, handleCloseImageUploadSheet]);
 
   const handleViewGroup = useCallback(group => {
@@ -359,6 +506,93 @@ const InventoryScreen = ({navigation}) => {
     setSearchQuery('');
     setSelectedYear(null);
   }, []);
+
+ const InventoryItemComponent = ({
+  inventoryItem,
+  index,
+  handlePresentImageUploadSheet,
+  }) => {
+  const {data: fetchedImageUrls, isLoading} = useInventoryImages( 
+    inventoryItem.Id,
+    inventoryItem.Office,
+    inventoryItem.TrackingNumber,
+  );
+
+    const fetchedImageUrl = fetchedImageUrls && fetchedImageUrls.length > 0
+      ? fetchedImageUrls[0]
+      : null;
+
+ /*  console.log(fetchedImageUrl, inventoryItem.Id,
+    inventoryItem.Office,
+    inventoryItem.TrackingNumber)
+ */
+    const imageSource = fetchedImageUrl
+    ? {uri: fetchedImageUrl}
+    : inventoryItem.imageUrl
+    ? {uri: inventoryItem.imageUrl}
+    : inventoryItem.UploadFiles &&
+    !isNaN(parseInt(inventoryItem.UploadFiles.split('-')[0], 10))
+    ? {
+      uri: `${getBaseImageUrl(inventoryItem)}${parseInt(
+      inventoryItem.UploadFiles.split('-')[0],
+      10,
+      )}`,
+    }
+  : {uri: `${getBaseImageUrl(inventoryItem)}1`};
+
+  return (
+    <TouchableOpacity
+      style={styles.itemContainer}
+      onPress={() => handlePresentImageUploadSheet(inventoryItem)}
+      accessibilityLabel={`View details for ${
+        inventoryItem.Item || 'No Item Name'
+      }`}>
+      <View style={styles.itemImageContainer}>
+        {isLoading ? (
+          <View style={styles.loadingImagePlaceholder}>
+            <Text style={styles.loadingImagePlaceholderText}>Loading...</Text>
+          </View>
+        ) : fetchedImageUrl ||
+          inventoryItem.imageUrl ||
+          inventoryItem.UploadFiles ? (
+          <Image
+            source={imageSource}
+            style={styles.itemImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.noImagePlaceholder}>
+            <Icon
+              name="image-outline"
+              size={30}
+              color={styles.noImagePlaceholderText.color}
+            />
+            <Text style={styles.noImagePlaceholderText}>No image</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.itemDetails}>
+        <Text style={styles.itemIndex}>{index + 1}</Text>
+        <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">
+          {inventoryItem.Item || 'N/A'}
+        </Text>
+        <Text style={styles.itemMeta}>
+          <Text style={styles.itemMetaLabel}>Brand:</Text>{' '}
+          {inventoryItem.Brand || 'N/A'}
+        </Text>
+        <Text style={styles.itemMeta}>
+          <Text style={styles.itemMetaLabel}>Common Name:</Text>{' '}
+          {inventoryItem.CommonName || 'N/A'}
+        </Text>
+        <Text style={styles.itemMeta}>
+          <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
+          {inventoryItem.NameAssignedTo || 'N/A'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+  };
+
 
   const renderListItem = useCallback(
     ({item, index}) => {
@@ -396,105 +630,20 @@ const InventoryScreen = ({navigation}) => {
           </TouchableOpacity>
         );
       } else {
-        const inventoryItem = item.data;
+        //const inventoryItem = item.data;
         return (
-          <TouchableOpacity
-            style={styles.itemContainer}
-            onPress={() => handlePresentImageUploadSheet(inventoryItem)}
-            accessibilityLabel={`View details for ${
-              inventoryItem.Item || 'No Item Name'
-            }`}>
-            <View style={styles.itemImageContainer}>
-              {inventoryItem.imageUrl || inventoryItem.UploadFiles ? (
-                <Image
-                  source={{
-                    uri:
-                      inventoryItem.imageUrl ||
-                      (inventoryItem.UploadFiles &&
-                      !isNaN(
-                        parseInt(inventoryItem.UploadFiles.split('-')[0], 10),
-                      )
-                        ? `${getBaseImageUrl(inventoryItem)}${parseInt(
-                            inventoryItem.UploadFiles.split('-')[0],
-                            10,
-                          )}`
-                        : `${getBaseImageUrl(inventoryItem)}1`),
-                  }}
-                  style={styles.itemImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.noImagePlaceholder}>
-                  <Icon
-                    name="image-outline"
-                    size={30}
-                    color={styles.noImagePlaceholderText.color}
-                  />
-                  <Text style={styles.noImagePlaceholderText}>No image</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.itemDetails}>
-              <Text style={styles.itemIndex}>{index + 1}</Text>
-              <Text
-                style={styles.itemName}
-                numberOfLines={2}
-                ellipsizeMode="tail">
-                {inventoryItem.Item || 'N/A'}
-              </Text>
-              <Text
-                style={styles.itemDescription}
-                numberOfLines={2}
-                ellipsizeMode="tail">
-                {inventoryItem.Description || 'No description provided.'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Id:</Text>{' '}
-                {inventoryItem.Id || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Year:</Text>{' '}
-                {inventoryItem.Year || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Brand:</Text>{' '}
-                {inventoryItem.Brand || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Common Name:</Text>{' '}
-                {inventoryItem.CommonName || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>S/N:</Text>{' '}
-                {inventoryItem.SerialNumber || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Model:</Text>{' '}
-                {inventoryItem.ModelNumber || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
-                {inventoryItem.NameAssignedTo || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>Current user:</Text>{' '}
-                {inventoryItem.CurrentUser || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>NumOfFiles:</Text>{' '}
-                {inventoryItem.NumOfFiles || 'N/A'}
-              </Text>
-              <Text style={styles.itemMeta}>
-                <Text style={styles.itemMetaLabel}>UploadFiles:</Text>{' '}
-                {inventoryItem.UploadFiles || 'N/A'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <InventoryItemComponent
+            inventoryItem={item.data}
+            index={index}
+            handlePresentImageUploadSheet={handlePresentImageUploadSheet}
+          />
         );
       }
     },
     [handlePresentImageUploadSheet, handleViewGroup, getBaseImageUrl],
   );
+
+  
 
   const handleBack = useCallback(() => {
     if (isGroupModalVisible) {
@@ -581,6 +730,7 @@ const InventoryScreen = ({navigation}) => {
                 placeholder="Search by TN..."
                 placeholderTextColor="#9CA3AF"
                 value={searchQuery}
+                autoCapitalize="characters"
                 onChangeText={setSearchQuery}
                 accessibilityHint="Type to search for inventory items by tracking number."
               />
@@ -732,11 +882,13 @@ const InventoryScreen = ({navigation}) => {
                   </View>
                   <View style={styles.modalTitleContainer}>
                     <Text style={styles.modalGroupTitle}>
-                      {modalGroupHeader?.trackingNumber || 'Grouped Items'}
+                      <Text style={{fontWeight: 'normal'}}>
+                        {modalGroupHeader?.year || ''}
+                      </Text>{' '}
+                      | {modalGroupHeader?.trackingNumber || 'Grouped Items'}
                     </Text>
                     <Text style={styles.modalGroupSubtitle}>
-                      {modalGroupHeader?.year || ''} (
-                      {modalGroupHeader?.itemCount || 0} items)
+                      ({modalGroupHeader?.itemCount || 0} items)
                     </Text>
                   </View>
                 </ImageBackground>
@@ -778,15 +930,123 @@ const InventoryScreen = ({navigation}) => {
                   enablePanDownToClose={true}
                   backdropComponent={renderImageUploadBackdrop}
                   handleIndicatorStyle={styles.bottomSheetHandle}>
+                  <Text style={[styles.modalTitle, {marginStart: 20}]}>
+                    Upload Image for
+                  </Text>
+
                   <BottomSheetScrollView
                     contentContainerStyle={styles.bottomSheetContent}>
-                    <Text style={styles.modalTitle}>Upload Image for</Text>
-                    <Text
-                      style={[styles.modalTitle, {fontWeight: 'normal'}]}
-                      numberOfLines={2}
-                      ellipsizeMode="tail">
-                      {selectedItem?.Item || 'Selected Item'}
-                    </Text>
+                    <View style={styles.itemDetailsContainer}>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Id:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?./* Item */ Id || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Common Name:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.CommonName || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Brand:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.Brand || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Unit:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.Unit || 'N/A'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Model:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.ModelNumber || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Serial:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.SerialNumber || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Set:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.Set || 'N/A'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Property #:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.PropertyNumber || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Sticker #:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.StickerNumber || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Assigned to:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.NameAssignedTo || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Used by:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.CurrentUser || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>NumOfFiles:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.NumOfFiles || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>UploadFiles:</Text>
+                        <Text style={styles.detailValue}>
+                          {selectedItem?.UploadFiles || 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text>Description</Text>
+                    <View>
+                      <Text
+                        style={[
+                          styles.modalTitle,
+                          {fontWeight: 'normal', fontSize: 18, marginBottom: 5},
+                        ]}
+                        numberOfLines={isTextExpanded ? 0 : 2}
+                        ellipsizeMode="tail"
+                        onTextLayout={e => {
+                          if (
+                            e.nativeEvent.lines.length > 2 &&
+                            !isTextExpanded
+                          ) {
+                          }
+                        }}>
+                        {selectedItem?.Item || 'Selected Item'}
+                      </Text>
+                      {(selectedItem?.Item?.length > 70 ||
+                        (selectedItem?.Item &&
+                          selectedItem.Item.split('\n').length > 2)) && (
+                        <TouchableOpacity
+                          onPress={() => setIsTextExpanded(prev => !prev)}>
+                          <Text style={styles.showMoreLessText}>
+                            {isTextExpanded ? 'Show Less' : 'Show More'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
 
                     {previewImageUris.length > 0 ? (
                       <View style={styles.modalMultipleImagesContainer}>
@@ -794,24 +1054,44 @@ const InventoryScreen = ({navigation}) => {
                           data={previewImageUris}
                           horizontal
                           showsHorizontalScrollIndicator={true}
-                          keyExtractor={(item, index) => item + index}
-                          renderItem={({item: imageUrl}) => (
-                            <Image
-                              source={{uri: imageUrl}}
-                              style={styles.modalMultiImagePreview}
-                              resizeMode="contain"
-                            />
+                          keyExtractor={(item, index) => item + '_' + index}
+                          renderItem={({item: imageUrl, index}) => (
+                            <View style={styles.imagePreviewWrapper}>
+                              <Image
+                                source={{uri: imageUrl}}
+                                style={styles.modalMultiImagePreview}
+                                resizeMode="contain"
+                              />
+                              <TouchableOpacity
+                                style={styles.removeImageButton}
+                                onPress={() => handleRemovePreviewImage(index)}
+                                accessibilityLabel={`Remove image ${
+                                  index + 1
+                                }`}>
+                                <Text
+                                  style={{color: 'white', fontWeight: 'bold'}}>
+                                  X
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
                           )}
                         />
-                        <Text style={styles.previewCountText}>
-                          {previewImageUris.length} image(s) selected for upload
-                        </Text>
+                        {uploadingImage ? (
+                          <Text style={styles.uploadingProgressText}>
+                            Uploading {uploadProgress} of{' '}
+                            {previewImageUris.length} image(s)...
+                          </Text>
+                        ) : (
+                          <Text style={styles.previewCountText}>
+                            {previewImageUris.length} image(s) selected for
+                            upload
+                          </Text>
+                        )}
                       </View>
                     ) : (
                       (() => {
                         const multipleImageUrls =
-                          getMultipleImageUrls(selectedItem);
-
+                          selectedItem?.multipleImageUrls;
                         if (multipleImageUrls && multipleImageUrls.length > 0) {
                           return (
                             <View style={styles.modalMultipleImagesContainer}>
@@ -841,13 +1121,8 @@ const InventoryScreen = ({navigation}) => {
                         } else {
                           return (
                             <View style={styles.modalImagePlaceholder}>
-                              <Icon
-                                name="image-outline"
-                                size={60}
-                                color={styles.modalImagePlaceholderText.color}
-                              />
                               <Text style={styles.modalImagePlaceholderText}>
-                                No image yet
+                                No image(s) yet
                               </Text>
                             </View>
                           );
@@ -856,14 +1131,18 @@ const InventoryScreen = ({navigation}) => {
                     )}
 
                     <TouchableOpacity
-                      style={styles.selectImageButton}
+                      style={[
+                        styles.selectImageButton,
+                        (uploadingImage || previewImageUris.length >= 5) &&
+                          styles.selectImageButtonDisabled, // Apply disabled style
+                      ]}
                       onPress={() => handlePickImagesForPreview('gallery')}
-                      disabled={uploadingImage}
+                      disabled={uploadingImage || previewImageUris.length >= 5}
                       accessibilityLabel="Select image(s) from your photo album for preview">
                       <Icon
                         name="images-outline"
                         size={20}
-                        color="#FFFFFF"
+                        color="#FFFFFF" // Consider making icon color conditional too
                         style={styles.uploadButtonIcon}
                       />
                       <Text style={styles.uploadButtonText}>
@@ -872,14 +1151,21 @@ const InventoryScreen = ({navigation}) => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.selectImageButton}
-                      onPress={() => handlePickImagesForPreview('camera')} // <--- CALL WITH 'camera' SOURCE
-                      disabled={uploadingImage}
+                      style={[
+                        styles.selectImageButton,
+                        (uploadingImage || previewImageUris.length >= 5) &&
+                          styles.selectImageButtonDisabled,
+                        {
+                          /* marginTop:10 */
+                        },
+                      ]}
+                      onPress={() => handlePickImagesForPreview('camera')}
+                      disabled={uploadingImage || previewImageUris.length >= 5}
                       accessibilityLabel="Take a new photo with camera for preview">
                       <Icon
                         name="camera-outline"
                         size={20}
-                        color="#FFFFFF"
+                        color="#FFFFFF" // Consider making icon color conditional too
                         style={styles.uploadButtonIcon}
                       />
                       <Text style={styles.uploadButtonText}>Take Photo</Text>
@@ -918,6 +1204,7 @@ const InventoryScreen = ({navigation}) => {
                     </TouchableOpacity>
                   </BottomSheetScrollView>
                 </BottomSheet>
+
                 <Modal
                   visible={isCameraVisible}
                   onRequestClose={() => setIsCameraVisible(false)} // Allows closing with hardware back button
@@ -1191,17 +1478,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 18,
   },
-  itemMeta: {
-    fontSize: 13,
-    color: '#495057',
-    marginBottom: 2,
-  },
-  itemMetaLabel: {
-    fontWeight: 'bold',
-  },
-
   bottomSheetContent: {
-    //alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
@@ -1215,7 +1492,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 25,
     color: '#212529',
-    //textAlign: 'center',
   },
 
   modalMultipleImagesContainer: {
@@ -1305,7 +1581,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
-
   yearOptionsFlatListContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -1450,11 +1725,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#343A40',
-    textAlign: 'center',
     marginBottom: 10,
   },
   bottomSheetContent: {
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 30, // Extra padding for buttons at the bottom
   },
@@ -1531,9 +1804,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#28A745',
     paddingVertical: 12,
     borderRadius: 8,
-    marginTop: 20,
+    marginTop: 10,
     width: '90%',
     alignSelf: 'center',
+  },
+  selectImageButtonDisabled: {
+    backgroundColor: '#cccccc', // Gray out the button when disabled
+    // You might also want to change opacity or add other visual cues
+    opacity: 0.7,
   },
   uploadNowButton: {
     flexDirection: 'row',
@@ -1567,6 +1845,56 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  /*   imagePreviewWrapper: {
+    position: 'relative', // To position the remove button
+    margin: 5,
+  }, */
+  /*  modalMultiImagePreview: {
+    width: 120, // Or whatever size you need
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  }, */
+  removeImageButton: {
+    position: 'absolute',
+    top: -0, // Adjust position as needed
+    right: -0, // Adjust position as needed
+    backgroundColor: 'red', // To give it a background
+    borderRadius: 15, // Makes it round
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 1, // Ensure it's above the image
+  },
+  itemDetailsContainer: {
+    paddingVertical: 10,
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 5, // Spacing between rows
+    alignItems: 'flex-start', // Align text at the top
+  },
+  detailLabel: {
+    marginRight: 5,
+    color: '#333', // Slightly darker for labels
+    minWidth: 120, // Ensure labels have a consistent width for alignment
+  },
+  detailValue: {
+    flex: 1, // Allow value to take up remaining space
+    fontWeight: 'bold',
+    color: '#555',
+  },
+  showMoreLessText: {
+    color: '#007bff', // A noticeable color for the link
+    marginTop: 5,
+    marginBottom: 15, // Add some space below the button
+    textAlign: 'center',
+    fontWeight: 'bold',
+    alignSelf: 'flex-end',
   },
 });
 

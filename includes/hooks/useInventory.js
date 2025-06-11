@@ -90,14 +90,14 @@ export const useUploadInventory = () => {
 };
 
 export const fetchInventoryImage = async (id,office, tn) => {
-  if (!year || !trackingNumber) {
-    console.error('Year and Tracking Number are required');
+  console.log("fetch",id,office, tn)
+  if (!id || !office || !tn) {
+    console.error('id, office and Tracking Number are required');
     return [];
   }
-
   try {
     const { data } = await apiClient.get(
-      `/getInspectorImage?year=${year}&trackingNumber=${trackingNumber}`
+      `/getInventoryImage?id=${id}&office=${office}&tn=${tn}`
     );
 
     if (data.success) {
@@ -105,25 +105,24 @@ export const fetchInventoryImage = async (id,office, tn) => {
        const image_URL = `https://www.davaocityportal.com/`;
       return data.images.map(image => `${image_URL}/tempUpload/${image}`);
     } else {
-      //console.error('Failed to fetch images:', data.error || 'Unknown error');
       return [];
     }
   } catch (error) {
-    console.error('Error fetching images:', error.message || error);
+    //console.error('Error fetching images:', error.message || error);
     return [];
   }
 };
 
 export const useInventoryImages = (id,office, tn) => {
   return useQuery({
-    queryKey: ['inspectorImages', id, office, tn],
+    queryKey: ['inventoryImages', id, office, tn],
     queryFn: async () => {
       if (!id || !office || !tn) {
         throw new Error('ID, Office,');
       }
-      return await fetchInspectorImage(year, trackingNumber);
+      return await fetchInventoryImage(id, office, tn);
     },
-    enabled: !!year && !!trackingNumber, 
+    enabled: !!id && !!office && !!tn, 
     staleTime: 5 * 60 * 1000, 
     retry: 2, 
   });
