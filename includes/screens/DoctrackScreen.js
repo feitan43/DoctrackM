@@ -1257,8 +1257,7 @@ const DoctrackScreen = ({
         )}
 
         {(employeeNumber === '501573' ||
-          employeeNumber === '391091' ||
-          employeeNumber === '090909') && (
+          employeeNumber === '391091') && (
           <View
             style={{
               padding: 10,

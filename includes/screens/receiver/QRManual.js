@@ -398,7 +398,7 @@ const QRManual = () => {
                   {item?.ADV1 ? item.ADV1 : ''}
                 </Text>
 
-                {officeCode === '1081' && (
+                {caoReceiver === '1' && (
                   <View style={{alignContent: 'flex-end'}}>
                     <TouchableOpacity
                       onPress={() => handleEditADV(item)}

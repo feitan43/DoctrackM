@@ -15,6 +15,7 @@ import {
   Modal,
   FlatList,
   PermissionsAndroid,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import BottomSheet, {
@@ -23,23 +24,32 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {useInventory, useInventoryImages} from '../hooks/useInventory';
+import {
+  useInventory,
+  useInventoryImages,
+  useUploadInventory,
+} from '../hooks/useInventory';
 import {FlashList} from '@shopify/flash-list';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import CameraComponent from '../utils/CameraComponent';
-import useSearchTrack from '../api/useSearchTrack';
 import useUserInfo from '../api/useUserInfo';
+import {showMessage} from 'react-native-flash-message';
 
 const InventoryScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const {data, isLoading, error} = useInventory();
+  const {
+    mutate: uploadImages,
+    isLoading: isUploading,
+    error: uploadError,
+  } = useUploadInventory();
   const {officeCode} = useUserInfo();
 
   const originalInventoryData = useRef([]);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [previewImageUris, setPreviewImageUris] = useState([]);
+  const [previewImage, setPreviewImage] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isTextExpanded, setIsTextExpanded] = useState(false);
 
@@ -51,6 +61,15 @@ const InventoryScreen = ({navigation}) => {
   const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
   const [modalGroupItems, setModalGroupItems] = useState([]);
   const [modalGroupHeader, setModalGroupHeader] = useState(null);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const handleImagePress = imageUrl => {
+    console.log('image pressed', imageUrl);
+    setSelectedImage(imageUrl);
+    setModalVisible(true);
+  };
 
   const imageUploadBottomSheetRef = useRef(null);
   const yearFilterBottomSheetRef = useRef(null);
@@ -64,29 +83,19 @@ const InventoryScreen = ({navigation}) => {
     }~${item?.TrackingNumber || 'UnknownTracking'}~`;
   }, []);
 
-
-  /*  const handlePresentImageUploadSheet = useCallback(
-    item => {
-      let primaryImageUrl = item.imageUrl;
-
-      if (!primaryImageUrl && item.UploadFiles) {
-        const parts = item.UploadFiles.split('-');
-        if (parts.length === 1 && !isNaN(parseInt(parts[0], 10))) {
-          primaryImageUrl = `${getBaseImageUrl(item)}${parseInt(parts[0], 10)}`;
-        }
-      }
-
-      setSelectedItem({...item, imageUrl: primaryImageUrl});
-      setPreviewImageUris([]);
-      imageUploadBottomSheetRef.current?.expand();
-    },
-    [getBaseImageUrl],
-  ); */
-
   const handlePresentImageUploadSheet = useCallback(
     item => {
       let primaryImageUrl = item.imageUrl;
       let existingMultipleImageUrls = [];
+
+      const getFileExtension = url => {
+        const parts = url.split('.');
+        return parts.length > 1 ? `.${parts.pop()}` : '';
+      };
+
+      const primaryExtension = primaryImageUrl
+        ? getFileExtension(primaryImageUrl)
+        : '.jpg';
 
       if (item.UploadFiles) {
         const parts = item.UploadFiles.split('-');
@@ -95,21 +104,27 @@ const InventoryScreen = ({navigation}) => {
         );
 
         if (imageNumbers.length > 0) {
-          existingMultipleImageUrls = imageNumbers.map(
-            num => `${getBaseImageUrl(item)}${parseInt(num, 10)}`,
-          );
+          existingMultipleImageUrls = imageNumbers.map(num => {
+            const extensionToUse = primaryExtension || '.jpg';
+            return `${getBaseImageUrl(item)}${parseInt(
+              num,
+              10,
+            )}${extensionToUse}`;
+          });
+
           if (!primaryImageUrl && existingMultipleImageUrls.length > 0) {
             primaryImageUrl = existingMultipleImageUrls[0];
           }
         }
       }
+
       setSelectedItem({
         ...item,
         imageUrl: primaryImageUrl,
         multipleImageUrls: existingMultipleImageUrls,
       });
 
-      setPreviewImageUris([]);
+      setPreviewImage([]);
       imageUploadBottomSheetRef.current?.expand();
     },
     [getBaseImageUrl],
@@ -118,7 +133,7 @@ const InventoryScreen = ({navigation}) => {
   const handleCloseImageUploadSheet = useCallback(() => {
     imageUploadBottomSheetRef.current?.close();
     setSelectedItem(null);
-    setPreviewImageUris([]);
+    setPreviewImage([]);
   }, []);
 
   const handlePresentYearFilterSheet = useCallback(() => {
@@ -250,73 +265,15 @@ const InventoryScreen = ({navigation}) => {
   };
 
   const handleRemovePreviewImage = useCallback(indexToRemove => {
-    setPreviewImageUris(currentUris =>
+    setPreviewImage(currentUris =>
       currentUris.filter((_, index) => index !== indexToRemove),
     );
   }, []);
 
-  /* const handlePickImagesForPreview = useCallback(
-    async source => {
-      if (selectedItem) {
-        try {
-          const options = {
-            mediaType: 'photo',
-            maxWidth: 800,
-            maxHeight: 800,
-            quality: 0.7,
-            includeBase64: false,
-            selectionLimit: 5,
-          };
-
-          let response;
-          if (source === 'camera') {
-            const hasPermission = await requestCameraPermission();
-            if (!hasPermission) {
-              Alert.alert(
-                'Permission Denied',
-                'Camera permission is required.',
-              );
-              return;
-            }
-            response = await launchCamera(options);
-          } else if (source === 'gallery') {
-            response = await launchImageLibrary(options);
-          } else {
-            Alert.alert('Error', 'Invalid image source provided.');
-            return;
-          }
-
-          if (response.didCancel) {
-            // User cancelled
-          } else if (response.errorMessage) {
-            Alert.alert(
-              'Error',
-              `Image Picker Error: ${response.errorMessage}`,
-            );
-            console.error('Image Picker Error:', response.errorMessage);
-          } else if (response.assets && response.assets.length > 0) {
-            const newUris = response.assets.map(asset => asset.uri);
-            // This is the key: append new URIs to the existing ones
-            setPreviewImageUris(prevUris => [...prevUris, ...newUris]);
-          } else {
-            Alert.alert('Info', 'No image(s) selected.');
-          }
-        } catch (pickerError) {
-          Alert.alert(
-            'Error',
-            'An unexpected error occurred during image selection.',
-          );
-          console.error('Image picking error:', pickerError);
-        }
-      }
-    },
-    [selectedItem],
-  ); */
-
   const handlePickImagesForPreview = useCallback(
     async source => {
       if (selectedItem) {
-        if (previewImageUris.length >= 5) {
+        if (previewImage.length >= 5) {
           Alert.alert(
             'Maximum Images Reached',
             'You can only select up to 5 images for preview.',
@@ -325,7 +282,7 @@ const InventoryScreen = ({navigation}) => {
         }
 
         try {
-          const remainingSlots = 5 - previewImageUris.length;
+          const remainingSlots = 5 - previewImage.length;
 
           const options = {
             mediaType: 'photo',
@@ -355,6 +312,7 @@ const InventoryScreen = ({navigation}) => {
           }
 
           if (response.didCancel) {
+            // User cancelled the image selection
           } else if (response.errorMessage) {
             Alert.alert(
               'Error',
@@ -362,10 +320,14 @@ const InventoryScreen = ({navigation}) => {
             );
             console.error('Image Picker Error:', response.errorMessage);
           } else if (response.assets && response.assets.length > 0) {
-            const newUris = response.assets.map(asset => asset.uri);
+            const newImageDetails = response.assets.map(asset => ({
+              uri: asset.uri,
+              name: asset.fileName || asset.uri.split('/').pop(), // Use fileName if available, otherwise extract from URI
+              type: asset.type || 'image/jpeg', // Use type if available, otherwise default
+            }));
 
-            const combinedUris = [...previewImageUris, ...newUris];
-            setPreviewImageUris(combinedUris.slice(0, 5));
+            const combinedImageDetails = [...previewImage, ...newImageDetails];
+            setPreviewImage(combinedImageDetails.slice(0, 5));
           } else {
             Alert.alert('Info', 'No image(s) selected.');
           }
@@ -378,120 +340,163 @@ const InventoryScreen = ({navigation}) => {
         }
       }
     },
-    [selectedItem, previewImageUris], // Add previewImageUris to dependencies
+    [selectedItem, previewImage], // Dependencies remain the same
   );
 
   const handlePhotoTakenFromCamera = useCallback(photoUri => {
     if (photoUri) {
-      setPreviewImageUris(prevUris => [...prevUris, photoUri]);
+      setPreviewImage(prevUris => [...prevUris, photoUri]);
     }
     setIsCameraVisible(false);
   }, []);
 
-  /* const confirmUploadImages = useCallback(async () => {
-    if (!selectedItem || previewImageUris.length === 0) {
+  /*  const confirmUploadImages = useCallback(async () => {
+    if (!selectedItem || previewImage.length === 0) {
       Alert.alert('No Images', 'Please select images for preview first.');
       return;
     }
 
-    setUploadingImage(true);
-    try {
-      const uploadedImageUrls = [];
-      for (const imageUri of previewImageUris) {
-        console.log(`Simulating upload for: ${imageUri}`);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        uploadedImageUrls.push(imageUri);
-      }
+    setUploadProgress(0);
+    uploadImages(
+      {
+        id: selectedItem.Id,
+        office: selectedItem.Office,
+        tn: selectedItem.TrackingNumber,
+        imagePath: previewImage,
+      },
+      {
+        onSuccess: data => {
+          if (data && data.status === 'success') {
+            showMessage({
+              message: data.message || 'Upload successful!',
+              type: 'success',
+              icon: 'success',
+              floating: true,
+              duration: 3000,
+            });
 
-      const finalImageUrl = uploadedImageUrls[0] || null;
+            const finalImageUrl = data.imageUrls ? data.imageUrls[0] : null;
 
-      const updatedOriginalItems = originalInventoryData.current.map(item =>
-        item.Id === selectedItem.Id
-          ? {
-              ...item,
+            const updatedOriginalItems = originalInventoryData.current.map(
+              item =>
+                item.Id === selectedItem.Id
+                  ? {
+                      ...item,
+                      imageUrl: finalImageUrl,
+                      multipleImageUrls: data.imageUrls,
+                    }
+                  : item,
+            );
+            originalInventoryData.current = updatedOriginalItems;
+
+            setSelectedItem
+            (prev => ({
+              ...prev,
               imageUrl: finalImageUrl,
-              allUploadFilesUris: uploadedImageUrls,
-            }
-          : item,
-      );
-      originalInventoryData.current = updatedOriginalItems;
-      setSelectedItem(prev => ({
-        ...prev,
-        imageUrl: finalImageUrl,
-        allUploadFilesUris: uploadedImageUrls,
-      }));
+              multipleImageUrls: data.imageUrls,
+            }));
+            handleCloseImageUploadSheet();
+          } else {
+            console.warn('Upload success but server returned non-success status:', data);
+            Alert.alert(
+              'Upload Failed',
+              data.message || 'Server did not indicate a successful upload.',
+            );
+          }
+        },
+        onError: err => {
+          console.error('Mutation specific error handler in component:', err);
+          showMessage({
+            message: 'Upload failed!',
+            description: err.message || 'Something went wrong during upload.',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
 
-      handleCloseImageUploadSheet();
-      Alert.alert(
-        'Success',
-        `${previewImageUris.length} image(s) for ${
-          selectedItem.Item || 'Item'
-        } updated!`,
-      );
-    } catch (uploadError) {
-      Alert.alert(
-        'Upload Error',
-        'Failed to upload images to server. Please try again.',
-      );
-      console.error('Image upload to server error:', uploadError);
-    } finally {
-      setUploadingImage(false);
-    }
-  }, [selectedItem, previewImageUris, handleCloseImageUploadSheet]); */
+        },
+        onSettled: () => {
+          setUploadProgress(0);
+        },
+      },
+    );
+  }, [
+    selectedItem,
+    previewImage,
+    uploadImages,
+    handleCloseImageUploadSheet,
+    originalInventoryData,
+    setSelectedItem,
+    // If you are using showMessage, ensure it's stable (e.g., from a context or defined once)
+    // or add it to dependencies if it's a memoized function.
+    // showMessage,
+  ]); */
 
   const confirmUploadImages = useCallback(async () => {
-    if (!selectedItem || previewImageUris.length === 0) {
+    if (!selectedItem || previewImage.length === 0) {
       Alert.alert('No Images', 'Please select images for preview first.');
       return;
     }
-
     setUploadingImage(true);
-    setUploadProgress(0); // Reset progress at the start of upload**
-    try {
-      const uploadedImageUrls = [];
-      for (const imageUri of previewImageUris) {
-        console.log(`Simulating upload for: ${imageUri}`);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Shorter timeout for quicker demo
-        uploadedImageUrls.push(imageUri);
-        setUploadProgress(prev => prev + 1); // Increment progress after each "upload"**
-      }
+    setUploadProgress(0);
+    uploadImages(
+      {
+        id: selectedItem.Id,
+        office: selectedItem.Office,
+        tn: selectedItem.TrackingNumber,
+        imagePath: previewImage,
+      },
+      {
+        onSuccess: data => {
+          if (data && data.status === 'success') {
+            showMessage({
+              message: data.message || 'Upload successful!',
+              type: 'success',
+              icon: 'success',
+              floating: true,
+              duration: 3000,
+            });
 
-      const finalImageUrl = uploadedImageUrls[0] || null;
-
-      const updatedOriginalItems = originalInventoryData.current.map(item =>
-        item.Id === selectedItem.Id
-          ? {
-              ...item,
-              imageUrl: finalImageUrl,
-              allUploadFilesUris: uploadedImageUrls,
-            }
-          : item,
-      );
-      originalInventoryData.current = updatedOriginalItems;
-      setSelectedItem(prev => ({
-        ...prev,
-        imageUrl: finalImageUrl,
-        allUploadFilesUris: uploadedImageUrls,
-      }));
-
-      handleCloseImageUploadSheet();
-      Alert.alert(
-        'Success',
-        `${previewImageUris.length} image(s) for ${
-          selectedItem.Item || 'Item'
-        } updated!`,
-      );
-    } catch (uploadError) {
-      Alert.alert(
-        'Upload Error',
-        'Failed to upload images to server. Please try again.',
-      );
-      console.error('Image upload to server error:', uploadError);
-    } finally {
-      setUploadingImage(false);
-      setUploadProgress(0); // Reset progress after upload finishes (success or failure)**
-    }
-  }, [selectedItem, previewImageUris, handleCloseImageUploadSheet]);
+            setPreviewImage([]);
+            handleCloseImageUploadSheet();
+          } else {
+            console.warn(
+              'Upload completed but server returned non-success status:',
+              data,
+            );
+            Alert.alert(
+              'Upload Failed',
+              data.message || 'Server did not indicate a successful upload.',
+            );
+          }
+        },
+        onError: err => {
+          console.error('Mutation specific error handler in component:', err);
+          showMessage({
+            message: 'Upload failed!',
+            description: err.message || 'Something went wrong during upload.',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
+        },
+        onSettled: () => {
+          setUploadProgress(0);
+          setUploadingImage(false);
+        },
+      },
+    );
+  }, [
+    selectedItem,
+    previewImage,
+    uploadImages,
+    handleCloseImageUploadSheet,
+    originalInventoryData,
+    setSelectedItem,
+    setPreviewImage,
+  ]);
 
   const handleViewGroup = useCallback(group => {
     setModalGroupItems(group.items);
@@ -507,92 +512,88 @@ const InventoryScreen = ({navigation}) => {
     setSelectedYear(null);
   }, []);
 
- const InventoryItemComponent = ({
-  inventoryItem,
-  index,
-  handlePresentImageUploadSheet,
+  const InventoryItemComponent = ({
+    inventoryItem,
+    index,
+    handlePresentImageUploadSheet,
   }) => {
-  const {data: fetchedImageUrls, isLoading} = useInventoryImages( 
-    inventoryItem.Id,
-    inventoryItem.Office,
-    inventoryItem.TrackingNumber,
-  );
+    const {data: fetchedImageUrls, isLoading} = useInventoryImages(
+      inventoryItem.Id,
+      inventoryItem.Office,
+      inventoryItem.TrackingNumber,
+    );
 
-    const fetchedImageUrl = fetchedImageUrls && fetchedImageUrls.length > 0
-      ? fetchedImageUrls[0]
-      : null;
+    const fetchedImageUrl =
+      fetchedImageUrls && fetchedImageUrls.length > 0
+        ? fetchedImageUrls[0]
+        : null;
 
- /*  console.log(fetchedImageUrl, inventoryItem.Id,
-    inventoryItem.Office,
-    inventoryItem.TrackingNumber)
- */
     const imageSource = fetchedImageUrl
-    ? {uri: fetchedImageUrl}
-    : inventoryItem.imageUrl
-    ? {uri: inventoryItem.imageUrl}
-    : inventoryItem.UploadFiles &&
-    !isNaN(parseInt(inventoryItem.UploadFiles.split('-')[0], 10))
-    ? {
-      uri: `${getBaseImageUrl(inventoryItem)}${parseInt(
-      inventoryItem.UploadFiles.split('-')[0],
-      10,
-      )}`,
-    }
-  : {uri: `${getBaseImageUrl(inventoryItem)}1`};
+      ? {uri: fetchedImageUrl}
+      : inventoryItem.imageUrl
+      ? {uri: inventoryItem.imageUrl}
+      : inventoryItem.UploadFiles &&
+        !isNaN(parseInt(inventoryItem.UploadFiles.split('-')[0], 10))
+      ? {
+          uri: `${getBaseImageUrl(inventoryItem)}${parseInt(
+            inventoryItem.UploadFiles.split('-')[0],
+            10,
+          )}`,
+        }
+      : {uri: `${getBaseImageUrl(inventoryItem)}1`};
 
-  return (
-    <TouchableOpacity
-      style={styles.itemContainer}
-      onPress={() => handlePresentImageUploadSheet(inventoryItem)}
-      accessibilityLabel={`View details for ${
-        inventoryItem.Item || 'No Item Name'
-      }`}>
-      <View style={styles.itemImageContainer}>
-        {isLoading ? (
-          <View style={styles.loadingImagePlaceholder}>
-            <Text style={styles.loadingImagePlaceholderText}>Loading...</Text>
-          </View>
-        ) : fetchedImageUrl ||
-          inventoryItem.imageUrl ||
-          inventoryItem.UploadFiles ? (
-          <Image
-            source={imageSource}
-            style={styles.itemImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.noImagePlaceholder}>
-            <Icon
-              name="image-outline"
-              size={30}
-              color={styles.noImagePlaceholderText.color}
+    return (
+      <TouchableOpacity
+        style={styles.itemContainer}
+        onPress={() => handlePresentImageUploadSheet(inventoryItem)}
+        accessibilityLabel={`View details for ${
+          inventoryItem.Item || 'No Item Name'
+        }`}>
+        <View style={styles.itemImageContainer}>
+          {isLoading ? (
+            <View style={styles.loadingImagePlaceholder}>
+              <Text style={styles.loadingImagePlaceholderText}>Loading...</Text>
+            </View>
+          ) : fetchedImageUrl ||
+            inventoryItem.imageUrl ||
+            inventoryItem.UploadFiles ? (
+            <Image
+              source={imageSource}
+              style={styles.itemImage}
+              resizeMode="cover"
             />
-            <Text style={styles.noImagePlaceholderText}>No image</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemIndex}>{index + 1}</Text>
-        <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">
-          {inventoryItem.Item || 'N/A'}
-        </Text>
-        <Text style={styles.itemMeta}>
-          <Text style={styles.itemMetaLabel}>Brand:</Text>{' '}
-          {inventoryItem.Brand || 'N/A'}
-        </Text>
-        <Text style={styles.itemMeta}>
-          <Text style={styles.itemMetaLabel}>Common Name:</Text>{' '}
-          {inventoryItem.CommonName || 'N/A'}
-        </Text>
-        <Text style={styles.itemMeta}>
-          <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
-          {inventoryItem.NameAssignedTo || 'N/A'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+          ) : (
+            <View style={styles.noImagePlaceholder}>
+              <Icon
+                name="image-outline"
+                size={30}
+                color={styles.noImagePlaceholderText.color}
+              />
+              <Text style={styles.noImagePlaceholderText}>No image</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemIndex}>{index + 1}</Text>
+          <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">
+            {inventoryItem.Item || 'N/A'}
+          </Text>
+          <Text style={styles.itemMeta}>
+            <Text style={styles.itemMetaLabel}>Brand:</Text>{' '}
+            {inventoryItem.Brand || 'N/A'}
+          </Text>
+          <Text style={styles.itemMeta}>
+            <Text style={styles.itemMetaLabel}>Common Name:</Text>{' '}
+            {inventoryItem.CommonName || 'N/A'}
+          </Text>
+          <Text style={styles.itemMeta}>
+            <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
+            {inventoryItem.NameAssignedTo || 'N/A'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
-
 
   const renderListItem = useCallback(
     ({item, index}) => {
@@ -642,8 +643,6 @@ const InventoryScreen = ({navigation}) => {
     },
     [handlePresentImageUploadSheet, handleViewGroup, getBaseImageUrl],
   );
-
-  
 
   const handleBack = useCallback(() => {
     if (isGroupModalVisible) {
@@ -1047,11 +1046,11 @@ const InventoryScreen = ({navigation}) => {
                         </TouchableOpacity>
                       )}
                     </View>
-
-                    {previewImageUris.length > 0 ? (
+                    {/* https://davaocityportal.com/tempUpload/53198~TRAC~TRAC-10~1.jpg */}
+                    {/* {previewImage.length > 0 ? (
                       <View style={styles.modalMultipleImagesContainer}>
                         <FlatList
-                          data={previewImageUris}
+                          data={previewImage}
                           horizontal
                           showsHorizontalScrollIndicator={true}
                           keyExtractor={(item, index) => item + '_' + index}
@@ -1079,11 +1078,11 @@ const InventoryScreen = ({navigation}) => {
                         {uploadingImage ? (
                           <Text style={styles.uploadingProgressText}>
                             Uploading {uploadProgress} of{' '}
-                            {previewImageUris.length} image(s)...
+                            {previewImage.length} image(s)...
                           </Text>
                         ) : (
                           <Text style={styles.previewCountText}>
-                            {previewImageUris.length} image(s) selected for
+                            {previewImage.length} image(s) selected for
                             upload
                           </Text>
                         )}
@@ -1101,11 +1100,100 @@ const InventoryScreen = ({navigation}) => {
                                 showsHorizontalScrollIndicator={true}
                                 keyExtractor={(item, index) => item + index}
                                 renderItem={({item: imageUrl}) => (
-                                  <Image
-                                    source={{uri: imageUrl}}
-                                    style={styles.modalMultiImagePreview}
-                                    resizeMode="contain"
-                                  />
+                                  <Pressable
+                                    onPress={() => handleImagePress(imageUrl)}>
+                                    <Image
+                                      source={{uri: imageUrl}}
+                                      style={styles.modalMultiImagePreview}
+                                      resizeMode="contain"
+                                    />
+                                  </Pressable>
+                                )}
+                              />
+                            </View>
+                          );
+                        } else if (selectedItem?.imageUrl) {
+                          return (
+                            <Image
+                              source={{uri: selectedItem.imageUrl}}
+                              style={styles.modalImagePreview}
+                              resizeMode="contain"
+                            />
+                          );
+                        } else {
+                          return (
+                            <View style={styles.modalImagePlaceholder}>
+                              <Text style={styles.modalImagePlaceholderText}>
+                                No image(s) yet
+                              </Text>
+                            </View>
+                          );
+                        }
+                      })()
+                    )} */}
+
+                    {previewImage.length > 0 ? (
+                      <View style={styles.modalMultipleImagesContainer}>
+                        <FlatList
+                          data={previewImage}
+                          horizontal
+                          showsHorizontalScrollIndicator={true}
+                          keyExtractor={(item, index) => item.uri + '_' + index}
+                          renderItem={(
+                            {item, index}, // Destructure the item directly
+                          ) => (
+                            <View style={styles.imagePreviewWrapper}>
+                              <Image
+                                source={{uri: item.uri}} // Access item.uri here
+                                style={styles.modalMultiImagePreview}
+                                resizeMode="contain"
+                              />
+                              <TouchableOpacity
+                                style={styles.removeImageButton}
+                                onPress={() => handleRemovePreviewImage(index)}
+                                accessibilityLabel={`Remove image ${
+                                  index + 1
+                                }`}>
+                                <Text
+                                  style={{color: 'white', fontWeight: 'bold'}}>
+                                  X
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        />
+                        {uploadingImage ? (
+                          <Text style={styles.uploadingProgressText}>
+                            Uploading {uploadProgress} of {previewImage.length}{' '}
+                            image(s)...
+                          </Text>
+                        ) : (
+                          <Text style={styles.previewCountText}>
+                            {previewImage.length} image(s) selected for upload
+                          </Text>
+                        )}
+                      </View>
+                    ) : (
+                      (() => {
+                        const multipleImageUrls =
+                          selectedItem?.multipleImageUrls;
+                        if (multipleImageUrls && multipleImageUrls.length > 0) {
+                          return (
+                            <View style={styles.modalMultipleImagesContainer}>
+                              <FlatList
+                                data={multipleImageUrls}
+                                horizontal
+                                showsHorizontalScrollIndicator={true}
+                                keyExtractor={(item, index) => item + index}
+                                renderItem={({item: imageUrl}) => (
+                                  <Pressable
+                                    onPress={() => handleImagePress(imageUrl)}>
+                                    <Image
+                                      source={{uri: imageUrl}}
+                                      style={styles.modalMultiImagePreview}
+                                      resizeMode="contain"
+                                    />
+                                  </Pressable>
                                 )}
                               />
                             </View>
@@ -1133,11 +1221,11 @@ const InventoryScreen = ({navigation}) => {
                     <TouchableOpacity
                       style={[
                         styles.selectImageButton,
-                        (uploadingImage || previewImageUris.length >= 5) &&
+                        (uploadingImage || previewImage.length >= 5) &&
                           styles.selectImageButtonDisabled, // Apply disabled style
                       ]}
                       onPress={() => handlePickImagesForPreview('gallery')}
-                      disabled={uploadingImage || previewImageUris.length >= 5}
+                      disabled={uploadingImage || previewImage.length >= 5}
                       accessibilityLabel="Select image(s) from your photo album for preview">
                       <Icon
                         name="images-outline"
@@ -1153,14 +1241,14 @@ const InventoryScreen = ({navigation}) => {
                     <TouchableOpacity
                       style={[
                         styles.selectImageButton,
-                        (uploadingImage || previewImageUris.length >= 5) &&
+                        (uploadingImage || previewImage.length >= 5) &&
                           styles.selectImageButtonDisabled,
                         {
                           /* marginTop:10 */
                         },
                       ]}
                       onPress={() => handlePickImagesForPreview('camera')}
-                      disabled={uploadingImage || previewImageUris.length >= 5}
+                      disabled={uploadingImage || previewImage.length >= 5}
                       accessibilityLabel="Take a new photo with camera for preview">
                       <Icon
                         name="camera-outline"
@@ -1171,7 +1259,7 @@ const InventoryScreen = ({navigation}) => {
                       <Text style={styles.uploadButtonText}>Take Photo</Text>
                     </TouchableOpacity>
 
-                    {previewImageUris.length > 0 && (
+                    {previewImage.length > 0 && (
                       <TouchableOpacity
                         style={styles.uploadNowButton}
                         onPress={confirmUploadImages}
@@ -1214,6 +1302,23 @@ const InventoryScreen = ({navigation}) => {
                     onPhotoTaken={handlePhotoTakenFromCamera} // Pass the callback to get the photo URI
                     onClose={() => setIsCameraVisible(false)} // Pass a callback to close the camera modal
                   />
+                </Modal>
+                <Modal
+                  animationType="fade" // or "slide"
+                  transparent={true}
+                  visible={modalVisible}
+                  onRequestClose={() => {
+                    setModalVisible(!modalVisible);
+                  }}>
+                  <Pressable
+                    style={styles.fullScreenModalContainer}
+                    onPress={() => setModalVisible(false)}>
+                    <Image
+                      source={{uri: selectedImage}}
+                      style={styles.fullScreenImage}
+                      resizeMode="contain"
+                    />
+                  </Pressable>
                 </Modal>
               </View>
             </SafeAreaView>
@@ -1895,6 +2000,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
     alignSelf: 'flex-end',
+  },
+  modalMultiImagePreview: {
+    width: 150, // Example width
+    height: 150, // Example height
+    marginHorizontal: 5,
+  },
+  fullScreenModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)', // Semi-transparent black background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 
