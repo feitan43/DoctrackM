@@ -648,6 +648,7 @@ const handleUpdate = async updateUrl => {
         <Stack.Screen name="MonthlyReceivedScreen" component={MonthlyReceivedScreen} />
 
       </Stack.Navigator>
+      
       <Modal
         animationType="slide"
         transparent={true}

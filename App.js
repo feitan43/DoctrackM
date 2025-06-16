@@ -21,6 +21,7 @@ import FlashMessage from 'react-native-flash-message';
 import {HotUpdater, useHotUpdaterStore} from '@hot-updater/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {showMessage} from 'react-native-flash-message';
+import ImmersiveMode from 'react-native-immersive-mode';
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,15 @@ const App = () => {
   const [isConnected, setIsConnected] = useState(true);
 
   const {progress, isBundleUpdated} = useHotUpdaterStore();
+
+  useEffect(() => {
+    ImmersiveMode.fullLayout(true);
+    ImmersiveMode.setBarMode('BottomSticky');
+    ImmersiveMode.setBarStyle('Light');
+    ImmersiveMode.setBarTranslucent(true);
+    
+    //ImmersiveMode.setBarColor('#003166');
+  }, []);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {

@@ -65,12 +65,6 @@ const InventoryScreen = ({navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const handleImagePress = imageUrl => {
-    console.log('image pressed', imageUrl);
-    setSelectedImage(imageUrl);
-    setModalVisible(true);
-  };
-
   const imageUploadBottomSheetRef = useRef(null);
   const yearFilterBottomSheetRef = useRef(null);
 
@@ -83,7 +77,7 @@ const InventoryScreen = ({navigation}) => {
     }~${item?.TrackingNumber || 'UnknownTracking'}~`;
   }, []);
 
-  const handlePresentImageUploadSheet = useCallback(
+  /* const handlePresentImageUploadSheet = useCallback(
     item => {
       let primaryImageUrl = item.imageUrl;
       let existingMultipleImageUrls = [];
@@ -128,7 +122,19 @@ const InventoryScreen = ({navigation}) => {
       imageUploadBottomSheetRef.current?.expand();
     },
     [getBaseImageUrl],
-  );
+  ); */
+
+  const handlePresentImageUploadSheet = (item, imageUrls = []) => {
+    setSelectedImage(imageUrls); // Store all URLs in state
+
+    setSelectedItem({
+      ...item,
+      imageUrl: imageUrls.length > 0 ? imageUrls[0] : null, // First image only
+      multipleImageUrls: imageUrls.length > 1 ? imageUrls : [], // Only if multiple
+    });
+
+    imageUploadBottomSheetRef.current?.expand(); // Show bottom sheet
+  };
 
   const handleCloseImageUploadSheet = useCallback(() => {
     imageUploadBottomSheetRef.current?.close();
@@ -143,6 +149,12 @@ const InventoryScreen = ({navigation}) => {
   const handleCloseYearFilterSheet = useCallback(() => {
     yearFilterBottomSheetRef.current?.close();
   }, []);
+
+  const handleImagePress = imageUrl => {
+    console.log('image pressed', imageUrl);
+    setSelectedImage(imageUrl);
+    setModalVisible(true);
+  };
 
   useEffect(() => {
     if (data && data.length > 0) {
@@ -459,7 +471,7 @@ const InventoryScreen = ({navigation}) => {
             });
 
             setPreviewImage([]);
-            handleCloseImageUploadSheet();
+            /*  handleCloseImageUploadSheet(); */
           } else {
             console.warn(
               'Upload completed but server returned non-success status:',
@@ -512,6 +524,22 @@ const InventoryScreen = ({navigation}) => {
     setSelectedYear(null);
   }, []);
 
+  const handleDeleteImageFromItem = (imageUrlToDelete) => {
+    console.log(imageUrlToDelete)
+  if (selectedItem && selectedItem.multipleImageUrls) {
+    const updatedMultipleImageUrls = selectedItem.multipleImageUrls.filter(
+      (url) => url !== imageUrlToDelete
+    );
+    // Update the selectedItem state with the new array of image URLs
+    setSelectedItem({
+      ...selectedItem,
+      multipleImageUrls: updatedMultipleImageUrls,
+    });
+    // You might also want to trigger an API call here to delete the image from your backend
+    // For example: deleteImageApiCall(selectedItem.id, imageUrlToDelete);
+  }
+};
+
   const InventoryItemComponent = ({
     inventoryItem,
     index,
@@ -522,30 +550,20 @@ const InventoryScreen = ({navigation}) => {
       inventoryItem.Office,
       inventoryItem.TrackingNumber,
     );
+    // console.log(fetchedImageUrls); // Keep this for debugging if needed
 
-    const fetchedImageUrl =
+    // Determine the image source safely
+    const imageSource =
       fetchedImageUrls && fetchedImageUrls.length > 0
-        ? fetchedImageUrls[0]
-        : null;
-
-    const imageSource = fetchedImageUrl
-      ? {uri: fetchedImageUrl}
-      : inventoryItem.imageUrl
-      ? {uri: inventoryItem.imageUrl}
-      : inventoryItem.UploadFiles &&
-        !isNaN(parseInt(inventoryItem.UploadFiles.split('-')[0], 10))
-      ? {
-          uri: `${getBaseImageUrl(inventoryItem)}${parseInt(
-            inventoryItem.UploadFiles.split('-')[0],
-            10,
-          )}`,
-        }
-      : {uri: `${getBaseImageUrl(inventoryItem)}1`};
+        ? {uri: fetchedImageUrls[0]} // Use the first image URL if available
+        : null; // Fallback to null if no URLs are fetched
 
     return (
       <TouchableOpacity
         style={styles.itemContainer}
-        onPress={() => handlePresentImageUploadSheet(inventoryItem)}
+        onPress={() =>
+          handlePresentImageUploadSheet(inventoryItem, fetchedImageUrls)
+        }
         accessibilityLabel={`View details for ${
           inventoryItem.Item || 'No Item Name'
         }`}>
@@ -554,11 +572,9 @@ const InventoryScreen = ({navigation}) => {
             <View style={styles.loadingImagePlaceholder}>
               <Text style={styles.loadingImagePlaceholderText}>Loading...</Text>
             </View>
-          ) : fetchedImageUrl ||
-            inventoryItem.imageUrl ||
-            inventoryItem.UploadFiles ? (
+          ) : imageSource ? ( // Check if imageSource is valid (not null)
             <Image
-              source={imageSource}
+              source={imageSource} // Use the safely determined imageSource
               style={styles.itemImage}
               resizeMode="cover"
             />
@@ -858,13 +874,15 @@ const InventoryScreen = ({navigation}) => {
           <Modal
             visible={isGroupModalVisible}
             onRequestClose={handleCloseGroupModal}
-            animationType="slide"
-            presentationStyle="fullScreen">
+            animationType="fade"
+            presentationStyle="fullScreen"
+            statusBarTranslucent={true}
+            transparent={false}>
             <SafeAreaView style={styles.safeArea}>
               <View style={styles.modalContainer}>
                 <ImageBackground
                   source={require('../../assets/images/CirclesBG.png')}
-                  style={[styles.bgHeader, {paddingTop: 0}]}
+                  style={[styles.bgHeader, {paddingTop: 30}]}
                   imageStyle={styles.bgHeaderImageStyle}>
                   <View style={styles.header}>
                     <TouchableOpacity
@@ -877,18 +895,43 @@ const InventoryScreen = ({navigation}) => {
                       />
                       <Text style={styles.backButtonText}>Back</Text>
                     </TouchableOpacity>
+                    <View style={styles.model}>
+                      <Text
+                        style={{
+                          color: 'white',
+                          fontWeight: 'bold',
+                          fontSize: 24,
+                        }}>
+                        {modalGroupHeader?.year} |{' '}
+                        {modalGroupHeader?.trackingNumber || 'Grouped Items'}
+                      </Text>
+                      <View>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: 'white',
+                            fontWeight: '400',
+                          }}>
+                          ({modalGroupHeader?.itemCount || 0} items)
+                        </Text>
+                      </View>
+                    </View>
                     <View style={{width: 60}} />
-                  </View>
-                  <View style={styles.modalTitleContainer}>
-                    <Text style={styles.modalGroupTitle}>
-                      <Text style={{fontWeight: 'normal'}}>
-                        {modalGroupHeader?.year || ''}
-                      </Text>{' '}
-                      | {modalGroupHeader?.trackingNumber || 'Grouped Items'}
-                    </Text>
-                    <Text style={styles.modalGroupSubtitle}>
-                      ({modalGroupHeader?.itemCount || 0} items)
-                    </Text>
+                    {/* <View><Text>{modalGroupHeader?.year} | {modalGroupHeader?.trackingNumber || 'Grouped Items'}</Text></View>
+                    <Text> ({modalGroupHeader?.itemCount || 0} items)</Text> */}
+                    {/* <View style={styles.modalTitleContainer}>
+                        <Text style={styles.modalGroupTitle}>
+                          <Text style={{fontWeight: 'normal'}}>
+                            {modalGroupHeader?.year || ''}
+                          </Text>{' '}
+                          |{' '}
+                          {modalGroupHeader?.trackingNumber || 'Grouped Items'}
+                        </Text>
+                        <Text style={styles.modalGroupSubtitle}>
+                          ({modalGroupHeader?.itemCount || 0} items)
+                        </Text>
+                      </View> */}
+                    {/*   <View style={{width: 60}} /> */}
                   </View>
                 </ImageBackground>
 
@@ -928,11 +971,31 @@ const InventoryScreen = ({navigation}) => {
                   snapPoints={imageUploadSnapPoints}
                   enablePanDownToClose={true}
                   backdropComponent={renderImageUploadBackdrop}
+                  topInset={100}
                   handleIndicatorStyle={styles.bottomSheetHandle}>
-                  <Text style={[styles.modalTitle, {marginStart: 20}]}>
-                    Upload Image for
-                  </Text>
-
+                  <View
+                    style={{
+                      justifyContent: 'space-between',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}>
+                    <Text style={[styles.modalTitle, {marginStart: 20}]}>
+                      Upload Image {/* for */}
+                    </Text>
+                    <View style={{alignItems: 'center', flexDirection: 'row'}}>
+                      <TouchableOpacity
+                        style={{
+                          paddingHorizontal: 20,
+                          elevation: 5,
+                          backgroundColor: 'light-gray',
+                          marginEnd: 10,
+                        }}
+                        onPress={handleCloseImageUploadSheet}>
+                        <Icon name="close-outline" size={24} />
+                        {/* <Text>Cancel</Text> */}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                   <BottomSheetScrollView
                     contentContainerStyle={styles.bottomSheetContent}>
                     <View style={styles.itemDetailsContainer}>
@@ -1139,12 +1202,10 @@ const InventoryScreen = ({navigation}) => {
                           horizontal
                           showsHorizontalScrollIndicator={true}
                           keyExtractor={(item, index) => item.uri + '_' + index}
-                          renderItem={(
-                            {item, index}, // Destructure the item directly
-                          ) => (
+                          renderItem={({item, index}) => (
                             <View style={styles.imagePreviewWrapper}>
                               <Image
-                                source={{uri: item.uri}} // Access item.uri here
+                                source={{uri: item.uri}}
                                 style={styles.modalMultiImagePreview}
                                 resizeMode="contain"
                               />
@@ -1185,26 +1246,53 @@ const InventoryScreen = ({navigation}) => {
                                 horizontal
                                 showsHorizontalScrollIndicator={true}
                                 keyExtractor={(item, index) => item + index}
-                                renderItem={({item: imageUrl}) => (
-                                  <Pressable
-                                    onPress={() => handleImagePress(imageUrl)}>
-                                    <Image
-                                      source={{uri: imageUrl}}
-                                      style={styles.modalMultiImagePreview}
-                                      resizeMode="contain"
-                                    />
-                                  </Pressable>
+                                renderItem={({item: imageUrl, index}) => (
+                                  <View style={styles.imagePreviewWrapper}>
+                                    <Pressable
+                                      onPress={() => handleImagePress(imageUrl)}
+                                      style={{
+                                        backgroundColor: 'lightgray',
+                                        marginHorizontal: 10,
+                                      }}>
+                                      <Image
+                                        source={{uri: imageUrl}}
+                                        style={styles.modalMultiImagePreview}
+                                        resizeMode="contain"
+                                      />
+                                    </Pressable>
+                                    <TouchableOpacity
+                                      style={styles.removeImageButton} // Reuse existing style
+                                      onPress={() =>
+                                        handleDeleteImageFromItem(imageUrl)
+                                      }
+                                      accessibilityLabel={`Remove image ${
+                                        index + 1
+                                      }`}>
+                                      <Text
+                                        style={{
+                                          color: 'white',
+                                          fontWeight: 'bold',
+                                        }}>
+                                        X
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
                                 )}
                               />
                             </View>
                           );
                         } else if (selectedItem?.imageUrl) {
                           return (
-                            <Image
-                              source={{uri: selectedItem.imageUrl}}
-                              style={styles.modalImagePreview}
-                              resizeMode="contain"
-                            />
+                            <Pressable
+                              onPress={() =>
+                                handleImagePress(selectedItem?.imageUrl)
+                              }>
+                              <Image
+                                source={{uri: selectedItem.imageUrl}}
+                                style={styles.modalImagePreview}
+                                resizeMode="contain"
+                              />
+                            </Pressable>
                           );
                         } else {
                           return (
@@ -1332,7 +1420,7 @@ const InventoryScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F0F2F5',
+    // backgroundColor: '#F0F2F5',
   },
   container: {
     flex: 1,
@@ -1343,7 +1431,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 30,
     height: 130,
     backgroundColor: '#1a508c',
-    alignItems: 'center',
+    //alignItems: 'center',
     paddingHorizontal: 20,
   },
   bgHeaderImageStyle: {
@@ -1721,8 +1809,8 @@ const styles = StyleSheet.create({
   },
   modalTitleContainer: {
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
+    //marginTop: 10,
+    // marginBottom: 20,
   },
   modalGroupTitle: {
     fontSize: 24,

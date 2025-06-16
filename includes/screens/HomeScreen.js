@@ -583,7 +583,6 @@ const HomeScreen = ({navigation}) => {
                       />
                     </View>
                   </BottomSheetModal>
-                  
                 </ImageBackground>
                 {showReminder /*  || Platform.Version < 30 */ && (
                   <Banner
@@ -592,11 +591,10 @@ const HomeScreen = ({navigation}) => {
                     buttons={
                       <View style={styles.buttonStack}>
                         <Button
-                          mode="contained" 
+                          mode="contained"
                           onPress={handleNotification}
                           labelStyle={styles.buttonLabel}
-                          style={styles.containedButton}
-                        >
+                          style={styles.containedButton}>
                           Enable Notifications
                         </Button>
                         <Button
@@ -616,6 +614,7 @@ const HomeScreen = ({navigation}) => {
                   initialLayout={{width: layout.width}}
                   tabBarPosition="bottom"
                   transitionStyle="scroll"
+                  swipeEnabled={false} // 👈 disables swipe
                   // style={{backgroundColor: 'pink'}}
                   renderTabBar={props => (
                     <ImageBackground
@@ -665,7 +664,7 @@ const styles = StyleSheet.create({
   bannerContainer: {
     backgroundColor: 'white',
   },
-   buttonStack: {
+  buttonStack: {
     flexDirection: 'row',
     alignItems: 'center',
     // Add spacing between buttons, if not handled by a true HStack component
