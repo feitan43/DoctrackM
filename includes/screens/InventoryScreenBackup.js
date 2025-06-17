@@ -37,7 +37,6 @@ import CameraComponent from '../utils/CameraComponent';
 import useUserInfo from '../api/useUserInfo';
 import {showMessage} from 'react-native-flash-message';
 import {useQueryClient} from '@tanstack/react-query';
-import FastImage from 'react-native-fast-image';
 
 const InventoryScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,7 +166,7 @@ const InventoryScreen = ({navigation}) => {
     setModalVisible(true);
   };
 
-  /* useEffect(() => {
+  useEffect(() => {
     if (data && data.length > 0) {
       originalInventoryData.current = data;
       const years = [...new Set(data.map(item => item.Year))]
@@ -263,7 +262,7 @@ const InventoryScreen = ({navigation}) => {
           });
       });
     return groupHeaders;
-  }, [filteredInventoryItems, searchQuery, isLoading]); */
+  }, [filteredInventoryItems, searchQuery, isLoading]);
 
   const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
@@ -389,17 +388,35 @@ const InventoryScreen = ({navigation}) => {
   }, []); */
 
   const onRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await queryClient.refetchQueries({
-        queryKey: ['getInventory', officeCode],
-      });
-    } catch (error) {
-      console.error('Error during refresh:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [queryClient, officeCode]);
+  setIsRefreshing(true); // Indicate that a refresh is in progress
+  try {
+    // Invalidate the 'getInventory' query for the specific officeCode.
+    // This tells React Query to mark this data as stale and refetch it
+    // the next time it's accessed or if it's currently active.
+    await queryClient.invalidateQueries({
+      queryKey: ['getInventory', officeCode],
+    });
+
+    console.log('Data refetch initiated by React Query.');
+
+    // No need for a manual setTimeout to "simulate network request"
+    // if React Query is handling the actual data fetching.
+    // The `await queryClient.invalidateQueries` doesn't wait for the
+    // *actual* refetch to complete; it just triggers it.
+    // If you need to wait for the refetch, you might need to use
+    // queryClient.refetchQueries or check a loading state from useQuery.
+    // For a simple pull-to-refresh, invalidating is often sufficient.
+
+  } catch (error) {
+    console.error('Error during refresh:', error);
+    // Optionally, you might want to show a user-facing error message here
+    // e.g., Toast.show({ type: 'error', text1: 'Refresh failed', text2: error.message });
+  } finally {
+    // Ensure setIsRefreshing is set to false regardless of success or failure
+    // This will stop any loading indicators (e.g., pull-to-refresh spinner).
+    setIsRefreshing(false);
+  }
+}, [queryClient, officeCode]); // Add queryClient and officeCode to dependencies
 
   /*  const confirmUploadImages = useCallback(async () => {
     if (!selectedItem || previewImage.length === 0) {
@@ -509,33 +526,17 @@ const InventoryScreen = ({navigation}) => {
               duration: 3000,
             });
 
-            queryClient.setQueryData(
-              ['getInventory', selectedItem.Office],
-              oldData => {
-                if (!Array.isArray(oldData)) return oldData;
-                return oldData.map(item =>
-                  item.Id === selectedItem.Id
-                    ? {...item, ...data.updatedItem}
-                    : item,
-                );
-              },
-            );
-
-            originalInventoryData.current = originalInventoryData.current.map(
-              item =>
-                item.Id === selectedItem.Id
-                  ? {...item, ...data.updatedItem}
-                  : item,
-            );
-
-            const newSelectedItem = originalInventoryData.current.find(
-              item => item.Id === selectedItem.Id,
-            );
-            if (newSelectedItem) {
-              setSelectedItem(newSelectedItem);
-            }
-
             setPreviewImage([]);
+            /*  handleCloseImageUploadSheet(); */
+          } else {
+            console.warn(
+              'Upload completed but server returned non-success status:',
+              data,
+            );
+            Alert.alert(
+              'Upload Failed',
+              data.message || 'Server did not indicate a successful upload.',
+            );
           }
         },
         onError: err => {
@@ -578,6 +579,23 @@ const InventoryScreen = ({navigation}) => {
     setSearchQuery('');
     setSelectedYear(null);
   }, []);
+
+  /*   const handleDeleteImageFromItem = imageUrlToDelete => {
+
+    if (selectedItem && selectedItem.multipleImageUrls) {
+      const updatedMultipleImageUrls = selectedItem.multipleImageUrls.filter(
+        url => url !== imageUrlToDelete,
+      );
+      // Update the selectedItem state with the new array of image URLs
+      setSelectedItem({
+        ...selectedItem,
+        multipleImageUrls: updatedMultipleImageUrls,
+      });
+      removeImageInv(imageUrlToDelete);
+      // You might also want to trigger an API call here to delete the image from your backend
+      // For example: deleteImageApiCall(selectedItem.id, imageUrlToDelete);
+    }
+  }; */
 
   const handleDeleteImageFromItem = imageUrlToDelete => {
     if (selectedItem && selectedItem.multipleImageUrls) {
@@ -688,14 +706,6 @@ const InventoryScreen = ({navigation}) => {
             <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
             {inventoryItem.NameAssignedTo || 'N/A'}
           </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>NumOfFiles:</Text>{' '}
-            {inventoryItem.NumOfFiles || 'N/A'}
-          </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>UploadFiles:</Text>{' '}
-            {inventoryItem.UploadFiles || 'N/A'}
-          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -779,6 +789,30 @@ const InventoryScreen = ({navigation}) => {
       />
     ),
     [],
+  );
+
+  const getMultipleImageUrls = useCallback(
+    item => {
+      const baseUrl = getBaseImageUrl(item);
+
+      if (item?.UploadFiles) {
+        const parts = item.UploadFiles.split('-');
+        if (parts.length > 1) {
+          const start = parseInt(parts[0], 10);
+          const end = parseInt(parts[parts.length - 1], 10);
+
+          if (!isNaN(start) && !isNaN(end) && start <= end) {
+            const urls = [];
+            for (let i = start; i <= end; i++) {
+              urls.push(`${baseUrl}${i}`);
+            }
+            return urls;
+          }
+        }
+      }
+      return null;
+    },
+    [getBaseImageUrl],
   );
 
   return (
@@ -867,7 +901,7 @@ const InventoryScreen = ({navigation}) => {
             </View>
           ) : (
             <FlashList
-              data={data}
+              data={displayData}
               renderItem={renderListItem}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.listContent}
@@ -1272,136 +1306,116 @@ const InventoryScreen = ({navigation}) => {
                     )} */}
 
                     {previewImage.length > 0 ? (
-                      <View style={styles.modalMultipleImagesContainer}>
-                        <FlatList
-                          data={previewImage}
-                          horizontal
-                          showsHorizontalScrollIndicator={true}
-                          keyExtractor={(item, index) => item.uri + '_' + index}
-                          renderItem={({item, index}) => (
-                            <View style={styles.imagePreviewWrapper}>
-                              <Image
-                                source={{uri: item.uri}}
-                                style={styles.modalMultiImagePreview}
-                                resizeMode="contain"
-                              />
-                              <TouchableOpacity
-                                style={styles.removeImageButton}
-                                onPress={() => handleRemovePreviewImage(index)}
-                                accessibilityLabel={`Remove image ${
-                                  index + 1
-                                }`}>
-                                <Text
-                                  style={{color: 'white', fontWeight: 'bold'}}>
-                                  X
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
+        <View style={styles.modalMultipleImagesContainer}>
+          <FlatList
+            data={previewImage}
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            keyExtractor={(item, index) => item.uri + '_' + index}
+            renderItem={({item, index}) => (
+              <View style={styles.imagePreviewWrapper}>
+                <Image
+                  source={{uri: item.uri}}
+                  style={styles.modalMultiImagePreview}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => handleRemovePreviewImage(index)}
+                  accessibilityLabel={`Remove image ${index + 1}`}>
+                  <Text style={{color: 'white', fontWeight: 'bold'}}>
+                    X
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+          {uploadingImage ? (
+            <Text style={styles.uploadingProgressText}>
+              Uploading {uploadProgress} of {previewImage.length}{' '}
+              image(s)...
+            </Text>
+          ) : (
+            <Text style={styles.previewCountText}>
+              {previewImage.length} image(s) selected for upload
+            </Text>
+          )}
+        </View>
+      ) : (
+        (() => {
+          const multipleImageUrls = selectedItem?.multipleImageUrls;
+          if (multipleImageUrls && multipleImageUrls.length > 0) {
+            return (
+              <View style={styles.modalMultipleImagesContainer}>
+                <FlatList
+                  data={multipleImageUrls}
+                  horizontal
+                  showsHorizontalScrollIndicator={true}
+                  keyExtractor={(item, index) => item + index}
+                  renderItem={({item: imageUrl, index}) => (
+                    <View style={styles.imagePreviewWrapper}>
+                      <Pressable
+                        onPress={() => handleImagePress(imageUrl)}
+                        style={{
+                          // Note: You had backgroundColor and marginHorizontal here.
+                          // It might be better to move these into styles.modalMultiImagePreview
+                          // if they are truly part of the image's visual style,
+                          // or keep them on Pressable if they are specific to its touch area.
+                          // For now, keeping as is, but consider your design.
+                        }}>
+                        <Image
+                          source={{uri: imageUrl}}
+                          style={styles.modalMultiImagePreview}
+                          resizeMode="contain"
                         />
-                        {uploadingImage ? (
-                          <Text style={styles.uploadingProgressText}>
-                            Uploading {uploadProgress} of {previewImage.length}{' '}
-                            image(s)...
-                          </Text>
-                        ) : (
-                          <Text style={styles.previewCountText}>
-                            {previewImage.length} image(s) selected for upload
-                          </Text>
-                        )}
-                      </View>
-                    ) : (
-                      (() => {
-                        const multipleImageUrls =
-                          selectedItem?.multipleImageUrls;
-                        if (multipleImageUrls && multipleImageUrls.length > 0) {
-                          return (
-                            <View style={styles.modalMultipleImagesContainer}>
-                              <FlatList
-                                data={multipleImageUrls}
-                                horizontal
-                                showsHorizontalScrollIndicator={true}
-                                keyExtractor={(item, index) => item + index}
-                                renderItem={({item: imageUrl, index}) => (
-                                  <View style={styles.imagePreviewWrapper}>
-                                    <Pressable
-                                      onPress={() => handleImagePress(imageUrl)}
-                                      style={
-                                        {
-                                          // Note: You had backgroundColor and marginHorizontal here.
-                                          // It might be better to move these into styles.modalMultiImagePreview
-                                          // if they are truly part of the image's visual style,
-                                          // or keep them on Pressable if they are specific to its touch area.
-                                          // For now, keeping as is, but consider your design.
-                                        }
-                                      }>
-                                      <Image
-                                        source={{uri: imageUrl}}
-                                        style={styles.modalMultiImagePreview}
-                                        resizeMode="contain"
-                                      />
-                                    </Pressable>
-                                    <TouchableOpacity
-                                      style={styles.removeImageButton}
-                                      onPress={() =>
-                                        handleDeleteImageFromItem(imageUrl)
-                                      }
-                                      accessibilityLabel={`Remove image ${
-                                        index + 1
-                                      }`}>
-                                      <Text
-                                        style={{
-                                          color: 'white',
-                                          fontWeight: 'bold',
-                                        }}>
-                                        X
-                                      </Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                )}
-                              />
-                            </View>
-                          );
-                        } else if (selectedItem?.imageUrl) {
-                          const singleImageUrl = selectedItem?.imageUrl;
-                          return (
-                            <View style={styles.imagePreviewWrapper}>
-                              <Pressable
-                                onPress={() =>
-                                  handleImagePress(singleImageUrl)
-                                }>
-                                <Image
-                                  source={{
-                                    uri: singleImageUrl,
-                                  }}
-                                  style={styles.modalImagePreview}
-                                  resizeMode="contain"
-                                />
-                              </Pressable>
-                              <TouchableOpacity
-                                style={styles.removeImageButton}
-                                onPress={() =>
-                                  handleDeleteImageFromItem(singleImageUrl)
-                                }
-                                accessibilityLabel={`Remove image`}>
-                                <Text
-                                  style={{color: 'white', fontWeight: 'bold'}}>
-                                  X
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          );
-                        } else {
-                          return (
-                            <View style={styles.modalImagePlaceholder}>
-                              <Text style={styles.modalImagePlaceholderText}>
-                                No image(s) yet
-                              </Text>
-                            </View>
-                          );
-                        }
-                      })()
-                    )}
+                      </Pressable>
+                      <TouchableOpacity
+                        style={styles.removeImageButton}
+                        onPress={() => handleDeleteImageFromItem(imageUrl)}
+                        accessibilityLabel={`Remove image ${index + 1}`}>
+                        <Text style={{color: 'white', fontWeight: 'bold'}}>
+                          X
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+            );
+          } else if (selectedItem?.imageUrl) {
+            const singleImageUrl = selectedItem?.imageUrl;
+            return (
+              <View style={styles.imagePreviewWrapper}>
+                <Pressable onPress={() => handleImagePress(singleImageUrl)}>
+                  <Image
+                    source={{
+                      uri: singleImageUrl,
+                    }}
+                    style={styles.modalImagePreview}
+                    resizeMode="contain"
+                  />
+                </Pressable>
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => handleDeleteImageFromItem(singleImageUrl)}
+                  accessibilityLabel={`Remove image`}>
+                  <Text style={{color: 'white', fontWeight: 'bold'}}>
+                    X
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          } else {
+            return (
+              <View style={styles.modalImagePlaceholder}>
+                <Text style={styles.modalImagePlaceholderText}>
+                  No image(s) yet
+                </Text>
+              </View>
+            );
+          }
+        })()
+      )}
 
                     <TouchableOpacity
                       style={[

@@ -12,6 +12,7 @@ import {
   ImageBackground,
   Pressable,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {Checkbox} from 'react-native-paper';
@@ -95,10 +96,16 @@ const SuperAccessScreen = ({navigation}) => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
   const [currentlyUpdatingSystemKey, setCurrentlyUpdatingSystemKey] =
-    useState(null); // New state for granular loading
+    useState(null);
 
-  const {mutateAsync: fetchAccess, isPending, error} = useUserSuperAccess();
+  const {
+    mutateAsync: fetchAccess,
+    isPending: isSearching,
+    error: searchError,
+  } = useUserSuperAccess();
+
   const {mutateAsync: updateUserAccess} = useUpdateUserSuperAccess();
+
   const {
     data: dynamicSystemsList,
     isLoading: loadingSystems,
@@ -106,62 +113,75 @@ const SuperAccessScreen = ({navigation}) => {
   } = useSystemsList();
 
   const handleSearch = useCallback(async () => {
-    const trimmed = searchText.trim();
-    Keyboard.dismiss();
+  const trimmed = searchText.trim();
+  Keyboard.dismiss();
 
-    setSelectedEmployee(null);
-    setSearchAttempted(true);
+  setSelectedEmployee(null);
+  setSearchAttempted(true);
 
-    if (!trimmed) {
-      Alert.alert('Empty Search', 'Please enter an employee ID or name.');
-      setSearchAttempted(false);
-      return;
-    }
+  if (!trimmed) {
+    Alert.alert('Empty Search', 'Please enter an employee ID or name.');
+    setSearchAttempted(false);
+    return;
+  }
 
-    const isNumber = /^\d+$/.test(trimmed);
+  const isNumber = /^\d+$/.test(trimmed);
 
-    if (isNumber && trimmed.length !== 6) {
+  if (isNumber) {
+    if (trimmed.length !== 6) {
       Alert.alert('Invalid Input', 'Employee ID must be 6 digits.');
       setSearchAttempted(false);
       return;
     }
-
-    try {
-      const data = await fetchAccess(trimmed);
-      if (data && data.length > 0) {
-        const rawEmployeeData = data[0];
-        const processedEmployee = {...rawEmployeeData};
-
-        dynamicSystemsList.forEach(s => {
-          if (rawEmployeeData[s.key] !== undefined) {
-            processedEmployee[s.key] = Number(rawEmployeeData[s.key]);
-          }
-        });
-        if (rawEmployeeData.RegistrationState !== undefined) {
-          processedEmployee.RegistrationState = Number(
-            rawEmployeeData.RegistrationState,
-          );
-        }
-
-        if (typeof processedEmployee.EmployeeNumber === 'number') {
-          processedEmployee.EmployeeNumber = String(
-            processedEmployee.EmployeeNumber,
-          );
-        }
-
-        setSelectedEmployee(processedEmployee);
-      } else {
-        setSelectedEmployee(null);
-      }
-    } catch (err) {
-      console.error('Error fetching user access:', err);
+  } else {
+    // New validation for non-numeric input: alphanumeric characters and 'ñ'
+    const isValidName = /^[a-zA-Z0-9ñÑ\s]+$/.test(trimmed);
+    if (!isValidName) {
       Alert.alert(
-        'Search Error',
-        'Failed to fetch employee data. Please try again.',
+        'Invalid Characters',
+        "Only alphanumeric characters, spaces, and 'ñ' are allowed for names."
       );
+      setSearchAttempted(false);
+      return;
+    }
+  }
+
+  try {
+    const data = await fetchAccess(trimmed);
+    if (data && data.length > 0) {
+      const rawEmployeeData = data[0];
+      const processedEmployee = { ...rawEmployeeData };
+
+      dynamicSystemsList.forEach(s => {
+        if (rawEmployeeData[s.key] !== undefined) {
+          processedEmployee[s.key] = Number(rawEmployeeData[s.key]);
+        }
+      });
+      if (rawEmployeeData.RegistrationState !== undefined) {
+        processedEmployee.RegistrationState = Number(
+          rawEmployeeData.RegistrationState,
+        );
+      }
+
+      if (typeof processedEmployee.EmployeeNumber === 'number') {
+        processedEmployee.EmployeeNumber = String(
+          processedEmployee.EmployeeNumber,
+        );
+      }
+
+      setSelectedEmployee(processedEmployee);
+    } else {
       setSelectedEmployee(null);
     }
-  }, [searchText, fetchAccess, dynamicSystemsList]);
+  } catch (err) {
+    console.error('Error fetching user access:', err);
+    Alert.alert(
+      'Search Error',
+      'Failed to fetch employee data. Please try again.',
+    );
+    setSelectedEmployee(null);
+  }
+}, [searchText, fetchAccess, dynamicSystemsList]);
 
   const toggleAccess = useCallback(
     async key => {
@@ -210,7 +230,7 @@ const SuperAccessScreen = ({navigation}) => {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#f0f2f5'}}>
-      <ImageBackground
+      {/*  <ImageBackground
         source={require('../../assets/images/CirclesBG.png')}
         style={styles.headerBackground}>
         <View style={styles.header}>
@@ -224,12 +244,81 @@ const SuperAccessScreen = ({navigation}) => {
           <Text style={styles.headerTitle}>Access</Text>
           <View style={{width: 40}} />
         </View>
+      </ImageBackground> */}
+
+      <ImageBackground
+        source={require('../../assets/images/CirclesBG.png')}
+        style={styles.bgHeader}
+        imageStyle={styles.bgHeaderImageStyle}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}>
+            <Icon name="chevron-back-outline" size={26} color="#FFFFFF" />
+            <Text style={{color: '#fff', fontSize: 16, fontWeight: 'normal'}}>
+              Boss Level
+            </Text>
+          </TouchableOpacity>
+          <View style={{width: 60}} />
+        </View>
       </ImageBackground>
+
+      <View style={styles.searchFilterRow}>
+        <View style={styles.searchInputWrapper}>
+          {/* <Icon
+            name="search-outline"
+            size={25}
+            color={styles.searchIcon.color}
+            style={styles.searchIcon}
+          /> */}
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search EmployeeNumber or Name..."
+            placeholderTextColor="#9CA3AF"
+            value={searchText}
+            autoCapitalize="characters"
+            onChangeText={setSearchText}
+            accessibilityHint="Type to search for inventory items by tracking number."
+            //onEndEditing={handleSearch}
+            onSubmitEditing={handleSearch}
+            editable={!isSearching}
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchText('')}
+              style={styles.clearSearchButton}
+              accessibilityLabel="Clear search query">
+              <Icon
+                name="close-circle"
+                size={20}
+                color={styles.searchIcon.color}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        {/* New Filter Icon Button */}
+        {/*  <TouchableOpacity
+                  onPress={handlePresentSystemFilterModalPress}
+                  style={styles.filterIconButton}>
+                  <Icon name="filter" size={24} color="#1a508c" />
+                </TouchableOpacity> */}
+        <TouchableOpacity
+          onPress={handleSearch}
+          style={styles.filterIconButton} // Uses your existing style
+          disabled={isSearching}>
+          {isSearching ? (
+            <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+          ) : (
+            <Icon name="search" size={24} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={{paddingBottom: 30}}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.searchSection}>
+        {/* <View style={styles.searchSection}>
           <Text style={styles.sectionTitle}>Employee Lookup</Text>
           <TextInput
             style={styles.input}
@@ -262,7 +351,7 @@ const SuperAccessScreen = ({navigation}) => {
               </>
             )}
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {selectedEmployee && (
           <View style={styles.resultsSection}>
@@ -312,9 +401,9 @@ const SuperAccessScreen = ({navigation}) => {
                 />
               ))}
 
-              <View>
+              {/* <View>
                 <Text>Permission</Text>
-              </View>
+              </View> */}
             </View>
 
             {/* Removed the 'Save' button as access is auto-saved */}
@@ -326,7 +415,7 @@ const SuperAccessScreen = ({navigation}) => {
           </View>
         )}
 
-        {searchAttempted && !selectedEmployee && !isPending && (
+        {searchAttempted && !selectedEmployee && !isSearching && (
           <View style={styles.deniedContent}>
             <Icon name="warning-outline" size={40} color="#dc3545" />
             <Text style={styles.deniedText}>Employee not found</Text>
@@ -357,27 +446,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f0f2f5',
   },
-  headerBackground: {
-    height: 80,
-    paddingTop: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    elevation: 4,
+  bgHeader: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 30,
+    height: 130,
+    backgroundColor: '#1a508c',
+    paddingHorizontal: 20,
+  },
+  bgHeaderImageStyle: {
+    opacity: 0.2,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 8,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    paddingVertical: 5,
+    paddingRight: 15,
+    zIndex: 1,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginLeft: 5,
+    fontWeight: '500',
   },
   backButtonRipple: {
     color: 'rgba(255,255,255,0.2)',
@@ -390,6 +491,61 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     flex: 1,
+  },
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginHorizontal: 15,
+    marginTop: -40,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    marginRight: 10,
+    height: 55,
+    paddingLeft: 10,
+  },
+  searchIcon: {
+    marginRight: 5,
+    color: '#6C757D',
+    padding: 5,
+  },
+  searchInput: {
+    flex: 1,
+    height: 55,
+    fontSize: 15,
+    color: '#343A40',
+  },
+  clearSearchButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  filterIconButton: {
+    backgroundColor: '#1a508c',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    padding: 12, // Adjust padding to make the icon visible and clickable
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 55, // Match height of search input
+    width: 70,
   },
   searchSection: {
     backgroundColor: '#fff',

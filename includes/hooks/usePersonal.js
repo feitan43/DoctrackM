@@ -184,6 +184,28 @@ export const useSystemsList = () => {
   });
 };
 
+export const fetchSystemsListAO = async () => {
+  try {
+    const response = await apiClient.get(`/getSystemListAO`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching systems list AO:', error);
+    throw new Error('Failed to load systems list AO.');
+  }
+};
+
+export const useSystemsListAO = () => {
+  return useQuery({
+    queryKey: ['systemsListAO'],
+    queryFn: fetchSystemsListAO, 
+    staleTime: 5 * 60 * 1000, 
+    cacheTime: 10 * 60 * 1000,
+    retry: 2, 
+    onError: error => {
+      console.error('useSystemsListAO query error:', error.message);
+    },
+  });
+};
 
 
 // --end

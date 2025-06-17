@@ -10,14 +10,13 @@ export const fetchInventory = async officeCode => {
 
 export const useInventory = () => {
   const {officeCode} = useUserInfo();
-
-  return useQuery({
-    queryKey: ['getInventory', officeCode],
-    queryFn: () => fetchInventory(officeCode),
-    enabled: Boolean(officeCode),
-    staleTime: 5 * 60 * 1000,
-    retry: 2,
-  });
+ return useQuery({
+  queryKey: ['getInventory', officeCode],
+  queryFn: () => fetchInventory(officeCode),
+  enabled: Boolean(officeCode), 
+  staleTime: 5 * 60 * 1000,
+  retry: 2,
+});
 };
 
 export const uploadInventory = async ({
@@ -47,18 +46,18 @@ export const uploadInventory = async ({
     });
   });
 
-   const upload_URL =
-      'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';
+  const upload_URL =
+    'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';
 
-    const res = await fetch(upload_URL, {
-      method: 'POST',
-      body: formData,
-      /*  headers: {
+  const res = await fetch(upload_URL, {
+    method: 'POST',
+    body: formData,
+    /*  headers: {
       Authorization: `Bearer ${storedToken}`,
       Accept: 'application/json',
     }, */
-    });
-   const responseText = await res.text();
+  });
+  const responseText = await res.text();
   if (!res.ok) {
     throw new Error(responseText);
   }
@@ -81,15 +80,77 @@ export const useUploadInventory = () => {
         variables.tn,
       ]);
 
-      if (variables.office) { 
+      if (variables.office) {
         queryClient.invalidateQueries(['getInventory', variables.office]);
       }
 
-      return data; 
+      return data;
     },
     onError: error => {
       console.error('Upload failed:', error.message);
       throw error;
+    },
+  });
+};
+
+export const removeImageInv = async imageUri => {
+  if (!imageUri) {
+    throw new Error('Invalid image URI');
+  }
+  try {
+    const filename = imageUri.split('/').pop();
+    const [id, office, tn, fylWithExtension] = filename.split('~');
+    const fyl = fylWithExtension.split('.')[0];
+
+    //const storedToken = await AsyncStorage.getItem('token');
+    //const upload_URL = `http://192.168.254.134/`;
+    const upload_URL = `https://www.davaocityportal.com/`;
+
+    const url = new URL(`${upload_URL}/gord/ajax/dataprocessor.php`);
+    url.searchParams.append('removeUploadInv', 1);
+    url.searchParams.append('id', id);
+    url.searchParams.append('office', office);
+    url.searchParams.append('tn', tn);
+    url.searchParams.append('fyl', fyl);
+
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      /*   headers: {
+        Authorization: `Bearer ${storedToken}`,
+      }, */
+    });
+
+    const responseText = await res.text();
+    if (!res.ok) {
+      throw new Error(responseText);
+    }
+    console.log(responseText);
+
+    const data = JSON.parse(responseText);
+    return data;
+  } catch (err) {
+    console.error('Error in removing:', err.message);
+    throw err;
+  }
+};
+
+export const useRemoveImageInv= (onSuccess, onError) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ['removeImageInv'],
+    mutationFn: removeImageInv,
+    retry: 2,
+    onSuccess: (data, variables) => {
+        queryClient.invalidateQueries({
+        queryKey: ['getInventory', variables.office]
+      });
+
+      if (onSuccess) onSuccess(data);
+    },
+    onError: (error) => {
+      console.error('Image removal failed:', error.message);
+      if (onError) onError(error);
     },
   });
 };

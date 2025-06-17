@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useMemo} from 'react'; // Add useCallback, useMemo
+import React, {useState, useEffect, useCallback, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,51 +7,98 @@ import {
   StyleSheet,
   SafeAreaView,
   FlatList,
-  Modal,
   TextInput,
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  // Add these for debounce
-  Platform, // For iOS specific shadow
-  // AccessibilityInfo, // For screen reader announcements if needed
+  Platform,
+  Switch,
+  StatusBar,
+  Image
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useUserAccess, useUpdateUserAccess} from '../hooks/usePersonal';
+import {
+  useUserAccess,
+  useUpdateUserAccess,
+  useSystemsListAO,
+} from '../hooks/usePersonal';
 import {showMessage} from 'react-native-flash-message';
 import {useQueryClient} from '@tanstack/react-query';
 
-const systems = [
-  {key: 'PROCUREMENT', label: 'Procurement'},
-  {key: 'PAYROLL', label: 'Payroll'},
-  {key: 'ELOGS', label: 'E-logs'},
-  {key: 'FMS', label: 'FMS'},
-  /* {key: 'GSOINVENTORY', label: 'GSO Inventory'},
-  {key: 'GSOINSPECTION', label: 'GSO Inspection'},
-  {key: 'BACATTACHMENT', label: 'BAC Attachment'}, */
-];
+import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 const AccessScreen = ({navigation}) => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSystems, setSelectedSystems] = useState([]);
-  const [showSystemFilters, setShowSystemFilters] = useState(false);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(''); // New state for debounced search
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [showSystemFilterBottomSheet, setShowSystemFilterBottomSheet] =
+    useState(false);
 
-  const {data, error, loading: userLoading} = useUserAccess();
-  const {mutateAsync: updateUserAccess} = useUpdateUserAccess();
+  const {
+    data,
+    error,
+    isLoading: userLoading,
+    isFetching: userFetching,
+  } = useUserAccess();
+  const {
+    data: systems,
+    isLoading: loadingSystems,
+    isFetching: systemsFetching,
+  } = useSystemsListAO();
+  const {mutateAsync: updateUserAccess, isPending: isUpdatingAccess} =
+    useUpdateUserAccess();
+  const [updatingSystemKey, setUpdatingSystemKey] = useState(null);
+
   const queryClient = useQueryClient();
 
-  // Debounce effect for search query
+  // Ref and snap points for the user access bottom sheet
+  const userAccessBottomSheetRef = useRef(null);
+  const userAccessSnapPoints = useMemo(() => ['25%', '50%', '95%'], []);
+
+  // Ref and snap points for the system filter bottom sheet
+  const systemFilterBottomSheetRef = useRef(null);
+  const systemFilterSnapPoints = useMemo(() => ['30%', '50%', '95%'], []); // Adjust as needed
+
+  // Handlers for user access bottom sheet
+  const handlePresentUserAccessModalPress = useCallback(() => {
+    userAccessBottomSheetRef.current?.expand();
+  }, []);
+  const handleCloseUserAccessModalPress = useCallback(() => {
+    userAccessBottomSheetRef.current?.close();
+  }, []);
+
+  // Handlers for system filter bottom sheet
+  const handlePresentSystemFilterModalPress = useCallback(() => {
+    systemFilterBottomSheetRef.current?.expand();
+    setShowSystemFilterBottomSheet(true);
+  }, []);
+  const handleCloseSystemFilterModalPress = useCallback(() => {
+    systemFilterBottomSheetRef.current?.close();
+    setShowSystemFilterBottomSheet(false);
+  }, []);
+
+  useEffect(() => {
+    if (selectedUser) {
+      handlePresentUserAccessModalPress();
+    } else {
+      handleCloseUserAccessModalPress();
+    }
+    setUpdatingSystemKey(null);
+  }, [
+    selectedUser,
+    handlePresentUserAccessModalPress,
+    handleCloseUserAccessModalPress,
+  ]);
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 300); // 300ms debounce time
+    }, 300);
 
     return () => {
       clearTimeout(handler);
@@ -59,43 +106,38 @@ const AccessScreen = ({navigation}) => {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (Array.isArray(data)) {
+    if (Array.isArray(data) && systems) {
       const transformedUsers = data.map(user => {
         const getAccess = key => (user[key] === '1' ? 'access' : 'no-access');
+
+        const dynamicAccess = systems.reduce((acc, system) => {
+          acc[system.key] = getAccess(system.key);
+          return acc;
+        }, {});
+
         return {
           id: user.Id,
           name: user.Name,
           employeeNumber: user.EmployeeNumber,
           isActive: user.RegistrationState === '1',
-          access: {
-            PROCUREMENT: getAccess('PROCUREMENT'),
-            PAYROLL: getAccess('PAYROLL'),
-            ELOGS: getAccess('ELOGS'),
-            FMS: getAccess('FMS'),
-            GSOINVENTORY: getAccess('GSOINVENTORY'),
-            GSOINSPECTION: getAccess('GSOINSPECTION'),
-            BACATTACHMENT: getAccess('BACATTACHMENT'),
-          },
+          access: dynamicAccess,
         };
       });
 
       setUsers(transformedUsers);
-      // setFilteredUsers(transformedUsers); // This will be handled by the filterUsers useEffect
-      setLoading(false);
     }
-  }, [data]);
+  }, [data, systems]);
 
   useEffect(() => {
-    filterUsers();
-  }, [debouncedSearchQuery, selectedSystems, users]); // Use debouncedSearchQuery here
+    if (systems) {
+      filterUsers();
+    }
+  }, [debouncedSearchQuery, selectedSystems, users, systems]);
 
   const filterUsers = useCallback(() => {
-    // Wrap with useCallback
     let result = [...users];
 
-    // Apply search filter
     if (debouncedSearchQuery) {
-      // Use debounced search query
       result = result.filter(
         user =>
           (user.employeeNumber &&
@@ -109,7 +151,6 @@ const AccessScreen = ({navigation}) => {
       );
     }
 
-    // Apply system filter
     if (selectedSystems.length > 0) {
       result = result.filter(user =>
         selectedSystems.every(sys => user.access[sys] === 'access'),
@@ -117,29 +158,27 @@ const AccessScreen = ({navigation}) => {
     }
 
     setFilteredUsers(result);
-  }, [users, debouncedSearchQuery, selectedSystems]); // Dependencies for useCallback
+  }, [users, debouncedSearchQuery, selectedSystems]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       await queryClient.invalidateQueries(['getUserAccess']);
+      await queryClient.invalidateQueries(['systemsListAO']);
     } catch (error) {
-      console.error('Failed to refresh getUserAccess:', error);
+      console.error('Failed to refresh data:', error);
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Count based on filteredUsers now
   const {activeCount, inactiveCount, overallCount} = useMemo(() => {
-    // Wrap with useMemo
     let active = 0;
     let inactive = 0;
-    let overall = filteredUsers.length; // Count from filteredUsers
+    let overall = filteredUsers.length;
 
     filteredUsers.forEach(user => {
       if (user.isActive) {
-        // Use isActive from transformed data
         active++;
       } else {
         inactive++;
@@ -162,9 +201,24 @@ const AccessScreen = ({navigation}) => {
   };
 
   const toggleAccess = async (user, systemKey) => {
-    // Optimistic UI updates
-    const originalUsers = [...users]; // Store original for rollback
-    const originalSelectedUser = {...selectedUser}; // Store original selected user for modal rollback
+    if (isUpdatingAccess || updatingSystemKey !== null) {
+      showMessage({
+        message: 'Please wait',
+        description: 'An update is already in progress.',
+        type: 'info',
+        icon: 'info',
+        backgroundColor: '#FFA000',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 2000,
+      });
+      return;
+    }
+
+    setUpdatingSystemKey(systemKey);
+
+    const originalUsers = [...users];
+    const originalSelectedUser = {...selectedUser};
 
     let newStateForUser = null;
     let newAccessValue = null;
@@ -172,7 +226,6 @@ const AccessScreen = ({navigation}) => {
     if (systemKey === 'RegistrationState') {
       newStateForUser = user.isActive ? '0' : '1';
 
-      // Update local state immediately
       setUsers(prevUsers =>
         prevUsers.map(u => {
           if (u.id === user.id) {
@@ -184,7 +237,6 @@ const AccessScreen = ({navigation}) => {
           return u;
         }),
       );
-      // Update selectedUser for modal
       setSelectedUser(prev => ({
         ...prev,
         isActive: newStateForUser === '1',
@@ -193,7 +245,6 @@ const AccessScreen = ({navigation}) => {
       const currentAccess = user.access[systemKey];
       newAccessValue = currentAccess === 'access' ? 'no-access' : 'access';
 
-      // Update local state immediately
       setUsers(prevUsers =>
         prevUsers.map(u => {
           if (u.id === user.id) {
@@ -208,7 +259,6 @@ const AccessScreen = ({navigation}) => {
           return u;
         }),
       );
-      // Update selectedUser for modal
       setSelectedUser(prev => ({
         ...prev,
         access: {
@@ -243,8 +293,6 @@ const AccessScreen = ({navigation}) => {
           floating: true,
           duration: 3000,
         });
-        // No need to close modal immediately unless desired,
-        // as the UI is already updated.
       } else {
         throw new Error(result.message || 'Update failed');
       }
@@ -261,26 +309,42 @@ const AccessScreen = ({navigation}) => {
         duration: 3000,
       });
 
-      // Rollback UI on error
       setUsers(originalUsers);
-      setSelectedUser(originalSelectedUser); // Rollback selected user for modal
+      setSelectedUser(originalSelectedUser);
+    } finally {
+      setUpdatingSystemKey(null);
     }
   };
 
-  const renderAccessChip = (user, system) => {
-    const hasAccess = user.access[system.key] === 'access';
+  const CustomCheckboxIcon = ({value}) => {
     return (
-      <TouchableOpacity
-        key={system.key}
-        style={[
-          styles.chip,
-          hasAccess ? styles.chipEnabled : styles.chipDisabled,
-        ]}
-        disabled={true}>
-        <Text style={styles.chipText}>{system.label}</Text>
-      </TouchableOpacity>
+      <Icon
+        name={value ? 'checkbox-outline' : 'square-outline'}
+        size={26}
+        color={value ? '#4CAF50' : '#888'}
+      />
     );
   };
+
+  const renderAccessChip = useCallback(
+    (user, system) => {
+      if (!systems) return null;
+
+      const hasAccess = user.access[system.key] === 'access';
+      return (
+        <TouchableOpacity
+          key={system.key}
+          style={[
+            styles.chip,
+            hasAccess ? styles.chipEnabled : styles.chipDisabled,
+          ]}
+          disabled={true}>
+          <Text style={styles.chipText}>{system.label}</Text>
+        </TouchableOpacity>
+      );
+    },
+    [systems],
+  );
 
   const renderItem = useCallback(
     ({item, index}) => (
@@ -288,7 +352,6 @@ const AccessScreen = ({navigation}) => {
         style={styles.userCard}
         onPress={() => {
           setSelectedUser(item);
-          setEditModalVisible(true);
         }}>
         <View style={styles.rowContainer}>
           <View style={styles.indexColumn}>
@@ -311,9 +374,10 @@ const AccessScreen = ({navigation}) => {
               </Text>
             </Text>
             <View style={styles.chipsContainer}>
-              {systems
-                .filter(system => item.access[system.key] === 'access')
-                .map(system => renderAccessChip(item, system))}
+              {systems &&
+                systems
+                  .filter(system => item.access[system.key] === 'access')
+                  .map(system => renderAccessChip(item, system))}
             </View>
           </View>
 
@@ -321,129 +385,122 @@ const AccessScreen = ({navigation}) => {
             style={styles.settingsColumn}
             onPress={() => {
               setSelectedUser(item);
-              setEditModalVisible(true);
             }}>
             <Icon name="settings-outline" size={24} color="#ccc" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
     ),
-    [renderAccessChip],
+    [renderAccessChip, systems],
   );
 
-  if (loading || userLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+  const renderListFooter = () => {
+    if ((userLoading || loadingSystems) && filteredUsers.length === 0) {
+      return (
+        <View style={styles.listLoadingContainer}>
           <ActivityIndicator size="large" color="#1a508c" />
+          <Text style={styles.loadingText}>Fetching users...</Text>
         </View>
-      </SafeAreaView>
-    );
-  }
+      );
+    }
+    if (
+      !userLoading &&
+      !loadingSystems &&
+      (userFetching || systemsFetching) &&
+      filteredUsers.length > 0
+    ) {
+      return (
+        <View style={styles.listLoadingContainer}>
+          <ActivityIndicator size="small" color="#1a508c" />
+          <Text style={styles.loadingText}>Updating...</Text>
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={require('../../assets/images/CirclesBG.png')}
-        style={styles.bgHeader}>
-        <View style={styles.header}>
-          <>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <SafeAreaView style={styles.container}>
+        <ImageBackground
+          source={require('../../assets/images/CirclesBG.png')}
+          style={styles.bgHeader}
+          imageStyle={styles.bgHeaderImageStyle}>
+          <View style={styles.header}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={styles.backButton}
-              hitSlop={{top: 10, bottom: 10, left: 10, right: 10}} // Added hitSlop
-            >
-              <Icon name="arrow-back" size={24} color="#fff" />
+              style={styles.backButton}>
+              <Icon name="chevron-back-outline" size={26} color="#FFFFFF" />
+              <Text style={{color: '#fff', fontSize: 16, fontWeight: 'normal'}}>
+                Access
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Access</Text>
-            <TouchableOpacity style={styles.searchIcon}>
-              {/* <Icon name="ellipsis-vertical" size={20} color="#fff" /> */}
-            </TouchableOpacity>
-          </>
-        </View>
-      </ImageBackground>
+            <View style={{width: 60}} />
+          </View>
+        </ImageBackground>
 
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name or employee number..."
-          value={searchQuery}
-          onChangeText={setSearchQuery} // Update immediate searchQuery state
-          numberOfLines={1}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            onPress={() => setSearchQuery('')}
-            style={styles.clearSearchButton}
-            hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}>
-            <Icon name="close-circle" size={20} color="#999" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <View style={styles.legendContainer}>
-        <View style={styles.legendItem}>
-          <View style={styles.activeLegend}></View>
-          <Text style={styles.legendText}>Active: {activeCount}</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={styles.inactiveLegend}></View>
-          <Text style={styles.legendText}>Deactivated: {inactiveCount}</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={styles.overallLegend}></View>
-          <Text style={styles.legendText}>Overall: {overallCount}</Text>
-        </View>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={styles.filterToggleButton}
-          onPress={() => setShowSystemFilters(!showSystemFilters)}>
-          <Text style={styles.filterToggleButtonText}>
-            {showSystemFilters ? 'Hide System Filters' : 'Filter by System'}
-          </Text>
-          <Icon
-            name={showSystemFilters ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color="#1a508c"
-          />
-        </TouchableOpacity>
-
-        {showSystemFilters && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.systemFiltersContainer}>
-            {systems.map(system => (
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchInputWrapper}>
+            <Icon
+              name="search-outline"
+              size={25}
+              color={styles.searchIcon.color}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search EmployeeNumber or Name..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              autoCapitalize="characters"
+              onChangeText={setSearchQuery}
+              accessibilityHint="Type to search for inventory items by tracking number."
+            />
+            {searchQuery.length > 0 && (
               <TouchableOpacity
-                key={system.key}
-                style={[
-                  styles.systemFilterButton,
-                  selectedSystems.includes(system.key) &&
-                    styles.systemFilterButtonSelected,
-                ]}
-                onPress={() => toggleSystemFilter(system.key)}>
-                <Text
-                  style={[
-                    styles.systemFilterButtonText,
-                    selectedSystems.includes(system.key) &&
-                      styles.systemFilterButtonTextSelected,
-                  ]}>
-                  {system.label}
-                </Text>
+                onPress={() => setSearchQuery('')}
+                style={styles.clearSearchButton}
+                accessibilityLabel="Clear search query">
+                <Icon
+                  name="close-circle"
+                  size={20}
+                  color={styles.searchIcon.color}
+                />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+            )}
+          </View>
+          {/* New Filter Icon Button */}
+          <TouchableOpacity
+            onPress={handlePresentSystemFilterModalPress}
+            style={styles.filterIconButton}>
+            <Icon name="filter" size={24} color="#1a508c" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.legendContainer}>
+          <View style={styles.legendItem}>
+            <View style={styles.activeLegend}></View>
+            <Text style={styles.legendText}>Active: {activeCount}</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={styles.inactiveLegend}></View>
+            <Text style={styles.legendText}>Deactivated: {inactiveCount}</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={styles.overallLegend}></View>
+            <Text style={styles.legendText}>Overall: {overallCount}</Text>
+          </View>
+        </View>
 
         {selectedSystems.length > 0 && (
-          <View style={styles.activeFiltersContainer}>
-            <Text style={styles.activeFiltersText}>Active filters:</Text>
-            <View style={styles.activeFiltersChips}>
+          <View style={styles.activeFiltersWrapper}>
+            <Text style={styles.activeFiltersLabel}>Active Filters:</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.activeFiltersChipsContainer}>
               {selectedSystems.map(systemKey => {
-                const system = systems.find(s => s.key === systemKey);
+                const system = systems?.find(s => s.key === systemKey);
                 return (
                   <View key={systemKey} style={styles.activeFilterChip}>
                     <Text style={styles.activeFilterChipText}>
@@ -457,170 +514,315 @@ const AccessScreen = ({navigation}) => {
                   </View>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
         )}
-      </View>
 
-      <FlatList
-        data={filteredUsers}
-        renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="person-remove-outline" size={50} color="#ccc" />
-            <Text style={styles.emptyText}>No users found</Text>
-            {selectedSystems.length > 0 && (
-              <Text style={styles.emptySubtext}>
-                No users have access to all selected systems
-              </Text>
-            )}
-          </View>
-        }
-      />
+        <FlatList
+          data={filteredUsers}
+          renderItem={renderItem}
+          keyExtractor={item => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            !userLoading && !loadingSystems && filteredUsers.length === 0 ? (
+              <View style={styles.emptyContainer}>
+               {/*  <Icon name="person-remove-outline" size={60} color="#999" /> */}
+                  <Image
+                              source={require('../../assets/images/noresultsstate.png')}
+                              style={{
+                                width: 200,
+                                height: 200,
+                                resizeMode: 'contain',
+                                marginBottom: 10,
+                              }}
+                            />
 
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={editModalVisible}
-        onRequestClose={() => setEditModalVisible(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {/* Modal Header with Close Button */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Access</Text>
-              <TouchableOpacity
-                onPress={() => setEditModalVisible(false)}
-                style={styles.modalCloseButton}>
-                <Icon name="close-circle-outline" size={28} color="#999" />
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.emptyTitle}>No Users Found</Text>
 
-            <Text style={styles.modalSubtitle}>
-              {selectedUser?.name} ({selectedUser?.employeeNumber})
-            </Text>
+                {selectedSystems.length > 0 ? (
+                  <>
+                    <Text style={styles.emptySubtext}>
+                      No users have access to **all** of the currently selected
+                      systems.
+                    </Text>
+                    <Text style={styles.emptyHint}>
+                      Try adjusting your system filters to find users.
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.emptySubtext}>
+                    There are no users to display based on your current attempted search.
+                  </Text>
+                )}
 
-            {/* Account Status Section */}
-            <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>Account Status</Text>
-              <View style={styles.modalRegistrationContainer}>
-                <Text style={styles.modalSystemLabel}>User Account</Text>
-                <TouchableOpacity
-                  style={[
-                    styles.modalToggleButton,
-                    selectedUser?.isActive
-                      ? styles.modalToggleButtonEnabled
-                      : styles.modalToggleButtonDisabled,
-                  ]}
-                  onPress={() =>
-                    toggleAccess(selectedUser, 'RegistrationState')
-                  }>
-                  <Text style={styles.modalToggleButtonText}>
-                    {selectedUser?.isActive ? 'Deactivate' : 'Activate'}
+                <TouchableOpacity style={styles.clearFiltersButton}>
+                  <Text style={styles.clearFiltersButtonText}>
+                    Clear Filters
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            ) : null
+          }
+          ListFooterComponent={renderListFooter}
+        />
 
-            {/* System Access Section */}
-            <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>System Access</Text>
-              {systems.map(system => {
-                const hasAccess = selectedUser?.access[system.key] === 'access';
-                return (
-                  <View key={system.key} style={styles.modalSystemRow}>
-                    <Text style={styles.modalSystemLabel}>{system.label}</Text>
+        {/* User Access Bottom Sheet */}
+        {selectedUser && (
+          <BottomSheet
+            ref={userAccessBottomSheetRef}
+            index={1}
+            snapPoints={userAccessSnapPoints}
+            enablePanDownToClose={true}
+            onClose={() => setSelectedUser(null)}
+            backdropComponent={({style}) => (
+              <TouchableOpacity
+                style={[style, styles.backdrop]}
+                onPress={handleCloseUserAccessModalPress}
+              />
+            )}>
+            <BottomSheetView style={styles.bottomSheetContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Access</Text>
+                <TouchableOpacity
+                  onPress={() => setSelectedUser(null)}
+                  style={styles.modalCloseButton}>
+                  <Icon name="close-circle-outline" size={28} color="#999" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalSubtitle}>
+                {selectedUser?.name} ({selectedUser?.employeeNumber})
+              </Text>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Account Status</Text>
+                {systems &&
+                  systems
+                    .filter(system => system.key === 'RegistrationState')
+                    .map(system => {
+                      const isAccountActive = selectedUser?.isActive;
+
+                      return (
+                        <TouchableOpacity
+                          key={system.key}
+                          style={styles.modalSystemRow}
+                          onPress={() =>
+                            toggleAccess(selectedUser, system.key)
+                          }>
+                          <Text style={styles.modalSystemLabel}>
+                            {system.label}
+                          </Text>
+                          <CustomCheckboxIcon value={isAccountActive} />
+                        </TouchableOpacity>
+                      );
+                    })}
+              </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>System Access</Text>
+                <ScrollView
+                  style={styles.modalSystemAccessScrollView}
+                  showsVerticalScrollIndicator={false}>
+                  {systems &&
+                    systems
+                      .filter(system => system.key !== 'RegistrationState')
+                      .map(system => {
+                        const hasAccess =
+                          selectedUser?.access[system.key] === 'access';
+                        const isThisRowUpdating =
+                          isUpdatingAccess && updatingSystemKey === system.key;
+
+                        return (
+                          <TouchableOpacity
+                            key={system.key}
+                            style={styles.modalSystemRow}
+                            onPress={() =>
+                              toggleAccess(selectedUser, system.key)
+                            }
+                            disabled={isThisRowUpdating}>
+                            <Text style={styles.modalSystemLabel}>
+                              {system.label}
+                            </Text>
+                            {isThisRowUpdating ? (
+                              <ActivityIndicator size="small" color="#1a508c" />
+                            ) : (
+                              <CustomCheckboxIcon value={hasAccess} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                </ScrollView>
+              </View>
+            </BottomSheetView>
+          </BottomSheet>
+        )}
+
+        {/* System Filter Bottom Sheet */}
+        {showSystemFilterBottomSheet && (
+          <BottomSheet
+            ref={systemFilterBottomSheetRef}
+            index={0} // Start at 0 to show the first snap point
+            snapPoints={systemFilterSnapPoints}
+            enablePanDownToClose={true}
+            onClose={handleCloseSystemFilterModalPress}
+            backdropComponent={({style}) => (
+              <TouchableOpacity
+                style={[style, styles.backdrop]}
+                onPress={handleCloseSystemFilterModalPress}
+              />
+            )}>
+            <BottomSheetView style={styles.bottomSheetContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Filter</Text>
+                <TouchableOpacity
+                  onPress={handleCloseSystemFilterModalPress}
+                  style={styles.modalCloseButton}>
+                  <Icon name="close-circle-outline" size={28} color="#999" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.systemFiltersScrollView}
+                showsVerticalScrollIndicator={false}>
+                {systems &&
+                  systems.map(system => (
                     <TouchableOpacity
+                      key={system.key}
                       style={[
-                        styles.modalToggleButton,
-                        hasAccess
-                          ? styles.modalToggleButtonRevoke // Use a specific style for revoke
-                          : styles.modalToggleButtonGrant, // Use a specific style for grant
+                        styles.systemFilterButtonBottomSheet,
+                        selectedSystems.includes(system.key) &&
+                          styles.systemFilterButtonSelectedBottomSheet,
                       ]}
-                      onPress={() => toggleAccess(selectedUser, system.key)}>
-                      <Text style={styles.modalToggleButtonText}>
-                        {hasAccess ? 'Revoke' : 'Grant'}
+                      onPress={() => toggleSystemFilter(system.key)}>
+                      <Text
+                        style={[
+                          styles.systemFilterButtonTextBottomSheet,
+                          selectedSystems.includes(system.key) &&
+                            styles.systemFilterButtonTextSelectedBottomSheet,
+                        ]}>
+                        {system.label}
                       </Text>
+                      <CustomCheckboxIcon
+                        value={selectedSystems.includes(system.key)}
+                      />
                     </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-
-            {/*   <View style={styles.modalButtons}>
-        <TouchableOpacity
-          style={styles.doneButton}
-          onPress={() => setEditModalVisible(false)}
-        >
-          <Text style={styles.doneButtonText}>Done</Text>
-        </TouchableOpacity>
-      </View> */}
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+                  ))}
+              </ScrollView>
+            </BottomSheetView>
+          </BottomSheet>
+        )}
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: 'white'},
   bgHeader: {
-    paddingTop: 35,
-    height: 80,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 30,
+    height: 130,
     backgroundColor: '#1a508c',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    elevation: 5,
-    // iOS Shadow properties
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    paddingHorizontal: 20,
+  },
+  bgHeaderImageStyle: {
+    opacity: 0.2,
   },
   header: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Ensure space-between for correct centering
-    flex: 1, // Allow header to take full width
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 8,
   },
-  headerTitle: {
-    flex: 1, // Take available space for centering
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingRight: 15,
+    zIndex: 1,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#fff',
+    marginLeft: 5,
+    fontWeight: '500',
   },
-  searchIcon: {marginRight: 10, width: 30}, // Keep for potential future use or if you add other icons
-  backButton: {padding: 8, borderRadius: 20},
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginHorizontal: 15,
+    marginTop: -40,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    marginRight: 10,
+    height: 55,
+    paddingLeft: 10,
+  },
+  searchIcon: {
+    marginRight: 5,
+    color: '#6C757D',
+    padding: 5,
+  },
+  searchInput: {
+    flex: 1,
+    height: 55,
+    fontSize: 15,
+    color: '#343A40',
+  },
+  clearSearchButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  filterIconButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    padding: 12, // Adjust padding to make the icon visible and clickable
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 55, // Match height of search input
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchContainer: {
-    flexDirection: 'row',
+  listLoadingContainer: {
+    paddingVertical: 20,
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'center',
   },
-  searchInput: {
-    flex: 1,
-    height: 50,
-    paddingLeft: 10,
+  loadingText: {
+    marginTop: 10,
+    color: '#555',
     fontSize: 16,
-    color: '#333',
-  },
-  clearSearchButton: {
-    // New style for clear button
-    padding: 5,
-    marginLeft: 10,
   },
   listContainer: {
     padding: 15,
@@ -638,7 +840,6 @@ const styles = StyleSheet.create({
   },
   rowContainer: {
     flexDirection: 'row',
-    //alignItems: 'center', // Aligned to center vertically for better appearance
     paddingVertical: 5,
     marginBottom: 8,
   },
@@ -657,21 +858,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   userName: {
-    fontSize: 18, // Slightly larger
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
   userFullName: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#666', // Slightly subdued
+    color: '#666',
   },
   userStatus: {
     fontSize: 14,
     color: '#555',
-    marginTop: 4, // Added small margin
+    marginTop: 4,
   },
-  // Renamed for clarity, original activeIcon/inactiveIcon used for `countUsersByStatus`
   activeStatusText: {
     color: '#4CAF50',
     fontWeight: 'bold',
@@ -687,8 +887,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 10,
-    //maxHeight: 80, // Limit height, consider scrollable if many
-    overflow: 'hidden', // Hide overflow
+    overflow: 'hidden',
   },
   chip: {
     flexDirection: 'row',
@@ -717,73 +916,63 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 50,
+    padding: 20,
+    backgroundColor: '#f9f9f9', // Light background for the empty state
+    borderRadius: 8,
+    margin: 20, // Add some margin around the container
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 10, // Added margin for icon
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#555',
+    marginTop: 15,
+    marginBottom: 5,
   },
   emptySubtext: {
+    fontSize: 16,
+    color: '#777',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 10,
+  },
+  emptyHint: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 10,
-    textAlign: 'center', // Center text
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)', // Slightly darker overlay
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 12, // More rounded corners
-    padding: 20,
-    maxHeight: '85%', // Slightly more height
-    elevation: 10, // Stronger shadow for Android
-    shadowColor: '#000', // Stronger shadow for iOS
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 5,
+    fontStyle: 'italic',
   },
   modalHeader: {
-    // New style for header with close button
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
   modalTitle: {
-    fontSize: 22, // Slightly larger title
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    flex: 1, // Allow title to take space
-    textAlign: 'center', // Center the title
+    flex: 1,
   },
   modalCloseButton: {
-    // New style for close button
     padding: 5,
   },
   modalSubtitle: {
     fontSize: 15,
     textAlign: 'center',
-    color: '#777', // Slightly lighter color for subtitle
+    color: '#777',
     marginBottom: 20,
-    borderBottomWidth: 1, // Separator line
+    borderBottomWidth: 1,
     borderBottomColor: '#eee',
     paddingBottom: 15,
   },
   modalSection: {
-    // New style for grouping sections
     marginBottom: 20,
   },
   modalSectionTitle: {
-    // New style for section titles
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a508c', // Primary app color for section titles
+    color: '#1a508c',
     marginBottom: 10,
     paddingBottom: 5,
     borderBottomWidth: 1,
@@ -793,72 +982,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10, // Reduced padding
-    // Removed borderBottomWidth and borderBottomColor as section title handles it
-  },
-  modalSystemsContainer: {
-    // Removed marginVertical as modalSection handles spacing
+    paddingHorizontal: 20,
   },
   modalSystemRow: {
+    elevation: 1,
+    backgroundColor: 'white',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10, // Reduced padding
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0', // Lighter separator for individual rows
+    borderBottomColor: '#f0f0f0',
   },
   modalSystemLabel: {
     fontSize: 16,
     color: '#555',
-    flex: 1, // Allow label to grow
+    flex: 1,
+    marginRight: 10,
   },
   modalToggleButton: {
-    paddingHorizontal: 18, // Slightly more horizontal padding
-    paddingVertical: 8, // Slightly more vertical padding
-    borderRadius: 20, // More rounded buttons
-    minWidth: 90, // Ensure consistent width
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minWidth: 90,
     alignItems: 'center',
-    justifyContent: 'center', // Center text vertically
-    marginLeft: 10, // Space from label
+    justifyContent: 'center',
+    marginLeft: 10,
   },
   modalToggleButtonEnabled: {
-    // For 'Deactivate' (account status)
-    backgroundColor: '#D32F2F', // A stronger red for deactivation
+    backgroundColor: '#D32F2F',
   },
   modalToggleButtonDisabled: {
-    // For 'Activate' (account status)
-    backgroundColor: '#388E3C', // A stronger green for activation
+    backgroundColor: '#388E3C',
   },
   modalToggleButtonRevoke: {
-    // For 'Revoke' (system access)
-    backgroundColor: '#F44336', // Original red for revoke
+    backgroundColor: '#F44336',
   },
   modalToggleButtonGrant: {
-    // For 'Grant' (system access)
-    backgroundColor: '#4CAF50', // Original green for grant
+    backgroundColor: '#4CAF50',
   },
   modalToggleButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600', // Slightly bolder text
-  },
-  modalButtons: {
-    marginTop: 30, // More space before the done button
-    // Align button to center
-    alignItems: 'center',
-  },
-  doneButton: {
-    paddingVertical: 14, // Taller button
-    paddingHorizontal: 30, // Wider button
-    backgroundColor: '#1a508c',
-    borderRadius: 8, // More rounded
-    width: '80%', // Make button take more width
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16, // Larger text
+    fontWeight: '600',
   },
   legendContainer: {
     flexDirection: 'row',
@@ -897,55 +1064,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  filterContainer: {
-    paddingHorizontal: 15,
-    paddingTop: 10,
+  // Removed filterContainer, filterToggleButton, filterToggleButtonText, showSystemFilters as they are replaced by BottomSheet
+  activeFiltersWrapper: {
+    paddingVertical: 10,
+    paddingHorizontal: 15, // Added padding to align with search bar
+    flexDirection: 'row',
+    alignItems: 'center', // Align items vertically
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  filterToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-  },
-  filterToggleButtonText: {
-    color: '#1a508c',
-    fontWeight: 'bold',
-  },
-  systemFiltersContainer: {
-    paddingVertical: 10,
-  },
-  systemFilterButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#1a508c',
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  systemFilterButtonSelected: {
-    backgroundColor: '#1a508c',
-  },
-  systemFilterButtonText: {
-    color: '#1a508c',
-  },
-  systemFilterButtonTextSelected: {
-    color: '#fff',
-  },
-  activeFiltersContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 10,
-  },
-  activeFiltersText: {
+  activeFiltersLabel: {
     marginRight: 10,
     color: '#666',
+    fontSize: 14,
   },
-  activeFiltersChips: {
+  activeFiltersChipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    flexGrow: 1, // Allow chips to grow and take available space
   },
   activeFilterChip: {
     flexDirection: 'row',
@@ -955,11 +1091,55 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 15,
     marginRight: 8,
-    marginBottom: 5,
+    marginBottom: 4, // Adjust for spacing when wrapping
+    marginTop: 4,
   },
   activeFilterChipText: {
     color: '#fff',
     marginRight: 5,
+    fontSize: 13,
+  },
+  bottomSheetContent: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 20,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  backdrop: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  systemFiltersScrollView: {
+    flex: 1, // Ensure the scroll view takes up available space
+  },
+  systemFilterButtonBottomSheet: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 8, // Space between buttons
+    backgroundColor: '#f9f9f9',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  systemFilterButtonSelectedBottomSheet: {
+    backgroundColor: '#E3F2FD', // Light blue background for selected
+    borderColor: '#2196F3', // Blue border for selected
+  },
+  systemFilterButtonTextBottomSheet: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  systemFilterButtonTextSelectedBottomSheet: {
+    color: '#2196F3', // Blue text for selected
   },
 });
 
