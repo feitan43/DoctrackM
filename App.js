@@ -35,7 +35,6 @@ const App = () => {
     ImmersiveMode.setBarMode('BottomSticky');
     ImmersiveMode.setBarStyle('Light');
     ImmersiveMode.setBarTranslucent(true);
-    
     //ImmersiveMode.setBarColor('#003166');
   }, []);
 

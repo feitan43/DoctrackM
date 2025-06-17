@@ -299,7 +299,7 @@ const SearchScreen = ({}) => {
     }
   }; */
 
- /*  const searchTrackingNumber = async keywordParam => {
+  /*  const searchTrackingNumber = async keywordParam => {
     const keyword =
       typeof keywordParam === 'string' ? keywordParam : searchText;
 
@@ -380,80 +380,86 @@ const SearchScreen = ({}) => {
   }; */
 
   const searchTrackingNumber = async keywordParam => {
-  const keyword = typeof keywordParam === 'string' ? keywordParam : searchText;
+    const keyword =
+      typeof keywordParam === 'string' ? keywordParam : searchText;
 
-  if (!keyword || keyword.length < 3) {
-    setDataError(true);
-    triggerShakeAnimation();
-    setErrorMessage('At least 3 characters.');
-    return;
-  }
-
-  const validText = /^[a-zA-Z0-9-]*$/;
-  if (!validText.test(keyword)) {
-    setDataError(true);
-    triggerShakeAnimation();
-    setErrorMessage('Only alphanumeric characters and hyphen (-) are allowed.');
-    return;
-  } else {
-    setDataError(false);
-  }
-
-  setSearchTrackData(null);
-
-  try {
-    const data = await fetchDataSearchTrack(keyword);
-
-    if (
-      !data ||
-      data.count === 0 ||
-      !data.results ||
-      data.results.length === 0
-    ) {
+    if (!keyword || keyword.length < 3) {
       setDataError(true);
       triggerShakeAnimation();
-      setErrorMessage('No results found.');
+      setErrorMessage('At least 3 characters.');
       return;
     }
 
-    if (data.count === 1 && data.results.length > 0) {
-      const trackingNumber =
-        keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
-          ? keyword
-          : data.results[0].TrackingNumber;
-
-      // ✅ Add to history only on successful fetch
-      addSearchItem(keyword);
-      setSearchHistory(prev => {
-        const newHistory = [keyword, ...prev.filter(item => item !== keyword)];
-        return newHistory.slice(0, 5);
-      });
-
-      setSearchModalVisible(false);
-      setSearchText('');
-
-      navigation.navigate('Detail', {
-        index: 0,
-        selectedItem: {
-          Year: selectedYear,
-          TrackingNumber: trackingNumber,
-          TrackingType: data.results[0].TrackingType,
-          data: data.results[0],
-        },
-      });
+    const validText = /^[a-zA-Z0-9-]*$/;
+    if (!validText.test(keyword)) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        'Only alphanumeric characters and hyphen (-) are allowed.',
+      );
+      return;
     } else {
-      console.log('No unique results found for the search.');
+      setDataError(false);
     }
 
-    setSearch(true);
-  } catch (fetchError) {
-    setDataError(true);
-    triggerShakeAnimation();
-    setErrorMessage(`Fetch error: ${fetchError.message || fetchError.toString()}`);
-    console.error(fetchError);
-  }
-};
+    setSearchTrackData(null);
 
+    try {
+      const data = await fetchDataSearchTrack(keyword);
+
+      if (
+        !data ||
+        data.count === 0 ||
+        !data.results ||
+        data.results.length === 0
+      ) {
+        setDataError(true);
+        triggerShakeAnimation();
+        setErrorMessage('No results found.');
+        return;
+      }
+
+      if (data.count === 1 && data.results.length > 0) {
+        const trackingNumber =
+          keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
+            ? keyword
+            : data.results[0].TrackingNumber;
+        // ✅ Add to history only on successful fetch
+        addSearchItem(keyword);
+        setSearchHistory(prev => {
+          const newHistory = [
+            keyword,
+            ...prev.filter(item => item !== keyword),
+          ];
+          return newHistory.slice(0, 5);
+        });
+
+        setSearchModalVisible(false);
+        setSearchText('');
+
+        navigation.navigate('Detail', {
+          index: 0,
+          selectedItem: {
+            Year: selectedYear,
+            TrackingNumber: trackingNumber,
+            TrackingType: data.results[0].TrackingType,
+            data: data.results[0],
+          },
+        });
+      } else {
+        console.log('No unique results found for the search.');
+      }
+
+      setSearch(true);
+    } catch (fetchError) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        `Fetch error: ${fetchError.message || fetchError.toString()}`,
+      );
+      console.error(fetchError);
+    }
+  };
 
   const searchPayrollEmployeeNumber = async () => {
     // Clear any previous errors before starting a new search
@@ -862,7 +868,7 @@ const SearchScreen = ({}) => {
         <View
           style={{
             flex: 1,
-           // backgroundColor: 'rgba(255,255,255,0.2)',
+            // backgroundColor: 'rgba(255,255,255,0.2)',
             marginTop: 10,
           }}>
           <Animated.View // Apply the shake animation to this View
@@ -979,10 +985,11 @@ const SearchScreen = ({}) => {
     closeYearModal();
     closeMenu();
   };
+
   const handleSearchTextChange = text => {
     setSearchText(text.toUpperCase()); // Convert to uppercase here
   };
-  const searchInputRef = useRef(null); // Create a ref for the TextInput
+  const searchInputRef = useRef(null);
 
   const renderYearItem = ({item}) => (
     <TouchableOpacity style={styles.modalItem} onPress={() => selectYear(item)}>
@@ -1002,56 +1009,83 @@ const SearchScreen = ({}) => {
             backgroundColor: 'rgba(255, 255, 255, 0.5)',
           }}
         />
-
         <View
           style={{
+            margin: 10,
             borderWidth: 1,
             backgroundColor: 'rgba(255,255,255,0.5)',
             borderColor: '#eee',
-            marginTop: 10,
-            paddingStart: 10,
-            marginHorizontal: 5,
-            marginBottom: 10,
-            alignItems: 'flex-start',
           }}>
-          {/* <TouchableOpacity
+          <View
+            style={{
+              marginTop: 10,
+              paddingStart: 10,
+              marginHorizontal: 5,
+              marginBottom: 10,
+              alignItems: 'flex-start',
+            }}>
+            {/* <TouchableOpacity
               onPress={() => navigation.navigate('Receiver')}
               style={{ top: 10, right: 10}}>
               <Icons name="qrcode-scan" size={40} color="#252525" />
             </TouchableOpacity> */}
 
-          <View style={{marginStart: 10, marginBottom: 20, marginTop: 10}}>
-            <View
-              style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-              <View>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_24pt-Bold',
-                    fontSize: 24,
-                    color: '#252525',
-                  }}>
-                  Search
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_24pt-Regular',
-                    fontSize: 14,
-                    color: '#252525',
-                  }}>
-                  Search tracking number
-                </Text>
-              </View>
-              <View style={{alignItems: 'flex-end'}}>
-                {(caoReceiver === '1' || cboReceiver === '1') && (
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Receiver')}
-                    style={{top: 10, right: 20}}>
-                    <Icons name="qrcode-scan" size={40} color="black" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-            <View
+           <View
+  style={{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    //backgroundColor: 'yellow',
+    marginBottom: 20,
+    marginTop: 10,
+    width:'100%'
+  }}>
+  
+  {/* Left Side - Title */}
+  <View>
+    <Text
+      style={{
+        fontFamily: 'Inter_24pt-Bold',
+        fontSize: 24,
+        color: '#252525',
+      }}>
+      Search
+    </Text>
+  </View>
+
+  {/* Right Side - Filter + QR Scanner */}
+  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+    <TouchableOpacity
+      style={[styles.filterButton]}
+      // onPress={handlePresentYearFilterSheet}
+      accessibilityLabel={`Currently filtered by year ${
+        selectedYear || 'All Years'
+      }. Tap to change.`}>
+      <Icon name="filter-outline" size={22} color="#FFFFFF" />
+      <Text style={styles.filterButtonText}>
+        {selectedYear ? selectedYear : 'Year'}
+      </Text>
+      {selectedYear && (
+        <TouchableOpacity
+          onPress={() => setSelectedYear(null)}
+          style={styles.clearYearFilter}
+          accessibilityLabel="Clear year filter">
+          <Icon name="close-circle" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+
+    {(caoReceiver === '1' || cboReceiver === '1') && (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Receiver')}
+        style={{marginLeft: 10}}>
+        <Icons name="qrcode-scan" size={40} color="black" />
+      </TouchableOpacity>
+    )}
+  </View>
+</View>
+
+            {/*    <View
               style={{
                 marginTop: 10,
                 flexDirection: 'row',
@@ -1080,10 +1114,76 @@ const SearchScreen = ({}) => {
                 />
                 <Text style={{fontSize: 16, color: '#252525'}}>Enter here</Text>
               </TouchableOpacity>
+            </View> */}
+          </View>
+
+          <View style={{paddingTop: 10}}>
+            <View style={styles.searchFilterRow}>
+              <View style={styles.searchInputWrapper}>
+                {/* <Icon
+                        name="search-outline"
+                        size={25}
+                        color={styles.searchIcon.color}
+                        style={styles.searchIcon}
+                      /> */}
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Tracking Number"
+                  placeholderTextColor="#9CA3AF"
+                  value={searchText}
+                  autoCapitalize="characters"
+                  onChangeText={setSearchText}
+                  accessibilityHint="Type to search for inventory items by tracking number."
+                  //onEndEditing={handleSearch}
+                  onSubmitEditing={searchTrackingNumber}
+                  // editable={!isSearching}
+                />
+                {searchText?.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchText('')}
+                    style={styles.clearSearchButton}
+                    accessibilityLabel="Clear search query">
+                    <Icon
+                      name="close-circle"
+                      size={20}
+                      color={styles.searchIcon.color}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* New Filter Icon Button */}
+              {/*  <TouchableOpacity
+                              onPress={handlePresentSystemFilterModalPress}
+                              style={styles.filterIconButton}>
+                              <Icon name="filter" size={24} color="#1a508c" />
+                            </TouchableOpacity> */}
+              <TouchableOpacity
+                onPress={searchTrackingNumber}
+                style={styles.filterIconButton} // Uses your existing style
+                //disabled={isSearching}
+              >
+                <Icon name="search" size={24} color="#fff" />
+                {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+              </TouchableOpacity>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Icons name="qrcode-scan" size={26} color="#252525" />
+              <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+                Scan using QR
+              </Text>
             </View>
           </View>
         </View>
-
         <Modal transparent={true} visible={modalVisible} animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -1270,7 +1370,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-    errorContainer: {
+  errorContainer: {
     marginHorizontal: 20,
     padding: 12,
     backgroundColor: '#ffe5e5',
@@ -1281,7 +1381,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
@@ -1602,6 +1702,104 @@ const styles = StyleSheet.create({
     color: '#4A4A4A', // Slightly darker gray for better contrast
     fontSize: 14,
     marginBottom: 3, // Small margin for each detail line
+  },
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginHorizontal: 15,
+    marginTop: -40,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    marginRight: 10,
+    height: 55,
+    paddingLeft: 10,
+  },
+  searchIcon: {
+    marginRight: 5,
+    color: '#6C757D',
+    padding: 5,
+  },
+  searchInput: {
+    flex: 1,
+    height: 55,
+    fontSize: 15,
+    color: '#343A40',
+  },
+  clearSearchButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  filterIconButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    padding: 12, // Adjust padding to make the icon visible and clickable
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 55, // Match height of search input
+    width: 70,
+  },
+  searchSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 18,
+  },
+  filterButton: {
+    backgroundColor: '#1a508c',
+    borderRadius: 12,
+    height: 55,
+    paddingHorizontal: 15,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  filterButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  clearYearFilter: {
+    marginLeft: 8,
+    padding: 2,
   },
 });
 

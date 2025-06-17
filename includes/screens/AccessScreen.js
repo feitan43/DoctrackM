@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   bgHeaderImageStyle: {
-    opacity: 0.2,
+    opacity: 0.8,
   },
   header: {
     width: '100%',
@@ -929,10 +929,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   emptySubtext: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#777',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 10,
   },
   emptyHint: {

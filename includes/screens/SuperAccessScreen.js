@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   bgHeaderImageStyle: {
-    opacity: 0.2,
+    opacity: 0.8,
   },
   header: {
     width: '100%',
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterIconButton: {
-    backgroundColor: '#1a508c',
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E0E0E0',
