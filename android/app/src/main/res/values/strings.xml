@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">DocMobile</string>
+     <string name="StallionProjectId">6852ad0338678eded864b458</string>
+    <string name="StallionAppToken">spb_wck5LoqtcqEgcrsjfJ13-Z6dCXO6ABkH5QOvYjfL2a</string>
 </resources>

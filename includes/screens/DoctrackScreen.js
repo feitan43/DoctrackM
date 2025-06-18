@@ -1175,12 +1175,12 @@ const DoctrackScreen = ({
                   condition: procurement === '1',
                   screen: 'BACAttachments',
                 }, */
-                 /*  {
+                  {
                   label: 'Inventory',
                   icon: true,
                   condition: procurement === '1',
                   screen: 'InventoryScreen',
-                }, */
+                },
               ].map((item, index) => {
                 if (item.condition === false) {
                   return null;

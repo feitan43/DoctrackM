@@ -11,7 +11,8 @@ import {
   Alert,
   Linking,
   Button,
-  Modal,
+  LogBox,
+  Modal, // Keep Modal if you use it elsewhere, otherwise it can be removed from here
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
@@ -22,6 +23,7 @@ import {HotUpdater, useHotUpdaterStore} from '@hot-updater/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {showMessage} from 'react-native-flash-message';
 import ImmersiveMode from 'react-native-immersive-mode';
+import {withStallion, useStallionUpdate, restart, useStallionModal } from 'react-native-stallion'; // Import useStallionUpdate and restart
 
 // Import sp-react-native-in-app-updates
 import SpInAppUpdates, {
@@ -33,13 +35,82 @@ import SpInAppUpdates, {
 
 const queryClient = new QueryClient();
 
+LogBox.ignoreLogs(['new NativeEventEmitter() was called with a non-null argument without the required `addListener` method.']);
+
 // Initialize in-app updates (false for debug mode off in production)
 const inAppUpdates = new SpInAppUpdates(true);
+
+// Define the UpdatePrompt component
+const UpdatePrompt = () => {
+  const {isRestartRequired, newReleaseBundle} = useStallionUpdate();
+
+
+  if (!isRestartRequired) return null;
+
+  return (
+    <Modal transparent animationType="fade" visible={isRestartRequired}>
+      <View style={updatePromptStyles.centeredView}>
+        <View style={updatePromptStyles.modalView}>
+          <Text style={updatePromptStyles.modalText}>
+            {newReleaseBundle?.releaseNote ?? 'A new update is ready!'}
+          </Text>
+          <TouchableOpacity
+            style={updatePromptStyles.button}
+            onPress={restart}>
+            <Text style={updatePromptStyles.buttonText}>Restart now</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const updatePromptStyles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#333',
+  },
+  button: {
+    backgroundColor: 'rgba(2, 65, 163, 0.8)',
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+});
 
 const App = () => {
   const [isConnected, setIsConnected] = useState(true);
 
   const {progress, isBundleUpdated} = useHotUpdaterStore();
+       const { showModal } = useStallionModal();
 
   useEffect(() => {
     ImmersiveMode.fullLayout(true);
@@ -81,13 +152,13 @@ const App = () => {
           inAppUpdates.startUpdate(updateOptions);
         }
       } catch (error) {
-        console.error('Error checking for in-app updates:', error);
+        //console.error('Error checking for in-app updates:', error);
       }
     };
 
     const updateCheckTimeout = setTimeout(() => {
       checkAppStoreUpdates();
-    }, 3000); 
+    }, 3000);
 
     return () => clearTimeout(updateCheckTimeout);
   }, []);
@@ -141,6 +212,8 @@ const App = () => {
 
         <FlashMessage position="bottom" zIndex={9999} />
 
+        {/* Integrate the UpdatePrompt component here */}
+        <UpdatePrompt />
         <View style={styles.container}>
           {isConnected ? (
             <>
@@ -151,6 +224,8 @@ const App = () => {
                 </View>
               )} */}
               <Route />
+              <Button title="Open Stallion" onPress={showModal} />
+
             </>
           ) : (
             <View style={styles.noInternetContainer}>
@@ -242,7 +317,4 @@ const styles = StyleSheet.create({
   // },
 });
 
-export default HotUpdater.wrap({
-  source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
-  reloadOnForceUpdate: true,
-})(App);
+export default withStallion(App);

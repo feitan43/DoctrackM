@@ -37,7 +37,6 @@ import CameraComponent from '../utils/CameraComponent';
 import useUserInfo from '../api/useUserInfo';
 import {showMessage} from 'react-native-flash-message';
 import {useQueryClient} from '@tanstack/react-query';
-import FastImage from 'react-native-fast-image';
 
 const InventoryScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState('');

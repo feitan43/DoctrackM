@@ -1,4 +1,11 @@
-import React, {useState, useEffect, memo, useCallback, useRef} from 'react';
+import React, {
+  useState,
+  useEffect,
+  memo,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
@@ -33,6 +40,11 @@ import {
   useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
 import QRScanner from '../utils/qrScanner'; // Import the QRScanner
+import BottomSheet, {
+  BottomSheetFlatList,
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   return (
@@ -45,17 +57,14 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
             <Text style={styles.indexText}>{index + 1}</Text>
           </View>
           <LinearGradient
-            colors={['#0074FF', '#005BBF']} // Slightly darker blue for a more modern feel
+            colors={['#0074FF', '#005BBF']}
             start={{x: 0, y: 0}}
-            end={{x: 1, y: 0}} // Changed end x to 1 for a more subtle gradient
+            end={{x: 1, y: 0}}
             style={styles.trackingNumberGradient}>
             <Text style={styles.trackingNumberText}>
-              {item.TrackingNumber || 'N/A'}
+              {item.Year} | {item.TrackingNumber || 'N/A'}
             </Text>
           </LinearGradient>
-          <View style={styles.yearBadge}>
-            <Text style={styles.yearText}>{item.Year || 'N/A'}</Text>
-          </View>
         </View>
 
         <View style={styles.detailsContainer}>
@@ -98,10 +107,6 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState(false);
 
-  const [searchEmployeeNumber, setSearchEmployeeNumber] = useState('');
-  const [searchFirstName, setSearchFirstName] = useState('');
-  const [searchLastName, setSearchLastName] = useState('');
-
   const [dataError, setDataError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
@@ -111,16 +116,39 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
     searchTrackData,
     setSearchTrackData,
     searchTrackLoading,
-    searchPayrollData,
-    setSearchPayrollData,
-    searchPayrollLoading,
     error,
     fetchDataSearchTrack,
     fetchDataSearchPayroll,
   } = useSearchTrack(searchText, selectedYear, search);
   const cameraPermission = useCameraPermission();
 
+  useEffect(() => {
+    // Get the current year
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023; // Your desired starting year
+
+    const years = [];
+    for (let year = startYear; year <= currentYear; year++) {
+      years.push(year.toString()); // Convert to string for consistency with 'All Years'
+    }
+    setAvailableYears(years);
+  }, []);
+
+  const handleCloseYearFilterSheet = useCallback(() => {
+    yearFilterBottomSheetRef.current?.close();
+  }, []);
+
+  const [availableYears, setAvailableYears] = useState([]);
+
   const {hasPermission, requestPermission} = cameraPermission;
+
+  const yearFilterBottomSheetRef = useRef(null);
+
+  const handlePresentYearFilterSheet = useCallback(() => {
+    yearFilterBottomSheetRef.current?.expand();
+  }, []);
+
+  const yearFilterSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
 
   const handleScanSuccess = async ({
     year: scannedYear,
@@ -187,38 +215,26 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
     }
   };
 
-  /* useEffect(() => {
-    (async () => {
-      if (!hasPermission) {
-        await requestPermission();
-      }
-    })();
-  }, [hasPermission, requestPermission]); */
-
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
   const triggerShakeAnimation = () => {
     Animated.sequence([
       Animated.timing(shakeAnimation, {
-        toValue: 10, // Move 10 pixels to the right
+        toValue: 10,
         duration: 50,
         useNativeDriver: true,
       }),
       Animated.timing(shakeAnimation, {
-        toValue: -10, // Move 10 pixels to the left
+        toValue: -10,
         duration: 50,
         useNativeDriver: true,
       }),
       Animated.timing(shakeAnimation, {
-        toValue: 0, // Reset to original position
+        toValue: 0,
         duration: 50,
         useNativeDriver: true,
       }),
     ]).start();
-  };
-  const handleSearch = () => {
-    console.log('Searching for:', searchText);
-    setSearchModalVisible(truex);
   };
 
   const handleQRManual = async () => {
@@ -254,22 +270,6 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
     },
     [navigation],
   );
-
-  const filterData = text => {
-    setSearchText(text);
-  };
-
-  const filterDataByEmployeeNumber = text => {
-    setSearchEmployeeNumber(text);
-  };
-
-  const filterDataByLastName = text => {
-    setSearchLastName(text);
-  };
-
-  const filterDataByFirstName = text => {
-    setSearchFirstName(text);
-  };
 
   const searchTrackingNumber = async keywordParam => {
     const keyword =
@@ -353,405 +353,8 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
     }
   };
 
-  const searchPayrollEmployeeNumber = async () => {
-    // Clear any previous errors before starting a new search
-    setDataError(false);
-    setErrorMessage('');
-
-    // Validation for employee number
-    if (!searchEmployeeNumber || searchEmployeeNumber.length !== 6) {
-      setDataError(true);
-      triggerShakeAnimation();
-      setErrorMessage('Employee number must be 6 digits long.');
-      return;
-    }
-
-    // Proceed with the fetch if validation passes
-    try {
-      const data = await fetchDataSearchPayroll(searchEmployeeNumber);
-
-      // Handle the case where no results are found
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        setDataError(true);
-        setSearchPayrollData(null);
-        triggerShakeAnimation();
-        setErrorMessage('No results found.');
-      } else {
-        setSearchPayrollData(data);
-        setSearch(true);
-      }
-    } catch (fetchError) {
-      triggerShakeAnimation();
-      setErrorMessage('Fetch error:', fetchError);
-      //console.error('Fetch error:', fetchError);
-    }
-  };
-
-  const searchPayrollName = async () => {
-    setDataError(false);
-    setErrorMessage('');
-
-    if (!searchLastName || searchLastName.length < 3) {
-      setDataError(true);
-      setSearchPayrollData(null);
-      triggerShakeAnimation();
-      setErrorMessage('at least 3 characters.');
-      return;
-    }
-    const trimmedLastName = searchLastName ? searchLastName.trim() : '';
-    const trimmedFirstName = searchFirstName ? searchFirstName.trim() : '';
-
-    // Validate search term
-    if (!trimmedLastName) {
-      console.log('Please enter a valid search term');
-      return;
-    }
-
-    let searchQuery = `${trimmedLastName}*j*`;
-    if (trimmedFirstName) {
-      searchQuery += `${trimmedFirstName}`;
-    }
-
-    console.log('Searching for:', searchQuery, 'in year:', selectedYear);
-
-    try {
-      const data = await fetchDataSearchPayroll(searchQuery);
-
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        setDataError(true);
-        setSearchPayrollData(null);
-        triggerShakeAnimation();
-        setErrorMessage('No results found.');
-      } else {
-        setSearchPayrollData(data);
-        setSearch(true);
-      }
-    } catch (fetchError) {
-      console.error('Fetch error:', fetchError);
-      triggerShakeAnimation();
-      setDataError(true);
-      setErrorMessage(`Fetch error: ${fetchError.message}`);
-    }
-  };
-
   const clearInput = () => {
     setSearchText('');
-  };
-
-  const YearDropdown = ({selectedYear, setSelectedYear}) => {
-    const years = Array.from(
-      {length: Math.max(0, currentYear - 2023 + 1)},
-      (_, index) => ({
-        label: `${currentYear - index}`,
-        value: currentYear - index,
-      }),
-    );
-
-    return (
-      <View
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          //borderWidth: 1,
-          borderColor: 'silver',
-          borderRadius: 5,
-        }}>
-        <Dropdown
-          style={[styles.dropdown, {elevation: 10}]}
-          data={years}
-          labelField="label"
-          valueField="value"
-          placeholder={`${selectedYear}`}
-          selectedTextStyle={{color: '#252525'}}
-          placeholderStyle={{color: '#252525'}}
-          icon={null} // Removes the icon
-          value={selectedYear}
-          onChange={item => {
-            setSelectedYear(item.value);
-          }}
-        />
-      </View>
-    );
-  };
-
-  const renderContent = () => {
-    if (selectedView === 'DocumentSearch') {
-      return (
-        <View>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                width: '80%',
-              }}>
-              <View style={{flex: 1}}>
-                <View style={styles.searchBarInput}>
-                  <View style={{}}>
-                    <YearDropdown
-                      selectedYear={selectedYear}
-                      setSelectedYear={setSelectedYear}
-                    />
-                  </View>
-                  <TextInput
-                    placeholder={
-                      selectedView === 'DocumentSearch'
-                        ? 'Search TN# or Claimant'
-                        : selectedView === 'PayrollEmployeeNumber'
-                        ? 'Search Employee Number'
-                        : 'Search Full Name'
-                    }
-                    onChangeText={text => filterData(text.toUpperCase())}
-                    value={searchText.toUpperCase()}
-                    style={[
-                      styles.searchBarInput,
-                      {
-                        fontSize: 14,
-                        color: 'black',
-                      },
-                    ]}
-                    autoCapitalize="characters"
-                    placeholderTextColor="silver"
-                    placeholderStyle={styles.placeholderText}
-                    autoCorrect={false}
-                    autoCompleteType="off"
-                    textContentType="none"
-                    keyboardType="default"
-                    spellCheck={false}
-                  />
-                  {searchText.length > 0 && (
-                    <TouchableOpacity
-                      onPress={clearInput}
-                      style={styles.clearIconContainer}>
-                      <Icon
-                        name="close-circle"
-                        size={20}
-                        color="rgba(123, 123, 123, 1)"
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={{
-                width: '18%',
-                backgroundColor: 'rgba(34, 150, 243, 1)',
-                paddingHorizontal: 5,
-                padding: 10,
-                borderRadius: 5,
-              }}
-              onPress={searchTrackingNumber}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-evenly',
-                }}>
-                <Icon name="search" size={20} color="white" />
-              </View>
-            </TouchableOpacity>
-          </View>
-          <View style={{padding: 8}}></View>
-        </View>
-      );
-    } else if (selectedView === 'SearchName') {
-      return (
-        <>
-          <View>
-            <Text
-              style={{
-                fontSize: 12,
-                color: '#252525',
-                paddingBottom: 10,
-                fontFamily: 'Oswald-Light',
-              }}>
-              Search by Name
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-            <View style={{width: '80%', paddingRight: 10}}>
-              <View style={styles.searchBarInput}>
-                <View
-                  style={
-                    {
-                      /* width: '40%',  */
-                      //borderWidth:1
-                    }
-                  }>
-                  <YearDropdown
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                  />
-                </View>
-                <TextInput
-                  placeholder="Last Name"
-                  onChangeText={filterDataByLastName}
-                  value={searchLastName.toUpperCase()}
-                  style={[
-                    styles.searchBarInput,
-                    {
-                      fontSize: 14,
-                      color: 'black',
-                    },
-                  ]}
-                  autoCapitalize="characters"
-                  placeholderTextColor="silver"
-                  autoFocus={true}
-                  autoCorrect={false}
-                  autoCompleteType="off"
-                  textContentType="none"
-                  keyboardType="default"
-                  spellCheck={false}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={{
-                width: '20%',
-                backgroundColor: 'rgba(34, 150, 243, 1)',
-                paddingHorizontal: 5,
-                paddingRight: 5,
-                padding: 10,
-                borderRadius: 5,
-              }}
-              onPress={searchPayrollName}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-evenly',
-                }}>
-                <Icon name="search" size={20} style={{}} color="white" />
-              </View>
-            </TouchableOpacity>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingTop: 10,
-            }}>
-            <View style={{width: '77%', paddingLeft: 80}}>
-              <View style={styles.searchBarInput}>
-                <TextInput
-                  placeholder="First Name"
-                  onChangeText={filterDataByFirstName}
-                  value={searchFirstName.toUpperCase()}
-                  style={[
-                    styles.searchBarInput,
-                    {fontSize: 14, color: 'black', textTransform: 'uppercase'},
-                  ]}
-                  autoCapitalize="characters"
-                  placeholderTextColor="silver"
-                  autoFocus={true}
-                  autoCorrect={false}
-                  autoCompleteType="off"
-                  textContentType="none"
-                  keyboardType="default"
-                  spellCheck={false}
-                />
-              </View>
-            </View>
-            <View
-              style={{width: '30%', padding: 10, paddingVertical: 20}}></View>
-          </View>
-        </>
-      );
-    } else if (selectedView === 'SearchEmployeeNumber') {
-      return (
-        <>
-          <View>
-            <Text
-              style={{
-                fontSize: 12,
-                color: '#252525',
-                paddingBottom: 10,
-                fontFamily: 'Oswald-Light',
-              }}>
-              Search by Employee Number
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-            <View style={{width: '80%', paddingRight: 10}}>
-              <View style={styles.searchBarInput}>
-                <View
-                  style={
-                    {
-                      /* width: '40%',  */
-                      //borderWidth:1
-                    }
-                  }>
-                  <YearDropdown
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                  />
-                </View>
-                <TextInput
-                  placeholder="Employee Number"
-                  onChangeText={text => {
-                    const numericText = text.replace(/[^0-9]/g, '');
-                    if (numericText.length <= 6) {
-                      setSearchEmployeeNumber(numericText);
-                      filterData(numericText);
-                    }
-                  }}
-                  value={searchEmployeeNumber}
-                  style={[
-                    styles.searchBarContainer,
-                    styles.searchBarInput,
-                    {fontSize: 14, color: 'black'},
-                  ]}
-                  placeholderTextColor="silver"
-                  keyboardType="numeric"
-                  maxLength={6}
-                />
-              </View>
-            </View>
-            <TouchableOpacity
-              style={{
-                width: '20%',
-                //backgroundColor: 'rgba(3, 92, 251, 1)',
-                backgroundColor: 'rgba(34, 150, 243, 1)',
-                paddingHorizontal: 5,
-                paddingRight: 5,
-                padding: 10,
-                borderRadius: 5,
-              }}
-              onPress={searchPayrollEmployeeNumber}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-evenly',
-                }}>
-                <Icon name="search" size={20} style={{}} color="white" />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </>
-      );
-    }
   };
 
   const renderData = () => {
@@ -761,7 +364,6 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
           style={{
             flex: 1,
             // backgroundColor: 'rgba(255,255,255,0.2)',
-            marginTop: 10,
           }}>
           <Animated.View // Apply the shake animation to this View
             style={[
@@ -773,15 +375,13 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
         </View>
       );
     }
-    /*  if (searchTrackLoading) {
+    if (searchTrackLoading) {
       return (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color="rgba(0, 116, 255, 0.7)" />
-          
         </View>
       );
-    } */
-
+    }
     if (error) {
       return <Text style={styles.errorText}>Error loading data: {error}</Text>;
     }
@@ -804,69 +404,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
       return renderFlatList(searchTrackData.results);
     }
 
-    return (
-      <View style={styles.noDataContainer}>
-        <Text style={styles.noDataText}></Text>
-      </View>
-    );
-  };
-
-  const renderDataPayroll = () => {
-    if (dataError) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            marginTop: 10,
-          }}>
-          <Animated.View
-            style={[
-              styles.errorContainer,
-              {transform: [{translateX: shakeAnimation}]},
-            ]}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </Animated.View>
-        </View>
-      );
-    }
-
-    if (searchPayrollLoading) {
-      return (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      );
-    }
-
-    if (error) {
-      return <Text style={styles.errorText}>Error loading data: {error}</Text>;
-    }
-
-    const renderFlatList = data => (
-      <FlatList
-        data={data}
-        renderItem={({item, index}) => (
-          <RenderSearchList
-            item={item}
-            index={index}
-            onPressItem={onPressItem}
-          />
-        )}
-        keyExtractor={item => item.TrackingNumber}
-      />
-    );
-
-    if (searchPayrollData?.length > 0 && searchPayrollData.length > 2) {
-      return renderFlatList(searchPayrollData);
-    }
-
-    return (
-      <View style={styles.noDataContainer}>
-        <Text style={styles.noDataText}>{/* No resultsss found */}</Text>
-      </View>
-    );
+    return null;
   };
 
   const openYearModal = () => setModalVisible(true);
@@ -917,7 +455,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
             <Text
               style={{
                 fontFamily: 'Inter_24pt-Bold',
-                fontSize: 30,
+                fontSize: 26,
                 color: '#252525',
               }}>
               Search
@@ -931,7 +469,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
               marginHorizontal: 10,
             }}>
             <TouchableOpacity
-              onPress={searchTrackingNumber}
+              onPress={handlePresentYearFilterSheet}
               style={[
                 styles.filterIconButton,
                 {backgroundColor: 'transparent', elevation: 0, borderWidth: 0},
@@ -939,6 +477,9 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
               //disabled={isSearching}
             >
               <Icon name="filter-outline" size={24} color="#252525" />
+              <Text style={{fontSize: 14, fontWeight: '600', color: '#007AFF'}}>
+                {selectedYear}
+              </Text>
               {/* <Text style={{color: '#fff', fontSize:12, fontWeight:'bold', }}>{selectedYear}</Text>
               <Icon name='close' size={24} color="#fff" /> */}
 
@@ -948,7 +489,6 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
                         <Icon name="search" size={24} color="#fff" />
                       )} */}
             </TouchableOpacity>
-
           </View>
         </View>
       </View>
@@ -972,7 +512,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
               accessibilityHint="Type to search for inventory items by tracking number."
               //onEndEditing={handleSearch}
               onSubmitEditing={searchTrackingNumber}
-              // editable={!isSearching}
+              // editable={searchTrackLoading}
             />
             {searchText?.length > 0 && (
               <TouchableOpacity
@@ -997,14 +537,13 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
           <TouchableOpacity
             onPress={searchTrackingNumber}
             style={styles.filterIconButton} // Uses your existing style
-            //disabled={isSearching}
-          >
-            <Icon name="search" size={24} color="#fff" />
-            {/*  {isSearching ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
-                      ) : (
-                        <Icon name="search" size={24} color="#fff" />
-                      )} */}
+            disabled={searchTrackLoading}>
+            {/*  <Icon name="search" size={24} color="#fff" /> */}
+            {searchTrackLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+            ) : (
+              <Icon name="search" size={24} color="#fff" />
+            )}
           </TouchableOpacity>
         </View>
         <TouchableOpacity
@@ -1012,16 +551,21 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
+            //backgroundColor:'red',
+            paddingHorizontal: 20,
+            width: '70%',
             marginBottom: 20,
+            marginStart: 5,
           }}
           onPress={() => setShowScanner(true)} // Open scanner on press
         >
           <Icons name="qrcode-scan" size={26} color="#252525" />
           <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
-            Scan using QR
+            Search via QR
           </Text>
         </TouchableOpacity>
       </View>
+      <View style={{paddingVertical: 20}}>{renderData()}</View>
     </View>
   );
 
@@ -1049,18 +593,23 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
             marginBottom: 25,
             width: '100%',
           }}>
-          <View>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: '#ccc',
+              width: '100%',
+            }}>
             <Text
               style={{
                 fontFamily: 'Inter_24pt-Bold',
-                fontSize: 28,
+                fontSize: 26,
                 color: '#252525',
               }}>
               Receive
             </Text>
           </View>
 
-          <View
+          {/*   <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -1072,32 +621,14 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
               //disabled={isSearching}
             >
               <Icon name="filter-outline" size={24} color="#fff" />
-              {/*  {isSearching ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
-                      ) : (
-                        <Icon name="search" size={24} color="#fff" />
-                      )} */}
             </TouchableOpacity>
-           {/*  {(caoReceiver === '1' || cboReceiver === '1') && (
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Receiver')}
-                style={{marginLeft: 10}}>
-                <Icons name="qrcode-scan" size={40} color="black" />
-              </TouchableOpacity>
-            )} */}
-          </View>
+          </View> */}
         </View>
       </View>
 
-      <View style={{paddingTop: 10}}>
-        <View style={styles.searchFilterRow}>
+      <View style={{paddingTop: 0}}>
+        {/*  <View style={styles.searchFilterRow}>
           <View style={styles.searchInputWrapper}>
-            {/* <Icon
-                        name="search-outline"
-                        size={25}
-                        color={styles.searchIcon.color}
-                        style={styles.searchIcon}
-                      /> */}
             <TextInput
               style={styles.searchInput}
               placeholder="Tracking Number"
@@ -1123,26 +654,14 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
               </TouchableOpacity>
             )}
           </View>
-
-          {/* New Filter Icon Button */}
-          {/*  <TouchableOpacity
-                              onPress={handlePresentSystemFilterModalPress}
-                              style={styles.filterIconButton}>
-                              <Icon name="filter" size={24} color="#1a508c" />
-                            </TouchableOpacity> */}
           <TouchableOpacity
             onPress={searchTrackingNumber}
-            style={styles.filterIconButton} // Uses your existing style
-            //disabled={isSearching}
+            style={styles.filterIconButton}
           >
             <Icon name="search" size={24} color="#fff" />
-            {/*  {isSearching ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
-                      ) : (
-                        <Icon name="search" size={24} color="#fff" />
-                      )} */}
+          
           </TouchableOpacity>
-        </View>
+        </View> */}
         <View
           style={{
             flexDirection: 'row',
@@ -1452,8 +971,12 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
           }}
         />
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          {renderSearch()}
-          {caoReceiver === '1' && <>{renderReceive()}</>}
+          <>
+            {renderSearch()}
+            {(caoReceiver === '1' || cboReceiver === '1') && renderReceive()}
+          </>
+
+          {/* {caoReceiver === '1' && <>{renderReceive()}</>} */}
           {/*  {renderEvaluator()}
           {renderInspection()} */}
         </ScrollView>
@@ -1536,7 +1059,10 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
                 )}
               </TouchableOpacity>
 
-              <View style={styles.resultsContainer}>{renderData()}</View>
+              <View style={styles.resultsContainer}>
+                {renderData()}
+                <Text>HATDOG</Text>
+              </View>
 
               <View style={styles.contentArea}>
                 {searchHistory.length > 0 && (
@@ -1577,9 +1103,56 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
           </View>
         </Modal>
 
+        <BottomSheet
+          ref={yearFilterBottomSheetRef}
+          index={-1}
+          snapPoints={yearFilterSnapPoints}
+          enablePanDownToClose={true}
+          backdropComponent={BottomSheetBackdrop}
+          handleIndicatorStyle={styles.bottomSheetHandle}>
+          <BottomSheetFlatList
+            data={[/* 'All Years', */ ...availableYears]} // 'All Years' will always be first
+            keyExtractor={item => item}
+            ListHeaderComponent={() => (
+              <View style={styles.bottomSheetHeader}>
+                <Text style={styles.modalTitle}>Filter by Year</Text>
+              </View>
+            )}
+            renderItem={({item}) => (
+              <TouchableOpacity
+                style={[
+                  styles.yearOptionButton,
+                  (selectedYear === item ||
+                    (item === 'All Years' && selectedYear === null)) &&
+                    styles.selectedYearOptionButton,
+                ]}
+                onPress={() => {
+                  setSelectedYear(item === 'All Years' ? null : item);
+                  handleCloseYearFilterSheet();
+                }}
+                accessibilityLabel={
+                  item === 'All Years'
+                    ? 'Show all inventory years'
+                    : `Filter by year ${item}`
+                }>
+                <Text
+                  style={[
+                    styles.yearOptionText,
+                    (selectedYear === item ||
+                      (item === 'All Years' && selectedYear === null)) &&
+                      styles.selectedYearOptionText,
+                  ]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.yearOptionsFlatListContent}
+          />
+        </BottomSheet>
+
         <Modal
           visible={showScanner}
-          animationType="slide"
+          animationType="none"
           onRequestClose={handleCloseScanner}>
           <QRScanner onScan={handleScanSuccess} onClose={handleCloseScanner} />
         </Modal>
@@ -1681,8 +1254,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   noDataContainer: {
-    marginTop: 20,
-    paddingHorizontal: 16,
+    //marginTop: 20,
+    //paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1907,7 +1480,7 @@ const styles = StyleSheet.create({
     marginTop: 40, // Give some space if no history and no initial results
   },
   resultsContainer: {
-    height: 80, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
+    height: 500, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
   },
   card: {
     backgroundColor: 'white',
@@ -1941,19 +1514,19 @@ const styles = StyleSheet.create({
   },
   indexText: {
     fontFamily: 'Oswald-Regular',
-    fontSize: 18, // Slightly larger for prominence
+    fontSize: 14, // Slightly larger for prominence
     color: 'white',
   },
   trackingNumberGradient: {
     flex: 1,
     justifyContent: 'center',
-    paddingVertical: 10, // Add vertical padding
+    paddingVertical: 8, // Add vertical padding
     paddingStart: 10,
   },
   trackingNumberText: {
     fontFamily: 'Oswald-Regular',
     color: 'white',
-    fontSize: 17, // Consistent with index
+    fontSize: 16, // Consistent with index
   },
   yearBadge: {
     backgroundColor: '#0074FF', // Primary blue for consistency
@@ -2086,6 +1659,40 @@ const styles = StyleSheet.create({
   clearYearFilter: {
     marginLeft: 8,
     padding: 2,
+  },
+  yearOptionsFlatListContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  bottomSheetHeader: {
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+  },
+  yearOptionButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+    backgroundColor: '#F0F2F5',
+    alignItems: 'center',
+  },
+  selectedYearOptionButton: {
+    backgroundColor: '#1a508c',
+  },
+  yearOptionText: {
+    fontSize: 17,
+    color: '#343A40',
+    fontWeight: '500',
+  },
+  selectedYearOptionText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#343A40',
+    marginBottom: 10,
   },
 });
 

@@ -304,15 +304,15 @@ const styles = StyleSheet.create({
     borderRightWidth: 5,
   },
   scanningLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 10,
-    backgroundColor: '#007AFF',
-    top: 0,
-    // --- ADDED FOR CURVY EFFECT ---
-    borderRadius: 10, // Half of the height will make it a perfect pill shape
-  },
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  height: 8, // Adjust as needed
+   backgroundColor: '#007AFF', // Remove this line
+  top: 0,
+ // borderRadius: 6,
+
+},
 });
 
 export default QRScanner;

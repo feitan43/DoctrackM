@@ -3,13 +3,14 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-   "prebuild:android": "node includes/scripts/incrementAndroidVersion.js",
+    "prebuild:android": "node includes/scripts/incrementAndroidVersion.js",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
     "build-android": "cd android && ./gradlew clean && cd .. && npx react-native run-android",
     "build:android:release": "npm run prebuild:android && cd android && ./gradlew clean bundleRelease",
     "build:android:apk:release": "npm run prebuild:android && cd android && ./gradlew clean assembleRelease",
+    "publish-bundle": "npx stallion publish-bundle --upload-path=projectdoctrack/docmobile/main --platform=android --release-note=\"first release\"",
     "lint": "eslint .",
     "test": "jest"
   },
@@ -94,6 +95,7 @@
     "react-native-safe-area-context": "^4.8.2",
     "react-native-screens": "^3.29.0",
     "react-native-size-matters": "^0.4.2",
+    "react-native-stallion": "^2.2.0",
     "react-native-svg": "^15.3.0",
     "react-native-tab-view": "^3.5.2",
     "react-native-timeline-flatlist": "^0.8.0",
@@ -129,6 +131,7 @@
     "jest": "^29.6.3",
     "prettier": "2.8.8",
     "react-test-renderer": "18.2.0",
+    "stallion-cli": "^2.1.0",
     "typescript": "5.0.4"
   },
   "engines": {

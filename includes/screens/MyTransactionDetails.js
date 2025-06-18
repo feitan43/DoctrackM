@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
     marginBottom: 16,
-    backgroundColor: '#E0F2F7',
+    backgroundColor: '#fff',
     borderRadius: 8,
     shadowColor: '#007AFF',
     shadowOffset: {width: 0, height: 2},

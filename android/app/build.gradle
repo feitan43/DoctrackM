@@ -16,7 +16,7 @@ android {
         applicationId "com.doctrackm"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10
+        versionCode 11
         versionName "2.8.0"
     }
 
@@ -71,13 +71,13 @@ android {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation 'com.facebook.react:react-native:+'
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation("com.facebook.react:react-android")
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0'
     implementation("com.facebook.react:flipper-integration")
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'com.facebook.fresco:animated-gif:2.6.0'
+    implementation project(':react-native-stallion')
 
     if (hermesEnabled) {
         implementation("com.facebook.react:hermes-android")
