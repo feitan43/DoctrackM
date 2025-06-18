@@ -978,7 +978,7 @@ const DetailScreen = ({route, navigation}) => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: 'silver',
-              zIndex: 2,
+              zIndex: 999,
               opacity: floatingBackOpacity,
             }}>
             <Pressable
@@ -986,7 +986,7 @@ const DetailScreen = ({route, navigation}) => {
                 pressed && {backgroundColor: 'gray'},
                 {
                   backgroundColor: 'transparent',
-                  padding: 5,
+                  padding: 10,
                   flexDirection: 'row',
                   alignItems: 'center',
                 },
@@ -1004,7 +1004,7 @@ const DetailScreen = ({route, navigation}) => {
               left: 0,
               right: 0,
               height: 60 + statusBarHeight,
-              backgroundColor: 'white', // This is the background of your header itself
+              backgroundColor: '#007AFF', // This is the background of your header itself
               flexDirection: 'row',
               alignItems: 'center',
               paddingHorizontal: 15,
@@ -1014,15 +1014,26 @@ const DetailScreen = ({route, navigation}) => {
               zIndex: 3,
               paddingTop: statusBarHeight,
             }}>
-            <Pressable onPress={() => navigation.goBack()}>
-              <Icon name="chevron-back-outline" size={24} color="gray" />
+           <Pressable
+              style={({pressed}) => [
+                pressed && {backgroundColor: '#fff'},
+                {
+                  backgroundColor: 'transparent',
+                  padding: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                },
+              ]}
+              android_ripple={{color: 'gray'}}
+              onPress={() => navigation.goBack()}>
+              <Icon name="arrow-back-outline" size={24} color="#fff" />
             </Pressable>
             <Text
               style={{
                 marginLeft: 10,
                 fontSize: 16,
                 fontWeight: '800',
-                color: '#333',
+                color: '#fff',
               }}>
               {genInformationData?.TrackingNumber || ''}
             </Text>
@@ -1055,10 +1066,10 @@ const DetailScreen = ({route, navigation}) => {
                     {genInfoLoading ? (
                       <Shimmer width={140} height={20} borderRadius={4} />
                     ) : (
-                      <Text style={{color: '#fff', fontSize: 14}}>
+                      <Text style={{color: '#fff', fontSize: 16, fontWeight:'300',textAlign:'center'}}>
                         {genInformationData?.Year}
-                        {'  |  '}
-                        <Text style={{fontWeight: '800', fontSize: 16}}>
+                        <Text style={{fontSize:20}}>{'  |  '}</Text>
+                        <Text style={{fontWeight: '700', fontSize: 18, textAlign:'center'}}>
                           {genInformationData?.TrackingNumber}
                         </Text>
                       </Text>
@@ -1068,7 +1079,7 @@ const DetailScreen = ({route, navigation}) => {
                   <View
                     style={{
                       flexDirection: 'row',
-                      marginTop: 10,
+                      marginTop: 5,
                       marginBottom: 5,
                       alignItems: 'baseline',
                     }}>
@@ -1076,9 +1087,9 @@ const DetailScreen = ({route, navigation}) => {
                       <Shimmer width={180} height={25} borderRadius={4} />
                     ) : (
                       <>
-                        <Text style={{color: '#fff', fontWeight: '300'}}>
+                       {/*  <Text style={{color: '#fff', fontWeight: '300'}}>
                           Status{' '}
-                        </Text>
+                        </Text> */}
                         <Text
                           style={{
                             color: '#fff',
@@ -1098,9 +1109,8 @@ const DetailScreen = ({route, navigation}) => {
                     <Text
                       style={{
                         color: '#fff',
-                        fontWeight: '200',
-                        fontSize: 12,
-                        marginTop: 4,
+                        fontWeight: '300',
+                        fontSize: 14,
                       }}>
                       {genInformationData?.OfficeName?.replace(/\\/g, '')}
                     </Text>

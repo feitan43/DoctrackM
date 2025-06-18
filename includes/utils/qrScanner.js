@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   StatusBar,
   Dimensions,
   Alert,
+  SafeAreaView,
+  Animated, // Import Animated
+  Easing, // Import Easing for smoother animation
 } from 'react-native';
 import {
   Camera,
@@ -15,7 +18,6 @@ import {
   useCodeScanner,
 } from 'react-native-vision-camera';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
 const {width, height} = Dimensions.get('window');
@@ -26,9 +28,11 @@ const QRScanner = ({onScan, onClose}) => {
 
   const [permissionStatus, setPermissionStatus] = useState(null);
 
+  const animatedLine = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     const checkPermissions = async () => {
-      const status = Camera.getCameraPermissionStatus();
+      const status = await Camera.getCameraPermissionStatus();
       if (status !== 'granted') {
         const newStatus = await Camera.requestCameraPermission();
         setPermissionStatus(newStatus);
@@ -38,6 +42,38 @@ const QRScanner = ({onScan, onClose}) => {
     };
     checkPermissions();
   }, []);
+
+  useEffect(() => {
+    if (cameraIsActive && cameraDevice && permissionStatus === 'granted') {
+      startScanningAnimation();
+    } else {
+      animatedLine.stopAnimation();
+    }
+    return () => {
+      animatedLine.stopAnimation();
+      animatedLine.setValue(0);
+    };
+  }, [cameraIsActive, cameraDevice, permissionStatus]);
+
+  const startScanningAnimation = () => {
+    animatedLine.setValue(0);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedLine, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedLine, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  };
 
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
@@ -63,6 +99,8 @@ const QRScanner = ({onScan, onClose}) => {
         }
 
         setCameraIsActive(false);
+        animatedLine.stopAnimation();
+        animatedLine.setValue(0);
         onScan({year: scannedYear, trackingNumber: scannedTrackingNumber});
         onClose();
       } catch (error) {
@@ -71,6 +109,8 @@ const QRScanner = ({onScan, onClose}) => {
           'Error',
           'Something went wrong while fetching the QR data.',
         );
+        setCameraIsActive(true);
+        startScanningAnimation();
       }
     },
   });
@@ -102,10 +142,18 @@ const QRScanner = ({onScan, onClose}) => {
     );
   }
 
-  /* if (permissionStatus !== 'granted') {
+  if (permissionStatus === null) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Camera permission is required.</Text>
+        <Text style={styles.loadingText}>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+
+  if (permissionStatus !== 'granted') {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Camera permission is required to scan QR codes.</Text>
         <TouchableOpacity
           onPress={async () => {
             const status = await Camera.requestCameraPermission();
@@ -116,7 +164,16 @@ const QRScanner = ({onScan, onClose}) => {
         </TouchableOpacity>
       </View>
     );
-  } */
+  }
+
+  const animatedLineStyle = {
+    transform: [{
+      translateY: animatedLine.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, squareSize],
+      }),
+    }],
+  };
 
   return (
     <SafeAreaView style={{flex: 1}}>
@@ -134,6 +191,8 @@ const QRScanner = ({onScan, onClose}) => {
           <View style={styles.row}>
             <View style={styles.opaqueSide} />
             <View style={styles.transparentSquare}>
+              <Animated.View style={[styles.scanningLine, animatedLineStyle]} />
+
               <View style={[styles.corner, styles.topLeft]} />
               <View style={[styles.corner, styles.topRight]} />
               <View style={[styles.corner, styles.bottomLeft]} />
@@ -197,12 +256,12 @@ const styles = StyleSheet.create({
     height: squareSize,
     backgroundColor: 'transparent',
     position: 'relative',
-    borderColor: 'white',
+    overflow: 'hidden',
   },
   opaqueBottom: {
     flex: 1,
     width: '100%',
-    height: (height - squareSize) / 2,
+    height: (height - squareSize) * 2 / 3,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   corner: {
@@ -243,6 +302,16 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderBottomWidth: 5,
     borderRightWidth: 5,
+  },
+  scanningLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 10,
+    backgroundColor: '#007AFF',
+    top: 0,
+    // --- ADDED FOR CURVY EFFECT ---
+    borderRadius: 10, // Half of the height will make it a perfect pill shape
   },
 });
 

@@ -92,6 +92,7 @@ const HomeScreen = ({navigation}) => {
     officeAdmin,
     caoReceiver,
     caoEvaluator,
+    boss
   } = useUserInfo();
   const {
     recentlyUpdatedData,
@@ -330,6 +331,7 @@ const HomeScreen = ({navigation}) => {
           officeAdmin={officeAdmin}
           gsoInspection={gsoInspection}
           procurement={procurement}
+          boss={boss}
           liveUpdatedNowData={liveUpdatedNowData}
           updatedDateTime={updatedDateTime}
           dataPR={dataPR}
@@ -415,6 +417,7 @@ const HomeScreen = ({navigation}) => {
         officeAdmin={officeAdmin}
         gsoInspection={gsoInspection}
         procurement={procurement}
+        boss={boss}
       />
     );
   };

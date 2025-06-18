@@ -23,7 +23,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {showMessage} from 'react-native-flash-message';
 import ImmersiveMode from 'react-native-immersive-mode';
 
+// Import sp-react-native-in-app-updates
+import SpInAppUpdates, {
+  IAUUpdateKind,
+  StartUpdateOptions,
+} from 'sp-react-native-in-app-updates';
+// You might also need react-native-device-info if you're not explicitly passing curVersion
+// import DeviceInfo from 'react-native-device-info';
+
 const queryClient = new QueryClient();
+
+// Initialize in-app updates (false for debug mode off in production)
+const inAppUpdates = new SpInAppUpdates(true);
 
 const App = () => {
   const [isConnected, setIsConnected] = useState(true);
@@ -43,6 +54,42 @@ const App = () => {
       setIsConnected(state.isConnected);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const checkAppStoreUpdates = async () => {
+      try {
+        // const currentVersion = DeviceInfo.getVersion();
+        const result = await inAppUpdates.checkNeedsUpdate();
+        if (result.shouldUpdate) {
+          let updateOptions = {};
+          if (Platform.OS === 'android') {
+            updateOptions = {
+              updateType: IAUUpdateKind.IMMEDIATE, // Or IAUUpdateKind.IMMEDIATE
+            };
+          } else if (Platform.OS === 'ios') {
+            updateOptions = {
+              forceUpgrade: true,
+              title: 'New Version Available!',
+              message:
+                'A new version of the app is available. Please update for the best experience.',
+              buttonUpgradeText: 'Update Now',
+              buttonCancelText: 'Later',
+            };
+          }
+
+          inAppUpdates.startUpdate(updateOptions);
+        }
+      } catch (error) {
+        console.error('Error checking for in-app updates:', error);
+      }
+    };
+
+    const updateCheckTimeout = setTimeout(() => {
+      checkAppStoreUpdates();
+    }, 3000); 
+
+    return () => clearTimeout(updateCheckTimeout);
   }, []);
 
   const openWifiSettings = () => {
@@ -97,6 +144,12 @@ const App = () => {
         <View style={styles.container}>
           {isConnected ? (
             <>
+              {/* HotUpdater's progress can be displayed if you want to */}
+              {/* {progress > 0 && progress < 100 && (
+                <View style={styles.updateProgressContainer}>
+                  <Text style={styles.updateProgressText}>Downloading update: {progress.toFixed(0)}%</Text>
+                </View>
+              )} */}
               <Route />
             </>
           ) : (
@@ -172,6 +225,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
   },
+  // If you decide to show HotUpdater progress
+  // updateProgressContainer: {
+  //   position: 'absolute',
+  //   top: StatusBar.currentHeight || 0,
+  //   left: 0,
+  //   right: 0,
+  //   backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  //   padding: 5,
+  //   alignItems: 'center',
+  //   zIndex: 1000,
+  // },
+  // updateProgressText: {
+  //   color: 'white',
+  //   fontSize: 12,
+  // },
 });
 
 export default HotUpdater.wrap({

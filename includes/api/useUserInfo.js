@@ -9,6 +9,7 @@ const useUserInfo = () => {
   const [token, setToken] = useState(null);
   const [error, setError] = useState(null);
 
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -54,6 +55,7 @@ const useUserInfo = () => {
     gsoInspection: userData?.GSOINSPECTION ?? null,
     officeAdmin: userData?.OFFICEADMIN ?? null,
     cboReceiver: userData?.CBORECEIVER ?? null,
+    boss: userData?.BOSS ?? null,
   };
 };
 

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useRef, useMemo, useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -6,28 +6,64 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
-  Modal,
   ImageBackground,
   SafeAreaView,
 } from 'react-native';
-import {DataTable} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {insertCommas} from '../utils/insertComma';
 import useTransactionHistory from '../api/useTransactionHistory';
-import Timeline from 'react-native-timeline-flatlist';
 import {width, removeHtmlTags} from '../utils';
+import BottomSheet, {
+  BottomSheetFlatList,
+  BottomSheetBackdrop,
+} from '@gorhom/bottom-sheet';
 
 const MyTransactionDetails = ({route, navigation}) => {
   const {selectedItem} = route.params;
   const [showHistory, setShowHistory] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   const {transactionsHistory} = useTransactionHistory(selectedItem);
 
-  const timelineData = transactionsHistory.map(item => ({
-    time: item.DateModified,
-    title: item.Status,
-    description: `Completion: ${item.Completion}`,
-  }));
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['25%', '50%', '80%'], []);
+
+  const handlePresentPress = useCallback(() => {
+    bottomSheetRef.current?.expand();
+  }, []);
+
+  const handleSheetChanges = useCallback(index => {
+    if (index === -1) {
+      setShowHistory(false);
+    } else {
+      setShowHistory(true);
+    }
+  }, []);
+
+  // --- New: Handle closing the BottomSheet ---
+  const handleClosePress = useCallback(() => {
+    bottomSheetRef.current?.close(); // This will close the bottom sheet
+  }, []);
+  // --- End New ---
+
+  const groupedTimelineData = useMemo(() => {
+    const grouped = transactionsHistory.reduce((acc, item) => {
+      const date = item.DateModified;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push({
+        status: item.Status,
+        completion: item.Completion,
+      });
+      return acc;
+    }, {});
+
+    return Object.keys(grouped)
+      .sort((a, b) => new Date(b) - new Date(a))
+      .map(date => ({
+        date: date,
+        events: grouped[date],
+      }));
+  }, [transactionsHistory]);
 
   const getStatusColor = status => {
     if (status.includes('Pending')) return '#FFA500';
@@ -35,6 +71,24 @@ const MyTransactionDetails = ({route, navigation}) => {
     if (status.includes('Rejected')) return '#F44336';
     return '#2196F3';
   };
+
+  const renderGroupedTimelineItem = ({item}) => (
+    <View style={styles.timelineGroupContainer}>
+      <View style={styles.timelineGroupDot} />
+      <View style={styles.timelineGroupContent}>
+        <Text style={styles.timelineGroupDate}>{item.date}</Text>
+        {item.events.map((event, index) => (
+          <View key={index} style={styles.timelineEvent}>
+            <Text style={styles.timelineStatus}>{event.status}</Text>
+            <Text
+              style={
+                styles.timelineCompletion
+              }>{`Completion: ${event.completion}`}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,7 +102,7 @@ const MyTransactionDetails = ({route, navigation}) => {
             onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="#fff" />
           </Pressable>
-          <Text style={styles.headerTitle}>{/* Transaction  */}Details</Text>
+          <Text style={styles.headerTitle}>Details</Text>
           <View style={{width: 40}} />
         </View>
       </ImageBackground>
@@ -109,92 +163,55 @@ const MyTransactionDetails = ({route, navigation}) => {
 
         <TouchableOpacity
           style={styles.historyToggle}
-          onPress={() => setShowHistory(!showHistory)}>
-          <Text style={styles.historyToggleText}>
-            {showHistory ? 'Hide History' : 'Show History'}
-          </Text>
-          <Icon
-            name={showHistory ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color="#007AFF"
-          />
+          onPress={handlePresentPress}>
+          <Text style={styles.historyToggleText}>Show History</Text>
+          <Icon name="chevron-up" size={20} color="#007AFF" />
         </TouchableOpacity>
-
-        {showHistory && (
-          <View style={styles.historyCard}>
-            {transactionsHistory.length > 0 ? (
-              <DataTable>
-                <DataTable.Header style={styles.tableHeader}>
-                  <DataTable.Title style={styles.tableHeaderText}>
-                    Date
-                  </DataTable.Title>
-                  <DataTable.Title style={styles.tableHeaderText}>
-                    Status
-                  </DataTable.Title>
-                  <DataTable.Title numeric style={styles.tableHeaderText}>
-                    Completion
-                  </DataTable.Title>
-                </DataTable.Header>
-
-                {transactionsHistory.map((item, index) => (
-                  <DataTable.Row
-                    key={index}
-                    style={[
-                      styles.tableRow,
-                      index === transactionsHistory.length - 1 &&
-                        styles.highlightedRow,
-                    ]}>
-                    <DataTable.Cell>
-                      <Text style={styles.tableCellText}>
-                        {item.DateModified}
-                      </Text>
-                    </DataTable.Cell>
-                    <DataTable.Cell>
-                      <Text style={styles.tableCellText}>{item.Status}</Text>
-                    </DataTable.Cell>
-                    <DataTable.Cell numeric>
-                      <Text style={styles.tableCellText}>
-                        {item.Completion}
-                      </Text>
-                    </DataTable.Cell>
-                  </DataTable.Row>
-                ))}
-              </DataTable>
-            ) : (
-              <Text style={styles.noHistoryText}>
-                No transaction history available
-              </Text>
-            )}
-          </View>
-        )}
       </ScrollView>
 
-      {/* Timeline Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setModalVisible(false)}>
-              <Icon name="close" size={24} color="#666" />
-            </TouchableOpacity>
+      {/* BottomSheet for Transaction History */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        onChange={handleSheetChanges}
+        enablePanOnContent={true}
+        enableHandlePanningGesture={true}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.bottomSheetHandle}
+        /*  backdropComponent={props => (
+          <BottomSheetBackdrop
+            {...props}
+            disappearsOnIndex={-1}
+            appearsOnIndex={0}
+          />
+        )} */
+      >
+        <View style={styles.bottomSheetContent}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
             <Text style={styles.modalTitle}>Transaction Timeline</Text>
-            <Timeline
-              data={timelineData}
-              circleSize={16}
-              circleColor="#007AFF"
-              lineColor="#007AFF"
-              timeStyle={styles.timelineTime}
-              titleStyle={styles.timelineTitle}
-              descriptionStyle={styles.timelineDescription}
-            />
+
+            <TouchableOpacity
+              onPress={handleClosePress}
+              style={styles.closeButton}>
+              <Icon name="close-circle-outline" size={28} color="#999" />
+            </TouchableOpacity>
           </View>
+          {groupedTimelineData.length > 0 ? (
+            <BottomSheetFlatList
+              data={groupedTimelineData}
+              keyExtractor={(item, index) => item.date + index}
+              renderItem={renderGroupedTimelineItem}
+              scrollEnabled={true}
+              contentContainerStyle={styles.bottomSheetFlatListContent}
+            />
+          ) : (
+            <Text style={styles.noHistoryText}>
+              No transaction history available.
+            </Text>
+          )}
         </View>
-      </Modal>
+      </BottomSheet>
     </SafeAreaView>
   );
 };
@@ -249,7 +266,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 32, // Adjust as needed to make space for the bottom sheet
   },
   statusCard: {
     borderRadius: 5,
@@ -260,7 +277,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    paddingHorizontal:10
+    paddingHorizontal: 10,
   },
   trackingType: {
     fontSize: 20,
@@ -292,7 +309,6 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    //alignItems: 'center',
     paddingVertical: 8,
   },
   detailLabel: {
@@ -352,41 +368,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
     marginBottom: 16,
+    backgroundColor: '#E0F2F7',
+    borderRadius: 8,
+    shadowColor: '#007AFF',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   historyToggleText: {
     color: '#007AFF',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     marginRight: 8,
   },
-  historyCard: {
+  bottomSheetBackground: {
+    borderRadius: 20,
     backgroundColor: '#fff',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
   },
-  tableHeader: {
-    backgroundColor: '#F5F7FA',
+  bottomSheetHandle: {
+    backgroundColor: '#ccc',
+    width: 40,
   },
-  tableHeaderText: {
-    color: '#666',
+  bottomSheetContent: {
+    flex: 1,
+    // No paddingHorizontal here directly, handled by FlatList contentContainerStyle
+  },
+  bottomSheetFlatListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    paddingTop: 10, // Add some padding at the top of the list itself
+  },
+  modalTitle: {
+    fontSize: 18,
     fontWeight: '600',
-  },
-  tableRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  tableCellText: {
-    fontSize: 12,
     color: '#333',
-  },
-  highlightedRow: {
-    backgroundColor: '#FFA500',
+    //textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 16, // Ensure title has padding even if FlatList handles its own
   },
   noHistoryText: {
     textAlign: 'center',
@@ -394,43 +413,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     padding: 16,
   },
-  modalContainer: {
+  // --- New style for the close button ---
+  closeButton: {
+    position: 'absolute', // Position it absolutely
+    //backgroundColor:'red',
+    paddingHorizontal:10,
+    //top: 10,
+    right: 16,
+    zIndex: 10, // Ensure it's above other content
+    //padding: 5, // Add padding for easier tapping
+  },
+  // --- End new style ---
+  timelineGroupContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  timelineGroupDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#007AFF',
+    marginRight: 15,
+    marginTop: 4,
+  },
+  timelineGroupContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderLeftWidth: 1,
+    borderLeftColor: '#E0E0E0',
+    paddingLeft: 15,
+    marginLeft: -6,
   },
-  modalContent: {
-    width: width * 0.9,
-    maxHeight: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-  },
-  modalCloseButton: {
-    alignSelf: 'flex-end',
-    padding: 8,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  timelineTime: {
-    color: '#666',
+  timelineGroupDate: {
     fontSize: 12,
-    fontWeight: '500',
-  },
-  timelineTitle: {
+    fontWeight: '400',
     color: '#333',
-    fontSize: 14,
-    fontWeight: '600',
+    marginBottom: 8,
   },
-  timelineDescription: {
-    color: '#666',
-    fontSize: 12,
+  timelineEvent: {
+    marginBottom: 5,
+  },
+  timelineStatus: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#555',
+  },
+  timelineCompletion: {
+    fontSize: 10,
+    color: '#777',
+    marginTop: 2,
   },
 });
 

@@ -19,6 +19,7 @@ import Rate, {AndroidMarket} from 'react-native-rate';
 import {Linking, Platform} from 'react-native';
 
 const version = DeviceInfo.getVersion();
+const buildNumber = DeviceInfo.getBuildNumber();
 const statusBarContentStyle = 'dark-content';
 const statusBarHeight =
   Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
@@ -46,7 +47,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
     });
   }; */
 
-/*   const handleFeedback = () => {
+  /*   const handleFeedback = () => {
   const packageName = 'com.doctrackm'; // 🔁 replace with your actual package name
   const url = Platform.select({
     android: `market://details?id=${packageName}`,
@@ -128,7 +129,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
             label="Contact Us"
             onPress={handleContactUs}
           />
-         {/*  <SettingItem
+          {/*  <SettingItem
             icon="chatbubbles-outline"
             label="Feedback and Suggestions"
             onPress={handleFeedback}
@@ -148,6 +149,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
 
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Version {version}</Text>
+          <Text style={[styles.versionText,{opacity:0.5}]}>Build No. {buildNumber}</Text>
         </View>
 
         {/* Logout Confirmation Modal */}

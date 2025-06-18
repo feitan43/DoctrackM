@@ -37,6 +37,7 @@ const DoctrackScreen = ({
   accountType,
   caoReceiver,
   caoEvaluator,
+  boss,
   officeName,
   privilege,
   permission,
@@ -1174,12 +1175,12 @@ const DoctrackScreen = ({
                   condition: procurement === '1',
                   screen: 'BACAttachments',
                 }, */
-                  {
+                 /*  {
                   label: 'Inventory',
                   icon: true,
                   condition: procurement === '1',
                   screen: 'InventoryScreen',
-                },
+                }, */
               ].map((item, index) => {
                 if (item.condition === false) {
                   return null;
@@ -1256,8 +1257,7 @@ const DoctrackScreen = ({
           </View>
         )}
 
-        {(employeeNumber === '501573' ||
-          employeeNumber === '391091') && (
+        {boss === '1' && (
           <View
             style={{
               padding: 10,

@@ -20,6 +20,8 @@ import {Shimmer} from '../utils/useShimmer';
 import {insertCommas} from '../utils/insertComma';
 import BottomSheet, {BottomSheetBackdrop} from '@gorhom/bottom-sheet';
 import {years, currentYear, width} from '../utils';
+import useUserInfo from '../api/useUserInfo';
+import { useQueryClient } from '@tanstack/react-query';
 
 const RenderTransaction = memo(({item, index, onPressItem}) => {
   const getShortMonth = month => month?.slice(0, 3) || '';
@@ -122,6 +124,10 @@ const MyTransactionsScreen = ({navigation}) => {
   const {myTransactionsData, isLoading: loading, error, refetch: fetchMyPersonal} =
     useMyTransactions(selectedYear);
 
+  const {employeeNumber} = useUserInfo();
+  const queryClient = useQueryClient();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [visibleItems, setVisibleItems] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -135,11 +141,24 @@ const MyTransactionsScreen = ({navigation}) => {
   // Define snap points for the BottomSheet
   const snapPoints = useMemo(() => ['25%', '50%'], []); // Adjust snap points as needed
 
-  const onRefresh = useCallback(async () => {
+/*   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchMyPersonal(); // Use refetch from react-query
     setRefreshing(false);
-  }, [fetchMyPersonal]);
+  }, [fetchMyPersonal]); */
+
+    const onRefresh = useCallback(async () => {
+      setIsRefreshing(true);
+      try {
+        await queryClient.refetchQueries({
+          queryKey: ['myTransactions', employeeNumber, selectedYear],
+        });
+      } catch (error) {
+        console.error('Error during refresh:', error);
+      } finally {
+        setIsRefreshing(false);
+      }
+    }, [queryClient, employeeNumber, selectedYear]);
 
   const onPressItem = useCallback(
     (index, item) => {

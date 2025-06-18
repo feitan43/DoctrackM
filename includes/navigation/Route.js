@@ -142,7 +142,7 @@ export function Route() {
     });
   }, []);
 
-  useEffect(() => {
+/*   useEffect(() => {
     const getVersion = async () => {
       const version = DeviceInfo.getVersion();
       setCurrentVersion(version);
@@ -183,7 +183,7 @@ export function Route() {
     } catch (error) {
       console.error('Error fetching the latest version:', error);
     }
-  };
+  }; */
 
 
   /* const handleUpdate = async updateUrl => {

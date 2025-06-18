@@ -14,7 +14,8 @@ import {
   Platform,
   Switch,
   StatusBar,
-  Image
+  Image,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {
@@ -22,7 +23,7 @@ import {
   useUpdateUserAccess,
   useSystemsListAO,
 } from '../hooks/usePersonal';
-import {showMessage} from 'react-native-flash-message';
+import {showMessage} from 'react-native-flash-message'; // This import is correct
 import {useQueryClient} from '@tanstack/react-query';
 
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
@@ -70,6 +71,12 @@ const AccessScreen = ({navigation}) => {
   }, []);
   const handleCloseUserAccessModalPress = useCallback(() => {
     userAccessBottomSheetRef.current?.close();
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery('');
+    setSelectedSystems([]);
+    setDebouncedSearchQuery('');
   }, []);
 
   // Handlers for system filter bottom sheet
@@ -201,7 +208,7 @@ const AccessScreen = ({navigation}) => {
   };
 
   const toggleAccess = async (user, systemKey) => {
-    if (isUpdatingAccess || updatingSystemKey !== null) {
+    if (isUpdatingAccess /* || updatingSystemKey !== null */) {
       showMessage({
         message: 'Please wait',
         description: 'An update is already in progress.',
@@ -215,105 +222,137 @@ const AccessScreen = ({navigation}) => {
       return;
     }
 
-    setUpdatingSystemKey(systemKey);
-
-    const originalUsers = [...users];
-    const originalSelectedUser = {...selectedUser};
-
     let newStateForUser = null;
     let newAccessValue = null;
+    let confirmationMessage = '';
 
     if (systemKey === 'RegistrationState') {
       newStateForUser = user.isActive ? '0' : '1';
-
-      setUsers(prevUsers =>
-        prevUsers.map(u => {
-          if (u.id === user.id) {
-            return {
-              ...u,
-              isActive: newStateForUser === '1',
-            };
-          }
-          return u;
-        }),
-      );
-      setSelectedUser(prev => ({
-        ...prev,
-        isActive: newStateForUser === '1',
-      }));
+      confirmationMessage = `${
+        newStateForUser === '1' ? 'activate' : 'deactivate'
+      } ${user.name}'s account?`;
     } else {
       const currentAccess = user.access[systemKey];
       newAccessValue = currentAccess === 'access' ? 'no-access' : 'access';
+      const systemLabel =
+        systems.find(s => s.key === systemKey)?.label || systemKey;
+      confirmationMessage = `${
+        newAccessValue === 'access' ? 'grant' : 'revoke'
+      } ${systemLabel} for ${user.name}?`;
+    }
 
-      setUsers(prevUsers =>
-        prevUsers.map(u => {
-          if (u.id === user.id) {
-            return {
-              ...u,
-              access: {
-                ...u.access,
-                [systemKey]: newAccessValue,
-              },
-            };
-          }
-          return u;
-        }),
-      );
-      setSelectedUser(prev => ({
-        ...prev,
-        access: {
-          ...prev.access,
-          [systemKey]: newAccessValue,
+    Alert.alert(
+      'Confirm Update',
+      confirmationMessage,
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Update cancelled'),
+          style: 'cancel',
         },
-      }));
-    }
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            setUpdatingSystemKey(systemKey);
 
-    try {
-      const result = await updateUserAccess({
-        employeeNumber: user.employeeNumber,
-        system: systemKey,
-        access:
-          newStateForUser !== null
-            ? newStateForUser
-            : newAccessValue === 'access'
-            ? '1'
-            : '0',
-      });
+            const originalUsers = [...users];
+            const originalSelectedUser = {...selectedUser};
 
-      if (result.success) {
-        showMessage({
-          message: 'Update Successful',
-          description: `User ${
-            systemKey === 'RegistrationState' ? 'account status' : 'access'
-          } updated successfully.`,
-          type: 'success',
-          icon: 'success',
-          backgroundColor: '#2E7D32',
-          color: '#FFFFFF',
-          floating: true,
-          duration: 3000,
-        });
-      } else {
-        throw new Error(result.message || 'Update failed');
-      }
-    } catch (error) {
-      showMessage({
-        message: 'Update Failed',
-        description:
-          error.message || 'There was an issue updating user access.',
-        type: 'danger',
-        icon: 'danger',
-        backgroundColor: '#C62828',
-        color: '#FFFFFF',
-        floating: true,
-        duration: 3000,
-      });
+            // Apply optimistic update
+            if (systemKey === 'RegistrationState') {
+              setUsers(prevUsers =>
+                prevUsers.map(u => {
+                  if (u.id === user.id) {
+                    return {
+                      ...u,
+                      isActive: newStateForUser === '1',
+                    };
+                  }
+                  return u;
+                }),
+              );
+              setSelectedUser(prev => ({
+                ...prev,
+                isActive: newStateForUser === '1',
+              }));
+            } else {
+              setUsers(prevUsers =>
+                prevUsers.map(u => {
+                  if (u.id === user.id) {
+                    return {
+                      ...u,
+                      access: {
+                        ...u.access,
+                        [systemKey]: newAccessValue,
+                      },
+                    };
+                  }
+                  return u;
+                }),
+              );
+              setSelectedUser(prev => ({
+                ...prev,
+                access: {
+                  ...prev.access,
+                  [systemKey]: newAccessValue,
+                },
+              }));
+            }
 
-      setUsers(originalUsers);
-      setSelectedUser(originalSelectedUser);
-    } finally {
-      setUpdatingSystemKey(null);
-    }
+            try {
+              const result = await updateUserAccess({
+                employeeNumber: user.employeeNumber,
+                system: systemKey,
+                access:
+                  newStateForUser !== null
+                    ? newStateForUser
+                    : newAccessValue === 'access'
+                    ? '1'
+                    : '0',
+              });
+
+              if (result.success) {
+                showMessage({
+                  message: 'Update Successful',
+                  description: `User ${
+                    systemKey === 'RegistrationState'
+                      ? 'account status'
+                      : 'access'
+                  } updated successfully.`,
+                  type: 'success',
+                  icon: 'success',
+                  backgroundColor: '#2E7D32',
+                  color: '#FFFFFF',
+                  floating: true,
+                  duration: 3000,
+                });
+              } else {
+                throw new Error(result.message || 'Update failed');
+              }
+            } catch (error) {
+              showMessage({
+                message: 'Update Failed',
+                description:
+                  error.message || 'There was an issue updating user access.',
+                type: 'danger',
+                icon: 'danger',
+                backgroundColor: '#C62828',
+                color: '#FFFFFF',
+                floating: true,
+                duration: 3000,
+              });
+
+              // Rollback on error
+              setUsers(originalUsers);
+              setSelectedUser(originalSelectedUser);
+            } finally {
+              setUpdatingSystemKey(null);
+            }
+          },
+        },
+      ],
+      {cancelable: true},
+    );
   };
 
   const CustomCheckboxIcon = ({value}) => {
@@ -469,7 +508,6 @@ const AccessScreen = ({navigation}) => {
               </TouchableOpacity>
             )}
           </View>
-          {/* New Filter Icon Button */}
           <TouchableOpacity
             onPress={handlePresentSystemFilterModalPress}
             style={styles.filterIconButton}>
@@ -529,16 +567,16 @@ const AccessScreen = ({navigation}) => {
           ListEmptyComponent={
             !userLoading && !loadingSystems && filteredUsers.length === 0 ? (
               <View style={styles.emptyContainer}>
-               {/*  <Icon name="person-remove-outline" size={60} color="#999" /> */}
-                  <Image
-                              source={require('../../assets/images/noresultsstate.png')}
-                              style={{
-                                width: 200,
-                                height: 200,
-                                resizeMode: 'contain',
-                                marginBottom: 10,
-                              }}
-                            />
+                
+                <Image
+                  source={require('../../assets/images/noresultsstate.png')}
+                  style={{
+                    width: 200,
+                    height: 200,
+                    resizeMode: 'contain',
+                    marginBottom: 10,
+                  }}
+                />
 
                 <Text style={styles.emptyTitle}>No Users Found</Text>
 
@@ -554,11 +592,14 @@ const AccessScreen = ({navigation}) => {
                   </>
                 ) : (
                   <Text style={styles.emptySubtext}>
-                    There are no users to display based on your current attempted search.
+                    There are no users to display based on your current
+                    attempted search.
                   </Text>
                 )}
 
-                <TouchableOpacity style={styles.clearFiltersButton}>
+                <TouchableOpacity
+                  style={styles.clearFiltersButton}
+                  onPress={handleClearFilters}>
                   <Text style={styles.clearFiltersButtonText}>
                     Clear Filters
                   </Text>
@@ -1139,6 +1180,19 @@ const styles = StyleSheet.create({
   },
   systemFilterButtonTextSelectedBottomSheet: {
     color: '#2196F3', // Blue text for selected
+  },
+  clearFiltersButton: {
+    backgroundColor: '#2196F3', // Red color for "Clear"
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  clearFiltersButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

@@ -22,8 +22,17 @@ import {Dropdown} from 'react-native-element-dropdown';
 import {Menu, Divider, IconButton, PaperProvider} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
-import useUserInfo from '../api/useUserInfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  Camera,
+  useCameraPermission,
+  useCameraDevice,
+  useCodeScanner,
+  useCameraFormat,
+  useFrameProcessor,
+  useSkiaFrameProcessor,
+} from 'react-native-vision-camera';
+import QRScanner from '../utils/qrScanner'; // Import the QRScanner
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
   return (
@@ -69,7 +78,7 @@ const RenderSearchList = memo(({item, index, onPressItem}) => {
 
 const STORAGE_KEY = '@search_history';
 
-const SearchScreen = ({}) => {
+const SearchScreen = ({caoReceiver, cboReceiver}) => {
   const currentYear = new Date().getFullYear().toString();
   const [searchModalVisible, setSearchModalVisible] = useState(false);
 
@@ -81,7 +90,6 @@ const SearchScreen = ({}) => {
     }),
   );
 
-  const {caoReceiver, cboReceiver} = useUserInfo();
   const [searchText, setSearchText] = useState(selectedSearch);
   const [selectedSearch, setSelectedSearch] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
@@ -97,6 +105,7 @@ const SearchScreen = ({}) => {
   const [dataError, setDataError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
+  const [showScanner, setShowScanner] = useState(false); // State for QR Scanner visibility
 
   const {
     searchTrackData,
@@ -109,6 +118,27 @@ const SearchScreen = ({}) => {
     fetchDataSearchTrack,
     fetchDataSearchPayroll,
   } = useSearchTrack(searchText, selectedYear, search);
+  const cameraPermission = useCameraPermission();
+
+  const {hasPermission, requestPermission} = cameraPermission;
+
+  const handleScanSuccess = async ({
+    year: scannedYear,
+    trackingNumber: scannedTrackingNumber,
+  }) => {
+    setShowScanner(false);
+    if (scannedYear && scannedTrackingNumber) {
+      setSelectedYear(scannedYear.toString());
+      setSearchText(scannedTrackingNumber);
+      await searchTrackingNumber(scannedTrackingNumber);
+    } else {
+      Alert.alert('Scan Error', 'Could not decode QR data properly.');
+    }
+  };
+
+  const handleCloseScanner = () => {
+    setShowScanner(false);
+  };
 
   const getSearchHistory = async () => {
     try {
@@ -157,6 +187,14 @@ const SearchScreen = ({}) => {
     }
   };
 
+  /* useEffect(() => {
+    (async () => {
+      if (!hasPermission) {
+        await requestPermission();
+      }
+    })();
+  }, [hasPermission, requestPermission]); */
+
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
   const triggerShakeAnimation = () => {
@@ -181,6 +219,17 @@ const SearchScreen = ({}) => {
   const handleSearch = () => {
     console.log('Searching for:', searchText);
     setSearchModalVisible(truex);
+  };
+
+  const handleQRManual = async () => {
+    if (!hasPermission) {
+      await requestPermission();
+    }
+    navigation.navigate('QRManual');
+  };
+
+  const handleQRAuto = () => {
+    navigation.navigate('QRAuto');
   };
 
   const navigation = useNavigation();
@@ -221,163 +270,6 @@ const SearchScreen = ({}) => {
   const filterDataByFirstName = text => {
     setSearchFirstName(text);
   };
-
-  /*  const searchTrackingNumber = async (searchFromHistory) => {
-    if (!searchText || searchText.length < 3 || searchFromHistory) {
-      setDataError(true);
-      triggerShakeAnimation();
-      setErrorMessage('at least 3 characters.');
-      return;
-    }
-    addSearchItem(searchText);
-
-    setSearchHistory(prev => {
-      const newHistory = [
-        searchText,
-        ...prev.filter(item => item !== searchText),
-      ];
-      return newHistory.slice(0, 5); // Keep only the last 5 searches
-    });
-
-    const validText = /^[a-zA-Z0-9-]*$/;
-
-    if (!validText.test(searchText)) {
-      setDataError(true);
-      triggerShakeAnimation();
-      setErrorMessage(
-        'Only alphanumeric characters and hyphen (-) are allowed.',
-      );
-      return;
-    } else {
-      setDataError(false);
-    }
-
-    setSearchTrackData(null);
-    try {
-
-      const data = await fetchDataSearchTrack(searchText);
-      if (
-        !data ||
-        data.count === 0 ||
-        !data.results ||
-        data.results.length === 0
-      ) {
-        setDataError(true); // Set error
-        triggerShakeAnimation(); // Trigger the shake animation
-        setErrorMessage('No results found.');
-        return;
-      }
-
-      if (data.count === 1 && data.results.length > 0) {
-        const trackingNumber =
-          searchText.substring(4, 5) === '-' ||
-          searchText.substring(0, 3) === 'PR-'
-            ? searchText
-            : data.results[0].TrackingNumber;
-
-        setSearchModalVisible(false);
-        setSearchText('');
-
-        navigation.navigate('Detail', {
-          index: 0,
-          selectedItem: {
-            Year: selectedYear,
-            TrackingNumber: trackingNumber,
-            TrackingType: data.results[0].TrackingType,
-            data: data.results[0],
-          },
-        });
-      } else {
-        console.log('No unique results found for the search.');
-      }
-      //setSearchModalVisible(false);
-      setSearch(true);
-    } catch (fetchError) {
-      setDataError(true); // Set error
-      triggerShakeAnimation(); // Trigger the shake animation
-      setErrorMessage('Fetch error:', fetchError);
-    }
-  }; */
-
-  /*  const searchTrackingNumber = async keywordParam => {
-    const keyword =
-      typeof keywordParam === 'string' ? keywordParam : searchText;
-
-    if (!keyword || keyword.length < 3) {
-      setDataError(true);
-      triggerShakeAnimation();
-      setErrorMessage('At least 3 characters.');
-      return;
-    }
-
-    addSearchItem(keyword);
-
-    setSearchHistory(prev => {
-      const newHistory = [keyword, ...prev.filter(item => item !== keyword)];
-      return newHistory.slice(0, 5);
-    });
-
-    const validText = /^[a-zA-Z0-9-]*$/;
-    if (!validText.test(keyword)) {
-      setDataError(true);
-      triggerShakeAnimation();
-      setErrorMessage(
-        'Only alphanumeric characters and hyphen (-) are allowed.',
-      );
-      return;
-    } else {
-      setDataError(false);
-    }
-
-    setSearchTrackData(null);
-
-    try {
-      const data = await fetchDataSearchTrack(keyword);
-
-      if (
-        !data ||
-        data.count === 0 ||
-        !data.results ||
-        data.results.length === 0
-      ) {
-        setDataError(true);
-        triggerShakeAnimation();
-        setErrorMessage('No results found.');
-        return;
-      }
-
-      if (data.count === 1 && data.results.length > 0) {
-        const trackingNumber =
-          keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
-            ? keyword
-            : data.results[0].TrackingNumber;
-
-        setSearchModalVisible(false);
-        setSearchText('');
-
-        navigation.navigate('Detail', {
-          index: 0,
-          selectedItem: {
-            Year: selectedYear,
-            TrackingNumber: trackingNumber,
-            TrackingType: data.results[0].TrackingType,
-            data: data.results[0],
-          },
-        });
-      } else {
-        console.log('No unique results found for the search.');
-      }
-
-      setSearch(true);
-    } catch (fetchError) {
-      setDataError(true);
-      triggerShakeAnimation();
-      setErrorMessage(
-        `Fetch error: ${fetchError.message || fetchError.toString()}`,
-      );
-      console.error(fetchError);
-    }
-  }; */
 
   const searchTrackingNumber = async keywordParam => {
     const keyword =
@@ -997,6 +889,556 @@ const SearchScreen = ({}) => {
     </TouchableOpacity>
   );
 
+  const renderSearch = () => (
+    <View
+      style={{
+        margin: 5,
+        borderWidth: 1,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderColor: '#eee',
+      }}>
+      <View
+        style={{
+          marginTop: 10,
+          paddingStart: 10,
+          marginHorizontal: 5,
+          marginBottom: 10,
+          alignItems: 'flex-start',
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 25,
+            width: '100%',
+          }}>
+          <View>
+            <Text
+              style={{
+                fontFamily: 'Inter_24pt-Bold',
+                fontSize: 30,
+                color: '#252525',
+              }}>
+              Search
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginHorizontal: 10,
+            }}>
+            <TouchableOpacity
+              onPress={searchTrackingNumber}
+              style={[
+                styles.filterIconButton,
+                {backgroundColor: 'transparent', elevation: 0, borderWidth: 0},
+              ]}
+              //disabled={isSearching}
+            >
+              <Icon name="filter-outline" size={24} color="#252525" />
+              {/* <Text style={{color: '#fff', fontSize:12, fontWeight:'bold', }}>{selectedYear}</Text>
+              <Icon name='close' size={24} color="#fff" /> */}
+
+              {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </View>
+
+      <View style={{paddingTop: 10}}>
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchInputWrapper}>
+            {/* <Icon
+                        name="search-outline"
+                        size={25}
+                        color={styles.searchIcon.color}
+                        style={styles.searchIcon}
+                      /> */}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tracking Number"
+              placeholderTextColor="#9CA3AF"
+              value={searchText}
+              autoCapitalize="characters"
+              onChangeText={setSearchText}
+              accessibilityHint="Type to search for inventory items by tracking number."
+              //onEndEditing={handleSearch}
+              onSubmitEditing={searchTrackingNumber}
+              // editable={!isSearching}
+            />
+            {searchText?.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                style={styles.clearSearchButton}
+                accessibilityLabel="Clear search query">
+                <Icon
+                  name="close-circle"
+                  size={20}
+                  color={styles.searchIcon.color}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* New Filter Icon Button */}
+          {/*  <TouchableOpacity
+                              onPress={handlePresentSystemFilterModalPress}
+                              style={styles.filterIconButton}>
+                              <Icon name="filter" size={24} color="#1a508c" />
+                            </TouchableOpacity> */}
+          <TouchableOpacity
+            onPress={searchTrackingNumber}
+            style={styles.filterIconButton} // Uses your existing style
+            //disabled={isSearching}
+          >
+            <Icon name="search" size={24} color="#fff" />
+            {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}
+          onPress={() => setShowScanner(true)} // Open scanner on press
+        >
+          <Icons name="qrcode-scan" size={26} color="#252525" />
+          <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+            Scan using QR
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderReceive = () => (
+    <View
+      style={{
+        margin: 5,
+        borderWidth: 1,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderColor: '#eee',
+      }}>
+      <View
+        style={{
+          marginTop: 10,
+          paddingStart: 10,
+          marginHorizontal: 5,
+          marginBottom: 10,
+          alignItems: 'flex-start',
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 25,
+            width: '100%',
+          }}>
+          <View>
+            <Text
+              style={{
+                fontFamily: 'Inter_24pt-Bold',
+                fontSize: 28,
+                color: '#252525',
+              }}>
+              Receive
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginHorizontal: 10,
+            }}>
+            <TouchableOpacity
+              onPress={searchTrackingNumber}
+              style={styles.filterIconButton}
+              //disabled={isSearching}
+            >
+              <Icon name="filter-outline" size={24} color="#fff" />
+              {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+            </TouchableOpacity>
+           {/*  {(caoReceiver === '1' || cboReceiver === '1') && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Receiver')}
+                style={{marginLeft: 10}}>
+                <Icons name="qrcode-scan" size={40} color="black" />
+              </TouchableOpacity>
+            )} */}
+          </View>
+        </View>
+      </View>
+
+      <View style={{paddingTop: 10}}>
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchInputWrapper}>
+            {/* <Icon
+                        name="search-outline"
+                        size={25}
+                        color={styles.searchIcon.color}
+                        style={styles.searchIcon}
+                      /> */}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tracking Number"
+              placeholderTextColor="#9CA3AF"
+              value={searchText}
+              autoCapitalize="characters"
+              onChangeText={setSearchText}
+              accessibilityHint="Type to search for inventory items by tracking number."
+              //onEndEditing={handleSearch}
+              onSubmitEditing={searchTrackingNumber}
+              // editable={!isSearching}
+            />
+            {searchText?.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                style={styles.clearSearchButton}
+                accessibilityLabel="Clear search query">
+                <Icon
+                  name="close-circle"
+                  size={20}
+                  color={styles.searchIcon.color}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* New Filter Icon Button */}
+          {/*  <TouchableOpacity
+                              onPress={handlePresentSystemFilterModalPress}
+                              style={styles.filterIconButton}>
+                              <Icon name="filter" size={24} color="#1a508c" />
+                            </TouchableOpacity> */}
+          <TouchableOpacity
+            onPress={searchTrackingNumber}
+            style={styles.filterIconButton} // Uses your existing style
+            //disabled={isSearching}
+          >
+            <Icon name="search" size={24} color="#fff" />
+            {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+          </TouchableOpacity>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-around',
+            marginBottom: 20,
+          }}>
+          <TouchableOpacity
+            onPress={handleQRManual}
+            style={{flexDirection: 'row', alignItems: 'center', padding: 5}}>
+            <Icons name="qrcode-scan" size={26} color="#252525" />
+            <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+              Manual
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleQRAuto}
+            style={{flexDirection: 'row', alignItems: 'center', padding: 5}}>
+            <Icons name="qrcode-scan" size={26} color="#252525" />
+            <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+              Auto
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderEvaluator = () => (
+    <View
+      style={{
+        margin: 10,
+        borderWidth: 1,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderColor: '#eee',
+      }}>
+      <View
+        style={{
+          marginTop: 10,
+          paddingStart: 10,
+          marginHorizontal: 5,
+          marginBottom: 10,
+          alignItems: 'flex-start',
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 25,
+            width: '100%',
+          }}>
+          <View>
+            <Text
+              style={{
+                fontFamily: 'Inter_24pt-Bold',
+                fontSize: 28,
+                color: '#252525',
+              }}>
+              Evaluate
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginHorizontal: 10,
+            }}>
+            <TouchableOpacity
+              onPress={searchTrackingNumber}
+              style={styles.filterIconButton}
+              //disabled={isSearching}
+            >
+              <Icon name="filter-outline" size={24} color="#fff" />
+              {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+            </TouchableOpacity>
+            {(caoReceiver === '1' || cboReceiver === '1') && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Receiver')}
+                style={{marginLeft: 10}}>
+                <Icons name="qrcode-scan" size={40} color="black" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+
+      <View style={{paddingTop: 10}}>
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchInputWrapper}>
+            {/* <Icon
+                        name="search-outline"
+                        size={25}
+                        color={styles.searchIcon.color}
+                        style={styles.searchIcon}
+                      /> */}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tracking Number"
+              placeholderTextColor="#9CA3AF"
+              value={searchText}
+              autoCapitalize="characters"
+              onChangeText={setSearchText}
+              accessibilityHint="Type to search for inventory items by tracking number."
+              //onEndEditing={handleSearch}
+              onSubmitEditing={searchTrackingNumber}
+              // editable={!isSearching}
+            />
+            {searchText?.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                style={styles.clearSearchButton}
+                accessibilityLabel="Clear search query">
+                <Icon
+                  name="close-circle"
+                  size={20}
+                  color={styles.searchIcon.color}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* New Filter Icon Button */}
+          {/*  <TouchableOpacity
+                              onPress={handlePresentSystemFilterModalPress}
+                              style={styles.filterIconButton}>
+                              <Icon name="filter" size={24} color="#1a508c" />
+                            </TouchableOpacity> */}
+          <TouchableOpacity
+            onPress={searchTrackingNumber}
+            style={styles.filterIconButton} // Uses your existing style
+            //disabled={isSearching}
+          >
+            <Icon name="search" size={24} color="#fff" />
+            {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+          </TouchableOpacity>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}>
+          <Icons name="qrcode-scan" size={26} color="#252525" />
+          <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+            Scan using QR
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderInspection = () => (
+    <View
+      style={{
+        margin: 10,
+        borderWidth: 1,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderColor: '#eee',
+      }}>
+      <View
+        style={{
+          marginTop: 10,
+          paddingStart: 10,
+          marginHorizontal: 5,
+          marginBottom: 10,
+          alignItems: 'flex-start',
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 25,
+            width: '100%',
+          }}>
+          <View>
+            <Text
+              style={{
+                fontFamily: 'Inter_24pt-Bold',
+                fontSize: 28,
+                color: '#252525',
+              }}>
+              Inspection
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginHorizontal: 10,
+            }}>
+            <TouchableOpacity
+              onPress={searchTrackingNumber}
+              style={styles.filterIconButton}
+              //disabled={isSearching}
+            >
+              <Icon name="filter-outline" size={24} color="#fff" />
+              {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+            </TouchableOpacity>
+            {(caoReceiver === '1' || cboReceiver === '1') && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Receiver')}
+                style={{marginLeft: 10}}>
+                <Icons name="qrcode-scan" size={40} color="black" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+
+      <View style={{paddingTop: 10}}>
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchInputWrapper}>
+            {/* <Icon
+                        name="search-outline"
+                        size={25}
+                        color={styles.searchIcon.color}
+                        style={styles.searchIcon}
+                      /> */}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Tracking Number"
+              placeholderTextColor="#9CA3AF"
+              value={searchText}
+              autoCapitalize="characters"
+              onChangeText={setSearchText}
+              accessibilityHint="Type to search for inventory items by tracking number."
+              //onEndEditing={handleSearch}
+              onSubmitEditing={searchTrackingNumber}
+              // editable={!isSearching}
+            />
+            {searchText?.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                style={styles.clearSearchButton}
+                accessibilityLabel="Clear search query">
+                <Icon
+                  name="close-circle"
+                  size={20}
+                  color={styles.searchIcon.color}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* New Filter Icon Button */}
+          {/*  <TouchableOpacity
+                              onPress={handlePresentSystemFilterModalPress}
+                              style={styles.filterIconButton}>
+                              <Icon name="filter" size={24} color="#1a508c" />
+                            </TouchableOpacity> */}
+          <TouchableOpacity
+            onPress={searchTrackingNumber}
+            style={styles.filterIconButton} // Uses your existing style
+            //disabled={isSearching}
+          >
+            <Icon name="search" size={24} color="#fff" />
+            {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+          </TouchableOpacity>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}>
+          <Icons name="qrcode-scan" size={26} color="#252525" />
+          <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+            Scan using QR
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
       <ImageBackground
@@ -1009,181 +1451,12 @@ const SearchScreen = ({}) => {
             backgroundColor: 'rgba(255, 255, 255, 0.5)',
           }}
         />
-        <View
-          style={{
-            margin: 10,
-            borderWidth: 1,
-            backgroundColor: 'rgba(255,255,255,0.5)',
-            borderColor: '#eee',
-          }}>
-          <View
-            style={{
-              marginTop: 10,
-              paddingStart: 10,
-              marginHorizontal: 5,
-              marginBottom: 10,
-              alignItems: 'flex-start',
-            }}>
-            {/* <TouchableOpacity
-              onPress={() => navigation.navigate('Receiver')}
-              style={{ top: 10, right: 10}}>
-              <Icons name="qrcode-scan" size={40} color="#252525" />
-            </TouchableOpacity> */}
-
-           <View
-  style={{
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    //backgroundColor: 'yellow',
-    marginBottom: 20,
-    marginTop: 10,
-    width:'100%'
-  }}>
-  
-  {/* Left Side - Title */}
-  <View>
-    <Text
-      style={{
-        fontFamily: 'Inter_24pt-Bold',
-        fontSize: 24,
-        color: '#252525',
-      }}>
-      Search
-    </Text>
-  </View>
-
-  {/* Right Side - Filter + QR Scanner */}
-  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-    <TouchableOpacity
-      style={[styles.filterButton]}
-      // onPress={handlePresentYearFilterSheet}
-      accessibilityLabel={`Currently filtered by year ${
-        selectedYear || 'All Years'
-      }. Tap to change.`}>
-      <Icon name="filter-outline" size={22} color="#FFFFFF" />
-      <Text style={styles.filterButtonText}>
-        {selectedYear ? selectedYear : 'Year'}
-      </Text>
-      {selectedYear && (
-        <TouchableOpacity
-          onPress={() => setSelectedYear(null)}
-          style={styles.clearYearFilter}
-          accessibilityLabel="Clear year filter">
-          <Icon name="close-circle" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
-    </TouchableOpacity>
-
-    {(caoReceiver === '1' || cboReceiver === '1') && (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Receiver')}
-        style={{marginLeft: 10}}>
-        <Icons name="qrcode-scan" size={40} color="black" />
-      </TouchableOpacity>
-    )}
-  </View>
-</View>
-
-            {/*    <View
-              style={{
-                marginTop: 10,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
-              <TouchableOpacity
-                style={{
-                  height: 40,
-                  width: '95%',
-                  marginEnd: 20,
-                  borderColor: '#ccc',
-                  borderWidth: 1,
-                  paddingHorizontal: 10,
-                  marginTop: 10,
-                  borderRadius: 5,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                }}
-                onPress={() => setSearchModalVisible(true)}>
-                <Icons
-                  name="magnify"
-                  size={24}
-                  color="#252525"
-                  style={{marginRight: 10}}
-                />
-                <Text style={{fontSize: 16, color: '#252525'}}>Enter here</Text>
-              </TouchableOpacity>
-            </View> */}
-          </View>
-
-          <View style={{paddingTop: 10}}>
-            <View style={styles.searchFilterRow}>
-              <View style={styles.searchInputWrapper}>
-                {/* <Icon
-                        name="search-outline"
-                        size={25}
-                        color={styles.searchIcon.color}
-                        style={styles.searchIcon}
-                      /> */}
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Tracking Number"
-                  placeholderTextColor="#9CA3AF"
-                  value={searchText}
-                  autoCapitalize="characters"
-                  onChangeText={setSearchText}
-                  accessibilityHint="Type to search for inventory items by tracking number."
-                  //onEndEditing={handleSearch}
-                  onSubmitEditing={searchTrackingNumber}
-                  // editable={!isSearching}
-                />
-                {searchText?.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSearchText('')}
-                    style={styles.clearSearchButton}
-                    accessibilityLabel="Clear search query">
-                    <Icon
-                      name="close-circle"
-                      size={20}
-                      color={styles.searchIcon.color}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* New Filter Icon Button */}
-              {/*  <TouchableOpacity
-                              onPress={handlePresentSystemFilterModalPress}
-                              style={styles.filterIconButton}>
-                              <Icon name="filter" size={24} color="#1a508c" />
-                            </TouchableOpacity> */}
-              <TouchableOpacity
-                onPress={searchTrackingNumber}
-                style={styles.filterIconButton} // Uses your existing style
-                //disabled={isSearching}
-              >
-                <Icon name="search" size={24} color="#fff" />
-                {/*  {isSearching ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
-                      ) : (
-                        <Icon name="search" size={24} color="#fff" />
-                      )} */}
-              </TouchableOpacity>
-            </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <Icons name="qrcode-scan" size={26} color="#252525" />
-              <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
-                Scan using QR
-              </Text>
-            </View>
-          </View>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          {renderSearch()}
+          {caoReceiver === '1' && <>{renderReceive()}</>}
+          {/*  {renderEvaluator()}
+          {renderInspection()} */}
+        </ScrollView>
         <Modal transparent={true} visible={modalVisible} animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -1303,12 +1576,24 @@ const SearchScreen = ({}) => {
             </View>
           </View>
         </Modal>
+
+        <Modal
+          visible={showScanner}
+          animationType="slide"
+          onRequestClose={handleCloseScanner}>
+          <QRScanner onScan={handleScanSuccess} onClose={handleCloseScanner} />
+        </Modal>
       </ImageBackground>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    padding: 10,
+    flexGrow: 1,
+    paddingBottom: 50,
+  },
   searchBarInput: {
     flex: 1,
     backgroundColor: 'rgba(245, 244, 244, 0.79)',
@@ -1743,6 +2028,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterIconButton: {
+    flexDirection: 'row',
     backgroundColor: '#007AFF',
     borderRadius: 12,
     borderWidth: 1,

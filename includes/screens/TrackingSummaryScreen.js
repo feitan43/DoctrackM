@@ -21,7 +21,7 @@ import {insertCommas} from '../utils/insertComma';
 import {Menu, PaperProvider} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 
-const RenderTrackingSummary = memo(({item, index, onPressItem}) => {
+const RenderTrackingSummary2 = memo(({item, index, onPressItem}) => {
   return (
     <View
       style={{
@@ -165,6 +165,100 @@ const RenderTrackingSummary = memo(({item, index, onPressItem}) => {
         </View>
       </View>
     </View>
+  );
+});
+
+const RenderTrackingSummary = memo(({item, index, onPressItem}) => {
+  const getShortMonth = month => month?.slice(0, 3) || '';
+
+  return (
+    <Pressable
+      onPress={() => onPressItem(index, item)}
+      style={({pressed}) => [
+        styles.transactionCard,
+        pressed && styles.transactionCardPressed,
+      ]}>
+      <View style={styles.cardContainer}>
+        {/* Left Column - Index Number */}
+        <View style={styles.indexColumn}>
+          <Text style={styles.indexText}>{index + 1}</Text>
+        </View>
+
+        {/* Right Column - Content */}
+        <View style={styles.contentColumn}>
+          {/* Status Row */}
+          <View style={styles.statusRow}>
+            <Text
+              style={[
+                styles.statusText,
+                item?.Status?.includes('Pending') && styles.pendingStatus,
+              ]}>
+              {item?.Status ?? ''}
+            </Text>
+          </View>
+
+          {/* Details Section */}
+          <View style={styles.detailsSection}>
+            <View style={styles.textRow}>
+              <Text style={styles.label}>Year </Text>
+              <Text style={styles.value}>{item.Year}</Text>
+            </View>
+            <View style={styles.textRow}>
+              <Text style={styles.label}>TN </Text>
+              <Text style={styles.value}>{item.TrackingNumber}</Text>
+            </View>
+
+            {item.TrackingType !== 'PR' ? (
+              <>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>Claimant </Text>
+                  <Text style={styles.value}>{item.Claimant}</Text>
+                </View>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>Document </Text>
+                  <Text style={styles.value}>{item.DocumentType}</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>PR Number </Text>
+                  <Text style={styles.value}>{item.PR_Number}</Text>
+                </View>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>PR Sched </Text>
+                  <Text style={styles.value}>
+                    {item.PR_Month >= 1 && item.PR_Month <= 3
+                      ? '1st Quarter'
+                      : item.PR_Month >= 4 && item.PR_Month <= 6
+                      ? '2nd Quarter'
+                      : item.PR_Month >= 7 && item.PR_Month <= 9
+                      ? '3rd Quarter'
+                      : '4th Quarter'}
+                  </Text>
+                </View>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>Fund </Text>
+                  <Text style={styles.value}>{item.Fund}</Text>
+                </View>
+              </>
+            )}
+
+            <View style={styles.textRow}>
+              <Text style={styles.label}>Period </Text>
+              <Text style={styles.value}>
+                {getShortMonth(item.PeriodMonth)}
+              </Text>
+            </View>
+
+            <View style={styles.textRow}>
+              <Text style={styles.label}>Amount </Text>
+              <Text style={styles.amountText}>{insertCommas(item.Amount)}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 });
 
@@ -442,7 +536,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5', // Example background
   },
   transactionList: {
-    padding: 10, // Inner padding for list items
+    padding: 5, // Inner padding for list items
   },
   modalContainer: {
     flex: 1,
@@ -522,6 +616,80 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     //padding: 10,
+  },
+  transactionCard: {
+    marginHorizontal: 12,
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    marginBottom:10,
+    elevation:1
+  },
+  transactionCardPressed: {
+    backgroundColor: '#F5F8FA'
+  },
+  cardContainer: {
+    flexDirection: 'row',
+  },
+  indexColumn: {
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginRight: 12,
+  },
+  contentColumn: {
+    flex: 1,
+  },
+  indexText: {
+    fontSize: 16,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#007bff',
+  },
+  statusRow: {
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  statusText: {
+    fontSize: 16,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#252525',
+  },
+  pendingStatus: {
+    color: '#FF9800',
+  },
+  detailsSection: {
+    flex: 1,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  textRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  label: {
+    width: '25%',
+    fontSize: 12,
+    fontFamily: 'Inter_28pt-Light',
+    textAlign: 'right',
+    color: '#666',
+  },
+  value: {
+    width: '70%',
+    fontSize: 14,
+    fontFamily: 'Inter_28pt-Regular',
+    color: '#333',
+    marginLeft: 8,
+  },
+  amountText: {
+    width: '70%',
+    fontSize: 14,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#007bff',
+    marginLeft: 8,
   },
 });
 
