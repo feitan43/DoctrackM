@@ -120,10 +120,8 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
 const MyTransactionsScreen = ({navigation}) => {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-
-  const {myTransactionsData, isLoading: loading, error, refetch: fetchMyPersonal} =
-    useMyTransactions(selectedYear);
-
+  const {myTransactionsData, isLoading: loading, error, refetch: fetchMyPersonal} = useMyTransactions(selectedYear);
+  console.log(myTransactionsData);
   const {employeeNumber} = useUserInfo();
   const queryClient = useQueryClient();
 

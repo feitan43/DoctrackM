@@ -45,7 +45,6 @@ export const GeneralInformationCard = ({genInformationData}) => (
         value: genInformationData.PR_Sched,
       },
       {label: 'Fund', value: genInformationData.Fund},
-      {label: 'PO TN', value: genInformationData.Fund},
 
       {
         label: 'Encoded By',
@@ -68,7 +67,7 @@ export const GeneralInformationCard = ({genInformationData}) => (
           </Text>
           <Text style={styles.listItemValue}>{item.value || '—'}</Text>
         </View>
-        {index !== arr.length - 1 && <View style={styles.divider} />}
+        {/* {index !== arr.length - 1 && <View style={styles.divider} />} */}
       </View>
     ))}
   </View>

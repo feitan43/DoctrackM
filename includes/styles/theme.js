@@ -89,14 +89,14 @@ export const GLOBAL_STYLES = StyleSheet.create({
     alignItems: 'flex-start',
   },
   listItemLabel: {
-    fontSize: FONT_SIZES.medium,
+    fontSize: FONT_SIZES.large,
     color: COLORS.textSecondary,
     fontWeight: '300',
     flex: 1,
     marginRight: SPACING.s,
   },
   listItemValue: {
-    fontSize: FONT_SIZES.medium,
+    fontSize: FONT_SIZES.large,
     color: COLORS.textPrimary,
     textAlign: 'right',
     fontWeight:'600',

@@ -15,15 +15,15 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import BottomSheet from '@gorhom/bottom-sheet';
-import {Menu, Provider, Searchbar} from 'react-native-paper';
+import {Menu, Provider} from 'react-native-paper';
 import {ScrollView} from 'react-native-gesture-handler';
 import {Shimmer} from '../../utils/useShimmer';
 import {InspectionList} from './InspectionList';
 import {useQueryClient} from '@tanstack/react-query';
-
-//import useInspection from '../../api/useInspection';
 import {useInspection} from '../../hooks/useInspection';
 import {BlurView} from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient';
+import {FlashList} from '@shopify/flash-list'; // Change this import
 
 const ForInspection = ({navigation}) => {
   const [selectedOffice, setSelectedOffice] = useState(null);
@@ -36,64 +36,73 @@ const ForInspection = ({navigation}) => {
   const [openOfficeSheet, setOpenOfficeSheet] = useState(false);
   const [openYearSheet, setOpenYearSheet] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
-  console.log("load",isLoading);
+
+  // Helper to get unique offices and years from filtered data
+  const getUniqueValues = (key, filterStatus = true) => {
+    const filteredData = Array.isArray(data)
+      ? data.filter(item =>
+          filterStatus
+            ? item?.Status?.toLowerCase() === 'for inspection'
+            : true,
+        )
+      : [];
+    return Array.from(
+      new Set(
+        filteredData
+          .map(item => item[key])
+          .filter(value => value !== undefined && value !== null),
+      ),
+    ).map(value => ({
+      label: value,
+      value: value,
+      key: value,
+    }));
+  };
+
   const offices = [
     {label: 'All Offices', value: null, key: 'all-offices'},
-    ...Array.from(
-      new Set(
-        (Array.isArray(data) ? data : [])
-          .filter(item => item?.Status?.toLowerCase() === 'for inspection')
-          .map(item => item.OfficeName)
-          .filter(name => name !== undefined && name !== null),
-      ),
-    ).map(name => ({
-      label: name,
-      value: name,
-      key: name,
-    })),
-  ];
+  ].concat(getUniqueValues('OfficeName'));
 
-  const years = [
-    {label: 'All Years', value: null, key: 'all-years'},
-    ...Array.from(
-      new Set(
-        (Array.isArray(data) ? data : [])
-          .filter(item => item?.Status?.toLowerCase() === 'for inspection')
-          .map(item => item.Year)
-          .filter(name => name !== undefined && name !== null),
-      ),
-    ).map(name => ({
-      label: name,
-      value: name,
-      key: name,
-    })),
-  ];
+  const years = [{label: 'All Years', value: null, key: 'all-years'}].concat(
+    getUniqueValues('Year'),
+  );
 
   const handleRefresh = () => {
-    setRefreshing(true);
     queryClient.invalidateQueries({
       queryKey: ['inspection'],
     });
-    setTimeout(() => setRefreshing(false), 1500);
   };
 
- const filteredInspectionListData = Array.isArray(data)
+  const filteredInspectionListData = Array.isArray(data)
     ? data.filter(item => {
         const searchTerm = searchQuery?.toLowerCase() || '';
 
         const {
-          OfficeName = '', // These defaults are good for the initial assignment
+          OfficeName = '',
           TrackingNumber = '',
           RefTrackingNumber = '',
           CategoryName = '',
           Year,
+          Status = '', // Initialize Status with an empty string if null/undefined
         } = item;
 
-        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+        // Filter by 'for inspection' status
+        // Add a check to ensure Status is a string before calling toLowerCase()
+        if (
+          typeof Status === 'string' &&
+          Status.toLowerCase() !== 'for inspection'
+        ) {
+          return false;
+        }
+        // If Status is not a string (e.g., null or undefined), it also shouldn't be included
+        if (typeof Status !== 'string') {
+          return false;
+        }
+
+        if (selectedOffice && OfficeName !== selectedOffice) {
           return false;
         }
 
@@ -102,17 +111,31 @@ const ForInspection = ({navigation}) => {
         }
 
         if (
-          !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
-          !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(OfficeName).toLowerCase().includes(searchTerm) &&
+          !String(TrackingNumber).toLowerCase().includes(searchTerm) &&
           !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
-          !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+          !String(CategoryName).toLowerCase().includes(searchTerm)
         ) {
           return false;
         }
 
         return true;
       })
-  : [];
+    : [];
+  // Group inspections by office
+  const groupedInspections = filteredInspectionListData.reduce((acc, item) => {
+    const office = item.OfficeName || 'Unassigned Office'; // Default for items without an office
+    if (!acc[office]) {
+      acc[office] = [];
+    }
+    acc[office].push(item);
+    return acc;
+  }, {});
+
+  const officeSections = Object.keys(groupedInspections).map(officeName => ({
+    title: officeName,
+    data: groupedInspections[officeName],
+  }));
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -128,8 +151,11 @@ const ForInspection = ({navigation}) => {
     setMenuVisible(prev => !prev);
   };
 
-  const onPressItem = (item, filteredInspectionList) => {
-    navigation.navigate('InspectionDetails', {item, filteredInspectionList});
+  const onPressItem = (item, fullList) => {
+    navigation.navigate('InspectionDetails', {
+      item,
+      filteredInspectionList: fullList,
+    });
   };
 
   const openOfficeSheetHandler = () => {
@@ -150,10 +176,6 @@ const ForInspection = ({navigation}) => {
     setShowSearch(!showSearch);
     setSearchQuery('');
   };
-
-  const filteredInspectionList = filteredInspectionListData?.filter(
-    item => item?.Status?.toLowerCase() === 'for inspection',
-  );
 
   const renderInspection = () => {
     if (isLoading) {
@@ -197,10 +219,10 @@ const ForInspection = ({navigation}) => {
             marginTop: 5,
             marginEnd: 20,
           }}>
-          <Text>{filteredInspectionList.length} results</Text>
+          <Text>{filteredInspectionListData.length} results</Text>
         </View>
 
-        {filteredInspectionList?.length === 0 ? (
+        {filteredInspectionListData?.length === 0 ? (
           <View
             style={{
               alignItems: 'center',
@@ -228,25 +250,54 @@ const ForInspection = ({navigation}) => {
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={filteredInspectionList}
-            keyExtractor={(item, index) =>
-              item && item.Id ? item.Id.toString() : index.toString()
-            }
+          <FlashList // Changed from FlatList to FlashList
+            data={officeSections}
+            keyExtractor={(item, index) => item.title + index.toString()}
             renderItem={({item, index}) => (
-              <View style={styles.inspectionItemContainer}>
-                <InspectionList
-                  item={item}
-                  index={index}
-                  onPressItem={onPressItem}
-                />
+              <View style={styles.officeSection}>
+                <LinearGradient
+                  colors={['rgb(209, 238, 248)', '#fff']} // Choose your desired gradient colors
+                  style={styles.gradientContainer}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}>
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        paddingHorizontal: 10,
+                        color: 'gray',
+                      }}>
+                      {index + 1}
+                    </Text>
+
+                    <Text style={styles.officeSectionTitle}>{item.title}</Text>
+                  </View>
+                </LinearGradient>
+                {item.data.map((inspectionItem, subIndex) => (
+                  <View
+                    key={
+                      inspectionItem.Id
+                        ? inspectionItem.Id.toString()
+                        : subIndex.toString()
+                    }
+                    style={styles.inspectionItemContainer}>
+                    <InspectionList
+                      item={inspectionItem}
+                      index={subIndex}
+                      onPressItem={onPressItem}
+                      filteredInspectionList={filteredInspectionListData}
+                    />
+                  </View>
+                ))}
               </View>
             )}
             onRefresh={handleRefresh}
             refreshing={isFetching}
-            initialNumToRender={10}
-            windowSize={5}
-            //contentContainerStyle={{paddingVertical: 10}}
+            // estimatedItemSize is a crucial prop for FlashList for performance
+            // You'll need to estimate the average height of your items.
+            // If items have highly variable heights, you might need to adjust this.
+            estimatedItemSize={100} // **IMPORTANT: Set an appropriate estimated size**
           />
         )}
       </View>
@@ -269,6 +320,7 @@ const ForInspection = ({navigation}) => {
       </View>
     );
   }
+
   return (
     <Provider>
       <SafeAreaView style={styles.container}>
@@ -278,18 +330,26 @@ const ForInspection = ({navigation}) => {
           <View style={styles.header}>
             {showSearch ? (
               <>
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoFocus
-                  autoCapitalize="characters" // Add this prop
-                />
+                <View style={styles.searchContainer}>
+                  <Icon
+                    name="search"
+                    size={24}
+                    color="gray"
+                    style={styles.searchIconInsideInput}
+                  />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoFocus
+                    autoCapitalize="characters"
+                  />
+                </View>
                 <TouchableOpacity
                   onPress={toggleSearchBar}
-                  style={styles.searchIcon}>
-                  <Icon name="close" size={24} color="#fff" />
+                  style={styles.cancelButton}>
+                  <Text style={{color: '#fff'}}>Cancel</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -348,40 +408,6 @@ const ForInspection = ({navigation}) => {
           </Menu>
         </ImageBackground>
 
-        {/*  {showSearch && (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Icon
-                name="search"
-                size={20}
-                color="#888"
-                style={styles.searchIcon}
-              />
-              <TextInput
-                placeholder="Search Office, Payment TN"
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.searchInput}
-                placeholderTextColor="gray"
-                autoCapitalize="characters"
-                autoFocus={true}
-                autoCorrect={false}
-                autoCompleteType="off"
-                textContentType="none"
-                keyboardType="default"
-                spellCheck={false}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
-                  style={styles.clearButton}>
-                  <Icon name="close" size={20} color="black" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )} */}
-
         <View style={{height: '100%'}}>{renderInspection()}</View>
 
         {openOfficeSheet && (
@@ -428,7 +454,7 @@ const ForInspection = ({navigation}) => {
               snapPoints={['50%', '25%']}
               onClose={() => setOpenYearSheet(false)}
               onChange={index => {
-                if (index === -1) setOpenYearSheet(false); // Close state when dismissed
+                if (index === -1) setOpenYearSheet(false);
               }}>
               <View style={styles.bottomSheetContent}>
                 <View style={styles.bottomSheetHeader}>
@@ -495,99 +521,37 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 10,
   },
-  searchInput: {
-    height: 40,
-    flex: 1,
-    fontSize: 14,
+  // New style for the container holding the search icon and input
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 18,
+    flex: 1,
+    height: 40,
     marginStart: 10,
-    marginRight: 20,
-    paddingStart: 20,
+    marginRight: 10, // Adjusted to make space for cancel button
+    paddingHorizontal: 10,
+  },
+  searchIconInsideInput: {
+    marginRight: 5, // Space between icon and text input
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0, // Remove default vertical padding
+  },
+  cancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 5,
   },
   backButton: {
     padding: 8,
     borderRadius: 20,
   },
-
   menuItemTitle: {
     color: 'black',
-  },
-  searchContainer: {
-    backgroundColor: 'white',
-    paddingHorizontal: 50,
-    marginTop: 10,
-    //paddingBottom: 10,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingLeft: 10,
-  },
-
-  headerContainer: {
-    //backgroundColor: 'white',
-    //paddingHorizontal: 10,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    justifyContent: 'space-between',
-    //elevation: 3,
-    //borderBottomWidth: 1,
-    //borderBottomColor: 'rgb(224, 224, 224)',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    //justifyContent: 'space-between',
-    //alignItems: 'center',
-  },
-  headerLeft: {
-    paddingTop: 10,
-    paddingBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    padding: 10,
-    borderRadius: 999,
-  },
-
-  headerRight: {
-    flexDirection: 'row',
-    //alignItems: 'center',
-    //justifyContent: 'space-between',
-    //columnGap: 20,
-  },
-  searchToggle: {
-    backgroundColor: '#F8F8F8',
-    padding: 5,
-    borderRadius: 10,
-  },
-  searchActive: {
-    backgroundColor: '#F0F4F7',
-  },
-  filtersButton: {
-    padding: 5,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 10,
-  },
-  menuStyle: {
-    position: 'absolute',
-    top: 90,
-    right: 10,
-    left: 200,
-  },
-  menuContentStyle: {
-    backgroundColor: '#F0F4F7',
-    borderRadius: 10,
-  },
-  mainContent: {
-    height: '100%',
-    paddingBottom: 55,
   },
   loadingContainer: {
     gap: 10,
@@ -596,29 +560,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     top: 0,
   },
-  inspectionListContainer: {
-    flex: 1,
-  },
-  noResultsContainer: {
-    flex: 1,
-    top: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noResultsImage: {
-    width: '60%',
-    height: '25%',
-    alignSelf: 'center',
-  },
-  noResultsText: {
-    fontFamily: 'Oswald-Light',
-    color: 'gray',
-    fontSize: 16,
-    textAlign: 'center',
-    padding: 5,
-  },
   inspectionItemContainer: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
   },
   overlay: {
     position: 'absolute',
@@ -656,33 +599,30 @@ const styles = StyleSheet.create({
   menuItem: {
     fontSize: 16,
   },
-  clearButton: {
-    padding: 5,
-    marginEnd: 5,
-    borderRadius: 15,
-    backgroundColor: 'rgb(221, 220, 220)',
-    alignItems: 'center',
+  officeSection: {
+    marginTop: 15,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginHorizontal: 10,
+    //paddingVertical: 10,
+    //borderWidth: 1,
+    //borderColor: '#e0e0e0',
   },
-  errorContainer: {
-    flex: 1,
-    //justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  retryButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
+  officeSectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    //paddingBottom: 10,
+    color: '#333',
+    //borderBottomWidth: 1,
+    //borderBottomColor: '#e0e0e0',
+    //marginBottom: 10,
+  },
+  gradientContainer: {
+    borderRadius: 5, // Optional: Add some border radius to the gradient
+    elevation: 10,
+    //marginVertical: 10, // Optional: Add some vertical margin
   },
 });
 

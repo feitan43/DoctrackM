@@ -1048,9 +1048,12 @@ const InspectionDetails = ({route, navigation}) => {
 const Section = ({title, children, action}) => (
   <View style={{backgroundColor: '#f4f4f4'}}>
     <View style={styles.card}>
-      <View style={{  flexDirection:'row',
-    justifyContent:'space-between',
-    alignItems: 'center'}}>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
         <Text style={{fontSize: 16, fontWeight: 'bold', color: '#333'}}>
           {title}
         </Text>
@@ -1096,18 +1099,20 @@ const PaymentSection = ({dataItems}) => (
       dataItems.vouchers.map((voucher, index) => (
         <View
           key={index}
-          style={{
-           /*  paddingVertical: 8,
-            borderBottomWidth: 1,
+          style={
+            {
+               paddingVertical: 8,
+            /* borderBottomWidth: 1,
             borderBottomColor: '#eee', */
-          }}>
+            }
+          }>
           {[
             {label: 'Year', value: voucher.Year},
             {label: 'TN', value: voucher.TrackingNumber},
             {label: 'Status', value: voucher.Status},
           ].map((detail, index) => (
             <View key={detail.label + index} style={styles.detailRow}>
-              <Text style={styles.detailIndex}>{index + 1}.</Text>
+              <Text style={styles.detailIndex}>{index + 1}</Text>
               <Text style={styles.detailLabel}>{detail.label}</Text>
               <Text style={styles.detailValue}>{detail.value}</Text>
             </View>
@@ -1126,27 +1131,27 @@ const PODetailsSection = ({item}) => (
   <Section title="PO Details">
     {item ? (
       <View
-          //key={index}
-          style={{
-            paddingVertical: 8,
-            /* borderBottomWidth: 1,
+        //key={index}
+        style={{
+          paddingVertical: 8,
+          /* borderBottomWidth: 1,
             borderBottomColor: '#eee', */
-          }}>
-          {[
-            {label: 'Claimant', value: item.Year},
-            {label: 'PO TN', value: item.TrackingNumber},
-            {label: 'Status', value: item.Status},
-            {label: 'PO Number', value: item.PO_Number},
-            {label: 'Amount', value: insertCommas(item.Amount)},
-            {label: 'Conform', value: item.ConformDate},
-          ].map((detail, index) => (
-            <View key={detail.label + index} style={styles.detailRow}>
-              <Text style={styles.detailIndex}>{index + 4}.</Text>
-              <Text style={styles.detailLabel}>{detail.label}</Text>
-              <Text style={styles.detailValue}>{detail.value}</Text>
-            </View>
-          ))}
-        </View>
+        }}>
+        {[
+          {label: 'Claimant', value: item.Claimant},
+          {label: 'PO TN', value: item.TrackingNumber},
+          {label: 'Status', value: item.Status},
+          {label: 'PO Number', value: item.PO_Number},
+          {label: 'Amount', value: insertCommas(item.Amount)},
+          {label: 'Conform', value: item.ConformDate},
+        ].map((detail, index) => (
+          <View key={detail.label + index} style={styles.detailRow}>
+            <Text style={styles.detailIndex}>{index + 4}</Text>
+            <Text style={styles.detailLabel}>{detail.label}</Text>
+            <Text style={styles.detailValue}>{detail.value}</Text>
+          </View>
+        ))}
+      </View>
     ) : (
       <Text style={{fontSize: 13, color: '#777', textAlign: 'center'}}>
         No Record Found
@@ -1166,25 +1171,25 @@ const DeliverySection = ({dataItems, handleEditDeliveryDate}) => (
             /* borderBottomWidth: 1,
             borderBottomColor: '#eee', */
           }}>
- <View
-          key={index}
-          style={{
-            paddingVertical: 8,
-           /*  borderBottomWidth: 1,
+          <View
+            key={index}
+            style={{
+              paddingVertical: 8,
+              /*  borderBottomWidth: 1,
             borderBottomColor: '#eee', */
-          }}>
-          {[
-            {label: 'Contact', value: deliveryItem.ContactNumber},
-            {label: 'Address', value: deliveryItem.Address},
-            {label: 'Status', value: deliveryItem.Status},
-          ].map((detail, index) => (
-            <View key={detail.label + index} style={styles.detailRow}>
-              <Text style={styles.detailIndex}>{index + 10}.</Text>
-              <Text style={styles.detailLabel}>{detail.label}</Text>
-              <Text style={styles.detailValue}>{detail.value}</Text>
-            </View>
-          ))}
-        </View>
+            }}>
+            {[
+              {label: 'Contact', value: deliveryItem.ContactNumber},
+              {label: 'Address', value: deliveryItem.Address},
+              {label: 'Status', value: deliveryItem.Status},
+            ].map((detail, index) => (
+              <View key={detail.label + index} style={styles.detailRow}>
+                <Text style={styles.detailIndex}>{index + 10}</Text>
+                <Text style={styles.detailLabel}>{detail.label}</Text>
+                <Text style={styles.detailValue}>{detail.value}</Text>
+              </View>
+            ))}
+          </View>
 
           {deliveryItem.DeliveryDatesHistory && (
             <View
@@ -1285,17 +1290,16 @@ const ItemsSection = ({
   handleSelectAll,
   handleCheck,
 }) => {
-
-  const [expanded, setExpanded] = useState({}); 
-  const insertCommas = (num) => {
+  const [expanded, setExpanded] = useState({});
+  const insertCommas = num => {
     if (typeof num !== 'number' && typeof num !== 'string') return '';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  const toggleExpanded = (index) => {
+  const toggleExpanded = index => {
     setExpanded(prevExpanded => ({
       ...prevExpanded,
-      [index]: !prevExpanded[index], 
+      [index]: !prevExpanded[index],
     }));
   };
 
@@ -1304,7 +1308,7 @@ const ItemsSection = ({
       title="Items"
       action={
         <TouchableOpacity onPress={handleSelectAll}>
-          <Text style={{ color: '#007bff', fontWeight: 'bold' }}>
+          <Text style={{color: '#007bff', fontWeight: 'bold'}}>
             {checkedItems.length === dataItems?.poRecord?.length &&
             checkedItems.every(item => item)
               ? 'Deselect All'
@@ -1348,9 +1352,7 @@ const ItemsSection = ({
                 style={styles.descriptionText}
                 numberOfLines={expanded[index] ? undefined : 2}
                 ellipsizeMode="tail">
-                <Text style={styles.descriptionLabel}>
-                  Description:{'\n'}
-                </Text>
+                <Text style={styles.descriptionLabel}>Description:{'\n'}</Text>
                 {dataItem.Description}
               </Text>
               {dataItem.Description && dataItem.Description.length > 30 && (
@@ -2929,7 +2931,7 @@ const PRInspection = ({
                   duration: 3000,
                 });
 
-               // navigation.goBack();
+                // navigation.goBack();
               } else {
                 showMessage({
                   message: 'Inspection Failed',
@@ -3179,8 +3181,8 @@ const PRInspection = ({
   };
 
   // Function to handle checkbox press
-  const toggleCheckbox = (prIndex) => {
-    setCheckedItems((prev) => ({
+  const toggleCheckbox = prIndex => {
+    setCheckedItems(prev => ({
       ...prev,
       [prIndex]: !prev[prIndex],
     }));
@@ -3642,11 +3644,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 20,
     marginBottom: 15,
-    borderRadius: 12, 
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 5},
-    shadowOpacity: 0.15, 
-    shadowRadius: 8, 
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     borderColor: '#e0e0e0',
     //marginHorizontal: 10,
   },
@@ -3662,7 +3664,6 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     // No specific padding top, handled by detailRow vertical padding
-  
   },
   detailRow: {
     flexDirection: 'row',
@@ -3733,7 +3734,7 @@ const styles = StyleSheet.create({
   dataTextNo: {
     // Specific style for the "No." data
     fontSize: moderateScale(18.5),
-    fontWeight:'800',
+    fontWeight: '800',
     fontFamily: 'Inter_28pt-Regular',
     color: '#34495E',
     width: '10%', // Smaller width for the index column
@@ -3793,7 +3794,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 3,
     elevation: 2, // For Android shadow
   },

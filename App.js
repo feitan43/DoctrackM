@@ -23,7 +23,12 @@ import {HotUpdater, useHotUpdaterStore} from '@hot-updater/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {showMessage} from 'react-native-flash-message';
 import ImmersiveMode from 'react-native-immersive-mode';
-import {withStallion, useStallionUpdate, restart, useStallionModal } from 'react-native-stallion'; // Import useStallionUpdate and restart
+import {
+  withStallion,
+  useStallionUpdate,
+  restart,
+  useStallionModal,
+} from 'react-native-stallion'; // Import useStallionUpdate and restart
 
 // Import sp-react-native-in-app-updates
 import SpInAppUpdates, {
@@ -35,7 +40,10 @@ import SpInAppUpdates, {
 
 const queryClient = new QueryClient();
 
-LogBox.ignoreLogs(['new NativeEventEmitter() was called with a non-null argument without the required `addListener` method.']);
+LogBox.ignoreLogs([
+  'new NativeEventEmitter() was called with a non-null argument without the required `addListener` method.',
+]);
+
 
 // Initialize in-app updates (false for debug mode off in production)
 const inAppUpdates = new SpInAppUpdates(true);
@@ -43,6 +51,9 @@ const inAppUpdates = new SpInAppUpdates(true);
 // Define the UpdatePrompt component
 const UpdatePrompt = () => {
   const {isRestartRequired, newReleaseBundle} = useStallionUpdate();
+
+  console.log('isRestartRequired:', isRestartRequired);
+  console.log('newReleaseBundle:', newReleaseBundle);
 
 
   if (!isRestartRequired) return null;
@@ -54,9 +65,7 @@ const UpdatePrompt = () => {
           <Text style={updatePromptStyles.modalText}>
             {newReleaseBundle?.releaseNote ?? 'A new update is ready!'}
           </Text>
-          <TouchableOpacity
-            style={updatePromptStyles.button}
-            onPress={restart}>
+          <TouchableOpacity style={updatePromptStyles.button} onPress={restart}>
             <Text style={updatePromptStyles.buttonText}>Restart now</Text>
           </TouchableOpacity>
         </View>
@@ -110,13 +119,15 @@ const App = () => {
   const [isConnected, setIsConnected] = useState(true);
 
   const {progress, isBundleUpdated} = useHotUpdaterStore();
-       const { showModal } = useStallionModal();
+  const {showModal} = useStallionModal();
 
+ 
   useEffect(() => {
     ImmersiveMode.fullLayout(true);
-    ImmersiveMode.setBarMode('BottomSticky');
+    ImmersiveMode.setBarMode('Full');
     ImmersiveMode.setBarStyle('Light');
     ImmersiveMode.setBarTranslucent(true);
+    ImmersiveMode.fullLayout(true);
     //ImmersiveMode.setBarColor('#003166');
   }, []);
 
@@ -213,7 +224,7 @@ const App = () => {
         <FlashMessage position="bottom" zIndex={9999} />
 
         {/* Integrate the UpdatePrompt component here */}
-        <UpdatePrompt />
+        {/* <UpdatePrompt /> */}
         <View style={styles.container}>
           {isConnected ? (
             <>
@@ -224,8 +235,7 @@ const App = () => {
                 </View>
               )} */}
               <Route />
-              <Button title="Open Stallion" onPress={showModal} />
-
+             {/*   <Button title="Open Stallion" onPress={showModal} /> */}
             </>
           ) : (
             <View style={styles.noInternetContainer}>

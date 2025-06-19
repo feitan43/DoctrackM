@@ -241,7 +241,6 @@ const LoginScreen = ({navigation}) => {
         style={[styles.topImage, {height: isInputFocused ? '38%' : '42%'}]}
       />
 
-      {/* Wrap content that might be affected by the keyboard with KeyboardAvoidingView */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // Use 'padding' for iOS, 'height' for Android
@@ -253,7 +252,7 @@ const LoginScreen = ({navigation}) => {
             style={styles.backgroundImage}>
             <View style={styles.textContainer}>
               <Text style={styles.centeredText}>
-                DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.6</Text>
+                DocMobile<Text style={{color: '#ECAD0D', fontSize: 15}}>v2.9</Text>
               </Text>
 
               <View

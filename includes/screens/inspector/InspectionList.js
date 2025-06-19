@@ -1,6 +1,9 @@
 import React from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {scale, verticalScale, moderateScale} from 'react-native-size-matters';
+import Icon from 'react-native-vector-icons/Ionicons';
+
 
 export const InspectionList = ({item, index, onPressItem}) => {
   const deliveryDates = item.DeliveryDatesHistory
@@ -40,7 +43,9 @@ export const InspectionList = ({item, index, onPressItem}) => {
 
     if (diffDays < 0) {
       inspectionDateInfo = {
-        text: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`,
+        text: `Overdue by ${Math.abs(diffDays)} day${
+          Math.abs(diffDays) === 1 ? '' : 's'
+        }`,
         style: styles.overdueText,
       };
     } else if (diffDays === 0) {
@@ -69,26 +74,40 @@ export const InspectionList = ({item, index, onPressItem}) => {
             {'   '}
             <Text style={styles.separator}>|</Text>
             {'   '}
-            {item.TrackingNumber || item.RefTrackingNumber}
+            {item.TrackingNumber}
           </Text>
         </View>
       </View>
 
-      <View style={styles.divider} />
+     {/*  <View style={styles.divider} /> */}
 
       <View style={styles.detailsContainer}>
-        <View style={styles.detailRow}>
+       {/*  <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Office</Text>
           <Text style={styles.detailValue}>{item.OfficeName}</Text>
-        </View>
+        </View> */}
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Category</Text>
-          <Text style={styles.detailValue}>
-            {item.CategoryCode} - {item.CategoryName}
-          </Text>
+          <Text style={styles.detailLabel}>{/* Category */}</Text>
+          <LinearGradient
+        colors={['#FFD700', '#FFA500','#FFFFFF']} // Your desired gradient colors (e.g., gold to orange)
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.gradientBackground}
+      >
+        <Text style={styles.detailValueWithBackground}>
+          {item.CategoryName}
+        </Text>
+      </LinearGradient>
         </View>
 
+        <View style={styles.divider} />
+
         <Text style={styles.deliveryHeader}>Delivery</Text>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Date</Text>
+          <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
+        </View>
 
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Address</Text>
@@ -100,14 +119,13 @@ export const InspectionList = ({item, index, onPressItem}) => {
           <Text style={styles.detailValue}>{item.ContactPerson || 'N/A'}</Text>
         </View>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Date</Text>
-          <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
-        </View>
+        
         {/*  <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>DateInspected</Text>
           <Text style={styles.detailValue}>{item.DateInspected || 'N/A'}</Text>
         </View> */}
+
+        <View style={styles.divider} />
 
         {isForInspection && inspectionDateInfo && (
           <View style={styles.inspectionInfoRow}>
@@ -120,10 +138,14 @@ export const InspectionList = ({item, index, onPressItem}) => {
       </View>
 
       <Pressable
-        style={({pressed}) => [styles.enhancedButton, pressed && styles.enhancedButtonPressed]}
+        style={({pressed}) => [
+          styles.enhancedButton,
+          pressed && styles.enhancedButtonPressed,
+        ]}
         android_ripple={{color: 'rgba(243, 156, 18, 0.1)', borderless: false}}
         onPress={() => onPressItem(item)}>
         <Text style={styles.enhancedButtonText}>See Inspection</Text>
+        <Icon name='chevron-forward-outline' size={20} color='#F39C12' opacity={0.5} />
       </Pressable>
     </View>
   );
@@ -132,16 +154,18 @@ export const InspectionList = ({item, index, onPressItem}) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: moderateScale(12),
-    padding: moderateScale(16),
-    marginVertical: verticalScale(8),
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: verticalScale(4)},
-    shadowOpacity: 0.1,
-    shadowRadius: moderateScale(6),
-    elevation: 6,
-    borderWidth: 0,
-    marginHorizontal: moderateScale(10),
+    //borderRadius: moderateScale(12),
+    padding: moderateScale(8),
+    marginBottom:10,
+    elevation:2
+    //marginVertical: verticalScale(2),
+    //shadowColor: '#000',
+    //shadowOffset: {width: 0, height: verticalScale(4)},
+    //shadowOpacity: 0.1,
+    //shadowRadius: moderateScale(6),
+    //elevation: 6,
+    //borderWidth: 0,
+    //marginHorizontal: moderateScale(10),
   },
 
   headerContainer: {
@@ -183,11 +207,12 @@ const styles = StyleSheet.create({
   divider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: '#EAECEE',
-    marginVertical: verticalScale(10),
+    marginVertical: verticalScale(3),
   },
 
   detailsContainer: {
     paddingVertical: verticalScale(5),
+    marginHorizontal: moderateScale(10),
   },
   detailRow: {
     flexDirection: 'row',
@@ -201,28 +226,39 @@ const styles = StyleSheet.create({
     width: '30%',
   },
   detailValue: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(15),
     fontWeight: '600',
     color: '#2C3E50',
     flex: 1,
     textAlign: 'right',
   },
-
+gradientBackground: {
+    borderRadius: 5,
+    flexShrink:1,
+    // Ensure the gradient container does not take up more space than needed
+    // You might add flexShrink: 1 here if you have very long CategoryNames
+  },
+    detailValueWithBackground: {
+    fontSize: 16,
+    color: '#252525', // Text color should contrast with the gradient background
+    fontWeight: 'bold',
+    // Add other styles for detailValueWithBackground as needed
+  },
   deliveryHeader: {
     fontSize: moderateScale(15),
     fontWeight: 'bold',
     color: '#1A508C',
-    marginTop: verticalScale(15),
+    //marginTop: verticalScale(15),
     marginBottom: verticalScale(8),
   },
 
   inspectionInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: verticalScale(10),
+    //marginTop: verticalScale(5),
     marginBottom: verticalScale(6),
     paddingTop: verticalScale(5),
-    borderTopWidth: StyleSheet.hairlineWidth,
+    //borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: '#EAECEE',
   },
   overdueText: {
@@ -242,6 +278,7 @@ const styles = StyleSheet.create({
   },
 
   enhancedButton: {
+    flexDirection: 'row',
     alignSelf: 'flex-end',
     marginTop: verticalScale(15),
     paddingHorizontal: moderateScale(12),

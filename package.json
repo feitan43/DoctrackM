@@ -131,7 +131,7 @@
     "jest": "^29.6.3",
     "prettier": "2.8.8",
     "react-test-renderer": "18.2.0",
-    "stallion-cli": "^2.1.0",
+    "stallion-cli": "^2.1.0-alpha.2",
     "typescript": "5.0.4"
   },
   "engines": {

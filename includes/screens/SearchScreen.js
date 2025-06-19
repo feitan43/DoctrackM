@@ -973,7 +973,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <>
             {renderSearch()}
-            {(caoReceiver === '1' || cboReceiver === '1') && renderReceive()}
+            {/* {(caoReceiver === '1' || cboReceiver === '1') && renderReceive()} */}
           </>
 
           {/* {caoReceiver === '1' && <>{renderReceive()}</>} */}

@@ -127,6 +127,8 @@ const MyTransactionDetails = ({route, navigation}) => {
 
         <View style={styles.detailsCard}>
           <DetailRow label="Year" value={selectedItem.Year} />
+          <DetailRow label="Office" value={selectedItem.OfficeName} />
+
           <DetailRow label="TN" value={selectedItem.TrackingNumber} />
           <DetailRow label="Claimant" value={selectedItem.Claimant} />
           <DetailRow label="Document" value={selectedItem.DocumentType} />
@@ -417,7 +419,7 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute', // Position it absolutely
     //backgroundColor:'red',
-    paddingHorizontal:10,
+    paddingHorizontal: 10,
     //top: 10,
     right: 16,
     zIndex: 10, // Ensure it's above other content
