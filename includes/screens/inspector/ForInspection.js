@@ -23,24 +23,25 @@ import {useQueryClient} from '@tanstack/react-query';
 import {useInspection} from '../../hooks/useInspection';
 import {BlurView} from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
-import {FlashList} from '@shopify/flash-list'; // Change this import
+import {FlashList} from '@shopify/flash-list';
+import useUserInfo from '../../api/useUserInfo';
 
 const ForInspection = ({navigation}) => {
   const [selectedOffice, setSelectedOffice] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-
   const officeBottomSheetRef = useRef(null);
   const yearBottomSheetRef = useRef(null);
   const [openOfficeSheet, setOpenOfficeSheet] = useState(false);
   const [openYearSheet, setOpenYearSheet] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const queryClient = useQueryClient();
+  const {employeeNumber} = useUserInfo();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
 
-  // Helper to get unique offices and years from filtered data
+  //const data =[];
   const getUniqueValues = (key, filterStatus = true) => {
     const filteredData = Array.isArray(data)
       ? data.filter(item =>
@@ -71,12 +72,56 @@ const ForInspection = ({navigation}) => {
   );
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({
-      queryKey: ['inspection'],
-    });
+    /* queryClient.invalidateQueries({
+      queryKey: ['inspection', employeeNumber],
+    }); */
+    refetch();
   };
 
-  const filteredInspectionListData = Array.isArray(data)
+  const parseDeliveryDateString = (dateString) => {
+    if (!dateString || typeof dateString !== 'string') {
+      console.log(`Debug: Invalid input for parseDeliveryDateString: ${dateString}`);
+      return null;
+    }
+
+    try {
+      const parts = dateString.trim().split(' '); 
+      if (parts.length !== 3) {
+        console.warn(`Debug: Unexpected date string format: "${dateString}". Expected "YYYY-MM-DD HH:MM AM/PM"`);
+        return null;
+      }
+
+      const [datePart, timePart, ampmPart] = parts;
+      const [year, month, day] = datePart.split('-').map(Number);
+      let [hours, minutes] = timePart.split(':').map(Number);
+
+      if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(minutes)) {
+        console.warn(`Debug: Failed to parse date/time numbers from "${dateString}"`);
+        return null;
+      }
+
+      if (ampmPart.toUpperCase() === 'PM' && hours !== 12) {
+        hours += 12;
+      } else if (ampmPart.toUpperCase() === 'AM' && hours === 12) {
+        hours = 0; 
+      }
+
+      const date = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+
+      if (isNaN(date.getTime())) {
+        console.error(`Debug: Created an Invalid Date object from: "${dateString}"`);
+        return null;
+      }
+      return date;
+
+    } catch (e) {
+      console.error(`Debug: Error parsing date string "${dateString}":`, e);
+      return null;
+    }
+  };
+
+
+  let filteredInspectionListData = Array.isArray(data)
     ? data.filter(item => {
         const searchTerm = searchQuery?.toLowerCase() || '';
 
@@ -86,18 +131,15 @@ const ForInspection = ({navigation}) => {
           RefTrackingNumber = '',
           CategoryName = '',
           Year,
-          Status = '', // Initialize Status with an empty string if null/undefined
+          Status = '',
         } = item;
 
-        // Filter by 'for inspection' status
-        // Add a check to ensure Status is a string before calling toLowerCase()
         if (
           typeof Status === 'string' &&
           Status.toLowerCase() !== 'for inspection'
         ) {
           return false;
         }
-        // If Status is not a string (e.g., null or undefined), it also shouldn't be included
         if (typeof Status !== 'string') {
           return false;
         }
@@ -122,9 +164,22 @@ const ForInspection = ({navigation}) => {
         return true;
       })
     : [];
-  // Group inspections by office
+
+  filteredInspectionListData = filteredInspectionListData.sort((a, b) => {
+    const dateA = parseDeliveryDateString(a.DeliveryDate);
+    const dateB = parseDeliveryDateString(b.DeliveryDate);
+
+
+    if (dateA === null && dateB === null) return 0;
+    if (dateA === null) return -1; 
+    if (dateB === null) return 1;  
+
+    return dateA.getTime() - dateB.getTime(); 
+  });
+
+
   const groupedInspections = filteredInspectionListData.reduce((acc, item) => {
-    const office = item.OfficeName || 'Unassigned Office'; // Default for items without an office
+    const office = item.OfficeName || 'Unassigned Office'; 
     if (!acc[office]) {
       acc[office] = [];
     }
@@ -134,8 +189,9 @@ const ForInspection = ({navigation}) => {
 
   const officeSections = Object.keys(groupedInspections).map(officeName => ({
     title: officeName,
-    data: groupedInspections[officeName],
+    data: groupedInspections[officeName], 
   }));
+
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -250,13 +306,13 @@ const ForInspection = ({navigation}) => {
             </Text>
           </View>
         ) : (
-          <FlashList // Changed from FlatList to FlashList
+          <FlashList
             data={officeSections}
             keyExtractor={(item, index) => item.title + index.toString()}
             renderItem={({item, index}) => (
               <View style={styles.officeSection}>
                 <LinearGradient
-                  colors={['rgb(209, 238, 248)', '#fff']} // Choose your desired gradient colors
+                  colors={['rgb(209, 238, 248)', '#fff']}
                   style={styles.gradientContainer}
                   start={{x: 0, y: 0}}
                   end={{x: 1, y: 0}}>
@@ -265,7 +321,7 @@ const ForInspection = ({navigation}) => {
                       style={{
                         fontSize: 18,
                         fontWeight: 'bold',
-                        paddingHorizontal: 10,
+                        paddingHorizontal: 15,
                         color: 'gray',
                       }}>
                       {index + 1}
@@ -294,10 +350,7 @@ const ForInspection = ({navigation}) => {
             )}
             onRefresh={handleRefresh}
             refreshing={isFetching}
-            // estimatedItemSize is a crucial prop for FlashList for performance
-            // You'll need to estimate the average height of your items.
-            // If items have highly variable heights, you might need to adjust this.
-            estimatedItemSize={100} // **IMPORTANT: Set an appropriate estimated size**
+            estimatedItemSize={100}
           />
         )}
       </View>
@@ -521,7 +574,6 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 10,
   },
-  // New style for the container holding the search icon and input
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -530,16 +582,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     marginStart: 10,
-    marginRight: 10, // Adjusted to make space for cancel button
+    marginRight: 10, 
     paddingHorizontal: 10,
   },
   searchIconInsideInput: {
-    marginRight: 5, // Space between icon and text input
+    marginRight: 5, 
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    paddingVertical: 0, // Remove default vertical padding
+    paddingVertical: 0, 
   },
   cancelButton: {
     paddingVertical: 8,
@@ -604,25 +656,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     marginHorizontal: 10,
-    //paddingVertical: 10,
-    //borderWidth: 1,
-    //borderColor: '#e0e0e0',
   },
   officeSectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    paddingHorizontal: 10,
     paddingVertical: 10,
-    //paddingBottom: 10,
     color: '#333',
-    //borderBottomWidth: 1,
-    //borderBottomColor: '#e0e0e0',
-    //marginBottom: 10,
   },
   gradientContainer: {
-    borderRadius: 5, // Optional: Add some border radius to the gradient
+    //borderRadius: 5,
     elevation: 10,
-    //marginVertical: 10, // Optional: Add some vertical margin
   },
 });
 

@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchInspection,fetchInspectionDetails, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage, fetchInspectionPRDetails, fetchInspectionRecentActivity, fetchEditDeliveryDate  } from '../api/inspectionApi.js';
+import { fetchInspection, fetchInspectionItems, inspectItems, addSchedule, fetchInspectorImage, uploadInspector, removeInspectorImage, fetchInspectionPRDetails, fetchInspectionRecentActivity, fetchEditDeliveryDate  } from '../api/inspectionApi.js';
 import useUserInfo from '../api/useUserInfo.js';
 import { showMessage } from 'react-native-flash-message';
+import apiClient from '../api/apiClient.js';
 
 export const useInspection = () => {
   const { employeeNumber } = useUserInfo();
@@ -15,21 +16,28 @@ export const useInspection = () => {
   });
 };
 
-export const useInspectionDetails = (year, trackingNumber) => {
-  const { employeeNumber } = useUserInfo();
+export const fetchInspectionDetails = async (id, year, pxtn, potn) => {
+  if (!pxtn) throw new Error('Tracking number is required');
+
+  const { data } = await apiClient.get(
+    `/getInspectionDetails?id=${id}&year=${year}&pxtn=${pxtn}&potn=${potn}`,
+  );
+  return data;
+};
+
+export const useInspectionDetails = (id, year, pxtn, potn) => {
   return useQuery({
-    queryKey: ['inspectionDetails', employeeNumber, year, trackingNumber], 
-    queryFn: async () => {
-      if (!employeeNumber) throw new Error('Employee Number is required');
-      if (!trackingNumber) throw new Error('Tracking Number is required');
-      
-      return await fetchInspectionDetails(year, trackingNumber);
+    queryKey: ['inspectionDetails', id, year, pxtn, potn], 
+    queryFn: async () => {    
+      return await fetchInspectionDetails(id, year, pxtn, potn);
     },
-    enabled: !!employeeNumber && !!trackingNumber, 
+    enabled:!!id && !!year && !!pxtn && !!potn, 
     staleTime: 5 * 60 * 1000, 
     retry: 2, 
   });
 };
+
+
 
 export const useInspectionItems = (year, trackingNumber) => {
   return useQuery({

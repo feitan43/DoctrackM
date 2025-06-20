@@ -3,7 +3,7 @@ import {View, Text, Pressable, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {scale, verticalScale, moderateScale} from 'react-native-size-matters';
 import Icon from 'react-native-vector-icons/Ionicons';
-
+import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons'; // Import MaterialCommunityIcons
 
 export const InspectionList = ({item, index, onPressItem}) => {
   const deliveryDates = item.DeliveryDatesHistory
@@ -13,8 +13,9 @@ export const InspectionList = ({item, index, onPressItem}) => {
 
   const isForInspection = item.Status === 'For Inspection';
   let inspectionDateInfo = null;
+  let formattedDeliveryDate = 'N/A'; // Initialize formattedDeliveryDate
 
-  if (isForInspection && item.DeliveryDate) {
+  if (item.DeliveryDate) {
     // Parse the date string 'YYYY-MM-DD HH:MM AM/PM'
     const [datePart, timePart, ampmPart] = item.DeliveryDate.split(' ');
     const [year, month, day] = datePart.split('-').map(Number);
@@ -31,6 +32,16 @@ export const InspectionList = ({item, index, onPressItem}) => {
 
     // Create a Date object with the parsed components. Month is 0-indexed.
     const inspectionDate = new Date(year, month - 1, day, hours, minutes);
+
+    // --- Option 2: Shorter, Human-Readable Date ---
+    formattedDeliveryDate = inspectionDate.toLocaleString('en-US', {
+      month: 'short', // "Jun"
+      day: 'numeric', // "20"
+      year: 'numeric', // "2025"
+      hour: 'numeric', // "1"
+      minute: 'numeric', // "00"
+      hour12: true, // "AM/PM"
+    });
 
     const today = new Date();
     // Set hours, minutes, seconds, milliseconds to 0 for today for accurate day comparison
@@ -68,68 +79,69 @@ export const InspectionList = ({item, index, onPressItem}) => {
           <Text style={styles.indexText}>{index + 1}</Text>
         </View>
 
-        <View style={styles.trackingInfo}>
-          <Text style={styles.trackingText}>
-            <Text style={styles.yearText}>{item.Year}</Text>
-            {'   '}
-            <Text style={styles.separator}>|</Text>
-            {'   '}
-            {item.TrackingNumber}
+        {/* Updated: Separate Text components for better control and no overlap */}
+        <View style={styles.categoryInfoContainer}>
+          <Text style={styles.categoryNameText}>{item.CategoryName}</Text>
+          <Text style={styles.trackingNumberText}>
+            {item.Year} | {item.TrackingNumber}
           </Text>
         </View>
       </View>
 
-     {/*  <View style={styles.divider} /> */}
-
       <View style={styles.detailsContainer}>
-       {/*  <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Office</Text>
-          <Text style={styles.detailValue}>{item.OfficeName}</Text>
-        </View> */}
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>{/* Category */}</Text>
-          <LinearGradient
-        colors={['#FFD700', '#FFA500','#FFFFFF']} // Your desired gradient colors (e.g., gold to orange)
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.gradientBackground}
-      >
-        <Text style={styles.detailValueWithBackground}>
-          {item.CategoryName}
-        </Text>
-      </LinearGradient>
-        </View>
-
-        <View style={styles.divider} />
-
         <Text style={styles.deliveryHeader}>Delivery</Text>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Date</Text>
-          <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
+       
+
+        <View style={[styles.deliveryInfoRow, styles.addressRow]}>
+          <MaterialCommunityIcon
+              name="calendar"
+            size={moderateScale(18)}
+            color="#607D8B"
+            style={styles.iconStyle}
+          />
+          <Text style={styles.detailLabel}>{/* Address: */}</Text>
+            <Text style={styles.detailValue}>{formattedDeliveryDate}</Text>
         </View>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Address</Text>
-          <Text style={styles.detailValue}>{item.Address || 'N/A'}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Contact</Text>
+        <View style={[styles.deliveryInfoRow, styles.addressRow]}>
+          <MaterialCommunityIcon
+            name="account"
+            size={moderateScale(18)}
+            color="#607D8B"
+            style={styles.iconStyle}
+          />
+          <Text style={styles.detailLabel}>{/* Address: */}</Text>
           <Text style={styles.detailValue}>{item.ContactPerson || 'N/A'}</Text>
         </View>
 
-        
-        {/*  <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>DateInspected</Text>
-          <Text style={styles.detailValue}>{item.DateInspected || 'N/A'}</Text>
-        </View> */}
+         <View style={styles.deliveryInfoRow}>
+          <MaterialCommunityIcon
+            name="phone" // Phone icon for contact number
+            size={moderateScale(18)}
+            color="#607D8B"
+            style={styles.iconStyle}
+          />
+          <Text style={styles.detailLabel}>{/* Phone: */}</Text>
+          <Text style={styles.detailValue}>{item.ContactNumber || 'N/A'}</Text>
+        </View>
+
+        <View style={[styles.deliveryInfoRow, styles.addressRow]}>
+          <MaterialCommunityIcon
+            name="map-marker"
+            size={moderateScale(18)}
+            color="#607D8B"
+            style={styles.iconStyle}
+          />
+          <Text style={styles.detailLabel}>{/* Address: */}</Text>
+          <Text style={styles.detailValue}>{item.Address || 'N/A'}</Text>
+        </View>
 
         <View style={styles.divider} />
 
         {isForInspection && inspectionDateInfo && (
           <View style={styles.inspectionInfoRow}>
-            <Text style={styles.detailLabel}>{/* Inspection Status */}</Text>
+            <Text style={styles.detailLabel}> </Text>
             <Text style={[styles.detailValue, inspectionDateInfo.style]}>
               {inspectionDateInfo.text}
             </Text>
@@ -145,7 +157,12 @@ export const InspectionList = ({item, index, onPressItem}) => {
         android_ripple={{color: 'rgba(243, 156, 18, 0.1)', borderless: false}}
         onPress={() => onPressItem(item)}>
         <Text style={styles.enhancedButtonText}>See Inspection</Text>
-        <Icon name='chevron-forward-outline' size={20} color='#F39C12' opacity={0.5} />
+        <Icon
+          name="chevron-forward-outline"
+          size={20}
+          color="#007AFF"
+          opacity={0.5}
+        />
       </Pressable>
     </View>
   );
@@ -154,18 +171,10 @@ export const InspectionList = ({item, index, onPressItem}) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    //borderRadius: moderateScale(12),
     padding: moderateScale(8),
-    marginBottom:10,
-    elevation:2
-    //marginVertical: verticalScale(2),
-    //shadowColor: '#000',
-    //shadowOffset: {width: 0, height: verticalScale(4)},
-    //shadowOpacity: 0.1,
-    //shadowRadius: moderateScale(6),
-    //elevation: 6,
-    //borderWidth: 0,
-    //marginHorizontal: moderateScale(10),
+    marginBottom: 10,
+    elevation: 2,
+    paddingStart:30
   },
 
   headerContainer: {
@@ -187,21 +196,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2980B9',
   },
-  trackingInfo: {
+  categoryInfoContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
-  trackingText: {
-    fontSize: moderateScale(17),
+  categoryNameText: {
+    fontSize: 16,
+    color: '#252525',
     fontWeight: 'bold',
-    color: '#34495E',
+    flexWrap: 'wrap',
   },
-  yearText: {
-    fontWeight: 'normal',
+  trackingNumberText: {
+    fontSize: 14,
     color: '#7F8C8D',
-  },
-  separator: {
-    color: '#BDC3C7',
-    fontSize: moderateScale(16),
+    marginTop: verticalScale(2),
+    flexWrap: 'wrap',
   },
 
   divider: {
@@ -214,52 +223,56 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(5),
     marginHorizontal: moderateScale(10),
   },
-  detailRow: {
+  deliveryHeader: {
+    fontSize: moderateScale(15),
+    fontWeight: 'bold',
+    color: '#1A508C',
+    marginBottom: verticalScale(8),
+  },
+  deliveryInfoContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: verticalScale(6),
+  },
+  deliveryInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(6),
+  },
+  addressRow: {
+    // Specific styles for the address row if needed
+  },
+  deliveryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+    flexGrow: 1,
+    width: '48%',
+    justifyContent: 'flex-start',
+  },
+  iconStyle: {
+    marginRight: moderateScale(5),
   },
   detailLabel: {
     fontSize: moderateScale(14),
     fontWeight: '500',
     color: '#607D8B',
-    width: '30%',
+    marginRight: moderateScale(5),
   },
   detailValue: {
     fontSize: moderateScale(15),
     fontWeight: '600',
     color: '#2C3E50',
-    flex: 1,
-    textAlign: 'right',
-  },
-gradientBackground: {
-    borderRadius: 5,
-    flexShrink:1,
-    // Ensure the gradient container does not take up more space than needed
-    // You might add flexShrink: 1 here if you have very long CategoryNames
-  },
-    detailValueWithBackground: {
-    fontSize: 16,
-    color: '#252525', // Text color should contrast with the gradient background
-    fontWeight: 'bold',
-    // Add other styles for detailValueWithBackground as needed
-  },
-  deliveryHeader: {
-    fontSize: moderateScale(15),
-    fontWeight: 'bold',
-    color: '#1A508C',
-    //marginTop: verticalScale(15),
-    marginBottom: verticalScale(8),
+    flexShrink: 1,
+    flexGrow: 1,
   },
 
   inspectionInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    //marginTop: verticalScale(5),
     marginBottom: verticalScale(6),
     paddingTop: verticalScale(5),
-    //borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: '#EAECEE',
   },
   overdueText: {
     color: '#E74C3C',
@@ -289,7 +302,7 @@ gradientBackground: {
     elevation: 0,
   },
   enhancedButtonText: {
-    color: '#F39C12',
+    color: '#007AFF',
     fontSize: moderateScale(14),
     fontWeight: '700',
     textDecorationLine: 'none',

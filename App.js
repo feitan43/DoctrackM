@@ -12,15 +12,13 @@ import {
   Linking,
   Button,
   LogBox,
-  Modal, // Keep Modal if you use it elsewhere, otherwise it can be removed from here
+  Modal,
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import FlashMessage from 'react-native-flash-message';
-import {HotUpdater, useHotUpdaterStore} from '@hot-updater/react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {showMessage} from 'react-native-flash-message';
 import ImmersiveMode from 'react-native-immersive-mode';
 import {
@@ -28,15 +26,12 @@ import {
   useStallionUpdate,
   restart,
   useStallionModal,
-} from 'react-native-stallion'; // Import useStallionUpdate and restart
+} from 'react-native-stallion';
 
-// Import sp-react-native-in-app-updates
 import SpInAppUpdates, {
   IAUUpdateKind,
   StartUpdateOptions,
 } from 'sp-react-native-in-app-updates';
-// You might also need react-native-device-info if you're not explicitly passing curVersion
-// import DeviceInfo from 'react-native-device-info';
 
 const queryClient = new QueryClient();
 
@@ -44,17 +39,13 @@ LogBox.ignoreLogs([
   'new NativeEventEmitter() was called with a non-null argument without the required `addListener` method.',
 ]);
 
-
-// Initialize in-app updates (false for debug mode off in production)
 const inAppUpdates = new SpInAppUpdates(true);
 
-// Define the UpdatePrompt component
 const UpdatePrompt = () => {
   const {isRestartRequired, newReleaseBundle} = useStallionUpdate();
 
   console.log('isRestartRequired:', isRestartRequired);
   console.log('newReleaseBundle:', newReleaseBundle);
-
 
   if (!isRestartRequired) return null;
 
@@ -117,19 +108,7 @@ const updatePromptStyles = StyleSheet.create({
 
 const App = () => {
   const [isConnected, setIsConnected] = useState(true);
-
-  const {progress, isBundleUpdated} = useHotUpdaterStore();
   const {showModal} = useStallionModal();
-
- 
-  useEffect(() => {
-    ImmersiveMode.fullLayout(true);
-    ImmersiveMode.setBarMode('Full');
-    ImmersiveMode.setBarStyle('Light');
-    ImmersiveMode.setBarTranslucent(true);
-    ImmersiveMode.fullLayout(true);
-    //ImmersiveMode.setBarColor('#003166');
-  }, []);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
@@ -162,9 +141,7 @@ const App = () => {
 
           inAppUpdates.startUpdate(updateOptions);
         }
-      } catch (error) {
-        //console.error('Error checking for in-app updates:', error);
-      }
+      } catch (error) {}
     };
 
     const updateCheckTimeout = setTimeout(() => {
@@ -197,7 +174,7 @@ const App = () => {
     });
   };
 
-  function extractFormatDateFromUUIDv7(uuid) {
+  /* function extractFormatDateFromUUIDv7(uuid) {
     const timestampHex = uuid.split('-').join('').slice(0, 12);
     const timestamp = parseInt(timestampHex, 16);
 
@@ -210,12 +187,13 @@ const App = () => {
     const seconds = date.getSeconds().toString().padStart(2, '0');
 
     return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
-  }
+  } */
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <QueryClientProvider client={queryClient}>
         <StatusBar
+          hidden={false}
           barStyle="light-content"
           backgroundColor="transparent"
           translucent
@@ -223,19 +201,12 @@ const App = () => {
 
         <FlashMessage position="bottom" zIndex={9999} />
 
-        {/* Integrate the UpdatePrompt component here */}
         {/* <UpdatePrompt /> */}
         <View style={styles.container}>
           {isConnected ? (
             <>
-              {/* HotUpdater's progress can be displayed if you want to */}
-              {/* {progress > 0 && progress < 100 && (
-                <View style={styles.updateProgressContainer}>
-                  <Text style={styles.updateProgressText}>Downloading update: {progress.toFixed(0)}%</Text>
-                </View>
-              )} */}
               <Route />
-             {/*   <Button title="Open Stallion" onPress={showModal} /> */}
+              {/* <Button title="Open Stallion" onPress={showModal} /> */}
             </>
           ) : (
             <View style={styles.noInternetContainer}>
