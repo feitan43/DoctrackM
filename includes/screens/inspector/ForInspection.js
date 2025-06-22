@@ -78,16 +78,20 @@ const ForInspection = ({navigation}) => {
     refetch();
   };
 
-  const parseDeliveryDateString = (dateString) => {
+  const parseDeliveryDateString = dateString => {
     if (!dateString || typeof dateString !== 'string') {
-      console.log(`Debug: Invalid input for parseDeliveryDateString: ${dateString}`);
+      console.log(
+        `Debug: Invalid input for parseDeliveryDateString: ${dateString}`,
+      );
       return null;
     }
 
     try {
-      const parts = dateString.trim().split(' '); 
+      const parts = dateString.trim().split(' ');
       if (parts.length !== 3) {
-        console.warn(`Debug: Unexpected date string format: "${dateString}". Expected "YYYY-MM-DD HH:MM AM/PM"`);
+        console.warn(
+          `Debug: Unexpected date string format: "${dateString}". Expected "YYYY-MM-DD HH:MM AM/PM"`,
+        );
         return null;
       }
 
@@ -95,31 +99,39 @@ const ForInspection = ({navigation}) => {
       const [year, month, day] = datePart.split('-').map(Number);
       let [hours, minutes] = timePart.split(':').map(Number);
 
-      if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(minutes)) {
-        console.warn(`Debug: Failed to parse date/time numbers from "${dateString}"`);
+      if (
+        isNaN(year) ||
+        isNaN(month) ||
+        isNaN(day) ||
+        isNaN(hours) ||
+        isNaN(minutes)
+      ) {
+        console.warn(
+          `Debug: Failed to parse date/time numbers from "${dateString}"`,
+        );
         return null;
       }
 
       if (ampmPart.toUpperCase() === 'PM' && hours !== 12) {
         hours += 12;
       } else if (ampmPart.toUpperCase() === 'AM' && hours === 12) {
-        hours = 0; 
+        hours = 0;
       }
 
       const date = new Date(Date.UTC(year, month - 1, day, hours, minutes));
 
       if (isNaN(date.getTime())) {
-        console.error(`Debug: Created an Invalid Date object from: "${dateString}"`);
+        console.error(
+          `Debug: Created an Invalid Date object from: "${dateString}"`,
+        );
         return null;
       }
       return date;
-
     } catch (e) {
       console.error(`Debug: Error parsing date string "${dateString}":`, e);
       return null;
     }
   };
-
 
   let filteredInspectionListData = Array.isArray(data)
     ? data.filter(item => {
@@ -169,17 +181,15 @@ const ForInspection = ({navigation}) => {
     const dateA = parseDeliveryDateString(a.DeliveryDate);
     const dateB = parseDeliveryDateString(b.DeliveryDate);
 
-
     if (dateA === null && dateB === null) return 0;
-    if (dateA === null) return -1; 
-    if (dateB === null) return 1;  
+    if (dateA === null) return -1;
+    if (dateB === null) return 1;
 
-    return dateA.getTime() - dateB.getTime(); 
+    return dateA.getTime() - dateB.getTime();
   });
 
-
   const groupedInspections = filteredInspectionListData.reduce((acc, item) => {
-    const office = item.OfficeName || 'Unassigned Office'; 
+    const office = item.OfficeName || 'Unassigned Office';
     if (!acc[office]) {
       acc[office] = [];
     }
@@ -189,9 +199,8 @@ const ForInspection = ({navigation}) => {
 
   const officeSections = Object.keys(groupedInspections).map(officeName => ({
     title: officeName,
-    data: groupedInspections[officeName], 
+    data: groupedInspections[officeName],
   }));
-
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -316,7 +325,7 @@ const ForInspection = ({navigation}) => {
                   style={styles.gradientContainer}
                   start={{x: 0, y: 0}}
                   end={{x: 1, y: 0}}>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <View style={styles.officeHeaderContent}>
                     <Text
                       style={{
                         fontSize: 18,
@@ -327,6 +336,7 @@ const ForInspection = ({navigation}) => {
                       {index + 1}
                     </Text>
 
+                    {/* Remove `ellipsizeMode` and `numberOfLines` if they were set and causing truncation */}
                     <Text style={styles.officeSectionTitle}>{item.title}</Text>
                   </View>
                 </LinearGradient>
@@ -568,7 +578,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
+    //textAlign: 'center',
     color: '#fff',
   },
   searchIcon: {
@@ -582,16 +592,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     marginStart: 10,
-    marginRight: 10, 
+    marginRight: 10,
     paddingHorizontal: 10,
   },
   searchIconInsideInput: {
-    marginRight: 5, 
+    marginRight: 5,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    paddingVertical: 0, 
+    paddingVertical: 0,
   },
   cancelButton: {
     paddingVertical: 8,
@@ -614,6 +624,7 @@ const styles = StyleSheet.create({
   },
   inspectionItemContainer: {
     paddingHorizontal: 0,
+    marginTop: 5,
   },
   overlay: {
     position: 'absolute',
@@ -656,16 +667,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     marginHorizontal: 10,
+    paddingBottom: 10,
   },
   officeSectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    paddingVertical: 10,
     color: '#333',
+    flexShrink: 1,
   },
   gradientContainer: {
-    //borderRadius: 5,
-    elevation: 10,
+    paddingVertical: 10,
+  },
+  officeHeaderContent: {
+    flexDirection: 'row',
+    //alignItems: 'center',
+    flex: 1,
+    paddingRight: 15,
   },
 });
 

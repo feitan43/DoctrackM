@@ -33,7 +33,12 @@ const InspectionDetails = ({route, navigation}) => {
     isLoading: DetailsLoading,
     error: DetailsError,
     refetch,
-  } = useInspectionDetails(item.Id, item.Year, item.TrackingNumber, item.TrackingPartner);
+  } = useInspectionDetails(
+    item.Id,
+    item.Year,
+    item.TrackingNumber,
+    item.TrackingPartner,
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPoItemIndexes, setSelectedPoItemIndexes] = useState(new Set());
@@ -46,8 +51,10 @@ const InspectionDetails = ({route, navigation}) => {
     const poRecords = data?.poRecord;
 
     if (poRecords && poRecords.length > 0) {
-      const areAllCurrentlySelected = Array.from({length: poRecords.length}, (_, i) => i)
-                                          .every(index => selectedPoItemIndexes.has(index));
+      const areAllCurrentlySelected = Array.from(
+        {length: poRecords.length},
+        (_, i) => i,
+      ).every(index => selectedPoItemIndexes.has(index));
       setAllPoItemsSelected(areAllCurrentlySelected);
     } else {
       setAllPoItemsSelected(false);
@@ -60,8 +67,8 @@ const InspectionDetails = ({route, navigation}) => {
     setRefreshing(false);
   }, [refetch]);
 
-  const togglePoItemSelection = useCallback((poItemIndex) => {
-    setSelectedPoItemIndexes((prevSelectedIndexes) => {
+  const togglePoItemSelection = useCallback(poItemIndex => {
+    setSelectedPoItemIndexes(prevSelectedIndexes => {
       const newSet = new Set(prevSelectedIndexes);
       if (newSet.has(poItemIndex)) {
         newSet.delete(poItemIndex);
@@ -81,17 +88,25 @@ const InspectionDetails = ({route, navigation}) => {
     if (allPoItemsSelected) {
       setSelectedPoItemIndexes(new Set());
     } else {
-      const allIndexes = new Set(Array.from({length: poRecords.length}, (_, i) => i));
+      const allIndexes = new Set(
+        Array.from({length: poRecords.length}, (_, i) => i),
+      );
       setSelectedPoItemIndexes(allIndexes);
     }
   }, [allPoItemsSelected, data?.poRecord]);
 
-  const showFab = useMemo(() => selectedPoItemIndexes.size > 0, [selectedPoItemIndexes]);
+  const showFab = useMemo(
+    () => selectedPoItemIndexes.size > 0,
+    [selectedPoItemIndexes],
+  );
 
   const handleInspected = useCallback(() => {
     const itemsToMarkInspected = Array.from(selectedPoItemIndexes);
     if (itemsToMarkInspected.length === 0) {
-      Alert.alert('No Items Selected', 'Please select items to mark as inspected.');
+      Alert.alert(
+        'No Items Selected',
+        'Please select items to mark as inspected.',
+      );
       return;
     }
     Alert.alert(
@@ -141,7 +156,10 @@ const InspectionDetails = ({route, navigation}) => {
       }
       finalRemark = customRemark.trim();
     } else if (!selectedRemarkOption) {
-      Alert.alert('Select a Reason', 'Please select a reason or choose "Others".');
+      Alert.alert(
+        'Select a Reason',
+        'Please select a reason or choose "Others".',
+      );
       return;
     }
 
@@ -162,7 +180,10 @@ const InspectionDetails = ({route, navigation}) => {
           text: 'Confirm',
           onPress: async () => {
             try {
-              Alert.alert('Success', 'Selected items put on Inspection On Hold.');
+              Alert.alert(
+                'Success',
+                'Selected items put on Inspection On Hold.',
+              );
               setSelectedPoItemIndexes(new Set());
               setSelectedRemarkOption('');
               setCustomRemark('');
@@ -176,7 +197,13 @@ const InspectionDetails = ({route, navigation}) => {
         },
       ],
     );
-  }, [selectedPoItemIndexes, selectedRemarkOption, customRemark, refetch, data?.poRecord]);
+  }, [
+    selectedPoItemIndexes,
+    selectedRemarkOption,
+    customRemark,
+    refetch,
+    data?.poRecord,
+  ]);
 
   if (DetailsLoading && !refreshing) {
     return (
@@ -256,18 +283,22 @@ const InspectionDetails = ({route, navigation}) => {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.remarksOverlay}>
-          <Pressable style={styles.remarksOverlayBackground} onPress={() => setShowOnHoldRemarksInput(false)} />
+          <Pressable
+            style={styles.remarksOverlayBackground}
+            onPress={() => setShowOnHoldRemarksInput(false)}
+          />
           <View style={styles.remarksInputContainer}>
             <Text style={styles.remarksTitle}>Reason for On Hold</Text>
 
             <FlatList
               data={REMARKS_OPTIONS}
-              keyExtractor={(item) => item}
+              keyExtractor={item => item}
               renderItem={({item: option}) => (
                 <Pressable
                   style={({pressed}) => [
                     styles.remarkOption,
-                    selectedRemarkOption === option && styles.remarkOptionSelected,
+                    selectedRemarkOption === option &&
+                      styles.remarkOptionSelected,
                     pressed && {opacity: 0.7},
                   ]}
                   onPress={() => {
@@ -276,14 +307,21 @@ const InspectionDetails = ({route, navigation}) => {
                       setCustomRemark('');
                     }
                   }}>
-                  <Text style={[
-                    styles.remarkOptionText,
-                    selectedRemarkOption === option && styles.remarkOptionTextSelected,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.remarkOptionText,
+                      selectedRemarkOption === option &&
+                        styles.remarkOptionTextSelected,
+                    ]}>
                     {option}
                   </Text>
                   {selectedRemarkOption === option && (
-                    <Icon name="checkmark-circle" size={20} color="#1a508c" style={styles.remarkOptionCheck} />
+                    <Icon
+                      name="checkmark-circle"
+                      size={20}
+                      color="#1a508c"
+                      style={styles.remarkOptionCheck}
+                    />
                   )}
                 </Pressable>
               )}
@@ -305,7 +343,11 @@ const InspectionDetails = ({route, navigation}) => {
 
             <View style={styles.remarksButtonsContainer}>
               <Pressable
-                style={({pressed}) => [styles.remarksButton, styles.remarksCancelButton, pressed && {opacity: 0.7}]}
+                style={({pressed}) => [
+                  styles.remarksButton,
+                  styles.remarksCancelButton,
+                  pressed && {opacity: 0.7},
+                ]}
                 onPress={() => {
                   setShowOnHoldRemarksInput(false);
                   setSelectedRemarkOption('');
@@ -314,7 +356,11 @@ const InspectionDetails = ({route, navigation}) => {
                 <Text style={styles.remarksButtonText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={({pressed}) => [styles.remarksButton, styles.remarksSubmitButton, pressed && {opacity: 0.7}]}
+                style={({pressed}) => [
+                  styles.remarksButton,
+                  styles.remarksSubmitButton,
+                  pressed && {opacity: 0.7},
+                ]}
                 onPress={submitOnHoldRemarks}>
                 <Text style={styles.remarksButtonText}>Submit</Text>
               </Pressable>
@@ -344,10 +390,12 @@ const renderPayment = ({item, data}) => {
         <Text style={styles.detailLabel}>Status:</Text>
         <Text style={styles.detailValue}>{data.Status}</Text>
       </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Remarks:</Text>
-        <Text style={styles.detailValue}>{removeHtmlTags(data.Remarks)}</Text>
-      </View>
+      {data.Remarks && (
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Remarks:</Text>
+          <Text style={styles.detailValue}>{removeHtmlTags(data.Remarks)}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -358,7 +406,7 @@ const RenderPOItem = ({itemData, index, isSelected, onToggleSelection}) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [hasMoreLines, setHasMoreLines] = useState(false);
 
-  const handleTextLayout = useCallback((e) => {
+  const handleTextLayout = useCallback(e => {
     if (e.nativeEvent.lines.length > 2) {
       setHasMoreLines(true);
     }
@@ -422,7 +470,8 @@ const RenderPOItem = ({itemData, index, isSelected, onToggleSelection}) => {
             {itemData.Description}
           </Text>
           {hasMoreLines && (
-            <Pressable onPress={() => setShowFullDescription(!showFullDescription)}>
+            <Pressable
+              onPress={() => setShowFullDescription(!showFullDescription)}>
               <Text style={styles.showMoreLessButton}>
                 {showFullDescription ? 'Show Less' : 'Show More'}
               </Text>

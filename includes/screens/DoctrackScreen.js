@@ -844,6 +844,8 @@ const DoctrackScreen = ({
                   </View>
                 ))}
 
+                  
+
               <View style={{marginTop: 20}}>
                 <RecentActivity
                   recentActivityData={recentActivityData}

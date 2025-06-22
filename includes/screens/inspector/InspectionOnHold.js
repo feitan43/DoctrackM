@@ -2,7 +2,7 @@ import React, {useState, useRef} from 'react';
 import {
   View,
   Text,
-  FlatList,
+  FlatList, // This will be changed to FlashList
   StyleSheet,
   Pressable,
   Image,
@@ -15,15 +15,15 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import BottomSheet from '@gorhom/bottom-sheet';
-import {Menu, Provider, Searchbar} from 'react-native-paper';
+import {Menu, Provider} from 'react-native-paper';
 import {ScrollView} from 'react-native-gesture-handler';
 import {Shimmer} from '../../utils/useShimmer';
 import {InspectionList} from './InspectionList';
 import {useQueryClient} from '@tanstack/react-query';
-
-//import useInspection from '../../api/useInspection';
 import {useInspection} from '../../hooks/useInspection';
 import {BlurView} from '@react-native-community/blur';
+import LinearGradient from 'react-native-linear-gradient'; // Added for the gradient header
+import {FlashList} from '@shopify/flash-list'; // Added FlashList
 
 const InspectionOnHold = ({navigation}) => {
   const [selectedOffice, setSelectedOffice] = useState(null);
@@ -36,65 +36,122 @@ const InspectionOnHold = ({navigation}) => {
   const [openOfficeSheet, setOpenOfficeSheet] = useState(false);
   const [openYearSheet, setOpenYearSheet] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
 
-  const offices = [
-    {label: 'All Offices', value: null, key: 'all-offices'},
-    ...Array.from(
+  // Helper function to get unique values for filters
+  const getUniqueValues = (key, filterStatus = true) => {
+    const filteredData = Array.isArray(data)
+      ? data.filter(item =>
+          filterStatus
+            ? item?.Status?.toLowerCase() === 'inspection on hold'
+            : true,
+        )
+      : [];
+    return Array.from(
       new Set(
-        (Array.isArray(data) ? data : [])
-          .filter(item => item?.Status?.toLowerCase() === 'inspection on hold')
-          .map(item => item.OfficeName)
-          .filter(name => name !== undefined && name !== null),
+        filteredData
+          .map(item => item[key])
+          .filter(value => value !== undefined && value !== null),
       ),
-    ).map(name => ({
-      label: name,
-      value: name,
-      key: name,
-    })),
-  ];
-
-  const years = [
-    {label: 'All Years', value: null, key: 'all-years'},
-    ...Array.from(
-      new Set(
-        (Array.isArray(data) ? data : [])
-          .filter(item => item?.Status?.toLowerCase() === 'inspection on hold')
-          .map(item => item.Year)
-          .filter(name => name !== undefined && name !== null),
-      ),
-    ).map(name => ({
-      label: name,
-      value: name,
-      key: name,
-    })),
-  ];
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    //refetch();
-    queryClient.invalidateQueries({
-      queryKey: ['inspection'],
-    });
-    setTimeout(() => setRefreshing(false), 1500);
+    ).map(value => ({
+      label: value,
+      value: value,
+      key: value,
+    }));
   };
 
-  const filteredInspectionListData = Array.isArray(data)
+  const offices = [
+    {label: 'All Offices', value: null, key: 'all-offices'},
+  ].concat(getUniqueValues('OfficeName'));
+
+  const years = [{label: 'All Years', value: null, key: 'all-years'}].concat(
+    getUniqueValues('Year'),
+  );
+
+  const handleRefresh = () => {
+    refetch(); // Use refetch to trigger data fetching
+  };
+
+  // Function to parse the date string (copied from ForInspection)
+  const parseDeliveryDateString = dateString => {
+    if (!dateString || typeof dateString !== 'string') {
+      return null;
+    }
+
+    try {
+      const parts = dateString.trim().split(' ');
+      if (parts.length !== 3) {
+        console.warn(
+          `Debug: Unexpected date string format: "${dateString}". Expected "YYYY-MM-DD HH:MM AM/PM"`,
+        );
+        return null;
+      }
+
+      const [datePart, timePart, ampmPart] = parts;
+      const [year, month, day] = datePart.split('-').map(Number);
+      let [hours, minutes] = timePart.split(':').map(Number);
+
+      if (
+        isNaN(year) ||
+        isNaN(month) ||
+        isNaN(day) ||
+        isNaN(hours) ||
+        isNaN(minutes)
+      ) {
+        console.warn(
+          `Debug: Failed to parse date/time numbers from "${dateString}"`,
+        );
+        return null;
+      }
+
+      if (ampmPart.toUpperCase() === 'PM' && hours !== 12) {
+        hours += 12;
+      } else if (ampmPart.toUpperCase() === 'AM' && hours === 12) {
+        hours = 0;
+      }
+
+      const date = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+
+      if (isNaN(date.getTime())) {
+        console.error(
+          `Debug: Created an Invalid Date object from: "${dateString}"`,
+        );
+        return null;
+      }
+      return date;
+    } catch (e) {
+      console.error(`Debug: Error parsing date string "${dateString}":`, e);
+      return null;
+    }
+  };
+
+  let filteredInspectionListData = Array.isArray(data)
     ? data.filter(item => {
         const searchTerm = searchQuery?.toLowerCase() || '';
 
         const {
-          OfficeName = '', // These defaults are good for the initial assignment
+          OfficeName = '',
           TrackingNumber = '',
           RefTrackingNumber = '',
           CategoryName = '',
           Year,
+          Status = '',
         } = item;
 
-        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
+        // Filter by 'inspection on hold' status
+        if (
+          typeof Status === 'string' &&
+          Status.toLowerCase() !== 'inspection on hold'
+        ) {
+          return false;
+        }
+        if (typeof Status !== 'string') {
+          return false;
+        }
+
+        if (selectedOffice && OfficeName !== selectedOffice) {
           return false;
         }
 
@@ -103,10 +160,10 @@ const InspectionOnHold = ({navigation}) => {
         }
 
         if (
-          !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
-          !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
+          !String(OfficeName).toLowerCase().includes(searchTerm) &&
+          !String(TrackingNumber).toLowerCase().includes(searchTerm) &&
           !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
-          !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
+          !String(CategoryName).toLowerCase().includes(searchTerm)
         ) {
           return false;
         }
@@ -114,6 +171,33 @@ const InspectionOnHold = ({navigation}) => {
         return true;
       })
     : [];
+
+  // Sort the filtered data by DeliveryDate
+  filteredInspectionListData = filteredInspectionListData.sort((a, b) => {
+    const dateA = parseDeliveryDateString(a.DeliveryDate);
+    const dateB = parseDeliveryDateString(b.DeliveryDate);
+
+    if (dateA === null && dateB === null) return 0;
+    if (dateA === null) return -1;
+    if (dateB === null) return 1;
+
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // Group inspections by office name
+  const groupedInspections = filteredInspectionListData.reduce((acc, item) => {
+    const office = item.OfficeName || 'Unassigned Office';
+    if (!acc[office]) {
+      acc[office] = [];
+    }
+    acc[office].push(item);
+    return acc;
+  }, {});
+
+  const officeSections = Object.keys(groupedInspections).map(officeName => ({
+    title: officeName,
+    data: groupedInspections[officeName],
+  }));
 
   const handleOfficeSelect = office => {
     setSelectedOffice(office);
@@ -129,8 +213,11 @@ const InspectionOnHold = ({navigation}) => {
     setMenuVisible(prev => !prev);
   };
 
-  const onPressItem = (item, filteredInspectionList) => {
-    navigation.navigate('InspectionDetails', {item, filteredInspectionList});
+  const onPressItem = (item, fullList) => {
+    navigation.navigate('InspectionDetails', {
+      item,
+      filteredInspectionList: fullList,
+    });
   };
 
   const openOfficeSheetHandler = () => {
@@ -151,10 +238,6 @@ const InspectionOnHold = ({navigation}) => {
     setShowSearch(!showSearch);
     setSearchQuery('');
   };
-
-  const filteredInspectionList = filteredInspectionListData?.filter(
-    item => item?.Status?.toLowerCase() === 'inspection on hold',
-  );
 
   const renderInspection = () => {
     if (isLoading) {
@@ -198,9 +281,9 @@ const InspectionOnHold = ({navigation}) => {
             marginTop: 5,
             marginEnd: 20,
           }}>
-          <Text>{filteredInspectionList.length} results</Text>
+          <Text>{filteredInspectionListData.length} results</Text>
         </View>
-        {filteredInspectionList?.length === 0 ? (
+        {filteredInspectionListData?.length === 0 ? (
           <View
             style={{
               alignItems: 'center',
@@ -228,24 +311,50 @@ const InspectionOnHold = ({navigation}) => {
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={filteredInspectionList}
-            keyExtractor={(item, index) =>
-              item && item.Id ? item.Id.toString() : index.toString()
-            }
+          <FlashList
+            data={officeSections} // Use grouped data for FlashList
+            keyExtractor={(item, index) => item.title + index.toString()}
             renderItem={({item, index}) => (
-              <View style={styles.inspectionItemContainer}>
-                <InspectionList
-                  item={item}
-                  index={index}
-                  onPressItem={onPressItem}
-                />
+              <View style={styles.officeSection}>
+                <LinearGradient // Added LinearGradient for section headers
+                  colors={['rgb(209, 238, 248)', '#fff']}
+                  style={styles.gradientContainer}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}>
+                  <View style={styles.officeHeaderContent}>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        paddingHorizontal: 15,
+                        color: 'gray',
+                      }}>
+                      {index + 1}
+                    </Text>
+                    <Text style={styles.officeSectionTitle}>{item.title}</Text>
+                  </View>
+                </LinearGradient>
+                {item.data.map((inspectionItem, subIndex) => (
+                  <View
+                    key={
+                      inspectionItem.Id
+                        ? inspectionItem.Id.toString()
+                        : subIndex.toString()
+                    }
+                    style={styles.inspectionItemContainer}>
+                    <InspectionList
+                      item={inspectionItem}
+                      index={subIndex}
+                      onPressItem={onPressItem}
+                      filteredInspectionList={filteredInspectionListData}
+                    />
+                  </View>
+                ))}
               </View>
             )}
             onRefresh={handleRefresh}
-            refreshing={refreshing}
-            initialNumToRender={10}
-            windowSize={5}
+            refreshing={isFetching}
+            estimatedItemSize={100} // Essential for FlashList performance
           />
         )}
       </View>
@@ -261,10 +370,9 @@ const InspectionOnHold = ({navigation}) => {
             width: '100%',
             height: '100%',
           }}
-          blurType="light" // Options: "light", "dark", "extraLight"
-          blurAmount={5} // Adjust the intensity of the blur
+          blurType="light"
+          blurAmount={5}
         />
-
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
@@ -279,18 +387,26 @@ const InspectionOnHold = ({navigation}) => {
           <View style={styles.header}>
             {showSearch ? (
               <>
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoFocus
-                  autoCapitalize="characters" // Add this prop
-                />
+                <View style={styles.searchContainer}>
+                  <Icon
+                    name="search"
+                    size={24}
+                    color="gray"
+                    style={styles.searchIconInsideInput}
+                  />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoFocus
+                    autoCapitalize="characters"
+                  />
+                </View>
                 <TouchableOpacity
                   onPress={toggleSearchBar}
-                  style={styles.searchIcon}>
-                  <Icon name="close" size={24} color="#fff" />
+                  style={styles.cancelButton}>
+                  <Text style={{color: '#fff'}}>Cancel</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -447,12 +563,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     justifyContent: 'space-between',
+    flex: 1, // Added flex: 1 to header to allow searchContainer to take space
   },
   headerTitle: {
     flex: 1,
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
+    //textAlign: 'center',
     color: '#fff',
   },
   searchIcon: {
@@ -464,9 +581,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#fff',
     borderRadius: 18,
-    marginStart: 10,
-    marginRight: 20,
-    paddingStart: 20,
+    paddingStart: 40, // Increased padding to make space for the icon
+    paddingEnd: 15,
   },
   backButton: {
     padding: 8,
@@ -475,7 +591,6 @@ const styles = StyleSheet.create({
   menuItemTitle: {
     color: 'black',
   },
-
   filtersButton: {
     padding: 5,
     backgroundColor: '#F8F8F8',
@@ -568,6 +683,47 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: 'rgb(221, 220, 220)',
     alignItems: 'center',
+  },
+  // New styles from ForInspection for search and grouping
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginHorizontal: 10,
+  },
+  searchIconInsideInput: {
+    position: 'absolute',
+    left: 10,
+  },
+  cancelButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginRight: 5,
+  },
+  officeSection: {
+    marginBottom: 5, // Small margin between sections
+  },
+  gradientContainer: {
+    paddingVertical: 10,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+    marginHorizontal: 10,
+    marginTop: 10,
+    elevation: 2, // Subtle shadow for the header
+  },
+ officeHeaderContent: {
+    flexDirection: 'row',
+    //alignItems: 'center',
+    flex: 1,
+    paddingRight: 15,
+  },
+  officeSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flexShrink: 1,
   },
 });
 
