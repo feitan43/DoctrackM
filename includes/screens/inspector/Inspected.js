@@ -1,28 +1,27 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useMemo, useCallback} from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   Pressable,
   Image,
   TextInput,
   TouchableOpacity,
-  StatusBar,
   ImageBackground,
   ActivityIndicator,
   SafeAreaView,
+  StatusBar,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import BottomSheet from '@gorhom/bottom-sheet';
-import {Menu, Provider, Searchbar} from 'react-native-paper';
+import {Menu, Provider} from 'react-native-paper';
 import {ScrollView} from 'react-native-gesture-handler';
 import {Shimmer} from '../../utils/useShimmer';
 import {InspectionList} from './InspectionList';
 import {useQueryClient} from '@tanstack/react-query';
-import {FlashList} from '@shopify/flash-list'; // Import FlashList
-
-//import useInspection from '../../api/useInspection';
+import {FlashList} from '@shopify/flash-list';
+import LinearGradient from 'react-native-linear-gradient';
 import {useInspection} from '../../hooks/useInspection';
 import {BlurView} from '@react-native-community/blur';
 
@@ -31,288 +30,326 @@ const Inspected = ({navigation}) => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-
   const officeBottomSheetRef = useRef(null);
   const yearBottomSheetRef = useRef(null);
   const [openOfficeSheet, setOpenOfficeSheet] = useState(false);
   const [openYearSheet, setOpenYearSheet] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+
   const queryClient = useQueryClient();
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
 
-  const offices = [
-    {label: 'All Offices', value: null, key: 'all-offices'},
-    ...Array.from(
-      new Set(
-        (Array.isArray(data) ? data : [])
-          .filter(
-            item =>
-              item.DateInspected !== null &&
-              item.DateInspected !== '' &&
-              item?.Status?.toLowerCase() !== 'for inspection' &&
-              item?.Status?.toLowerCase() !== 'inspection on hold',
-          )
-          .map(item => item.OfficeName)
-          .filter(name => name !== undefined && name !== null),
-      ),
-    ).map(name => ({
-      label: name,
-      value: name,
-      key: name,
-    })),
-  ];
+  const baseFilteredData = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+    return data.filter(
+      item =>
+        item.DateInspected !== null &&
+        item.DateInspected !== '' &&
+        item?.Status?.toLowerCase() !== 'for inspection' &&
+        item?.Status?.toLowerCase() !== 'inspection on hold',
+    );
+  }, [data]);
 
-  const years = [
-    {label: 'All Years', value: null, key: 'all-years'},
-    ...Array.from(
-      new Set(
-        (Array.isArray(data) ? data : [])
-          .filter(
-            item =>
-              item.DateInspected !== null &&
-              item.DateInspected !== '' &&
-              item?.Status?.toLowerCase() !== 'for inspection' &&
-              item?.Status?.toLowerCase() !== 'inspection on hold',
-          )
-          .map(item => item.Year)
-          .filter(name => name !== undefined && name !== null),
-      ),
-    ).map(name => ({
-      label: name,
-      value: name,
-      key: name,
-    })),
-  ];
+  const offices = useMemo(() => {
+    const uniqueOffices = Array.from(
+      new Set(baseFilteredData.map(item => item.OfficeName).filter(Boolean)),
+    );
+    return [
+      {label: 'All Offices', value: null, key: 'all-offices'},
+      ...uniqueOffices.map(name => ({
+        label: name,
+        value: name,
+        key: name,
+      })),
+    ];
+  }, [baseFilteredData]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    //refetch();
-    queryClient.invalidateQueries({
-      queryKey: ['inspection'],
-    });
-    setTimeout(() => setRefreshing(false), 1500);
-  };
+  const years = useMemo(() => {
+    const uniqueYears = Array.from(
+      new Set(baseFilteredData.map(item => item.Year).filter(Boolean)),
+    );
+    return [
+      {label: 'All Years', value: null, key: 'all-years'},
+      ...uniqueYears.map(name => ({
+        label: name,
+        value: name,
+        key: name,
+      })),
+    ];
+  }, [baseFilteredData]);
 
-  const filteredInspectionListData = Array.isArray(data)
-    ? data.filter(item => {
-        const searchTerm = searchQuery?.toLowerCase() || '';
+  const filteredInspectionList = useMemo(() => {
+    let filtered = baseFilteredData;
 
+    if (selectedOffice) {
+      filtered = filtered.filter(item => item.OfficeName === selectedOffice);
+    }
+
+    if (selectedYear) {
+      filtered = filtered.filter(item => item.Year === selectedYear);
+    }
+
+    const searchTerm = searchQuery?.toLowerCase() || '';
+    if (searchTerm) {
+      filtered = filtered.filter(item => {
         const {
-          OfficeName = '', 
+          OfficeName = '',
           TrackingNumber = '',
           RefTrackingNumber = '',
           CategoryName = '',
-          Year,
         } = item;
 
-        if (selectedOffice && !OfficeName.includes(selectedOffice)) {
-          return false;
+        return (
+          String(OfficeName).toLowerCase().includes(searchTerm) ||
+          String(TrackingNumber).toLowerCase().includes(searchTerm) ||
+          String(RefTrackingNumber).toLowerCase().includes(searchTerm) ||
+          String(CategoryName).toLowerCase().includes(searchTerm)
+        );
+      });
+    }
+
+    return filtered.sort((a, b) => {
+      const getValidDate = dateString => {
+        if (!dateString || typeof dateString !== 'string') {
+          return null;
         }
+        const datePart = dateString.substring(0, 10);
+        const date = new Date(datePart);
+        return isNaN(date.getTime()) ? null : date;
+      };
 
-        if (selectedYear && Year !== selectedYear) {
-          return false;
-        }
+      const dateA = getValidDate(a.DateInspected);
+      const dateB = getValidDate(b.DateInspected);
 
-        if (
-          !String(OfficeName).toLowerCase().includes(searchTerm) && // Ensure it's a string
-          !String(TrackingNumber).toLowerCase().includes(searchTerm) && // Ensure it's a string
-          !String(RefTrackingNumber).toLowerCase().includes(searchTerm) &&
-          !String(CategoryName).toLowerCase().includes(searchTerm) // Ensure it's a string
-        ) {
-          return false;
-        }
+      if (dateA && dateB) {
+        return dateB.getTime() - dateA.getTime();
+      } else if (dateA) {
+        return -1;
+      } else if (dateB) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+  }, [baseFilteredData, selectedOffice, selectedYear, searchQuery]);
 
-        return true;
-      })
-    : [];
+  const flashListData = useMemo(() => {
+    const groupedInspections = filteredInspectionList.reduce((acc, item) => {
+      const office = item.OfficeName || 'Unassigned Office';
+      if (!acc[office]) {
+        acc[office] = [];
+      }
+      acc[office].push(item);
+      return acc;
+    }, {});
 
-  const handleOfficeSelect = office => {
+    const flattenedList = [];
+    let sectionIndex = 0;
+    let overallItemIndex = 0;
+
+    Object.keys(groupedInspections).forEach(officeName => {
+      flattenedList.push({
+        type: 'header',
+        id: `header-${officeName}`,
+        title: officeName,
+        sectionIndex: sectionIndex++,
+      });
+      groupedInspections[officeName].forEach((item, index) => {
+        flattenedList.push({
+          type: 'item',
+          ...item,
+          id: item.Id ? item.Id.toString() : `item-${officeName}-${index}`,
+          itemIndexInGroup: index,
+          overallItemIndex: overallItemIndex++,
+        });
+      });
+    });
+    return flattenedList;
+  }, [filteredInspectionList]);
+
+  const renderFlashListItem = useCallback(
+    ({item}) => {
+      if (item.type === 'header') {
+        return (
+          <LinearGradient
+            colors={['rgb(209, 238, 248)', '#fff']}
+            style={styles.gradientContainer}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}>
+            <View style={styles.officeHeaderContent}>
+              <Text style={styles.officeIndexText}>
+                {item.sectionIndex + 1}
+              </Text>
+              <Text style={styles.officeSectionTitle}>{item.title}</Text>
+            </View>
+          </LinearGradient>
+        );
+      } else if (item.type === 'item') {
+        return (
+          <View style={styles.inspectionItemContainer}>
+            <InspectionList
+              item={item}
+              // Pass the relevant index here
+              index={item.itemIndexInGroup} // Or item.overallItemIndex for a continuous index
+              onPressItem={onPressItem}
+              filteredInspectionList={filteredInspectionList}
+            />
+          </View>
+        );
+      }
+      return null;
+    },
+    [onPressItem, filteredInspectionList],
+  );
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: ['inspection'],
+    });
+  }, [queryClient]);
+
+  const handleOfficeSelect = useCallback(office => {
     setSelectedOffice(office);
     setOpenOfficeSheet(false);
-  };
+  }, []);
 
-  const handleYearSelect = year => {
+  const handleYearSelect = useCallback(year => {
     setSelectedYear(year);
     setOpenYearSheet(false);
-  };
+  }, []);
 
-  const handleFiltersPress = () => {
+  const handleFiltersPress = useCallback(() => {
     setMenuVisible(prev => !prev);
-  };
+  }, []);
 
-  const onPressItem = (item, filteredInspectionList) => {
-    navigation.navigate('InspectionDetails', {item, filteredInspectionList});
-  };
+  const onPressItem = useCallback(
+    (item, list) => {
+      // When navigating, ensure you pass the original filteredInspectionList
+      // since the 'item' passed here is already part of the flattened data.
+      navigation.navigate('InspectionDetails', {
+        item,
+        filteredInspectionList: list,
+      });
+    },
+    [navigation],
+  );
 
-  const openOfficeSheetHandler = () => {
+  const openOfficeSheetHandler = useCallback(() => {
     setMenuVisible(false);
     setOpenYearSheet(false);
     setOpenOfficeSheet(true);
     officeBottomSheetRef.current?.expand();
-  };
+  }, []);
 
-  const openYearSheetHandler = () => {
+  const openYearSheetHandler = useCallback(() => {
     setMenuVisible(false);
     setOpenOfficeSheet(false);
     setOpenYearSheet(true);
     yearBottomSheetRef.current?.expand();
-  };
+  }, []);
 
-const filteredInspectionList = filteredInspectionListData
-  ?.filter(
-    item =>
-      item.DateInspected !== null &&
-      item.DateInspected !== '' &&
-      item?.Status?.toLowerCase() !== 'for inspection' &&
-      item?.Status?.toLowerCase() !== 'inspection on hold',
-  )
-  .sort((a, b) => {
-    const getValidDate = (dateString) => {
-      if (!dateString || typeof dateString !== 'string') {
-        return null;
+  const toggleSearchBar = useCallback(() => {
+    setShowSearch(prev => {
+      if (prev) {
+        setSearchQuery(''); // Clear search when closing
       }
-      const datePart = dateString.substring(0, 10); 
-      const date = new Date(datePart);
-      return isNaN(date.getTime()) ? null : date;
-    };
+      return !prev;
+    });
+  }, []);
 
-    const dateA = getValidDate(a.DateInspected);
-    const dateB = getValidDate(b.DateInspected);
-
-    if (dateA && dateB) {
-      return dateB.getTime() - dateA.getTime();
-    }
-    else if (dateA) {
-      return -1;
-    }
-    else if (dateB) {
-      return 1;
-    }
-    else {
-      return 0;
-    }
-  });
-
-// You can now use filteredInspectionList
-// console.log(filteredInspectionList);
-
-
-  const toggleSearchBar = () => {
-    setShowSearch(!showSearch);
-    setSearchQuery('');
-  };
-
-  const renderInspection = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.loadingContainer}>
-          {[...Array(5)].map((_, index) => (
-            <Shimmer key={index} />
-          ))}
+  /* const renderFlashListItem = useCallback(({item, index}) => {
+  if (item.type === 'header') {
+    return (
+      <LinearGradient
+        colors={['rgb(209, 238, 248)', '#fff']}
+        style={styles.gradientContainer}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}>
+        <View style={styles.officeHeaderContent}>
+          <Text style={styles.officeIndexText}>{item.sectionIndex + 1}</Text>
+          <Text style={styles.officeSectionTitle}>{item.title}</Text>
         </View>
-      );
-    }
+      </LinearGradient>
+    );
+  } else if (item.type === 'item') {
+    return (
 
+      <View style={styles.inspectionItemContainer}>
+        <InspectionList
+          item={item} // 'item' is already the inspectionItem
+          index={index} // This index is the index within the flat list
+          onPressItem={onPressItem}
+          filteredInspectionList={filteredInspectionList}
+        />
+      </View>
+    );
+  }
+  return null;
+}, [onPressItem, filteredInspectionList]); */
+
+  const renderInspectionContent = () => {
     if (isError) {
       return (
-        <View style={{alignItems: 'center', marginTop: 20}}>
-          <Text style={{color: 'red', fontSize: 16, fontWeight: 'bold'}}>
-            Something went wrong!
-          </Text>
-          <TouchableOpacity
-            onPress={handleRefresh}
-            style={{
-              marginTop: 10,
-              backgroundColor: '#007bff',
-              paddingVertical: 8,
-              paddingHorizontal: 16,
-              borderRadius: 6,
-            }}>
-            <Text style={{color: 'white', fontSize: 14, fontWeight: 'bold'}}>
-              Retry
-            </Text>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Something went wrong!</Text>
+          <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       );
     }
-    return (
-      <View style={{flex: 1, marginBottom: 100}}>
+
+    if (filteredInspectionList?.length === 0) {
+      return (
         <View
           style={{
-            alignSelf: 'flex-end',
-            marginTop: 5,
-            marginEnd: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
           }}>
-          <Text>{filteredInspectionList.length} results</Text>
-        </View>
-        {filteredInspectionList?.length === 0 ? (
-          <View
+          <Image
+            source={require('../../../assets/images/noresultsstate.png')}
             style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 20,
-            }}>
-            <Image
-              source={require('../../../assets/images/noresultsstate.png')}
-              style={{
-                width: 200,
-                height: 200,
-                resizeMode: 'contain',
-                marginBottom: 10,
-              }}
-            />
-            <Text
-              style={{
-                alignSelf: 'center',
-                color: 'gray',
-                fontSize: 14,
-                textAlign: 'center',
-                paddingHorizontal: 10,
-              }}>
-              No Result Found
-            </Text>
-          </View>
-        ) : (
-          <FlashList
-            data={filteredInspectionList}
-            keyExtractor={
-              (item, index) =>
-                item && item.Id ? item.Id.toString() : `item-${index}` // Fallback for keyExtractor
-            }
-            renderItem={({item, index}) => (
-              <View style={styles.inspectionItemContainer}>
-                <InspectionList
-                  item={item}
-                  index={index}
-                  onPressItem={onPressItem}
-                />
-              </View>
-            )}
-            onRefresh={handleRefresh}
-            refreshing={refreshing || isFetching} // Show refreshing also when data is being fetched
-            estimatedItemSize={200} // Crucial for FlashList performance! Adjust based on your InspectionList item's average height.
-            contentContainerStyle={styles.flashListContentContainer} // Add padding/margin here if needed
+              width: 200,
+              height: 200,
+              resizeMode: 'contain',
+              marginBottom: 10,
+            }}
           />
-        )}
-      </View>
+          <Text
+            style={{
+              alignSelf: 'center',
+              color: 'gray',
+              fontSize: 14,
+              textAlign: 'center',
+              paddingHorizontal: 10,
+            }}>
+            No Result Found
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlashList
+        data={flashListData}
+        keyExtractor={item => item.id}
+        renderItem={renderFlashListItem}
+        onRefresh={handleRefresh}
+        refreshing={isFetching}
+        estimatedItemSize={100}
+        contentContainerStyle={styles.flashListContentContainer}
+      />
     );
   };
 
-  if (isFetching && !data) {
+  if (/* !isLoading && */ /* data */ isLoading || isFetching) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <BlurView
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-          }}
-          blurType="light" // Options: "light", "dark", "extraLight"
-          blurAmount={5} // Adjust the intensity of the blur
-        />
-
+      <View style={styles.initialLoadingContainer}>
+        <BlurView style={styles.blurView} blurType="light" blurAmount={5} />
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
@@ -333,12 +370,14 @@ const filteredInspectionList = filteredInspectionListData
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   autoFocus
-                  autoCapitalize="characters" // Add this prop
+                  autoCapitalize="characters"
+                  placeholderTextColor="#888"
                 />
                 <TouchableOpacity
                   onPress={toggleSearchBar}
-                  style={styles.searchIcon}>
-                  <Icon name="close" size={24} color="#fff" />
+                  style={styles.searchCloseIcon}>
+                  {/* <Icon name="close" size={24} color="#fff" /> */}
+                  <Text style={{color: '#fff'}}>Cancel</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -351,60 +390,69 @@ const filteredInspectionList = filteredInspectionListData
                 <Text style={styles.headerTitle}>Inspected</Text>
                 <TouchableOpacity
                   onPress={toggleSearchBar}
-                  style={styles.searchIcon}>
+                  style={styles.headerIcon}>
                   <Icon name="search" size={24} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleFiltersPress}
-                  style={styles.searchIcon}>
-                  <Icon name="ellipsis-vertical" size={20} color="#fff" />
-                </TouchableOpacity>
+
+                <Menu
+                  visible={menuVisible}
+                  onDismiss={() => setMenuVisible(false)}
+                  anchor={
+                    <Pressable
+                      onPress={handleFiltersPress}
+                      style={{
+                        padding: 5,
+                        backgroundColor: 'transparent',
+                        borderRadius: 10,
+                      }}>
+                      <Icon name="ellipsis-vertical" size={20} color="#fff" />
+                    </Pressable>
+                  }
+                  style={{
+                    position: 'absolute',
+                    top: 90,
+                    right: 10,
+                    left: 200,
+                  }}
+                  contentStyle={{backgroundColor: '#fff', borderRadius: 10}}>
+                  <Menu.Item
+                    onPress={openOfficeSheetHandler}
+                    title="Select Office"
+                    titleStyle={styles.menuItemTitle}
+                  />
+                  <Menu.Item
+                    onPress={openYearSheetHandler}
+                    title="Select Year"
+                    titleStyle={styles.menuItemTitle}
+                  />
+                </Menu>
               </>
             )}
           </View>
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <Pressable
-                onPress={handleFiltersPress}
-                style={{
-                  padding: 5,
-                  backgroundColor: 'transparent',
-                  borderRadius: 10,
-                }}>
-                <Icon name="ellipsis-vertical" size={20} color="#fff" />
-              </Pressable>
-            }
-            style={{
-              position: 'absolute',
-              top: 90,
-              right: 10,
-              left: 200,
-            }}
-            contentStyle={{backgroundColor: '#fff', borderRadius: 10}}>
-            <Menu.Item
-              onPress={openOfficeSheetHandler}
-              title="Select Office"
-              titleStyle={styles.menuItemTitle}
-            />
-            <Menu.Item
-              onPress={openYearSheetHandler}
-              title="Select Year"
-              titleStyle={styles.menuItemTitle}
-            />
-          </Menu>
         </ImageBackground>
 
-        <View style={{height: '100%'}}>{renderInspection()}</View>
+        {isLoading && data && (
+          <View style={styles.loadingContainer}>
+            {[...Array(5)].map((_, index) => (
+              <Shimmer key={index} />
+            ))}
+          </View>
+        )}
+
+        <View style={styles.resultsCountContainer}>
+          <Text>{filteredInspectionList.length} results</Text>
+        </View>
+
+        <View style={styles.mainContent}>{renderInspectionContent()}</View>
 
         {openOfficeSheet && (
           <View style={styles.overlay}>
             <BottomSheet
               ref={officeBottomSheetRef}
               index={0}
-              snapPoints={['50%', '25%']}
-              onClose={() => setOpenOfficeSheet(false)}>
+              snapPoints={['50%', '25%', '80%']}
+              onClose={() => setOpenOfficeSheet(false)}
+              style={styles.bottomSheetShadow}>
               <View style={styles.bottomSheetContent}>
                 <View style={styles.bottomSheetHeader}>
                   <View style={styles.bottomSheetTitleContainer}>
@@ -416,11 +464,14 @@ const filteredInspectionList = filteredInspectionListData
                   </Pressable>
                 </View>
                 <View style={styles.bottomSheetOptionsContainer}>
-                  <ScrollView>
+                  <ScrollView keyboardShouldPersistTaps="handled">
                     {offices.map(office => (
                       <Pressable
                         key={office.key}
-                        style={styles.bottomSheetOption}
+                        style={({pressed}) => [
+                          styles.bottomSheetOption,
+                          pressed && styles.pressedOption,
+                        ]}
                         android_ripple={{color: '#F0F4F7', borderless: false}}
                         onPress={() => handleOfficeSelect(office.value)}>
                         <Text style={styles.menuItem}>{office.label}</Text>
@@ -438,8 +489,9 @@ const filteredInspectionList = filteredInspectionListData
             <BottomSheet
               ref={yearBottomSheetRef}
               index={0}
-              snapPoints={['50%', '25%']}
-              onClose={() => setOpenYearSheet(false)}>
+              snapPoints={['50%', '25%', '80%']}
+              onClose={() => setOpenYearSheet(false)}
+              style={styles.bottomSheetShadow}>
               <View style={styles.bottomSheetContent}>
                 <View style={styles.bottomSheetHeader}>
                   <View style={styles.bottomSheetTitleContainer}>
@@ -451,11 +503,14 @@ const filteredInspectionList = filteredInspectionListData
                   </Pressable>
                 </View>
                 <View style={styles.bottomSheetOptionsContainer}>
-                  <ScrollView>
+                  <ScrollView keyboardShouldPersistTaps="handled">
                     {years.map(year => (
                       <Pressable
                         key={year.key}
-                        style={styles.bottomSheetOption}
+                        style={({pressed}) => [
+                          styles.bottomSheetOption,
+                          pressed && styles.pressedOption,
+                        ]}
                         android_ripple={{color: '#F0F4F7', borderless: false}}
                         onPress={() => handleYearSelect(year.value)}>
                         <Text style={styles.menuItem}>{year.label}</Text>
@@ -485,106 +540,157 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 3,
-    justifyContent: 'space-between',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
     color: '#fff',
   },
-  searchIcon: {
-    marginRight: 10,
+  headerIcon: {
+    padding: 8,
+  },
+  searchCloseIcon: {
+    padding: 8,
+    marginRight: 5,
   },
   searchInput: {
     height: 40,
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     backgroundColor: '#fff',
-    borderRadius: 18,
+    borderRadius: 20,
     marginStart: 10,
-    marginRight: 20,
-    paddingStart: 20,
+    marginRight: 10,
+    paddingHorizontal: 15,
+    color: '#333',
   },
   backButton: {
     padding: 8,
-    borderRadius: 20,
+    marginRight: 5,
   },
   menuItemTitle: {
     color: 'black',
-  },
-  searchContainer: {
-    backgroundColor: 'white',
-    paddingHorizontal: 50,
-    marginTop: 10,
-    //paddingBottom: 10,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingLeft: 10,
-  },
-  filtersButton: {
-    padding: 5,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 10,
+    fontSize: 16,
   },
   menuStyle: {
     position: 'absolute',
-    top: 90,
-    right: 10,
-    left: 200,
+    top: 65,
+    right: 5,
   },
   menuContentStyle: {
-    backgroundColor: '#F0F4F7',
-    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   mainContent: {
-    height: '100%',
-    paddingBottom: 55,
+    flex: 1,
+    paddingBottom: 0,
   },
   loadingContainer: {
     gap: 10,
-    marginTop: 25,
+    marginTop: 15,
+    paddingHorizontal: 10,
+  },
+  initialLoadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    top: 0,
+    backgroundColor: 'rgba(255,255,255,0.7)',
   },
-  inspectionListContainer: {
-    flex: 1,
+  blurView: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 15,
+    backgroundColor: '#1a508c',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  resultsCountContainer: {
+    alignSelf: 'flex-end',
+    marginTop: 5,
+    marginEnd: 20,
   },
   noResultsContainer: {
     flex: 1,
-    top: 80,
-    justifyContent: 'center',
+    //justifyContent: 'center',
     alignItems: 'center',
+    //padding: 20,
   },
   noResultsImage: {
-    width: '60%',
-    height: '25%',
-    alignSelf: 'center',
+    width: 180,
+    height: 180,
+    resizeMode: 'contain',
+    marginBottom: 15,
+    //opacity: 0.7,
   },
   noResultsText: {
-    fontFamily: 'Oswald-Light',
     color: 'gray',
     fontSize: 16,
     textAlign: 'center',
-    padding: 5,
+    paddingHorizontal: 10,
+  },
+  flashListContentContainer: {
+    paddingBottom: 20,
+  },
+  // officeSection is no longer needed as a wrapper around items
+  gradientContainer: {
+    paddingVertical: 10,
+    marginBottom: 5,
+  },
+  officeHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+  },
+  officeIndexText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+    marginRight: 10,
+  },
+  officeSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flexShrink: 1,
   },
   inspectionItemContainer: {
     paddingHorizontal: 10,
+    marginBottom: 5,
   },
   overlay: {
     position: 'absolute',
@@ -592,42 +698,57 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 10,
   },
   bottomSheetContent: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    paddingBottom: 20,
+    flex: 1,
   },
   bottomSheetHeader: {
-    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   bottomSheetTitleContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   sheetHeaderText: {
     marginStart: 10,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
   bottomSheetOptionsContainer: {
-    paddingHorizontal: 20,
-    rowGap: 10,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    flex: 1,
   },
   bottomSheetOption: {
-    padding: 10,
-    paddingStart: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  pressedOption: {
+    backgroundColor: '#e0e0e0',
   },
   menuItem: {
     fontSize: 16,
+    color: '#333',
   },
-  clearButton: {
-    padding: 5,
-    marginEnd: 5,
-    borderRadius: 15,
-    backgroundColor: 'rgb(221, 220, 220)',
-    alignItems: 'center',
+  bottomSheetShadow: {
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: -3},
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 8,
   },
 });
 

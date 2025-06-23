@@ -19,7 +19,7 @@ import {
   CameraProps,
 } from 'react-native-vision-camera';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {CameraRoll} from '@react-native-camera-roll/camera-roll'; // Note: useCameraRoll is a hook, but CameraRoll.save is a static method
+import {CameraRoll} from '@react-native-camera-roll/camera-roll'; 
 import Reanimated, {
   useAnimatedProps,
   useSharedValue,
@@ -28,12 +28,10 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 
-// Reanimated must be whitelisted for direct prop manipulation
 Reanimated.addWhitelistedNativeProps({
   zoom: true,
 });
 
-// Create a reanimated version of the Camera component for animated props like zoom
 const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera);
 
 /**
@@ -47,11 +45,8 @@ const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera);
  * @param {function(): void} props.onClose - Callback function to close the camera view.
  */
 const CameraComponent = ({onPhotoTaken, onClose}) => {
-  // State for camera device ('back' or 'front')
   const [cameraDevice, setCameraDevice] = useState('back');
-  // Vision Camera hook for camera permission
   const {hasPermission, requestPermission} = useCameraPermission();
-  // Camera device object from Vision Camera
   const device = useCameraDevice(cameraDevice, {
     physicalDevices: [
       'ultra-wide-angle-camera',
@@ -60,34 +55,26 @@ const CameraComponent = ({onPhotoTaken, onClose}) => {
     ],
   });
 
-  // Reanimated shared value for zoom level, initialized with neutralZoom if available
   const zoom = useSharedValue(device?.neutralZoom ?? 1);
-  // Reanimated shared value for zoom offset during pinch gesture
   const zoomOffset = useSharedValue(0);
 
-  // State to hold the most recently taken photo object (for preview in camera roll button)
   const [lastSavedPhoto, setLastSavedPhoto] = useState(null);
-  // State to indicate if a photo is currently being captured
   const [isCapturing, setIsCapturing] = useState(false);
-  // State to manage button press visual feedback
   const [isButtonPressed, setIsButtonPressed] = useState(false);
 
-  // Ref to access the Camera component methods
   const cameraRef = useRef(null);
 
-  // Gesture handler for pinch-to-zoom
   const pinchGesture = Gesture.Pinch()
     .onBegin(() => {
-      zoomOffset.value = zoom.value; // Store current zoom at gesture start
+      zoomOffset.value = zoom.value; 
     })
     .onUpdate(event => {
-      // Calculate new zoom based on pinch scale, clamping within device's min/max zoom
       const newZoom = zoomOffset.value * event.scale;
       zoom.value = interpolate(
         newZoom,
-        [1, 10], // Input range for scale, can be adjusted
-        [device.minZoom, device.maxZoom], // Output range based on device capabilities
-        Extrapolation.CLAMP, // Clamp values to stay within bounds
+        [1, 10],
+        [device.minZoom, device.maxZoom], 
+        Extrapolation.CLAMP, 
       );
     });
 

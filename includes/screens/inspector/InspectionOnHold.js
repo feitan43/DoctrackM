@@ -40,7 +40,6 @@ const InspectionOnHold = ({navigation}) => {
 
   const {data, isLoading, isError, isFetching, refetch} = useInspection();
 
-  // Helper function to get unique values for filters
   const getUniqueValues = (key, filterStatus = true) => {
     const filteredData = Array.isArray(data)
       ? data.filter(item =>
@@ -71,7 +70,7 @@ const InspectionOnHold = ({navigation}) => {
   );
 
   const handleRefresh = () => {
-    refetch(); // Use refetch to trigger data fetching
+    refetch();
   };
 
   // Function to parse the date string (copied from ForInspection)
@@ -140,7 +139,6 @@ const InspectionOnHold = ({navigation}) => {
           Status = '',
         } = item;
 
-        // Filter by 'inspection on hold' status
         if (
           typeof Status === 'string' &&
           Status.toLowerCase() !== 'inspection on hold'
@@ -172,7 +170,6 @@ const InspectionOnHold = ({navigation}) => {
       })
     : [];
 
-  // Sort the filtered data by DeliveryDate
   filteredInspectionListData = filteredInspectionListData.sort((a, b) => {
     const dateA = parseDeliveryDateString(a.DeliveryDate);
     const dateB = parseDeliveryDateString(b.DeliveryDate);
@@ -184,7 +181,6 @@ const InspectionOnHold = ({navigation}) => {
     return dateA.getTime() - dateB.getTime();
   });
 
-  // Group inspections by office name
   const groupedInspections = filteredInspectionListData.reduce((acc, item) => {
     const office = item.OfficeName || 'Unassigned Office';
     if (!acc[office]) {
@@ -354,7 +350,7 @@ const InspectionOnHold = ({navigation}) => {
             )}
             onRefresh={handleRefresh}
             refreshing={isFetching}
-            estimatedItemSize={100} // Essential for FlashList performance
+            estimatedItemSize={100} 
           />
         )}
       </View>
@@ -422,11 +418,11 @@ const InspectionOnHold = ({navigation}) => {
                   style={styles.searchIcon}>
                   <Icon name="search" size={24} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   onPress={handleFiltersPress}
                   style={styles.searchIcon}>
                   <Icon name="ellipsis-vertical" size={20} color="#fff" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </>
             )}
           </View>

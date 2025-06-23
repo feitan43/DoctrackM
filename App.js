@@ -118,6 +118,11 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+  ImmersiveMode.fullLayout(true); 
+  ImmersiveMode.setBarMode('BottomSticky'); 
+}, []);
+
+  useEffect(() => {
     const checkAppStoreUpdates = async () => {
       try {
         // const currentVersion = DeviceInfo.getVersion();

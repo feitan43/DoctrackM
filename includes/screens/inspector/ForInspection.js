@@ -243,7 +243,7 @@ const ForInspection = ({navigation}) => {
   };
 
   const renderInspection = () => {
-    if (isLoading) {
+    if (isLoading || isFetching) {
       return (
         <View style={styles.loadingContainer}>
           {[...Array(5)].map((_, index) => (

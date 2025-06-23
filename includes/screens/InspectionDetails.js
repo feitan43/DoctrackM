@@ -12,26 +12,475 @@ import {
   KeyboardAvoidingView,
   Platform,
   FlatList,
+  Image,
+  Modal,
+  Dimensions,
+  TouchableOpacity,
+  PermissionsAndroid,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useInspectionDetails} from '../hooks/useInspection';
-import {removeHtmlTags} from '../utils';
+import {useInspectionDetails, useInspectorImages} from '../hooks/useInspection'; // Assuming these hooks exist
+import {removeHtmlTags} from '../utils'; // Assuming this utility exists
+import {ActivityIndicator} from 'react-native-paper'; // Assuming react-native-paper is installed
+import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import CameraComponent from '../utils/CameraComponent';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import ImagePreviewModal from '../components/ImagePreviewModal';
+
+const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 
 const REMARKS_OPTIONS = [
-  'Missing Documentation',
-  'Awaiting Confirmation',
-  'Parts Unavailable',
-  'Customer Request',
-  'Schedule Conflict',
+  'Incomplete Delivery',
+  'Incorrect Quantity',
+  'Wrong Items Delivered',
   'Others',
 ];
+
+// --- Start of refactored components ---
+
+const PaymentDetailsCard = ({data}) => {
+  if (!data) return null;
+
+  const [showFullRemarks, setShowFullRemarks] = useState(false);
+  const [hasMoreRemarks, setHasMoreRemarks] = useState(false);
+
+  const handleRemarksTextLayout = useCallback(e => {
+    if (e.nativeEvent.lines.length > 2) {
+      setHasMoreRemarks(true);
+    }
+  }, []);
+
+  const cleanedRemarks = data.Remarks ? removeHtmlTags(data.Remarks) : '';
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTitleContainer}>
+        <Text style={styles.cardTitle}>Payment Details</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <Text style={[styles.detailLabel, {width: '30%'}]}>TN </Text>
+        <Text style={styles.detailValue}>{data.TrackingNumber}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <Text style={[styles.detailLabel, {width: '30%'}]}>Year </Text>
+        <Text style={styles.detailValue}>{data.Year}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <Text style={[styles.detailLabel, {width: '30%'}]}>Status </Text>
+        <Text style={styles.detailValue}>{data.Status}</Text>
+      </View>
+      {cleanedRemarks ? (
+        <View style={styles.detailRow}>
+          <Text style={[styles.detailLabel, {width: '30%'}]}>Remarks </Text>
+          <View style={{flexShrink: 1}}>
+            <Text
+              style={styles.detailValue}
+              numberOfLines={showFullRemarks ? undefined : 2}
+              onTextLayout={handleRemarksTextLayout}>
+              {cleanedRemarks}
+            </Text>
+            {hasMoreRemarks && (
+              <Pressable
+                onPress={() => setShowFullRemarks(!showFullRemarks)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showFullRemarks ? 'Show less remarks' : 'Show more remarks'
+                }>
+                <Text style={styles.showMoreLessButton}>
+                  {showFullRemarks ? 'Show Less' : 'Show More'}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+};
+
+const POItem = ({itemData, index, isSelected, onToggleSelection}) => {
+  if (!itemData) return null;
+
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [hasMoreLines, setHasMoreLines] = useState(false);
+
+  const handleTextLayout = useCallback(e => {
+    if (e.nativeEvent.lines.length > 2) {
+      setHasMoreLines(true);
+    }
+  }, []);
+
+  return (
+    <View
+      style={[
+        styles.poItemCard,
+        {
+          borderColor: isSelected ? '#1a508c' : '#eee',
+        },
+      ]}>
+      <Pressable
+        onPress={() => onToggleSelection(index)}
+        style={styles.poItemHeader}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isSelected
+            ? `Deselect item ${itemData.Description}`
+            : `Select item ${itemData.Description}`
+        }>
+        <Icon
+          name={isSelected ? 'checkbox-outline' : 'square-outline'}
+          size={28}
+          color={isSelected ? '#1a508c' : '#555'}
+          accessibilityLabel={
+            isSelected ? 'Item selected' : 'Item not selected'
+          }
+        />
+
+        <View style={styles.headerContentRow}>
+          <View style={styles.labelValueColumn}>
+            <Text style={styles.detailLabel}>Qty/Unit:</Text>
+            <Text style={styles.detailValue}>
+              {itemData.Qty} / {itemData.Unit}
+            </Text>
+          </View>
+
+          <View style={styles.amountRightAlign}>
+            <Text style={styles.detailLabel}>Amount:</Text>
+            <Text style={styles.detailValue}>
+              ₱{' '}
+              {parseFloat(itemData.Amount).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Description:</Text>
+      </View>
+      <View style={{flexShrink: 1}}>
+        <Text
+          style={styles.detailValue}
+          numberOfLines={showFullDescription ? undefined : 2}
+          onTextLayout={handleTextLayout}>
+          {itemData.Description}
+        </Text>
+        {hasMoreLines && (
+          <Pressable
+            onPress={() => setShowFullDescription(!showFullDescription)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showFullDescription
+                ? 'Show less description'
+                : 'Show full description'
+            }>
+            <Text style={styles.showMoreLessButton}>
+              {showFullDescription ? 'Show Less' : 'Show More'}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      <View
+        style={{
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: '#f0f0f0',
+          marginTop: 10,
+        }}>
+        <View style={[styles.labelValueColumn, styles.totalRightAlign]}>
+          <Text style={styles.detailLabel}>Total </Text>
+          <Text style={styles.detailValue}>
+            ₱{' '}
+            {parseFloat(itemData.Total).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const PurchaseOrderCard = ({
+  poTracking,
+  poRecords,
+  selectedPoItemIndexes,
+  togglePoItemSelection,
+  allPoItemsSelected,
+  toggleSelectAllPoItems,
+}) => {
+  if (!poRecords || poRecords.length === 0) return null;
+
+  const overallTotal = poRecords.reduce(
+    (sum, item) => sum + parseFloat(item.Total || 0),
+    0,
+  );
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTitleContainer}>
+        <Text style={styles.cardTitle}>Purchase Order</Text>
+        {poRecords.length > 0 && (
+          <Pressable
+            style={styles.selectAllButton}
+            android_ripple={{color: '#F6F6F6', borderless: true, radius: 20}}
+            onPress={toggleSelectAllPoItems}
+            accessibilityRole="button"
+            accessibilityLabel={
+              allPoItemsSelected
+                ? 'Deselect all purchase order items'
+                : 'Select all purchase order items'
+            }>
+            <Icon
+              name={allPoItemsSelected ? 'checkmark-circle' : 'ellipse-outline'}
+              size={20}
+              color={allPoItemsSelected ? '#1a508c' : '#555'}
+              accessibilityLabel={
+                allPoItemsSelected ? 'All items selected' : 'No items selected'
+              }
+            />
+            <Text style={styles.selectAllButtonText}>
+              {allPoItemsSelected ? 'Deselect All' : 'Select All'}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      <View style={{marginBottom: 10}}>
+        <View style={styles.detailRow}>
+          <Text style={[styles.detailLabel, {width: '30%'}]}>Supplier </Text>
+          <Text style={styles.detailValue}>{poTracking.Claimant}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={[styles.detailLabel, {width: '30%'}]}>Year </Text>
+          <Text style={styles.detailValue}>{poTracking.Year}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={[styles.detailLabel, {width: '30%'}]}>TN </Text>
+          <Text style={styles.detailValue}>{poTracking.TrackingNumber}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={[styles.detailLabel, {width: '30%'}]}>PO Number </Text>
+          <Text style={styles.detailValue}>{poTracking.PO_Number}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={[styles.detailLabel, {width: '30%'}]}>Status </Text>
+          <Text style={styles.detailValue}>{poTracking.Status}</Text>
+        </View>
+      </View>
+      {poRecords.map((item, index) => (
+        <View key={index} style={styles.poItemSeparator}>
+          <POItem
+            itemData={item}
+            index={index}
+            isSelected={selectedPoItemIndexes.has(index)}
+            onToggleSelection={togglePoItemSelection}
+          />
+        </View>
+      ))}
+
+      <View style={[styles.detailRow, styles.overallTotalRow]}>
+        <Text style={styles.detailLabel}>Overall PO Total:</Text>
+        <Text style={styles.overallTotalValue}>
+          ₱{' '}
+          {overallTotal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const DeliveryDetailsCard = ({data}) => {
+  if (!data) return null;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTitleContainer}>
+        <Text style={styles.cardTitle}>Delivery Details</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <MaterialCommunityIcon
+          name="calendar"
+          size={20}
+          color="#607D8B"
+          style={styles.iconStyle}
+          accessibilityLabel="Delivery Date"
+        />
+        <Text style={styles.detailValue}>{data.DeliveryDate ?? '-'}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <MaterialCommunityIcon
+          name="calendar"
+          size={20}
+          color="#607D8B"
+          style={styles.iconStyle}
+          accessibilityLabel="Delivery Date"
+        />
+        <Text style={styles.detailValue}>
+          {data.DeliveryDatesHistory ?? '-'}
+        </Text>
+      </View>
+      <View style={styles.detailRow}>
+        <MaterialCommunityIcon
+          name="map-marker"
+          size={20}
+          color="#607D8B"
+          style={styles.iconStyle}
+          accessibilityLabel="Address"
+        />
+        <Text style={styles.detailValue}>{data.Address ?? '-'}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <MaterialCommunityIcon
+          name="phone"
+          size={20}
+          color="#607D8B"
+          style={styles.iconStyle}
+          accessibilityLabel="Contact Number"
+        />
+        <Text style={styles.detailValue}>{data.ContactNumber ?? '-'}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <MaterialCommunityIcon
+          name="account"
+          size={20}
+          color="#607D8B"
+          style={styles.iconStyle}
+          accessibilityLabel="Contact Person"
+        />
+        <Text style={styles.detailValue}>{data.ContactPerson ?? '-'}</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Status:</Text>
+        <Text style={styles.detailValue}>{data.Status}</Text>
+      </View>
+    </View>
+  );
+};
+
+const InspectionActivityCard = ({data, isLoading, isFetching}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const openModal = useCallback(index => {
+    setCurrentIndex(index);
+    setModalVisible(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalVisible(false);
+  }, []);
+
+  const renderFullscreenImage = useCallback(
+    ({item}) => (
+      <Image
+        source={{uri: item}}
+        style={modalStyles.fullscreenImageStyle}
+        resizeMode="contain"
+      />
+    ),
+    [],
+  );
+
+  const handleViewableItemsChanged = useCallback(({viewableItems}) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems.sort((a, b) => a.index - b.index)[0].index);
+    }
+  }, []);
+
+  if (isLoading || isFetching) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Inspection Activity</Text>
+        <ActivityIndicator
+          size="small"
+          color="#1a508c"
+          style={{marginTop: 10}}
+        />
+        <Text style={styles.detailText}>Loading inspection images...</Text>
+      </View>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle}>Inspection Activity</Text>
+        </View>
+        <Text style={styles.detailText}>
+          No inspection activity images available.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTitleContainer}>
+        <Text style={styles.cardTitle}>Inspection Activity</Text>
+      </View>
+      <View style={styles.imageContainer}>
+        {data.map((uri, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => openModal(index)}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={`View image ${index + 1}`}>
+            <Image source={{uri}} style={styles.image} resizeMode="cover" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        onRequestClose={closeModal}>
+        <View style={modalStyles.modalContainer}>
+          <TouchableOpacity
+            style={modalStyles.closeButton}
+            onPress={closeModal}
+            accessibilityRole="button"
+            accessibilityLabel="Close image viewer">
+            <Text style={modalStyles.closeButtonText}>X</Text>
+          </TouchableOpacity>
+          <FlatList
+            data={data}
+            renderItem={renderFullscreenImage}
+            keyExtractor={(item, index) => index.toString()}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={currentIndex}
+            getItemLayout={(data, index) => ({
+              length: screenWidth,
+              offset: screenWidth * index,
+              index,
+            })}
+            onViewableItemsChanged={handleViewableItemsChanged}
+            viewabilityConfig={{
+              itemVisiblePercentThreshold: 50,
+            }}
+          />
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// --- End of refactored components ---
 
 const InspectionDetails = ({route, navigation}) => {
   const {item} = route.params;
   const {
-    data: data,
-    isLoading: DetailsLoading,
-    error: DetailsError,
+    data: inspectionDetails,
+    isLoading: isDetailsLoading,
+    isFetching: isDetailsFetching,
+    error: detailsError,
     refetch,
   } = useInspectionDetails(
     item.Id,
@@ -40,15 +489,27 @@ const InspectionDetails = ({route, navigation}) => {
     item.TrackingPartner,
   );
 
+  const {
+    data: imageData,
+    isLoading: isImageLoading,
+    isFetching: isImageFetching,
+  } = useInspectorImages(item.Year, item.TrackingNumber);
+
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPoItemIndexes, setSelectedPoItemIndexes] = useState(new Set());
   const [showOnHoldRemarksInput, setShowOnHoldRemarksInput] = useState(false);
   const [selectedRemarkOption, setSelectedRemarkOption] = useState('');
   const [customRemark, setCustomRemark] = useState('');
   const [allPoItemsSelected, setAllPoItemsSelected] = useState(false);
+  const [showAllFabs, setShowAllFabs] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  const [previewImages, setPreviewImages] = useState([]); // Stores { uri: string, name: string, type: string }
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   useEffect(() => {
-    const poRecords = data?.poRecord;
+    const poRecords = inspectionDetails?.poRecord;
 
     if (poRecords && poRecords.length > 0) {
       const areAllCurrentlySelected = Array.from(
@@ -59,7 +520,29 @@ const InspectionDetails = ({route, navigation}) => {
     } else {
       setAllPoItemsSelected(false);
     }
-  }, [selectedPoItemIndexes, data?.poRecord]);
+  }, [selectedPoItemIndexes, inspectionDetails?.poRecord]);
+
+  const requestCameraPermission = useCallback(async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'App needs camera permission to take photos.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true; // iOS permissions are handled automatically when accessing camera
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -80,7 +563,7 @@ const InspectionDetails = ({route, navigation}) => {
   }, []);
 
   const toggleSelectAllPoItems = useCallback(() => {
-    const poRecords = data?.poRecord;
+    const poRecords = inspectionDetails?.poRecord;
     if (!poRecords || poRecords.length === 0) {
       return;
     }
@@ -93,12 +576,7 @@ const InspectionDetails = ({route, navigation}) => {
       );
       setSelectedPoItemIndexes(allIndexes);
     }
-  }, [allPoItemsSelected, data?.poRecord]);
-
-  const showFab = useMemo(
-    () => selectedPoItemIndexes.size > 0,
-    [selectedPoItemIndexes],
-  );
+  }, [allPoItemsSelected, inspectionDetails?.poRecord]);
 
   const handleInspected = useCallback(() => {
     const itemsToMarkInspected = Array.from(selectedPoItemIndexes);
@@ -132,7 +610,85 @@ const InspectionDetails = ({route, navigation}) => {
         },
       ],
     );
-  }, [selectedPoItemIndexes, refetch, data?.poRecord]);
+  }, [selectedPoItemIndexes, refetch]);
+
+  const handlePickImagesForPreview = useCallback(
+    async source => {
+      if (previewImages.length >= 5) {
+        Alert.alert(
+          'Maximum Images Reached',
+          'You can only select up to 5 images for preview.',
+        );
+        return;
+      }
+
+      try {
+        const remainingSlots = 5 - previewImages.length;
+
+        const options = {
+          mediaType: 'photo',
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.7,
+          includeBase64: false,
+          selectionLimit: remainingSlots, // Limit based on remaining slots
+        };
+
+        let response;
+        if (source === 'camera') {
+          const hasPermission = await requestCameraPermission();
+          if (!hasPermission) {
+            Alert.alert(
+              'Permission Denied',
+              'Camera permission is required to take photos.',
+            );
+            return;
+          }
+          response = await launchCamera(options);
+        } else if (source === 'gallery') {
+          response = await launchImageLibrary(options);
+        } else {
+          Alert.alert('Error', 'Invalid image source provided.');
+          return;
+        }
+
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+        } else if (response.errorMessage) {
+          Alert.alert('Error', `Image Picker Error: ${response.errorMessage}`);
+          console.error('Image Picker Error:', response.errorMessage);
+        } else if (response.assets && response.assets.length > 0) {
+          const newImageDetails = response.assets.map(asset => {
+            // *** ADD CONSOLE.LOG HERE FOR EACH PHOTO URI ***
+            console.log(
+              'Photo URI (from Image Picker/Camera Component):',
+              asset.uri,
+            );
+
+            return {
+              uri: asset.uri,
+              name: asset.fileName || asset.uri.split('/').pop(), // Use fileName if available, otherwise extract from URI
+              type: asset.type || 'image/jpeg', // Use type if available, otherwise default
+            };
+          });
+
+          // Combine existing and new images, ensuring not to exceed 5
+          const combinedImageDetails = [...previewImages, ...newImageDetails];
+          setPreviewImages(combinedImageDetails.slice(0, 5)); // Take only the first 5
+          setIsPreviewModalVisible(true); // <--- ADDED LINE: Show the preview modal
+        } else {
+          Alert.alert('Info', 'No image(s) selected.');
+        }
+      } catch (pickerError) {
+        Alert.alert(
+          'Error',
+          'An unexpected error occurred during image selection.',
+        );
+        console.error('Image picking error:', pickerError);
+      }
+    },
+    [selectedItem, previewImages, requestCameraPermission], // Dependencies for useCallback
+  );
 
   const handleInspectionOnHoldPress = useCallback(() => {
     const itemsToHold = Array.from(selectedPoItemIndexes);
@@ -144,6 +700,78 @@ const InspectionDetails = ({route, navigation}) => {
     setCustomRemark('');
     setShowOnHoldRemarksInput(true);
   }, [selectedPoItemIndexes]);
+
+  const handleUploadImages = useCallback(async () => {
+    if (previewImages.length === 0) {
+      Alert.alert('No Images', 'Please select images to upload first.');
+      return;
+    }
+
+    setIsUploadingImages(true);
+    // --- START: Your actual image upload logic here ---
+    console.log('Attempting to upload these images:', previewImages);
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network request
+
+    try {
+      // In a real app, you would send `previewImages` to your backend.
+      // This might involve FormData, fetch, axios, etc.
+      // Example (conceptual, replace with your actual API call):
+      /*
+      const formData = new FormData();
+      previewImages.forEach((img, index) => {
+        formData.append('images', {
+          uri: img.uri,
+          name: img.name,
+          type: img.type,
+        });
+      });
+      const response = await fetch('YOUR_UPLOAD_API_ENDPOINT', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          // 'Authorization': 'Bearer YOUR_AUTH_TOKEN'
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      const result = await response.json();
+      console.log('Upload success:', result);
+      */
+      Alert.alert('Success', 'Images uploaded successfully!');
+      setPreviewImages([]); // Clear preview images after successful upload
+      setIsPreviewModalVisible(false); // Close the modal
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      Alert.alert('Upload Failed', 'There was an error uploading images.');
+    } finally {
+      setIsUploadingImages(false);
+      // You might want to refetch inspection images here if they are immediately visible
+      // refetch();
+    }
+    // --- END: Your actual image upload logic here ---
+  }, [previewImages]);
+
+  const handleRemovePreviewImage = useCallback(indexToRemove => {
+    Alert.alert(
+      'Remove Image',
+      'Are you sure you want to remove this image from preview?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Remove',
+          onPress: () => {
+            setPreviewImages(prevImages =>
+              prevImages.filter((_, index) => index !== indexToRemove),
+            );
+          },
+        },
+      ],
+    );
+  }, []);
 
   const submitOnHoldRemarks = useCallback(async () => {
     const itemsToHold = Array.from(selectedPoItemIndexes);
@@ -197,33 +825,16 @@ const InspectionDetails = ({route, navigation}) => {
         },
       ],
     );
-  }, [
-    selectedPoItemIndexes,
-    selectedRemarkOption,
-    customRemark,
-    refetch,
-    data?.poRecord,
-  ]);
+  }, [selectedPoItemIndexes, selectedRemarkOption, customRemark, refetch]);
 
-  if (DetailsLoading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading inspection details...</Text>
-      </View>
-    );
-  }
+  const toggleMainFabs = useCallback(() => {
+    setShowAllFabs(prev => !prev);
+  }, []);
 
-  if (DetailsError) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error: {DetailsError.message}</Text>
-      </View>
-    );
-  }
-
-  const paymentData = data?.payment?.[0];
-  const poRecords = data?.poRecord;
-  const deliveryData = data?.delivery?.[0];
+  const paymentData = inspectionDetails?.payment?.[0];
+  const poTracking = inspectionDetails?.poTracking?.[0];
+  const poRecords = inspectionDetails?.poRecord;
+  const deliveryData = inspectionDetails?.delivery?.[0];
 
   return (
     <View style={styles.container}>
@@ -234,7 +845,9 @@ const InspectionDetails = ({route, navigation}) => {
           <Pressable
             style={styles.backButton}
             android_ripple={{color: '#F6F6F6', borderless: true, radius: 24}}
-            onPress={() => navigation.goBack()}>
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back">
             <Icon name="arrow-back" size={24} color="#fff" />
           </Pressable>
           <Text style={styles.title}>Inspection Details</Text>
@@ -247,37 +860,97 @@ const InspectionDetails = ({route, navigation}) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
-        {renderPayment({item, data: paymentData})}
-        {renderPO({
-          poRecords: poRecords,
-          selectedPoItemIndexes: selectedPoItemIndexes,
-          togglePoItemSelection: togglePoItemSelection,
-          allPoItemsSelected: allPoItemsSelected,
-          toggleSelectAllPoItems: toggleSelectAllPoItems,
-        })}
-        {renderDelivery({data: deliveryData})}
-        {renderInspectionActivity({data: deliveryData})}
+        {(isDetailsLoading && isDetailsFetching && !refreshing) ||
+        (isImageLoading && isImageFetching && !refreshing) ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#1a508c" />
+            <Text style={styles.loadingText}>
+              Loading inspection details and images...
+            </Text>
+          </View>
+        ) : detailsError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error: {detailsError.message}</Text>
+          </View>
+        ) : (
+          <>
+            <PaymentDetailsCard data={paymentData} />
+            <PurchaseOrderCard
+              poTracking={poTracking}
+              poRecords={poRecords}
+              selectedPoItemIndexes={selectedPoItemIndexes}
+              togglePoItemSelection={togglePoItemSelection}
+              allPoItemsSelected={allPoItemsSelected}
+              toggleSelectAllPoItems={toggleSelectAllPoItems}
+            />
+            <DeliveryDetailsCard data={deliveryData} />
+            <InspectionActivityCard
+              data={imageData}
+              isLoading={isImageLoading}
+              isFetching={isImageFetching}
+            />
+          </>
+        )}
       </ScrollView>
 
-      {showFab && (
-        <View style={styles.fabContainer}>
-          <Pressable
-            style={[styles.fab, styles.fabInspected]}
-            android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
-            onPress={handleInspected}>
-            <Icon name="checkmark-done-circle-outline" size={28} color="#fff" />
-            <Text style={styles.fabText}>Inspected</Text>
-          </Pressable>
-
-          <Pressable
-            style={[styles.fab, styles.fabOnHold]}
-            android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
-            onPress={handleInspectionOnHoldPress}>
-            <Icon name="pause-circle-outline" size={28} color="#fff" />
-            <Text style={styles.fabText}>On Hold</Text>
-          </Pressable>
-        </View>
-      )}
+      {/* FAB Container for all sub-FABs */}
+      <View style={styles.fabContainer}>
+        {showAllFabs && (
+          <>
+            <Pressable
+              style={[styles.fab, styles.fabCamera]}
+              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              onPress={() => handlePickImagesForPreview('camera')}
+              accessibilityRole="button"
+              accessibilityLabel="Take a new photo">
+              <Icon name="camera" size={28} color="#fff" />
+              {/* <Text style={styles.fabText}>Took Photo</Text> */}
+            </Pressable>
+            <Pressable
+              style={[styles.fab, styles.fabBrowse]}
+              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              onPress={() => handlePickImagesForPreview('gallery')}
+              accessibilityRole="button"
+              accessibilityLabel="Browse existing photos">
+              <Icon name="image" size={28} color="#fff" />
+              {/* <Text style={styles.fabText}>Browse</Text> */}
+            </Pressable>
+            <Pressable
+              style={[styles.fab, styles.fabInspected]}
+              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              onPress={handleInspected}
+              accessibilityRole="button"
+              accessibilityLabel="Mark selected items as inspected">
+              <Icon
+                name="checkmark-done-circle-outline"
+                size={28}
+                color="#fff"
+              />
+              {/* <Text style={styles.fabText}>Inspected</Text> */}
+            </Pressable>
+            <Pressable
+              style={[styles.fab, styles.fabOnHold]}
+              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              onPress={handleInspectionOnHoldPress}
+              accessibilityRole="button"
+              accessibilityLabel="Put selected items on hold">
+              <Icon name="pause-circle-outline" size={28} color="#fff" />
+              {/* <Text style={styles.fabText}>On Hold</Text> */}
+            </Pressable>
+          </>
+        )}
+        {/* Main FAB to toggle all other FABs */}
+        <Pressable
+          style={[styles.fab, styles.fabMainToggle]}
+          android_ripple={{color: '#F6F6F6', borderless: false, radius: 30}}
+          onPress={toggleMainFabs}
+          accessibilityRole="button"
+          accessibilityLabel={
+            showAllFabs ? 'Hide action buttons' : 'Show action buttons'
+          }>
+          <Icon name={showAllFabs ? 'close' : 'add'} size={30} color="#fff" />
+        </Pressable>
+      </View>
 
       {showOnHoldRemarksInput && (
         <KeyboardAvoidingView
@@ -286,6 +959,8 @@ const InspectionDetails = ({route, navigation}) => {
           <Pressable
             style={styles.remarksOverlayBackground}
             onPress={() => setShowOnHoldRemarksInput(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close remarks input"
           />
           <View style={styles.remarksInputContainer}>
             <Text style={styles.remarksTitle}>Reason for On Hold</Text>
@@ -306,6 +981,11 @@ const InspectionDetails = ({route, navigation}) => {
                     if (option !== 'Others') {
                       setCustomRemark('');
                     }
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Select reason: ${option}`}
+                  accessibilityState={{
+                    selected: selectedRemarkOption === option,
                   }}>
                   <Text
                     style={[
@@ -338,6 +1018,7 @@ const InspectionDetails = ({route, navigation}) => {
                 numberOfLines={3}
                 value={customRemark}
                 onChangeText={setCustomRemark}
+                accessibilityLabel="Custom remark input"
               />
             )}
 
@@ -352,7 +1033,9 @@ const InspectionDetails = ({route, navigation}) => {
                   setShowOnHoldRemarksInput(false);
                   setSelectedRemarkOption('');
                   setCustomRemark('');
-                }}>
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel on hold action">
                 <Text style={styles.remarksButtonText}>Cancel</Text>
               </Pressable>
               <Pressable
@@ -361,242 +1044,27 @@ const InspectionDetails = ({route, navigation}) => {
                   styles.remarksSubmitButton,
                   pressed && {opacity: 0.7},
                 ]}
-                onPress={submitOnHoldRemarks}>
+                onPress={submitOnHoldRemarks}
+                accessibilityRole="button"
+                accessibilityLabel="Submit on hold reason">
                 <Text style={styles.remarksButtonText}>Submit</Text>
               </Pressable>
             </View>
           </View>
         </KeyboardAvoidingView>
       )}
-    </View>
-  );
-};
-
-const renderPayment = ({item, data}) => {
-  if (!data) return null;
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>Payment Details</Text>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Tracking Number:</Text>
-        <Text style={styles.detailValue}>{data.TrackingNumber}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Year:</Text>
-        <Text style={styles.detailValue}>{data.Year}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Status:</Text>
-        <Text style={styles.detailValue}>{data.Status}</Text>
-      </View>
-      {data.Remarks && (
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Remarks:</Text>
-          <Text style={styles.detailValue}>{removeHtmlTags(data.Remarks)}</Text>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const RenderPOItem = ({itemData, index, isSelected, onToggleSelection}) => {
-  if (!itemData) return null;
-
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const [hasMoreLines, setHasMoreLines] = useState(false);
-
-  const handleTextLayout = useCallback(e => {
-    if (e.nativeEvent.lines.length > 2) {
-      setHasMoreLines(true);
-    }
-  }, []);
-
-  return (
-    <View
-      style={[
-        styles.poItemCard,
-        {
-          borderWidth: 1,
-          borderColor: isSelected ? '#1a508c' : '#eee',
-        },
-      ]}>
-      <Pressable
-        onPress={() => onToggleSelection(index)}
-        style={styles.poItemHeader}>
-        <Icon
-          name={isSelected ? 'checkbox-outline' : 'square-outline'}
-          size={24}
-          color={isSelected ? '#1a508c' : '#555'}
+      <View style={{zIndex: 999}}>
+        <ImagePreviewModal
+          isVisible={isPreviewModalVisible}
+          images={previewImages}
+          onClose={() => setIsPreviewModalVisible(false)}
+          onUpload={handleUploadImages}
+          onRemoveImage={handleRemovePreviewImage}
+          // Add these new props:
+          onPickMoreImages={handlePickImagesForPreview} // Pass the function
+          currentImageCount={previewImages.length} // Pass current count for limiting
         />
-        <Text style={styles.poItemTitle}>Item {index + 1}</Text>
-      </Pressable>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Qty/Unit:</Text>
-        <Text style={styles.detailValue}>
-          {itemData.Qty} / {itemData.Unit}
-        </Text>
-        <View style={styles.amountTotalContainer}>
-          <Text style={styles.detailLabel}>Amount:</Text>
-          <Text style={styles.detailValue}>
-            ₱{' '}
-            {parseFloat(itemData.Amount).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </Text>
-        </View>
       </View>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Total:</Text>
-        <Text style={styles.detailValue}>
-          ₱{' '}
-          {parseFloat(itemData.Total).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </Text>
-      </View>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Description:</Text>
-        <View style={{flexShrink: 1}}>
-          <Text
-            style={styles.detailValue}
-            numberOfLines={showFullDescription ? undefined : 2}
-            onTextLayout={handleTextLayout}>
-            {itemData.Description}
-          </Text>
-          {hasMoreLines && (
-            <Pressable
-              onPress={() => setShowFullDescription(!showFullDescription)}>
-              <Text style={styles.showMoreLessButton}>
-                {showFullDescription ? 'Show Less' : 'Show More'}
-              </Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
-    </View>
-  );
-};
-
-const renderPO = ({
-  poRecords,
-  selectedPoItemIndexes,
-  togglePoItemSelection,
-  allPoItemsSelected,
-  toggleSelectAllPoItems,
-}) => {
-  if (!poRecords || poRecords.length === 0) return null;
-
-  const overallTotal = poRecords.reduce(
-    (sum, item) => sum + parseFloat(item.Total || 0),
-    0,
-  );
-
-  const year = poRecords[0].Year;
-  const trackingNumber = poRecords[0].TrackingNumber;
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardTitleContainer}>
-        <Text style={styles.cardTitle}>Purchase Order</Text>
-        {poRecords.length > 0 && (
-          <Pressable
-            style={styles.selectAllButton}
-            android_ripple={{color: '#F6F6F6', borderless: true, radius: 20}}
-            onPress={toggleSelectAllPoItems}>
-            <Icon
-              name={allPoItemsSelected ? 'checkmark-circle' : 'ellipse-outline'}
-              size={20}
-              color={allPoItemsSelected ? '#1a508c' : '#555'}
-            />
-            <Text style={styles.selectAllButtonText}>
-              {allPoItemsSelected ? 'Deselect All' : 'Select All'}
-            </Text>
-          </Pressable>
-        )}
-      </View>
-
-      <View style={styles.detailRow}>
-        <Text style={styles.detailValue}>
-          {year} | {trackingNumber}
-        </Text>
-      </View>
-
-      {poRecords.map((item, index) => (
-        <View key={index} style={styles.poItemSeparator}>
-          <RenderPOItem
-            itemData={item}
-            index={index}
-            isSelected={selectedPoItemIndexes.has(index)}
-            onToggleSelection={togglePoItemSelection}
-          />
-        </View>
-      ))}
-
-      <View style={[styles.detailRow, styles.overallTotalRow]}>
-        <Text style={styles.detailLabel}>Overall PO Total:</Text>
-        <Text style={styles.overallTotalValue}>
-          ₱{' '}
-          {overallTotal.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </Text>
-      </View>
-    </View>
-  );
-};
-
-const renderDelivery = ({data}) => {
-  if (!data) return null;
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>Delivery Details</Text>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Delivery Date:</Text>
-        <Text style={styles.detailValue}>{data.DeliveryDate}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Date Inspected:</Text>
-        <Text style={styles.detailValue}>{data.DateInspected}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Address:</Text>
-        <Text style={styles.detailValue}>{data.Address}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Contact Number:</Text>
-        <Text style={styles.detailValue}>{data.ContactNumber}</Text>
-      </View>
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Status:</Text>
-        <Text style={styles.detailValue}>{data.Status}</Text>
-      </View>
-      {data.DeliveryDatesHistory && (
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Delivery History:</Text>
-          <Text style={styles.detailValue}>{data.DeliveryDatesHistory}</Text>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const renderInspectionActivity = ({data}) => {
-  if (!data) return null;
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>Inspection Activity</Text>
-      <Text style={styles.detailText}>
-        No specific inspection activity details available in the provided data
-        structure.
-      </Text>
     </View>
   );
 };
@@ -646,6 +1114,7 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
+
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 3,
@@ -654,15 +1123,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    borderBottomWidth: 1,
+    marginBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#eee',
-    paddingBottom: 8,
+    paddingBottom: 5,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1a508c',
+    marginBottom: 10,
   },
   selectAllButton: {
     flexDirection: 'row',
@@ -684,12 +1154,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   detailLabel: {
-    fontWeight: '600',
     color: '#555',
     marginRight: 8,
     flexShrink: 0,
   },
   detailValue: {
+    fontWeight: '600',
     color: '#333',
     flexShrink: 1,
   },
@@ -703,10 +1173,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f2f5',
+    minHeight: 200,
   },
   loadingText: {
     fontSize: 16,
     color: '#666',
+    marginTop: 10,
   },
   errorContainer: {
     flex: 1,
@@ -714,6 +1186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f0f2f5',
     padding: 20,
+    minHeight: 200,
   },
   errorText: {
     fontSize: 16,
@@ -740,9 +1213,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#f0f0f0',
     paddingBottom: 5,
+  },
+  headerContentRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  labelValueColumn: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  totalRightAlign: {
+    alignItems: 'flex-end',
+    marginTop: 5,
+    paddingEnd: 8,
+  },
+  amountRightAlign: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
   },
   poItemSeparator: {
     marginBottom: 10,
@@ -750,7 +1242,7 @@ const styles = StyleSheet.create({
   overallTotalRow: {
     marginTop: 15,
     paddingTop: 10,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#eee',
     justifyContent: 'flex-end',
   },
@@ -799,10 +1291,25 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   fabInspected: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#607D8B',
   },
   fabOnHold: {
-    backgroundColor: '#ffc107',
+    backgroundColor: '#607D8B',
+  },
+  fabCamera: {
+    backgroundColor: '#607D8B', // A neutral color for camera
+  },
+  fabBrowse: {
+    backgroundColor: '#607D8B', // A slightly warmer color for browse
+  },
+  fabMainToggle: {
+    backgroundColor: '#1a508c', // Main toggle FAB color
+    width: 60, // Make it a circle
+    height: 60, // Make it a circle
+    borderRadius: 30, // Make it a circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10, // Space it from other FABs
   },
   remarksOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -896,6 +1403,52 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  imageContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 5,
+    margin: 5,
+    resizeMode: 'cover',
+  },
+  iconStyle: {
+    marginRight: 20,
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  fullscreenImageStyle: {
+    width: screenWidth,
+    height: screenHeight,
   },
 });
 
