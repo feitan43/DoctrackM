@@ -17,15 +17,30 @@ import {
   Dimensions,
   TouchableOpacity,
   PermissionsAndroid,
+  Button,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useInspectionDetails, useInspectorImages} from '../hooks/useInspection'; // Assuming these hooks exist
+import {
+  useInspectionDetails,
+  useInspectItems,
+  useInspectorImages,
+  useUploadInspector,
+  useAddSchedule,
+  useRemoveInspectorImage,
+} from '../hooks/useInspection'; // Assuming these hooks exist
 import {removeHtmlTags} from '../utils'; // Assuming this utility exists
 import {ActivityIndicator} from 'react-native-paper'; // Assuming react-native-paper is installed
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CameraComponent from '../utils/CameraComponent';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import {useQueryClient} from '@tanstack/react-query';
+import useUserInfo from '../api/useUserInfo';
+import {showMessage} from 'react-native-flash-message';
+import ImmersiveMode from 'react-native-immersive-mode';
+import InvoiceInputModal from '../components/InvoiceInputModal';
+import DeliveryDateInputModal from '../components/DeliveryDateInputModal'; // Import the new modal
+import {officeMap} from '../utils/officeMap';
 
 const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 
@@ -56,6 +71,10 @@ const PaymentDetailsCard = ({data}) => {
     <View style={styles.card}>
       <View style={styles.cardTitleContainer}>
         <Text style={styles.cardTitle}>Payment Details</Text>
+      </View>
+      <View style={styles.detailRow}>
+        <Text style={[styles.detailLabel, {width: '30%'}]}>Office </Text>
+        <Text style={styles.detailValue}>{officeMap[data.Office]}</Text>
       </View>
       <View style={styles.detailRow}>
         <Text style={[styles.detailLabel, {width: '30%'}]}>TN </Text>
@@ -362,7 +381,12 @@ const DeliveryDetailsCard = ({data}) => {
   );
 };
 
-const InspectionActivityCard = ({data, isLoading, isFetching}) => {
+const InspectionActivityCard = ({
+  data,
+  isLoading,
+  isFetching,
+  onRemoveImage,
+}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -374,6 +398,32 @@ const InspectionActivityCard = ({data, isLoading, isFetching}) => {
   const closeModal = useCallback(() => {
     setModalVisible(false);
   }, []);
+
+  const handleRemoveCurrentImage = useCallback(() => {
+    if (onRemoveImage && data && data.length > 0) {
+      const imageToRemoveUri = data[currentIndex];
+
+      Alert.alert(
+        'Remove Image',
+        'Are you sure you want to remove this image?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Remove',
+            onPress: () => {
+              onRemoveImage(imageToRemoveUri);
+              closeModal();
+            },
+            style: 'destructive',
+          },
+        ],
+        {cancelable: true},
+      );
+    }
+  }, [onRemoveImage, data, currentIndex, closeModal]);
 
   const renderFullscreenImage = useCallback(
     ({item}) => (
@@ -439,15 +489,32 @@ const InspectionActivityCard = ({data, isLoading, isFetching}) => {
       <Modal
         visible={modalVisible}
         transparent={true}
+        statusBarTranslucent={true}
         onRequestClose={closeModal}>
         <View style={modalStyles.modalContainer}>
-          <TouchableOpacity
-            style={modalStyles.closeButton}
-            onPress={closeModal}
-            accessibilityRole="button"
-            accessibilityLabel="Close image viewer">
-            <Text style={modalStyles.closeButtonText}>X</Text>
-          </TouchableOpacity>
+          {/* New container for buttons on the top right */}
+          <View style={modalStyles.modalButtonContainer}>
+            {/* Remove Image Button (left of close button) */}
+            {/* {data.length > 0 && onRemoveImage && ( */}
+            <TouchableOpacity
+              style={modalStyles.modalActionButton} // Use common action button style
+              onPress={handleRemoveCurrentImage}
+              accessibilityRole="button"
+              accessibilityLabel="Remove current image">
+              <Icon name="trash-outline" size={32} color="#fff" />
+            </TouchableOpacity>
+            {/*  )} */}
+
+            {/* Close Button (rightmost) */}
+            <TouchableOpacity
+              style={modalStyles.modalActionButton} // Use common action button style
+              onPress={closeModal}
+              accessibilityRole="button"
+              accessibilityLabel="Close image viewer">
+              <Icon name="close-circle-outline" size={32} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
           <FlatList
             data={data}
             renderItem={renderFullscreenImage}
@@ -476,6 +543,7 @@ const InspectionActivityCard = ({data, isLoading, isFetching}) => {
 
 const InspectionDetails = ({route, navigation}) => {
   const {item} = route.params;
+  const {employeeNumber} = useUserInfo();
   const {
     data: inspectionDetails,
     isLoading: isDetailsLoading,
@@ -493,7 +561,28 @@ const InspectionDetails = ({route, navigation}) => {
     data: imageData,
     isLoading: isImageLoading,
     isFetching: isImageFetching,
+    refetch: refetchImages,
   } = useInspectorImages(item.Year, item.TrackingNumber);
+
+  const {
+    mutate: uploadImages,
+    isPending: isUploading,
+    isLoading,
+  } = useUploadInspector();
+
+  const {mutateAsync: inspectItems, isPending: isInspecting} =
+    useInspectItems();
+
+  const {mutate: addDeliveryDate, isPending: isAddingDeliveryDate} =
+    useAddSchedule();
+
+  const {mutate: removeImage, isPending: isRemovingImage} =
+    useRemoveInspectorImage();
+
+  const paymentData = inspectionDetails?.payment?.[0];
+  const poTracking = inspectionDetails?.poTracking?.[0];
+  const poRecords = inspectionDetails?.poRecord;
+  const deliveryData = inspectionDetails?.delivery?.[0];
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPoItemIndexes, setSelectedPoItemIndexes] = useState(new Set());
@@ -506,7 +595,31 @@ const InspectionDetails = ({route, navigation}) => {
 
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const [previewImages, setPreviewImages] = useState([]); // Stores { uri: string, name: string, type: string }
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  const [showIndividualLabels, setShowIndividualLabels] = useState({
+    camera: false,
+    browse: false,
+    inspected: false,
+    onHold: false,
+    addDeliveryDate: false, // New state for the new FAB label
+    revert: false,
+  });
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceDetails, setInvoiceDetails] = useState({
+    invoiceNumber: '',
+    invoiceDates: [], // Array to hold multiple dates
+  });
+
+  const [showDeliveryDateModal, setShowDeliveryDateModal] = useState(false); // New state for delivery date modal
+
+  const handleLongPress = fabName => {
+    setShowIndividualLabels(prev => ({...prev, [fabName]: true}));
+  };
+
+  const handlePressOut = fabName => {
+    setShowIndividualLabels(prev => ({...prev, [fabName]: false}));
+  };
 
   useEffect(() => {
     const poRecords = inspectionDetails?.poRecord;
@@ -547,6 +660,7 @@ const InspectionDetails = ({route, navigation}) => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
+    await refetchImages();
     setRefreshing(false);
   }, [refetch]);
 
@@ -580,16 +694,67 @@ const InspectionDetails = ({route, navigation}) => {
 
   const handleInspected = useCallback(() => {
     const itemsToMarkInspected = Array.from(selectedPoItemIndexes);
+    const totalItemsInPo = Array.isArray(poRecords) ? poRecords.length : 0;
+
+    const deliveryYear = deliveryData?.Year;
+    const deliveryId = deliveryData?.Id;
+    const trackingNumber = deliveryData?.TrackingNumber;
+    const paymentStatus = paymentData?.Status;
+
+    const inspectionStatus = 'Inspected';
+
     if (itemsToMarkInspected.length === 0) {
-      Alert.alert(
-        'No Items Selected',
-        'Please select items to mark as inspected.',
-      );
+      showMessage({
+        message: 'No Items Selected',
+        description: 'Please select items to mark as inspected.',
+        type: 'warning',
+        icon: 'warning',
+        floating: true,
+        duration: 3000,
+      });
       return;
     }
+
+    if (itemsToMarkInspected.length !== totalItemsInPo) {
+      showMessage({
+        message: 'Inspection Failed',
+        description: 'Please select all items before tagging Inspected.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    // --- New Logic for 'Inspection On Hold' ---
+    if (paymentStatus?.toLowerCase() === 'inspection on hold') {
+      setShowInvoiceModal(true); // Open the modal
+      return; // Stop further execution here
+    }
+    // --- End New Logic ---
+
+    if (paymentStatus?.toLowerCase() !== 'for inspection') {
+      showMessage({
+        message: 'Inspection Failed',
+        description: `Status should be 'For Inspection'. Current status: '${
+          paymentStatus || 'N/A'
+        }'`,
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
     Alert.alert(
-      'Mark as Inspected',
-      `Are you sure you want to mark ${itemsToMarkInspected.length} item(s) as "Inspected"?`,
+      'Confirm Inspection',
+      `Mark ${itemsToMarkInspected.length} item(s) as "Inspected"?`,
       [
         {
           text: 'Cancel',
@@ -597,30 +762,299 @@ const InspectionDetails = ({route, navigation}) => {
         },
         {
           text: 'Confirm',
-          onPress: async () => {
-            try {
-              Alert.alert('Success', 'Selected items marked as Inspected.');
-              setSelectedPoItemIndexes(new Set());
-              refetch();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to mark items as Inspected.');
-              console.error('Error marking as inspected:', error);
-            }
+          onPress: () => {
+            inspectItems(
+              {
+                year: deliveryYear,
+                deliveryId: deliveryId,
+                trackingNumber: trackingNumber,
+                inspectionStatus: inspectionStatus,
+                selectedPoItemIndexes: itemsToMarkInspected,
+              },
+              {
+                onSuccess: data => {
+                  showMessage({
+                    message: 'Inspection Successful',
+                    description:
+                      data?.message || 'Selected items marked as Inspected.',
+                    type: 'success',
+                    icon: 'success',
+                    backgroundColor: '#2E7D32',
+                    color: '#FFFFFF',
+                    floating: true,
+                    duration: 3000,
+                  });
+                  setSelectedPoItemIndexes(new Set());
+                  refetch();
+                },
+                onError: error => {
+                  console.error('Error marking as inspected:', error);
+                  showMessage({
+                    message: 'Inspection Failed',
+                    description:
+                      error.message || 'Failed to mark items as Inspected.',
+                    type: 'danger',
+                    icon: 'danger',
+                    backgroundColor: '#D32F2F',
+                    color: '#FFFFFF',
+                    floating: true,
+                    duration: 3000,
+                  });
+                },
+              },
+            );
           },
         },
       ],
+      {cancelable: false},
     );
-  }, [selectedPoItemIndexes, refetch]);
+  }, [
+    selectedPoItemIndexes,
+    deliveryData,
+    paymentData,
+    poRecords,
+    inspectItems,
+    refetch,
+    setSelectedPoItemIndexes,
+  ]);
+
+  const handleInspectionOnHoldPress = useCallback(() => {
+    const itemsToMarkOnHold = Array.from(selectedPoItemIndexes);
+    const totalItemsInPo = Array.isArray(poRecords) ? poRecords.length : 0;
+
+    const paymentStatus = paymentData?.Status;
+
+    if (itemsToMarkOnHold.length === 0) {
+      showMessage({
+        message: 'No Items Selected',
+        description: 'Please select items to mark as Inspection On Hold.',
+        type: 'warning',
+        icon: 'warning',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (itemsToMarkOnHold.length !== totalItemsInPo) {
+      showMessage({
+        message: 'Inspection Failed',
+        description:
+          'Please select all items before tagging Inspection On Hold.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (paymentStatus?.toLowerCase() !== 'for inspection') {
+      showMessage({
+        message: 'Inspection Failed',
+        description: `Status should be 'For Inspection'. Current status: '${
+          paymentStatus || 'N/A'
+        }'`,
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    // All initial checks passed, now show the remarks input
+    setShowOnHoldRemarksInput(true);
+  }, [selectedPoItemIndexes, poRecords, paymentData, showMessage]);
+
+  const handleRevertInspection = useCallback(() => {
+    const itemsToRevert = Array.from(selectedPoItemIndexes);
+    const totalItemsInPo = Array.isArray(poRecords) ? poRecords.length : 0;
+    const paymentStatus = paymentData?.Status;
+    const inspectionStatus = 'Revert';
+
+    if (itemsToRevert.length === 0) {
+      showMessage({
+        message: 'No Items Selected',
+        description: 'Please select items to revert.',
+        type: 'warning',
+        icon: 'warning',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (itemsToRevert.length !== totalItemsInPo) {
+      showMessage({
+        message: 'Revert Failed',
+        description: 'Please select all items before reverting inspection.',
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (paymentStatus?.toLowerCase() !== 'inspected') {
+      showMessage({
+        message: 'Action Not Allowed',
+        description: `Status should be 'Inspected' to revert. Current status: '${
+          paymentStatus || 'N/A'
+        }'`,
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    Alert.alert(
+      'Confirm Revert',
+      `Are you sure you want to revert ${itemsToRevert.length} item(s) to "For Inspection"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirm',
+          onPress: () => {
+            inspectItems(
+              {
+                year: deliveryData?.Year,
+                deliveryId: deliveryData?.Id,
+                trackingNumber: deliveryData?.TrackingNumber,
+                inspectionStatus: inspectionStatus, // Revert to 'For Inspection'
+                selectedPoItemIndexes: itemsToRevert,
+              },
+              {
+                onSuccess: data => {
+                  showMessage({
+                    message: 'Revert Successful',
+                    description:
+                      data?.message ||
+                      'Selected items reverted to For Inspection.',
+                    type: 'success',
+                    icon: 'success',
+                    backgroundColor: '#2E7D32',
+                    color: '#FFFFFF',
+                    floating: true,
+                    duration: 3000,
+                  });
+                  setSelectedPoItemIndexes(new Set());
+                  refetch();
+                },
+                onError: error => {
+                  console.error('Error reverting inspection:', error);
+                  showMessage({
+                    message: 'Revert Failed',
+                    description: error.message || 'Failed to revert items.',
+                    type: 'danger',
+                    icon: 'danger',
+                    backgroundColor: '#D32F2F',
+                    color: '#FFFFFF',
+                    floating: true,
+                    duration: 3000,
+                  });
+                },
+              },
+            );
+          },
+        },
+      ],
+      {cancelable: false},
+    );
+  }, [
+    selectedPoItemIndexes,
+    deliveryData,
+    paymentData,
+    poRecords,
+    inspectItems,
+    refetch,
+    setSelectedPoItemIndexes,
+  ]);
+
+  const handleAddDeliveryDate = useCallback(() => {
+    // Check if status is "Inspection On Hold"
+    if (paymentData?.Status?.toLowerCase() !== 'inspection on hold') {
+      showMessage({
+        message: 'Action Not Allowed',
+        description: `Can only add delivery date when status is 'Inspection On Hold'. Current status: '${
+          paymentData?.Status || 'N/A'
+        }'`,
+        type: 'danger',
+        icon: 'danger',
+        backgroundColor: '#D32F2F',
+        color: '#FFFFFF',
+        floating: true,
+        duration: 3000,
+      });
+      return;
+    }
+    // Open the delivery date modal
+    setShowDeliveryDateModal(true);
+  }, [paymentData?.Status]);
+
+const handleSubmitDeliveryDate = useCallback(
+  async date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    // The hour '0' (midnight) should be '12' in 12-hour format
+    hours = hours ? hours : 12; 
+
+    // Pad hours with leading zero if needed (e.g., 01 instead of 1 for 1 AM)
+    const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${amppm}`;
+    
+    // Combine all parts into the desired string format
+    const formattedDateTime = `${year}-${month}-${day} ${formattedTime}`;
+
+    // ... rest of your function ...
+    console.log(
+      'add',
+      formattedDateTime, // This will now be in 'YYYY-MM-DD HH:mm AM/PM'
+      deliveryId,
+      trackingNumber,
+      year, // Note: You have two 'year' variables, consider renaming one for clarity
+      prevDeliveryDate,
+    );
+    // ...
+    addDeliveryDate(
+      {
+        // ...
+        deliveryDate: formattedDateTime, // Pass the correctly formatted string
+      },
+      // ...
+    );
+  },
+  [deliveryData, addDeliveryDate, refetch],
+);
 
   const handlePickImagesForPreview = useCallback(
     async source => {
-      if (previewImages.length >= 5) {
+      /* if (previewImages.length >= 5) {
         Alert.alert(
           'Maximum Images Reached',
           'You can only select up to 5 images for preview.',
         );
         return;
-      }
+      } */
 
       try {
         const remainingSlots = 5 - previewImages.length;
@@ -631,7 +1065,7 @@ const InspectionDetails = ({route, navigation}) => {
           maxHeight: 800,
           quality: 0.7,
           includeBase64: false,
-          selectionLimit: remainingSlots, // Limit based on remaining slots
+          selectionLimit: remainingSlots,
         };
 
         let response;
@@ -667,15 +1101,14 @@ const InspectionDetails = ({route, navigation}) => {
 
             return {
               uri: asset.uri,
-              name: asset.fileName || asset.uri.split('/').pop(), // Use fileName if available, otherwise extract from URI
-              type: asset.type || 'image/jpeg', // Use type if available, otherwise default
+              name: asset.fileName || asset.uri.split('/').pop(),
+              type: asset.type || 'image/jpeg',
             };
           });
 
-          // Combine existing and new images, ensuring not to exceed 5
           const combinedImageDetails = [...previewImages, ...newImageDetails];
-          setPreviewImages(combinedImageDetails.slice(0, 5)); // Take only the first 5
-          setIsPreviewModalVisible(true); // <--- ADDED LINE: Show the preview modal
+          setPreviewImages(combinedImageDetails.slice(0, 5));
+          setIsPreviewModalVisible(true);
         } else {
           Alert.alert('Info', 'No image(s) selected.');
         }
@@ -687,73 +1120,68 @@ const InspectionDetails = ({route, navigation}) => {
         console.error('Image picking error:', pickerError);
       }
     },
-    [selectedItem, previewImages, requestCameraPermission], // Dependencies for useCallback
+    [selectedItem, previewImages, requestCameraPermission],
   );
 
-  const handleInspectionOnHoldPress = useCallback(() => {
-    const itemsToHold = Array.from(selectedPoItemIndexes);
-    if (itemsToHold.length === 0) {
-      Alert.alert('No Items Selected', 'Please select items to put on hold.');
-      return;
-    }
-    setSelectedRemarkOption('');
-    setCustomRemark('');
-    setShowOnHoldRemarksInput(true);
-  }, [selectedPoItemIndexes]);
-
   const handleUploadImages = useCallback(async () => {
+    const year = paymentData?.Year;
+    const pxTN = paymentData?.TrackingNumber;
+
     if (previewImages.length === 0) {
-      Alert.alert('No Images', 'Please select images to upload first.');
+      showMessage({
+        message: 'No images selected for upload.',
+        type: 'warning',
+        icon: 'warning',
+      });
       return;
     }
 
-    setIsUploadingImages(true);
-    // --- START: Your actual image upload logic here ---
-    console.log('Attempting to upload these images:', previewImages);
+    uploadImages(
+      {
+        imagePath: previewImages,
+        year: year,
+        pxTN: pxTN,
+        employeeNumber: employeeNumber,
+      },
+      {
+        onSuccess: data => {
+          showMessage({
+            message: data.message || 'Images uploaded successfully!',
+            type: 'success',
+            icon: 'success',
+            floating: true,
+            duration: 3000,
+          });
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network request
-
-    try {
-      // In a real app, you would send `previewImages` to your backend.
-      // This might involve FormData, fetch, axios, etc.
-      // Example (conceptual, replace with your actual API call):
-      /*
-      const formData = new FormData();
-      previewImages.forEach((img, index) => {
-        formData.append('images', {
-          uri: img.uri,
-          name: img.name,
-          type: img.type,
-        });
-      });
-      const response = await fetch('YOUR_UPLOAD_API_ENDPOINT', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          // 'Authorization': 'Bearer YOUR_AUTH_TOKEN'
+          setPreviewImages([]);
+          setIsPreviewModalVisible(false);
         },
-      });
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-      const result = await response.json();
-      console.log('Upload success:', result);
-      */
-      Alert.alert('Success', 'Images uploaded successfully!');
-      setPreviewImages([]); // Clear preview images after successful upload
-      setIsPreviewModalVisible(false); // Close the modal
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      Alert.alert('Upload Failed', 'There was an error uploading images.');
-    } finally {
-      setIsUploadingImages(false);
-      // You might want to refetch inspection images here if they are immediately visible
-      // refetch();
-    }
-    // --- END: Your actual image upload logic here ---
-  }, [previewImages]);
+        onError: error => {
+          console.error('Image upload failed:', error);
+          showMessage({
+            message: 'Upload failed!',
+            description:
+              error.message || 'Something went wrong during image upload.',
+            type: 'danger',
+            icon: 'danger',
+            floating: true,
+            duration: 3000,
+          });
+        },
+        // The `onSettled` callback is useful if you want to perform actions regardless of success/error
+        // onSettled: () => {
+        //   setIsUploadingImages(false); // If you're managing a local state
+        // }
+      },
+    );
+  }, [
+    previewImages,
+    item,
+    employeeNumber,
+    uploadImages, // Make sure to include the mutate function in dependencies
+    setPreviewImages,
+    setIsPreviewModalVisible,
+  ]);
 
   const handleRemovePreviewImage = useCallback(indexToRemove => {
     Alert.alert(
@@ -808,15 +1236,51 @@ const InspectionDetails = ({route, navigation}) => {
           text: 'Confirm',
           onPress: async () => {
             try {
-              Alert.alert(
-                'Success',
-                'Selected items put on Inspection On Hold.',
+              inspectItems(
+                {
+                  year: deliveryData?.Year,
+                  deliveryId: deliveryData?.Id,
+                  trackingNumber: deliveryData?.TrackingNumber,
+                  inspectionStatus: 'OnHold',
+                  remarks: finalRemark,
+                  selectedPoItemIndexes: itemsToHold,
+                },
+                {
+                  onSuccess: data => {
+                    showMessage({
+                      message: 'Inspection On Hold Successful',
+                      description:
+                        data?.message ||
+                        'Selected items put on Inspection On Hold.',
+                      type: 'success',
+                      icon: 'success',
+                      backgroundColor: '#2E7D32',
+                      color: '#FFFFFF',
+                      floating: true,
+                      duration: 3000,
+                    });
+                    setSelectedPoItemIndexes(new Set());
+                    setSelectedRemarkOption('');
+                    setCustomRemark('');
+                    setShowOnHoldRemarksInput(false);
+                    refetch(); // Refetch details to update status
+                  },
+                  onError: error => {
+                    Alert.alert('Error', 'Failed to put items on hold.');
+                    console.error('Error putting on hold:', error);
+                    showMessage({
+                      message: 'Failed to Put On Hold',
+                      description: error.message || 'Something went wrong.',
+                      type: 'danger',
+                      icon: 'danger',
+                      backgroundColor: '#D32F2F',
+                      color: '#FFFFFF',
+                      floating: true,
+                      duration: 3000,
+                    });
+                  },
+                },
               );
-              setSelectedPoItemIndexes(new Set());
-              setSelectedRemarkOption('');
-              setCustomRemark('');
-              setShowOnHoldRemarksInput(false);
-              refetch();
             } catch (error) {
               Alert.alert('Error', 'Failed to put items on hold.');
               console.error('Error putting on hold:', error);
@@ -825,16 +1289,126 @@ const InspectionDetails = ({route, navigation}) => {
         },
       ],
     );
-  }, [selectedPoItemIndexes, selectedRemarkOption, customRemark, refetch]);
+  }, [
+    selectedPoItemIndexes,
+    selectedRemarkOption,
+    customRemark,
+    deliveryData,
+    inspectItems,
+    refetch,
+    setSelectedPoItemIndexes,
+  ]);
+
+  const handleSubmit = useCallback(
+    ({invoiceNumber, invoiceDates, noInvoice}) => {
+      // ... (existing logic to get itemsToMarkInspected, deliveryYear, etc.)
+      const itemsToMarkInspected = Array.from(selectedPoItemIndexes);
+      const deliveryYear = deliveryData?.Year;
+      const deliveryId = deliveryData?.Id;
+      const trackingNumber = deliveryData?.TrackingNumber;
+      const inspectionStatus = 'Inspected'; // Or 'Invoice Added' if that's a status
+
+      if (noInvoice) {
+        Alert.alert(
+          'Confirm Inspection (No Invoice)',
+          `Are you sure you want to mark ${itemsToMarkInspected.length} item(s) as "Inspected" without an invoice?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Confirm',
+              onPress: () => {
+                inspectItems(
+                  {
+                    year: deliveryYear,
+                    deliveryId: deliveryId,
+                    trackingNumber: trackingNumber,
+                    inspectionStatus: inspectionStatus,
+                    selectedPoItemIndexes: itemsToMarkInspected,
+                    invoiceDetails: {noInvoice: true},
+                  },
+                  // ... onSuccess, onError handlers
+                );
+              },
+            },
+          ],
+          {cancelable: false},
+        );
+      } else {
+        // Logic for "Invoice Provided" scenario
+        if (!invoiceNumber.trim() || invoiceDates.length === 0) {
+          showMessage({
+            message: 'Input Required',
+            description: 'Please enter invoice number and at least one date.',
+            type: 'warning',
+            icon: 'warning',
+            floating: true,
+            duration: 3000,
+          });
+          return;
+        }
+
+        Alert.alert(
+          'Confirm Inspection',
+          `Are you sure you want to mark ${
+            itemsToMarkInspected.length
+          } item(s) as "Inspected" with Invoice Number: ${invoiceNumber} and dates: ${invoiceDates.join(
+            ', ',
+          )}?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Confirm',
+              onPress: () => {
+                // Call inspectItems with invoice details
+                inspectItems(
+                  {
+                    year: deliveryYear,
+                    deliveryId: deliveryId,
+                    trackingNumber: trackingNumber,
+                    inspectionStatus: inspectionStatus,
+                    selectedPoItemIndexes: itemsToMarkInspected,
+                    invoiceDetails: {
+                      invoiceNumber: invoiceNumber,
+                      invoiceDates: invoiceDates,
+                      noInvoice: false,
+                    },
+                  },
+                  // ... onSuccess, onError handlers
+                );
+              },
+            },
+          ],
+          {cancelable: false},
+        );
+      }
+
+      // After calling inspectItems, set showInvoiceModal to false and reset invoiceDetails state
+      setShowInvoiceModal(false);
+      setInvoiceDetails({
+        invoiceNumber: '',
+        invoiceDates: [],
+        noInvoice: false,
+      });
+    },
+    [
+      selectedPoItemIndexes,
+      deliveryData,
+      inspectItems,
+      showMessage,
+      setShowInvoiceModal,
+      setInvoiceDetails,
+    ],
+  );
 
   const toggleMainFabs = useCallback(() => {
     setShowAllFabs(prev => !prev);
   }, []);
-
-  const paymentData = inspectionDetails?.payment?.[0];
-  const poTracking = inspectionDetails?.poTracking?.[0];
-  const poRecords = inspectionDetails?.poRecord;
-  const deliveryData = inspectionDetails?.delivery?.[0];
 
   return (
     <View style={styles.container}>
@@ -851,7 +1425,7 @@ const InspectionDetails = ({route, navigation}) => {
             <Icon name="arrow-back" size={24} color="#fff" />
           </Pressable>
           <Text style={styles.title}>Inspection Details</Text>
-          <View style={{flex: 1, width: 40}} />
+          {/* <View style={{flex: 1, width: 40}} /> */}
         </View>
       </ImageBackground>
 
@@ -893,50 +1467,136 @@ const InspectionDetails = ({route, navigation}) => {
         )}
       </ScrollView>
 
-      {/* FAB Container for all sub-FABs */}
       <View style={styles.fabContainer}>
         {showAllFabs && (
           <>
             <Pressable
               style={[styles.fab, styles.fabCamera]}
-              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              android_ripple={{
+                /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
+              }}
               onPress={() => handlePickImagesForPreview('camera')}
+              onLongPress={() => handleLongPress('camera')}
+              onPressOut={() => handlePressOut('camera')}
               accessibilityRole="button"
               accessibilityLabel="Take a new photo">
+              {showIndividualLabels.camera && (
+                <Text style={styles.fabText}>Take Photo</Text>
+              )}
               <Icon name="camera" size={28} color="#fff" />
-              {/* <Text style={styles.fabText}>Took Photo</Text> */}
             </Pressable>
             <Pressable
               style={[styles.fab, styles.fabBrowse]}
               android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
               onPress={() => handlePickImagesForPreview('gallery')}
+              onLongPress={() => handleLongPress('browse')}
+              onPressOut={() => handlePressOut('browse')}
               accessibilityRole="button"
               accessibilityLabel="Browse existing photos">
+              {showIndividualLabels.browse && (
+                <Text style={styles.fabText}>Browse</Text>
+              )}
               <Icon name="image" size={28} color="#fff" />
-              {/* <Text style={styles.fabText}>Browse</Text> */}
             </Pressable>
-            <Pressable
-              style={[styles.fab, styles.fabInspected]}
-              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
-              onPress={handleInspected}
-              accessibilityRole="button"
-              accessibilityLabel="Mark selected items as inspected">
-              <Icon
-                name="checkmark-done-circle-outline"
-                size={28}
-                color="#fff"
-              />
-              {/* <Text style={styles.fabText}>Inspected</Text> */}
-            </Pressable>
-            <Pressable
-              style={[styles.fab, styles.fabOnHold]}
-              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
-              onPress={handleInspectionOnHoldPress}
-              accessibilityRole="button"
-              accessibilityLabel="Put selected items on hold">
-              <Icon name="pause-circle-outline" size={28} color="#fff" />
-              {/* <Text style={styles.fabText}>On Hold</Text> */}
-            </Pressable>
+
+            <>
+              {(paymentData?.Status?.toLowerCase() === 'for inspection' ||
+                paymentData?.Status?.toLowerCase() ===
+                  'inspection on hold') && (
+                <Pressable
+                  style={[styles.fab, styles.fabInspected]}
+                  android_ripple={{
+                    color: '#F6F6F6',
+                    borderless: false,
+                    radius: 28,
+                  }}
+                  onPress={handleInspected}
+                  onLongPress={() => handleLongPress('inspected')}
+                  onPressOut={() => handlePressOut('inspected')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mark selected items as inspected">
+                  {showIndividualLabels.inspected && (
+                    <Text style={styles.fabText}>Inspected</Text>
+                  )}
+                  <Icon
+                    name="checkmark-done-circle-outline"
+                    size={28}
+                    color="#fff"
+                  />
+                </Pressable>
+              )}
+
+              {/* Inspection On Hold FAB */}
+              {paymentData?.Status === 'For Inspection' &&
+                paymentData.Status !== 'Inspection On Hold' && ( // This condition means it only shows if 'For Inspection' AND NOT 'Inspection On Hold'
+                  <Pressable
+                    style={[styles.fab, styles.fabOnHold]}
+                    android_ripple={{
+                      color: '#F6F6F6',
+                      borderless: true,
+                      radius: 28,
+                    }}
+                    onPress={handleInspectionOnHoldPress}
+                    onLongPress={() => handleLongPress('onHold')}
+                    onPressOut={() => handlePressOut('onHold')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Put selected items on hold">
+                    {showIndividualLabels.onHold && (
+                      <Text style={styles.fabText}>On Hold</Text>
+                    )}
+                    <Icon name="pause-circle-outline" size={28} color="#fff" />
+                  </Pressable>
+                )}
+
+              {paymentData?.Status === 'Inspected' && (
+                <Pressable
+                  style={[styles.fab, styles.fabOnHold]} // Using fabOnHold style for now, you can create a specific fabRevert style
+                  android_ripple={{
+                    color: '#F6F6F6',
+                    borderless: true,
+                    radius: 28,
+                  }}
+                  onPress={handleRevertInspection} // New handler for reverting
+                  onLongPress={() => handleLongPress('revert')}
+                  onPressOut={() => handlePressOut('revert')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Revert inspection status">
+                  {showIndividualLabels.revert && (
+                    <Text style={styles.fabText}>Revert</Text>
+                  )}
+                  <Icon
+                    name="arrow-undo-circle-outline"
+                    size={28}
+                    color="#fff"
+                  />
+                </Pressable>
+              )}
+
+              {/* Add Delivery Date FAB (New) */}
+              {paymentData?.Status?.toLowerCase() === 'inspection on hold' && (
+                <Pressable
+                  style={[styles.fab, styles.fabAddDeliveryDate]}
+                  android_ripple={{
+                    color: '#F6F6F6',
+                    borderless: false,
+                    radius: 28,
+                  }}
+                  onPress={handleAddDeliveryDate}
+                  onLongPress={() => handleLongPress('addDeliveryDate')}
+                  onPressOut={() => handlePressOut('addDeliveryDate')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add delivery date">
+                  {showIndividualLabels.addDeliveryDate && (
+                    <Text style={styles.fabText}>Add Delivery Date</Text>
+                  )}
+                  <Icon
+                    name="calendar-outline" // Choose an appropriate icon for date
+                    size={28}
+                    color="#fff"
+                  />
+                </Pressable>
+              )}
+            </>
           </>
         )}
         {/* Main FAB to toggle all other FABs */}
@@ -1053,14 +1713,67 @@ const InspectionDetails = ({route, navigation}) => {
           </View>
         </KeyboardAvoidingView>
       )}
+      <>
+        <View style={{zIndex: 999}}>
+          <InvoiceInputModal
+            isVisible={showInvoiceModal}
+            onClose={() => setShowInvoiceModal(false)}
+            invoiceDetails={invoiceDetails}
+            setInvoiceDetails={setInvoiceDetails}
+            onSubmit={handleSubmit}
+          />
+        </View>
+      </>
+      <>
+        <Modal
+          transparent={true}
+          animationType="none"
+          statusBarTranslucent={true}
+          visible={isInspecting}>
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingPanel}>
+              <ActivityIndicator size="large" color="#1a508c" />
+              <Text style={styles.loadingOverlayText}>
+                Processing Inspection...
+              </Text>
+            </View>
+          </View>
+        </Modal>
+      </>
+      <>
+        <Modal
+          transparent={true}
+          animationType="none"
+          statusBarTranslucent={true}
+          visible={isUploading}>
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingPanel}>
+              <ActivityIndicator size="large" color="#1a508c" />
+              <Text style={styles.loadingOverlayText}>Uploading Images...</Text>
+            </View>
+          </View>
+        </Modal>
+      </>
+      <>
+        <View style={{zIndex: 999}}>
+          <DeliveryDateInputModal // New Delivery Date Modal
+            isVisible={showDeliveryDateModal}
+            deliveryData={deliveryData}
+            onClose={() => setShowDeliveryDateModal(false)}
+            onSubmit={handleSubmitDeliveryDate}
+          />
+        </View>
+      </>
       <View style={{zIndex: 999}}>
         <ImagePreviewModal
           isVisible={isPreviewModalVisible}
           images={previewImages}
-          onClose={() => setIsPreviewModalVisible(false)}
+          onClose={() => {
+            setIsPreviewModalVisible(false);
+            setPreviewImages([]);
+          }}
           onUpload={handleUploadImages}
           onRemoveImage={handleRemovePreviewImage}
-          // Add these new props:
           onPickMoreImages={handlePickImagesForPreview} // Pass the function
           currentImageCount={previewImages.length} // Pass current count for limiting
         />
@@ -1093,7 +1806,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    textAlign: 'center',
   },
   backButton: {
     padding: 8,
@@ -1288,19 +2000,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginRight: 20,
   },
   fabInspected: {
-    backgroundColor: '#607D8B',
+    backgroundColor: '#3674B5',
   },
   fabOnHold: {
-    backgroundColor: '#607D8B',
+    backgroundColor: '#3674B5',
+  },
+  fabAddDeliveryDate: {
+    backgroundColor: '#3674B5', // A neutral color for camera
   },
   fabCamera: {
-    backgroundColor: '#607D8B', // A neutral color for camera
+    backgroundColor: '#3674B5', // A neutral color for camera
   },
   fabBrowse: {
-    backgroundColor: '#607D8B', // A slightly warmer color for browse
+    backgroundColor: '#3674B5', // A slightly warmer color for browse
   },
   fabMainToggle: {
     backgroundColor: '#1a508c', // Main toggle FAB color
@@ -1420,36 +2135,62 @@ const styles = StyleSheet.create({
   iconStyle: {
     marginRight: 20,
   },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999, // Ensure it's on top of everything
+  },
+  loadingPanel: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  loadingOverlayText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a508c',
+  },
 });
 
-const modalStyles = StyleSheet.create({
+const modalStyles = {
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButton: {
+  // New style for the button container
+  modalButtonContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
+    top: 40,
     right: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: 'row', // Arrange children in a row
+    alignItems: 'center', // Vertically align items
   },
-  closeButtonText: {
+  // Common style for individual buttons within the container
+  modalActionButton: {
+    padding: 10,
+    marginLeft: 10, // Add spacing between buttons
+  },
+  buttonText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   fullscreenImageStyle: {
     width: screenWidth,
-    height: screenHeight,
+    height: '100%',
   },
-});
+};
 
 export default InspectionDetails;

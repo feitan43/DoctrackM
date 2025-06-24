@@ -93,6 +93,7 @@ export const fetchInspectorImage = async (year, trackingNumber) => {
 };
 
 export const uploadInspector = async ({ imagePath, year, pxTN, employeeNumber }) => {
+  console.log("hatdog",imagePath, year, pxTN, employeeNumber );
   if (!imagePath || !year || !pxTN) {
     throw new Error('Missing required parameters');
   }

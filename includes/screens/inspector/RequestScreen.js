@@ -353,103 +353,152 @@ const RequestScreen = () => {
   ); */
 
   const renderItem = ({item, index}) => (
-  <View
-    style={{
-      backgroundColor: '#ffffff',
-      padding: 15,
-      borderRadius: 10,
-      marginVertical: 8,
-      marginHorizontal: 5,
-      elevation: 3,
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      shadowOffset: {width: 0, height: 2},
-    }}>
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 5,
+        backgroundColor: '#ffffff',
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 8,
+        marginHorizontal: 5,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        shadowOffset: {width: 0, height: 2},
       }}>
       <View
         style={{
-          width: 35,
-          height: 35,
-          justifyContent: 'center',
+          flexDirection: 'row',
           alignItems: 'center',
-          borderRadius: 10,
-          backgroundColor: 'rgba(230, 234, 245, 1)',
+          borderRadius: 5,
         }}>
-        <Text
+        <View
           style={{
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: 'rgb(7, 84, 252)',
-            textAlign: 'center',
+            width: 35,
+            height: 35,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 10,
+            backgroundColor: 'rgba(230, 234, 245, 1)',
           }}>
-          {index + 1}
-        </Text>
-      </View>
-
-      <View style={{flexDirection: 'column', flex: 1, marginLeft: 10}}>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-         {/*  <Text style={{flex: 0.2, fontSize: 14, color: '#555'}}>{''}</Text> */}
           <Text
             style={{
-              flex: 0.7,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: 'bold',
-              color: '#333',
+              color: 'rgb(7, 84, 252)',
+              textAlign: 'center',
             }}>
-            {item.Year}{' '}
+            {index + 1}
+          </Text>
+        </View>
+
+        <View style={{flexDirection: 'column', flex: 1, marginLeft: 10}}>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            {/*  <Text style={{flex: 0.2, fontSize: 14, color: '#555'}}>{''}</Text> */}
             <Text
               style={{
+                flex: 0.7,
                 fontSize: 16,
-                textAlign: 'center',
-                color: 'rgb(80, 161, 247)',
+                fontWeight: 'bold',
+                color: '#333',
               }}>
-              |
-            </Text>{' '}
-            {item.TrackingNumber}
-          </Text>
-        </View>
-     <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <Text style={{flex: 1, fontSize: 12, color: 'gray', fontWeight: '400'}}>{''}
-            {item.OfficeName}
-          </Text>
+              {item.Year}{' '}
+              <Text
+                style={{
+                  fontSize: 16,
+                  textAlign: 'center',
+                  color: 'rgb(80, 161, 247)',
+                }}>
+                |
+              </Text>{' '}
+              {item.TrackingNumber}
+            </Text>
+          </View>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Text
+              style={{flex: 1, fontSize: 12, color: 'gray', fontWeight: '400'}}>
+              {''}
+              {item.OfficeName}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
 
-    <View
-      style={{
-        alignSelf: 'center',
-        height: 1,
-        backgroundColor: '#ddd',
-        width: '100%',
-        marginVertical: 5,
-        borderRadius: 10,
-      }}
-    />
+      <View
+        style={{
+          alignSelf: 'center',
+          height: 1,
+          backgroundColor: '#ddd',
+          width: '100%',
+          marginVertical: 5,
+          borderRadius: 10,
+        }}
+      />
 
-    <View style={{paddingVertical: 10}}>
+      <View style={{paddingVertical: 10}}>
+        {[
+          {
+            label: 'Category',
+            value: `${item.CategoryCode}\n${item.CategoryName}`,
+          },
+        ].map(({label, value}, idx) => (
+          <View
+            key={idx}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              marginVertical: 4,
+            }}>
+            <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>
+              {label}
+            </Text>
+            <Text
+              style={{
+                flex: 0.7,
+                fontSize: 14,
+                fontWeight: 'bold',
+                color: '#333',
+              }}>
+              {value}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View
+        style={{
+          alignSelf: 'center',
+          height: 1,
+          backgroundColor: '#ddd',
+          width: '100%',
+          marginVertical: 5,
+          borderRadius: 10,
+        }}
+      />
+
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#0754FC',
+          marginBottom: 5,
+        }}>
+        Delivery
+      </Text>
       {[
-        {
-          label: 'Category',
-          value: `${item.CategoryCode}\n${item.CategoryName}`,
-        },
+        {label: 'Date', value: item.DeliveryDate},
+        {label: 'Address', value: item.Address},
+        {label: 'Contact', value: item.ContactPerson},
+        {label: '', value: item.ContactNumber},
       ].map(({label, value}, idx) => (
         <View
           key={idx}
           style={{
             flexDirection: 'row',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             marginVertical: 4,
           }}>
-          <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>
-            {label}
-          </Text>
+          <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>{label}</Text>
           <Text
             style={{
               flex: 0.7,
@@ -461,69 +510,22 @@ const RequestScreen = () => {
           </Text>
         </View>
       ))}
-    </View>
 
-    <View
-      style={{
-        alignSelf: 'center',
-        height: 1,
-        backgroundColor: '#ddd',
-        width: '100%',
-        marginVertical: 5,
-        borderRadius: 10,
-      }}
-    />
-
-    <Text
-      style={{
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#0754FC',
-        marginBottom: 5,
-      }}>
-      Delivery
-    </Text>
-    {[
-      {label: 'Date', value: item.DeliveryDate},
-      {label: 'Address', value: item.Address},
-      {label: 'Contact', value: item.ContactPerson},
-      {label: '', value: item.ContactNumber},
-    ].map(({label, value}, idx) => (
-      <View
-        key={idx}
+      <TouchableOpacity
         style={{
-          flexDirection: 'row',
+          backgroundColor: '#007bff',
+          paddingVertical: 10,
+          borderRadius: 8,
           alignItems: 'center',
-          marginVertical: 4,
-        }}>
-        <Text style={{flex: 0.3, fontSize: 14, color: '#555'}}>{label}</Text>
-        <Text
-          style={{
-            flex: 0.7,
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: '#333',
-          }}>
-          {value}
+          marginTop: 12,
+        }}
+        onPress={() => handleAssignInspector(item.Id, item.TrackingNumber)}>
+        <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold'}}>
+          Assign
         </Text>
-      </View>
-    ))}
-
-    <TouchableOpacity
-      style={{
-        backgroundColor: '#007bff',
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginTop: 12,
-      }}
-      onPress={() => handleAssignInspector(item.Id, item.TrackingNumber)}>
-      <Text style={{color: '#fff', fontSize: 16, fontWeight: 'bold'}}>
-        Assign
-      </Text>
-    </TouchableOpacity>
-  </View>
-);
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -605,6 +607,7 @@ const RequestScreen = () => {
       <Modal
         animationType="fade"
         transparent={true}
+        statusBarTranslucent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalContainer}>

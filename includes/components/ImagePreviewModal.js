@@ -1,4 +1,3 @@
-// Conceptual structure of ../components/ImagePreviewModal.js
 import React, {useEffect} from 'react';
 import {
   Modal,
@@ -27,6 +26,7 @@ const ImagePreviewModal = ({
   currentImageCount,
   isUploading,
 }) => {
+  
   useEffect(() => {
     ImmersiveMode.fullLayout(true);
     ImmersiveMode.setBarMode('BottomSticky');
@@ -70,7 +70,7 @@ const ImagePreviewModal = ({
     <Modal
       visible={isVisible}
       transparent={true} // Keep as true for overlay background
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View style={styles.modalOverlay}>

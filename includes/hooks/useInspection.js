@@ -37,8 +37,6 @@ export const useInspectionDetails = (id, year, pxtn, potn) => {
   });
 };
 
-
-
 export const useInspectionItems = (year, trackingNumber) => {
   return useQuery({
     queryKey: ["inspectionItems", year, trackingNumber],
@@ -120,20 +118,12 @@ export const useUploadInspector = () => {
     mutationFn: uploadInspector,
     retry: 2,
     onSuccess: (data, variables) => {
-      // Invalidate queries after successful upload
       queryClient.invalidateQueries(['inspectorImages', variables.year, variables.pxTN]);
-
-      // IMPORTANT: Don't call showMessage here.
-      // Don't do setImagePath([]), setShowUploading(false), bottomSheetRef.current?.close() here either,
-      // as these are UI concerns specific to the component that uses this mutation.
-      // Simply return/pass the success data if needed by the component.
-      return data; // Pass the data to the component's onSuccess
+      return data;
     },
     onError: (error) => {
       console.error('Upload failed:', error.message);
-      // IMPORTANT: Don't call showMessage here.
-      // Rethrow or return the error so the component's onError can handle it.
-      throw error; // Re-throw the error so the component's onError receives it
+      throw error; 
     },
   });
 };
