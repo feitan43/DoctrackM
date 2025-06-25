@@ -211,7 +211,6 @@ const App = () => {
           {isConnected ? (
             <>
               <Route />
-              {/* <Button title="Open Stallion" onPress={showModal} /> */}
             </>
           ) : (
             <View style={styles.noInternetContainer}>

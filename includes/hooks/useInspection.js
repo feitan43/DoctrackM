@@ -128,17 +128,21 @@ export const useUploadInspector = () => {
   });
 };
 
-export const useRemoveInspectorImage = (onSuccess, onError) => {
+export const useRemoveInspectorImage = ({ onSuccess, onError } = {}) => {
   return useMutation({
     mutationKey: ['removeInspectorImage'],
     mutationFn: removeInspectorImage,
     retry: 2,
     onSuccess: (data) => {
-      if (onSuccess) onSuccess(data);
+      if (typeof onSuccess === 'function') {
+        onSuccess(data);
+      }
     },
     onError: (error) => {
       console.error('Image removal failed:', error.message);
-      if (onError) onError(error);
+      if (typeof onError === 'function') {
+        onError(error);
+      }
     },
   });
 };

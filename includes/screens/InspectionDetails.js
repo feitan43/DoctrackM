@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo, useEffect} from 'react';
+import React, {useState, useCallback, useMemo, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -27,20 +27,20 @@ import {
   useUploadInspector,
   useAddSchedule,
   useRemoveInspectorImage,
-} from '../hooks/useInspection'; // Assuming these hooks exist
-import {removeHtmlTags} from '../utils'; // Assuming this utility exists
-import {ActivityIndicator} from 'react-native-paper'; // Assuming react-native-paper is installed
+  useEditDeliveryDate,
+} from '../hooks/useInspection';
+import {formatDateTime, removeHtmlTags} from '../utils';
+import {ActivityIndicator} from 'react-native-paper';
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-import CameraComponent from '../utils/CameraComponent';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import ImagePreviewModal from '../components/ImagePreviewModal';
-import {useQueryClient} from '@tanstack/react-query';
 import useUserInfo from '../api/useUserInfo';
 import {showMessage} from 'react-native-flash-message';
-import ImmersiveMode from 'react-native-immersive-mode';
 import InvoiceInputModal from '../components/InvoiceInputModal';
-import DeliveryDateInputModal from '../components/DeliveryDateInputModal'; // Import the new modal
+import DeliveryDateInputModal from '../components/DeliveryDateInputModal';
 import {officeMap} from '../utils/officeMap';
+import FastImage from 'react-native-fast-image';
+import EditDateModal from '../components/EditDateModal';
 
 const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 
@@ -50,8 +50,6 @@ const REMARKS_OPTIONS = [
   'Wrong Items Delivered',
   'Others',
 ];
-
-// --- Start of refactored components ---
 
 const PaymentDetailsCard = ({data}) => {
   if (!data) return null;
@@ -313,7 +311,7 @@ const PurchaseOrderCard = ({
   );
 };
 
-const DeliveryDetailsCard = ({data}) => {
+const DeliveryDetailsCard = ({data, deliveryHistory}) => {
   if (!data) return null;
 
   return (
@@ -321,6 +319,7 @@ const DeliveryDetailsCard = ({data}) => {
       <View style={styles.cardTitleContainer}>
         <Text style={styles.cardTitle}>Delivery Details</Text>
       </View>
+
       <View style={styles.detailRow}>
         <MaterialCommunityIcon
           name="calendar"
@@ -329,20 +328,33 @@ const DeliveryDetailsCard = ({data}) => {
           style={styles.iconStyle}
           accessibilityLabel="Delivery Date"
         />
-        <Text style={styles.detailValue}>{data.DeliveryDate ?? '-'}</Text>
+        <View style={{flex: 1}}>
+          {deliveryHistory?.[0]?.DeliveryDatesHistory ? (
+            deliveryHistory[0].DeliveryDatesHistory.split(',').map(
+              (date, index) => {
+                const trimmedDate = date.trim();
+                const isMatch =
+                  trimmedDate.toLowerCase() ===
+                  data.DeliveryDate?.trim().toLowerCase();
+
+                return (
+                  <Text
+                    key={index}
+                    style={[
+                      styles.detailValue,
+                      isMatch && {fontWeight: 'bold', color: '#007AFF'}, // Highlight match
+                    ]}>
+                    {`${index + 1}. ${trimmedDate}`}
+                  </Text>
+                );
+              },
+            )
+          ) : (
+            <Text style={styles.detailValue}>-</Text>
+          )}
+        </View>
       </View>
-      <View style={styles.detailRow}>
-        <MaterialCommunityIcon
-          name="calendar"
-          size={20}
-          color="#607D8B"
-          style={styles.iconStyle}
-          accessibilityLabel="Delivery Date"
-        />
-        <Text style={styles.detailValue}>
-          {data.DeliveryDatesHistory ?? '-'}
-        </Text>
-      </View>
+
       <View style={styles.detailRow}>
         <MaterialCommunityIcon
           name="map-marker"
@@ -389,32 +401,40 @@ const InspectionActivityCard = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedUri, setSelectedUri] = useState(null);
 
-  const openModal = useCallback(index => {
-    setCurrentIndex(index);
-    setModalVisible(true);
-  }, []);
+  const flatListRef = useRef(null);
+
+  const openModal = useCallback(
+    index => {
+      setCurrentIndex(index);
+      setModalVisible(true);
+
+      if (data && data[index]) {
+        const uri = data[index];
+        setSelectedUri(uri);
+        //console.log('Image selected (URI):', uri);
+      }
+    },
+    [data],
+  );
 
   const closeModal = useCallback(() => {
     setModalVisible(false);
+    setSelectedUri(null);
   }, []);
 
   const handleRemoveCurrentImage = useCallback(() => {
-    if (onRemoveImage && data && data.length > 0) {
-      const imageToRemoveUri = data[currentIndex];
-
+    if (selectedUri) {
       Alert.alert(
         'Remove Image',
         'Are you sure you want to remove this image?',
         [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
+          {text: 'Cancel', style: 'cancel'},
           {
             text: 'Remove',
             onPress: () => {
-              onRemoveImage(imageToRemoveUri);
+              onRemoveImage(selectedUri);
               closeModal();
             },
             style: 'destructive',
@@ -423,24 +443,42 @@ const InspectionActivityCard = ({
         {cancelable: true},
       );
     }
-  }, [onRemoveImage, data, currentIndex, closeModal]);
+  }, [onRemoveImage, selectedUri, closeModal]);
 
   const renderFullscreenImage = useCallback(
     ({item}) => (
-      <Image
-        source={{uri: item}}
-        style={modalStyles.fullscreenImageStyle}
-        resizeMode="contain"
-      />
+      <>
+        <FastImage
+          source={{
+            uri: `${item}?t=${new Date().getTime()}`,
+            priority: FastImage.priority.normal,
+            cache: FastImage.cacheControl.web,
+          }}
+          style={modalStyles.fullscreenImageStyle}
+          resizeMode={FastImage.resizeMode.contain}
+        />
+      </>
     ),
     [],
   );
 
-  const handleViewableItemsChanged = useCallback(({viewableItems}) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems.sort((a, b) => a.index - b.index)[0].index);
+  const handleViewableItemsChanged = useCallback(
+    ({viewableItems}) => {
+      if (viewableItems.length > 0) {
+        const sorted = viewableItems.sort((a, b) => a.index - b.index);
+        const index = sorted[0].index;
+        setCurrentIndex(index);
+        setSelectedUri(data[index]);
+      }
+    },
+    [data],
+  );
+
+  useEffect(() => {
+    if (modalVisible && flatListRef.current && currentIndex !== null) {
+      flatListRef.current.scrollToIndex({index: currentIndex, animated: false});
     }
-  }, []);
+  }, [modalVisible, currentIndex]);
 
   if (isLoading || isFetching) {
     return (
@@ -481,7 +519,15 @@ const InspectionActivityCard = ({
             onPress={() => openModal(index)}
             accessibilityRole="imagebutton"
             accessibilityLabel={`View image ${index + 1}`}>
-            <Image source={{uri}} style={styles.image} resizeMode="cover" />
+            <FastImage
+              source={{
+                uri: `${uri}?t=${new Date().getTime()}`,
+                priority: FastImage.priority.normal,
+                cache: FastImage.cacheControl.web,
+              }}
+              style={styles.image}
+              resizeMode={FastImage.resizeMode.cover}
+            />
           </TouchableOpacity>
         ))}
       </View>
@@ -492,22 +538,16 @@ const InspectionActivityCard = ({
         statusBarTranslucent={true}
         onRequestClose={closeModal}>
         <View style={modalStyles.modalContainer}>
-          {/* New container for buttons on the top right */}
           <View style={modalStyles.modalButtonContainer}>
-            {/* Remove Image Button (left of close button) */}
-            {/* {data.length > 0 && onRemoveImage && ( */}
             <TouchableOpacity
-              style={modalStyles.modalActionButton} // Use common action button style
-              onPress={handleRemoveCurrentImage}
+              style={modalStyles.modalActionButton}
+              onPress={() => handleRemoveCurrentImage(selectedUri)}
               accessibilityRole="button"
               accessibilityLabel="Remove current image">
               <Icon name="trash-outline" size={32} color="#fff" />
             </TouchableOpacity>
-            {/*  )} */}
-
-            {/* Close Button (rightmost) */}
             <TouchableOpacity
-              style={modalStyles.modalActionButton} // Use common action button style
+              style={modalStyles.modalActionButton}
               onPress={closeModal}
               accessibilityRole="button"
               accessibilityLabel="Close image viewer">
@@ -516,18 +556,19 @@ const InspectionActivityCard = ({
           </View>
 
           <FlatList
+            ref={flatListRef}
             data={data}
             renderItem={renderFullscreenImage}
             keyExtractor={(item, index) => index.toString()}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            initialScrollIndex={currentIndex}
             getItemLayout={(data, index) => ({
               length: screenWidth,
               offset: screenWidth * index,
               index,
             })}
+            initialScrollIndex={currentIndex}
             onViewableItemsChanged={handleViewableItemsChanged}
             viewabilityConfig={{
               itemVisiblePercentThreshold: 50,
@@ -538,8 +579,6 @@ const InspectionActivityCard = ({
     </View>
   );
 };
-
-// --- End of refactored components ---
 
 const InspectionDetails = ({route, navigation}) => {
   const {item} = route.params;
@@ -574,15 +613,54 @@ const InspectionDetails = ({route, navigation}) => {
     useInspectItems();
 
   const {mutate: addDeliveryDate, isPending: isAddingDeliveryDate} =
-    useAddSchedule();
+    useAddSchedule({
+      onSuccess: (data, variables, context) => {
+        showMessage('Delivery date updated successfully!', 'success');
+        refetch?.();
+      },
+      onError: (error, variables, context) => {
+        showMessage(
+          `Failed to update delivery date: ${error.message || 'Unknown error'}`,
+          'danger',
+        );
+        console.error('Delivery date update error:', error);
+      },
+    });
 
   const {mutate: removeImage, isPending: isRemovingImage} =
-    useRemoveInspectorImage();
+    useRemoveInspectorImage({
+      onSuccess: async data => {
+        if (data?.success) {
+          await refetchImages();
+          showMessage({
+            message: 'Image removed successfully',
+            type: 'success',
+            icon: 'success',
+            duration: 3000,
+            floating: true,
+          });
+        }
+      },
+      onError: error => {
+        showMessage({
+          message: 'Failed to remove image',
+          description: error.message,
+          type: 'danger',
+          icon: 'danger',
+          duration: 3000,
+          floating: true,
+        });
+      },
+    });
+
+  const {mutate: editDeliveryDate, isPending: editDeliveryDateLoading} =
+    useEditDeliveryDate();
 
   const paymentData = inspectionDetails?.payment?.[0];
   const poTracking = inspectionDetails?.poTracking?.[0];
   const poRecords = inspectionDetails?.poRecord;
   const deliveryData = inspectionDetails?.delivery?.[0];
+  const deliveryHistory = inspectionDetails?.deliveryHistory;
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPoItemIndexes, setSelectedPoItemIndexes] = useState(new Set());
@@ -603,6 +681,7 @@ const InspectionDetails = ({route, navigation}) => {
     onHold: false,
     addDeliveryDate: false, // New state for the new FAB label
     revert: false,
+    editDate: false,
   });
 
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -612,6 +691,7 @@ const InspectionDetails = ({route, navigation}) => {
   });
 
   const [showDeliveryDateModal, setShowDeliveryDateModal] = useState(false); // New state for delivery date modal
+  const [editDateModalVisible, setEditDateModalVisible] = useState(false);
 
   const handleLongPress = fabName => {
     setShowIndividualLabels(prev => ({...prev, [fabName]: true}));
@@ -1006,44 +1086,52 @@ const InspectionDetails = ({route, navigation}) => {
     setShowDeliveryDateModal(true);
   }, [paymentData?.Status]);
 
-const handleSubmitDeliveryDate = useCallback(
+  const handleSubmitDeliveryDate = useCallback(
   async date => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const deliveryId = deliveryData?.Id ?? null;
+    const curdeliveryDate = deliveryData?.DeliveryDate;
 
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    // The hour '0' (midnight) should be '12' in 12-hour format
-    hours = hours ? hours : 12; 
+    if (!deliveryId) {
+      console.warn('Delivery ID is missing, cannot add delivery date.');
+      Alert.alert('Error', 'Unable to process request: Delivery ID missing.');
+      return;
+    }
 
-    // Pad hours with leading zero if needed (e.g., 01 instead of 1 for 1 AM)
-    const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${amppm}`;
-    
-    // Combine all parts into the desired string format
-    const formattedDateTime = `${year}-${month}-${day} ${formattedTime}`;
+    const newDateObj = new Date(date);
+    const currentDateObj = new Date(curdeliveryDate);
 
-    // ... rest of your function ...
-    console.log(
-      'add',
-      formattedDateTime, // This will now be in 'YYYY-MM-DD HH:mm AM/PM'
-      deliveryId,
-      trackingNumber,
-      year, // Note: You have two 'year' variables, consider renaming one for clarity
-      prevDeliveryDate,
-    );
-    // ...
-    addDeliveryDate(
-      {
-        // ...
-        deliveryDate: formattedDateTime, // Pass the correctly formatted string
-      },
-      // ...
-    );
+    if (newDateObj < currentDateObj) {
+      Alert.alert(
+        'Invalid Date',
+        'New delivery date cannot be earlier than the current delivery date.'
+      );
+      return;
+    }
+
+    try {
+       addDeliveryDate({
+        date: date,
+        deliveryId: deliveryId,
+      });
+
+      refetch?.();
+
+      showMessage({
+        message: 'Delivery Date Added',
+        description: 'The delivery date has been successfully updated.',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('Failed to add delivery date:', error);
+      showMessage({
+        message: 'Error',
+        description: 'Failed to update delivery date. Please try again.',
+        type: 'danger',
+      });
+    }
   },
-  [deliveryData, addDeliveryDate, refetch],
+
+  [addDeliveryDate, refetch, deliveryData],
 );
 
   const handlePickImagesForPreview = useCallback(
@@ -1182,6 +1270,13 @@ const handleSubmitDeliveryDate = useCallback(
     setPreviewImages,
     setIsPreviewModalVisible,
   ]);
+
+  const handleDeleteImage = useCallback(
+    uriToRemove => {
+      removeImage(uriToRemove);
+    },
+    [removeImage],
+  );
 
   const handleRemovePreviewImage = useCallback(indexToRemove => {
     Alert.alert(
@@ -1388,7 +1483,6 @@ const handleSubmitDeliveryDate = useCallback(
         );
       }
 
-      // After calling inspectItems, set showInvoiceModal to false and reset invoiceDetails state
       setShowInvoiceModal(false);
       setInvoiceDetails({
         invoiceNumber: '',
@@ -1405,6 +1499,120 @@ const handleSubmitDeliveryDate = useCallback(
       setInvoiceDetails,
     ],
   );
+
+  const handleEditDate = useCallback(() => {
+    setEditDateModalVisible(true);
+  }, []);
+
+  function parseCustomDateTime(dateTimeStr) {
+    if (!dateTimeStr) {
+      return null;
+    }
+    const [datePart, timePart, meridian] = dateTimeStr.split(/[\s]+/);
+    const [year, month, day] = datePart.split('-').map(Number);
+    let [hour, minute] = timePart.split(':').map(Number);
+
+    if (meridian === 'PM' && hour !== 12) hour += 12;
+    if (meridian === 'AM' && hour === 12) hour = 0;
+
+    return new Date(year, month - 1, day, hour, minute);
+  }
+  const handleSubmitEditDate = useCallback(
+    async newDateString => {
+      try {
+        const deliveryId = deliveryData?.Id;
+        const originalDeliveryDateString = deliveryData?.DeliveryDate;
+
+        if (!deliveryId || !newDateString || !originalDeliveryDateString) {
+          console.warn(
+            'Missing deliveryId, newDate, or original DeliveryDate.',
+          );
+          Alert.alert(
+            'Error',
+            'Unable to process request due to missing information.',
+          );
+          return;
+        }
+
+        const newDate = parseCustomDateTime(newDateString);
+        const originalDate = parseCustomDateTime(originalDeliveryDateString);
+
+        if (
+          !newDate ||
+          isNaN(newDate.getTime()) ||
+          !originalDate ||
+          isNaN(originalDate.getTime())
+        ) {
+          console.error('Failed to parse date strings:', {
+            newDateString,
+            originalDeliveryDateString,
+          });
+          Alert.alert(
+            'Error',
+            'Could not process dates correctly. Please try again.',
+          );
+          return;
+        }
+
+        if (newDate < originalDate) {
+          Alert.alert(
+            'Invalid Date',
+            `The selected date and time cannot be earlier than the original delivery date:\n\n${originalDate.toLocaleDateString()} ${originalDate.toLocaleTimeString(
+              [],
+              {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              },
+            )}.`,
+            [{text: 'OK'}],
+            {cancelable: true},
+          );
+          return;
+        }
+
+        editDeliveryDate({
+          deliveryId,
+          deliveryDate: newDateString,
+          year: deliveryData.Year,
+          trackingNumber: deliveryData.TrackingNumber,
+        });
+
+        showMessage({
+          message: 'Delivery Date Updated',
+          description: 'The delivery date has been successfully changed.',
+          type: 'success',
+        });
+        setEditDateModalVisible(false);
+        refetch?.();
+      } catch (error) {
+        console.error('Error updating delivery date:', error);
+        Alert.alert(
+          'Update Failed',
+          'An unexpected error occurred. Please try again.',
+        );
+      }
+    },
+    [editDeliveryDate, deliveryData, refetch],
+  );
+
+  // const handleSubmitEditDate = useCallback(
+  //   newDate => {
+  //     if (!deliveryData?.Id || !newDate) {
+  //       console.warn('Missing deliveryId or newDate');
+  //       return;
+  //     }
+  //     console.log(newDate, deliveryData.DeliveryDate);
+
+  //    /*  editDeliveryDate({
+  //       deliveryId: deliveryData.Id,
+  //       deliveryDate: newDate,
+  //       year: deliveryData.Year,
+  //       trackingNumber: deliveryData.TrackingNumber,
+  //     }); */
+  //   },
+  //   [editDeliveryDate, deliveryData],
+  // );
 
   const toggleMainFabs = useCallback(() => {
     setShowAllFabs(prev => !prev);
@@ -1457,11 +1665,15 @@ const handleSubmitDeliveryDate = useCallback(
               allPoItemsSelected={allPoItemsSelected}
               toggleSelectAllPoItems={toggleSelectAllPoItems}
             />
-            <DeliveryDetailsCard data={deliveryData} />
+            <DeliveryDetailsCard
+              data={deliveryData}
+              deliveryHistory={deliveryHistory}
+            />
             <InspectionActivityCard
               data={imageData}
               isLoading={isImageLoading}
               isFetching={isImageFetching}
+              onRemoveImage={handleDeleteImage}
             />
           </>
         )}
@@ -1497,6 +1709,24 @@ const handleSubmitDeliveryDate = useCallback(
                 <Text style={styles.fabText}>Browse</Text>
               )}
               <Icon name="image" size={28} color="#fff" />
+            </Pressable>
+
+            <Pressable
+              style={[styles.fab, styles.fabEditDate]}
+              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              onPress={handleEditDate}
+              onLongPress={() => handleLongPress('editDate')}
+              onPressOut={() => handlePressOut('editDate')}
+              accessibilityRole="button"
+              accessibilityLabel="Edit delivery date and time">
+              {showIndividualLabels.editDate && (
+                <Text style={styles.fabText}>Edit Date</Text>
+              )}
+              <MaterialCommunityIcon
+                name="calendar-edit" // Changed icon to a more relevant "calendar-edit"
+                size={28}
+                color="white"
+              />
             </Pressable>
 
             <>
@@ -1723,6 +1953,30 @@ const handleSubmitDeliveryDate = useCallback(
             onSubmit={handleSubmit}
           />
         </View>
+      </>
+      <>
+        <View style={{zIndex: 999}}>
+          <EditDateModal
+            isVisible={editDateModalVisible}
+            onClose={() => setEditDateModalVisible(false)}
+            currentDate={deliveryData?.DeliveryDate}
+            onSubmit={handleSubmitEditDate}
+          />
+        </View>
+      </>
+      <>
+        <Modal
+          transparent={true}
+          animationType="none"
+          statusBarTranslucent={true}
+          visible={editDeliveryDateLoading || isAddingDeliveryDate || isRemovingImage}>
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingPanel}>
+              <ActivityIndicator size="large" color="#1a508c" />
+              <Text style={styles.loadingOverlayText}>Processing ...</Text>
+            </View>
+          </View>
+        </Modal>
       </>
       <>
         <Modal
@@ -2017,6 +2271,9 @@ const styles = StyleSheet.create({
   fabBrowse: {
     backgroundColor: '#3674B5', // A slightly warmer color for browse
   },
+  fabEditDate: {
+    backgroundColor: '#3674B5', // A slightly warmer color for browse
+  },
   fabMainToggle: {
     backgroundColor: '#1a508c', // Main toggle FAB color
     width: 60, // Make it a circle
@@ -2161,36 +2418,32 @@ const styles = StyleSheet.create({
   },
 });
 
-const modalStyles = {
+const modalStyles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'black',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  // New style for the button container
   modalButtonContainer: {
     position: 'absolute',
-    top: 40,
-    right: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: Platform.OS === 'android' ? 50 : 50,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', // <- semi-transparent black
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     zIndex: 1,
-    flexDirection: 'row', // Arrange children in a row
-    alignItems: 'center', // Vertically align items
   },
-  // Common style for individual buttons within the container
   modalActionButton: {
-    padding: 10,
-    marginLeft: 10, // Add spacing between buttons
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+    padding: 5,
   },
   fullscreenImageStyle: {
     width: screenWidth,
     height: '100%',
   },
-};
+});
 
 export default InspectionDetails;

@@ -179,6 +179,7 @@ const MyTransactionDetails = ({route, navigation}) => {
         onChange={handleSheetChanges}
         enablePanOnContent={true}
         enableHandlePanningGesture={true}
+        enablePanDownToClose={true}
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.bottomSheetHandle}
         /*  backdropComponent={props => (

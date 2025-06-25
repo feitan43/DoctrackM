@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import InspectionImage from './InspectionImage';
+import { officeMap } from '../../utils/officeMap';
 
 const RecentActivity = ({
   recentActivityData,
@@ -213,7 +214,7 @@ const RecentActivity = ({
                       }}
                       numberOfLines={1}
                       ellipsizeMode="tail">
-                      {item.OfficeName}
+                      {officeMap[item.Office]}
                     </Text>
 
                     <Text
@@ -245,7 +246,7 @@ const RecentActivity = ({
                           fontSize: 12,
                           color: '#252525',
                         }}>
-                        {item.TrackingNumber}
+                        {item.Year} | {item.TrackingNumber}
                       </Text>
                     </Text>
                   </View>

@@ -167,8 +167,8 @@ export const removeInspectorImage = async (imageUri) => {
     if (!res.ok) {
       throw new Error(responseText);
     }
-    console.log("fd",year,pxTN, fyl)
-    console.log("res",responseText)
+    //console.log("fd",year,pxTN, fyl)
+    //console.log("res",responseText)
 
     const data = JSON.parse(responseText);
     return data;

@@ -575,10 +575,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: '#252525',
-    paddingHorizontal: 10,
-    fontSize: 16,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#5d5d5d',
+    fontSize: 18,
+    marginStart: 10,
   },
   loadingContainer: {
     alignItems: 'center',

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   ImageBackground,
   StatusBar,
+  Button,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DeviceInfo from 'react-native-device-info';
@@ -17,7 +18,12 @@ import BASE_URL from '../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Rate, {AndroidMarket} from 'react-native-rate';
 import {Linking, Platform} from 'react-native';
-
+import {
+  withStallion,
+  useStallionUpdate,
+  restart,
+  useStallionModal,
+} from 'react-native-stallion';
 const version = DeviceInfo.getVersion();
 const buildNumber = DeviceInfo.getBuildNumber();
 const statusBarContentStyle = 'dark-content';
@@ -25,6 +31,8 @@ const statusBarHeight =
   Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
+  const {showModal} = useStallionModal();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [progressModalVisible, setProgressModalVisible] = useState(false);
 
@@ -147,9 +155,15 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
           />
         </View>
 
+        {employeeNumber === '391091' && (
+          <Button title="Open Stallion" onPress={showModal} />
+        )}
+        
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Version {version}</Text>
-          <Text style={[styles.versionText,{opacity:0.5}]}>Build No. {buildNumber}</Text>
+          <Text style={[styles.versionText, {opacity: 0.5}]}>
+            Build No. {buildNumber}
+          </Text>
         </View>
 
         {/* Logout Confirmation Modal */}

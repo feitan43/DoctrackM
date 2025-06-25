@@ -316,10 +316,10 @@ const DoctrackScreen = ({
                   }}>
                   <Text
                     style={{
-                      fontFamily: 'Inter_28pt-SemiBold',
+                      fontFamily: 'Inter_28pt-Bold',
                       color: '#5d5d5d',
-                      paddingHorizontal: 10,
-                      fontSize: 16,
+                      fontSize: 18,
+                      marginStart: 10,
                     }}>
                     Transaction Counter
                   </Text>
@@ -646,7 +646,7 @@ const DoctrackScreen = ({
                     flexWrap: 'wrap',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginTop:5
+                    marginTop: 5,
                   }}>
                   {requestsLoading ? (
                     <View
@@ -843,8 +843,6 @@ const DoctrackScreen = ({
                     </View>
                   </View>
                 ))}
-
-                  
 
               <View style={{marginTop: 20}}>
                 <RecentActivity
@@ -1177,7 +1175,7 @@ const DoctrackScreen = ({
                   condition: procurement === '1',
                   screen: 'BACAttachments',
                 }, */
-                 /*  {
+                /*  {
                   label: 'Inventory',
                   icon: true,
                   condition: procurement === '1',

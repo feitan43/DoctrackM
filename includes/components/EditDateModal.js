@@ -1,104 +1,47 @@
-import React, {useState, useCallback} from 'react';
-import {Modal, View, Text, Pressable, StyleSheet, Alert} from 'react-native'; // Import Alert
+import React, {useState, useEffect, useCallback} from 'react';
+import {Modal, View, Text, Pressable, StyleSheet, Alert} from 'react-native';
 import DatePicker from 'react-native-date-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {formatDateTime} from '../utils';
+import {formatDateTime} from '../utils'; // formats to 'YYYY-MM-DD hh:mm A'
 
-const DeliveryDateInputModal = ({
-  isVisible,
-  deliveryData,
-  onClose,
-  onSubmit,
-}) => {
+const EditDateModal = ({isVisible, currentDate, onClose, onSubmit}) => {
   const [selectedDateTime, setSelectedDateTime] = useState(new Date());
   const [openDatePicker, setOpenDatePicker] = useState(false);
   const [openTimePicker, setOpenTimePicker] = useState(false);
 
-  function parseCustomDateTime(dateTimeStr) {
-    const [datePart, timePart, meridian] = dateTimeStr.split(/[\s]+/);
-    const [year, month, day] = datePart.split('-').map(Number);
-    let [hour, minute] = timePart.split(':').map(Number);
+  // Parse date string into JS Date object
+  const parseCustomDateTime = dateTimeStr => {
+    if (!dateTimeStr) return new Date();
+    try {
+      const [datePart, timePart, meridian] = dateTimeStr.split(/[\s]+/);
+      const [year, month, day] = datePart.split('-').map(Number);
+      let [hour, minute] = timePart.split(':').map(Number);
 
-    if (meridian === 'PM' && hour !== 12) hour += 12;
-    if (meridian === 'AM' && hour === 12) hour = 0;
+      if (meridian === 'PM' && hour !== 12) hour += 12;
+      if (meridian === 'AM' && hour === 12) hour = 0;
 
-    return new Date(year, month - 1, day, hour, minute);
-  }
-
-  const handleSubmitPress = useCallback(() => {
-    if (!selectedDateTime || !deliveryData?.DeliveryDate) {
-      console.warn('Missing selectedDateTime or deliveryData.DeliveryDate');
-      return;
+      return new Date(year, month - 1, day, hour, minute);
+    } catch (error) {
+      console.warn('Failed to parse date:', error);
+      return new Date();
     }
+  };
 
-    const selected = new Date(selectedDateTime);
-    const delivery = parseCustomDateTime(deliveryData.DeliveryDate);
+  // Update selected date when modal is opened
+  useEffect(() => {
+    if (isVisible) {
+      setSelectedDateTime(parseCustomDateTime(currentDate));
+    }
+  }, [isVisible, currentDate]);
 
-    if (selected < delivery) {
-      // Replaced showMessage with Alert.alert
-      Alert.alert(
-        'Invalid Date/Time',
-        `Selected date and time cannot be earlier than the original delivery date: ${delivery.toLocaleDateString()} ${delivery.toLocaleTimeString(
-          [],
-          {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-          },
-        )}.`,
-        [{text: 'OK'}],
-        {cancelable: true},
-      );
+  const handleSubmit = useCallback(() => {
+    if (!selectedDateTime || isNaN(selectedDateTime.getTime())) {
+      Alert.alert('Invalid Date', 'Please select a valid date and time.');
       return;
     }
 
     onSubmit(formatDateTime(selectedDateTime));
-    onClose();
-  }, [selectedDateTime, deliveryData, onSubmit, onClose]);
-
-  const formatDisplayDateTime = useCallback(dateString => {
-    if (!dateString) return '';
-    try {
-      let date = new Date(
-        dateString.replace(/ AM$/, ' AM').replace(/ PM$/, ' PM'),
-      );
-
-      if (isNaN(date.getTime())) {
-        const [datePart, timePart, ampmPart] = dateString.split(' ');
-        const [year, month, day] = datePart.split('-').map(Number);
-        let [hours, minutes] = timePart.split(':').map(Number);
-
-        if (ampmPart === 'PM' && hours < 12) {
-          hours += 12;
-        } else if (ampmPart === 'AM' && hours === 12) {
-          hours = 0;
-        }
-
-        date = new Date(year, month - 1, day, hours, minutes);
-      }
-
-      if (isNaN(date.getTime())) {
-        console.warn(
-          'Could not parse deliveryData string for display:',
-          dateString,
-        );
-        return 'Invalid Date';
-      }
-
-      const options = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      };
-      return date.toLocaleString(undefined, options);
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid Date';
-    }
-  }, []);
+  }, [selectedDateTime, onSubmit, onClose]);
 
   return (
     <Modal
@@ -109,23 +52,21 @@ const DeliveryDateInputModal = ({
       onRequestClose={onClose}>
       <View style={modalStyles.overlay}>
         <View style={modalStyles.modalContainer}>
-          <Text style={modalStyles.modalTitle}>Add Delivery Date & Time</Text>
+          <Text style={modalStyles.modalTitle}>Edit Delivery Date & Time</Text>
 
-          {deliveryData && deliveryData.DeliveryDate && (
+          {currentDate && (
             <Text style={modalStyles.previousDateText}>
-              Previous Delivery:{' '}
-              {formatDisplayDateTime(deliveryData.DeliveryDate)}
+              Current Delivery: {currentDate}
             </Text>
           )}
 
+          {/* Date Picker Button */}
           <Pressable
             onPress={() => setOpenDatePicker(true)}
             style={modalStyles.datePickerButton}>
             <Icon name="calendar-outline" size={20} color="#1a508c" />
             <Text style={modalStyles.datePickerButtonText}>
-              {selectedDateTime
-                ? selectedDateTime.toLocaleDateString()
-                : 'Select Date'}
+              {selectedDateTime.toLocaleDateString()}
             </Text>
           </Pressable>
 
@@ -135,26 +76,26 @@ const DeliveryDateInputModal = ({
             date={selectedDateTime}
             onConfirm={date => {
               setOpenDatePicker(false);
-              setSelectedDateTime(date);
+              setSelectedDateTime(prev => new Date(
+                date.getFullYear(), date.getMonth(), date.getDate(),
+                prev.getHours(), prev.getMinutes()
+              ));
             }}
-            onCancel={() => {
-              setOpenDatePicker(false);
-            }}
+            onCancel={() => setOpenDatePicker(false)}
             mode="date"
           />
 
+          {/* Time Picker Button */}
           <Pressable
             onPress={() => setOpenTimePicker(true)}
             style={modalStyles.datePickerButton}>
             <Icon name="time-outline" size={20} color="#1a508c" />
             <Text style={modalStyles.datePickerButtonText}>
-              {selectedDateTime
-                ? selectedDateTime.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true,
-                  })
-                : 'Select Time'}
+              {selectedDateTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })}
             </Text>
           </Pressable>
 
@@ -162,18 +103,18 @@ const DeliveryDateInputModal = ({
             modal
             open={openTimePicker}
             date={selectedDateTime}
-            onConfirm={date => {
+            onConfirm={time => {
               setOpenTimePicker(false);
-              setSelectedDateTime(date);
+              setSelectedDateTime(prev => new Date(
+                prev.getFullYear(), prev.getMonth(), prev.getDate(),
+                time.getHours(), time.getMinutes()
+              ));
             }}
-            onCancel={() => {
-              setOpenTimePicker(false);
-            }}
+            onCancel={() => setOpenTimePicker(false)}
             mode="time"
-            /* minimumDate={minDate}
-            maximumDate={maxDate} */
           />
 
+          {/* Buttons */}
           <View style={modalStyles.buttonContainer}>
             <Pressable
               style={({pressed}) => [
@@ -184,13 +125,14 @@ const DeliveryDateInputModal = ({
               onPress={onClose}>
               <Text style={modalStyles.buttonText}>Cancel</Text>
             </Pressable>
+
             <Pressable
               style={({pressed}) => [
                 modalStyles.button,
                 modalStyles.submitButton,
                 pressed && {opacity: 0.7},
               ]}
-              onPress={handleSubmitPress}>
+              onPress={handleSubmit}>
               <Text style={modalStyles.buttonText}>Submit</Text>
             </Pressable>
           </View>
@@ -276,4 +218,4 @@ const modalStyles = StyleSheet.create({
   },
 });
 
-export default DeliveryDateInputModal;
+export default EditDateModal;

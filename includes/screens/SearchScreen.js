@@ -476,10 +476,11 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
               ]}
               //disabled={isSearching}
             >
-              <Icon name="filter-outline" size={24} color="#252525" />
-              <Text style={{fontSize: 14, fontWeight: '600', color: '#007AFF'}}>
+              <Text style={{fontSize: 16, fontWeight: '600', color: '#007AFF', }}>
                 {selectedYear}
               </Text>
+              <Icon name="filter-outline" size={24} color="#252525" />
+
               {/* <Text style={{color: '#fff', fontSize:12, fontWeight:'bold', }}>{selectedYear}</Text>
               <Icon name='close' size={24} color="#fff" /> */}
 
@@ -550,7 +551,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
+            //justifyContent: '',
             //backgroundColor:'red',
             paddingHorizontal: 20,
             width: '70%',
@@ -976,11 +977,11 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
             {/* {(caoReceiver === '1' || cboReceiver === '1') && renderReceive()} */}
           </>
 
-          {/* {caoReceiver === '1' && <>{renderReceive()}</>} */}
+          {caoReceiver === '1' && <>{renderReceive()}</>}
           {/*  {renderEvaluator()}
           {renderInspection()} */}
         </ScrollView>
-        <Modal transparent={true} visible={modalVisible} animationType="slide">
+        <Modal transparent={true} visible={modalVisible} statusBarTranslucent={true} animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <FlatList
@@ -1153,6 +1154,7 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
         <Modal
           visible={showScanner}
           animationType="none"
+          statusBarTranslucent={true}
           onRequestClose={handleCloseScanner}>
           <QRScanner onScan={handleScanSuccess} onClose={handleCloseScanner} />
         </Modal>
@@ -1580,7 +1582,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 2,
     marginRight: 10,
     height: 55,
     paddingLeft: 10,

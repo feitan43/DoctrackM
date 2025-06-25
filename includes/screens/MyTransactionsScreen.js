@@ -50,6 +50,7 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
               ]}>
               {item?.Status ?? ''}
             </Text>
+            <Text style={{fontSize:12, fontWeight:'400'}}>{item.DateModified}</Text>
           </View>
 
           {/* Details Section */}
