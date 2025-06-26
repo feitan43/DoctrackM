@@ -161,6 +161,66 @@ export const useUpdateUserSuperAccess = () => {
   return mutation;
 };
 
+export const updateUserInfo = async (payload) => {
+  console.log("pay2",payload)
+  if (
+    payload.employeeNumber === undefined ||
+    payload.employeeNumber === '' 
+  ) {
+    throw new Error('All fields in the payload are required for update.');
+  }
+
+  try {
+    const { data } = await apiClient.patch(
+      `/updateUserInfo`,
+      payload
+    );
+
+    if (data.success) {
+      return data;
+    } else {
+      throw new Error(data.message || 'Unexpected response format or API error');
+    }
+  } catch (error) {
+    if (error.response) {
+      const errorMessage =
+        error.response.data?.error || 'An unexpected error occurred';
+      console.error('Error updating user info:', errorMessage);
+      throw new Error(errorMessage);
+    } else {
+      console.error('Error updating user info:', error.message);
+      throw new Error(error.message || 'Failed to update user information.');
+    }
+  }
+};
+
+export const useUpdateUserInfo = () => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (payload) => {
+      if (
+        payload.employeeNumber === undefined ||
+        payload.employeeNumber === null
+      ) {
+        throw new Error('Employee number is required to update user info.');
+      }
+      return await updateUserInfo(payload);
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries(['employeeDetails', variables.employeeNumber]);
+      queryClient.invalidateQueries(['employeeList']); 
+    },
+    onError: (error) => {
+      console.error('Error updating user info via useUpdateUserInfo hook:', error.message);
+    },
+  });
+
+  return mutation;
+};
+
+
+
 export const fetchSystemsList = async () => {
   try {
     const response = await apiClient.get(`/getSystemList`);

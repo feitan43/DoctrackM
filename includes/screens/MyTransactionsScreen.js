@@ -22,6 +22,7 @@ import BottomSheet, {BottomSheetBackdrop} from '@gorhom/bottom-sheet';
 import {years, currentYear, width} from '../utils';
 import useUserInfo from '../api/useUserInfo';
 import { useQueryClient } from '@tanstack/react-query';
+import { officeMap } from '../utils/officeMap';
 
 const RenderTransaction = memo(({item, index, onPressItem}) => {
   const getShortMonth = month => month?.slice(0, 3) || '';
@@ -62,6 +63,11 @@ const RenderTransaction = memo(({item, index, onPressItem}) => {
             <View style={styles.textRow}>
               <Text style={styles.label}>TN </Text>
               <Text style={styles.value}>{item.TrackingNumber}</Text>
+            </View>
+
+            <View style={styles.textRow}>
+              <Text style={styles.label}>Office </Text>
+              <Text style={styles.value}>{officeMap[item.Office]}</Text>
             </View>
 
             {item.TrackingType !== 'PR' ? (

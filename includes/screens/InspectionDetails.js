@@ -389,6 +389,12 @@ const DeliveryDetailsCard = ({data, deliveryHistory}) => {
         <Text style={styles.detailLabel}>Status:</Text>
         <Text style={styles.detailValue}>{data.Status}</Text>
       </View>
+      {data.DateInspected && (
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Date Inspected:</Text>
+          <Text style={styles.detailValue}>{data.DateInspected}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -692,6 +698,7 @@ const InspectionDetails = ({route, navigation}) => {
 
   const [showDeliveryDateModal, setShowDeliveryDateModal] = useState(false); // New state for delivery date modal
   const [editDateModalVisible, setEditDateModalVisible] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   const handleLongPress = fabName => {
     setShowIndividualLabels(prev => ({...prev, [fabName]: true}));
@@ -1087,52 +1094,52 @@ const InspectionDetails = ({route, navigation}) => {
   }, [paymentData?.Status]);
 
   const handleSubmitDeliveryDate = useCallback(
-  async date => {
-    const deliveryId = deliveryData?.Id ?? null;
-    const curdeliveryDate = deliveryData?.DeliveryDate;
+    async date => {
+      const deliveryId = deliveryData?.Id ?? null;
+      const curdeliveryDate = deliveryData?.DeliveryDate;
 
-    if (!deliveryId) {
-      console.warn('Delivery ID is missing, cannot add delivery date.');
-      Alert.alert('Error', 'Unable to process request: Delivery ID missing.');
-      return;
-    }
+      if (!deliveryId) {
+        console.warn('Delivery ID is missing, cannot add delivery date.');
+        Alert.alert('Error', 'Unable to process request: Delivery ID missing.');
+        return;
+      }
 
-    const newDateObj = new Date(date);
-    const currentDateObj = new Date(curdeliveryDate);
+      const newDateObj = new Date(date);
+      const currentDateObj = new Date(curdeliveryDate);
 
-    if (newDateObj < currentDateObj) {
-      Alert.alert(
-        'Invalid Date',
-        'New delivery date cannot be earlier than the current delivery date.'
-      );
-      return;
-    }
+      if (newDateObj < currentDateObj) {
+        Alert.alert(
+          'Invalid Date',
+          'New delivery date cannot be earlier than the current delivery date.',
+        );
+        return;
+      }
 
-    try {
-       addDeliveryDate({
-        date: date,
-        deliveryId: deliveryId,
-      });
+      try {
+        addDeliveryDate({
+          date: date,
+          deliveryId: deliveryId,
+        });
 
-      refetch?.();
+        refetch?.();
 
-      showMessage({
-        message: 'Delivery Date Added',
-        description: 'The delivery date has been successfully updated.',
-        type: 'success',
-      });
-    } catch (error) {
-      console.error('Failed to add delivery date:', error);
-      showMessage({
-        message: 'Error',
-        description: 'Failed to update delivery date. Please try again.',
-        type: 'danger',
-      });
-    }
-  },
+        showMessage({
+          message: 'Delivery Date Added',
+          description: 'The delivery date has been successfully updated.',
+          type: 'success',
+        });
+      } catch (error) {
+        console.error('Failed to add delivery date:', error);
+        showMessage({
+          message: 'Error',
+          description: 'Failed to update delivery date. Please try again.',
+          type: 'danger',
+        });
+      }
+    },
 
-  [addDeliveryDate, refetch, deliveryData],
-);
+    [addDeliveryDate, refetch, deliveryData],
+  );
 
   const handlePickImagesForPreview = useCallback(
     async source => {
@@ -1633,7 +1640,14 @@ const InspectionDetails = ({route, navigation}) => {
             <Icon name="arrow-back" size={24} color="#fff" />
           </Pressable>
           <Text style={styles.title}>Inspection Details</Text>
-          {/* <View style={{flex: 1, width: 40}} /> */}
+          <Pressable
+            style={styles.infoIcon} // Apply the new style for positioning
+            android_ripple={{color: '#F6F6F6', borderless: true, radius: 20}}
+            onPress={() => setShowGuideModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Show inspection guide">
+            <Icon name="information-circle-outline" size={24} color="#fff" />
+          </Pressable>
         </View>
       </ImageBackground>
 
@@ -1699,7 +1713,9 @@ const InspectionDetails = ({route, navigation}) => {
             </Pressable>
             <Pressable
               style={[styles.fab, styles.fabBrowse]}
-              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              android_ripple={{
+                /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
+              }}
               onPress={() => handlePickImagesForPreview('gallery')}
               onLongPress={() => handleLongPress('browse')}
               onPressOut={() => handlePressOut('browse')}
@@ -1713,7 +1729,9 @@ const InspectionDetails = ({route, navigation}) => {
 
             <Pressable
               style={[styles.fab, styles.fabEditDate]}
-              android_ripple={{color: '#F6F6F6', borderless: false, radius: 28}}
+              android_ripple={{
+                /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
+              }}
               onPress={handleEditDate}
               onLongPress={() => handleLongPress('editDate')}
               onPressOut={() => handlePressOut('editDate')}
@@ -1736,9 +1754,7 @@ const InspectionDetails = ({route, navigation}) => {
                 <Pressable
                   style={[styles.fab, styles.fabInspected]}
                   android_ripple={{
-                    color: '#F6F6F6',
-                    borderless: false,
-                    radius: 28,
+                    /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
                   }}
                   onPress={handleInspected}
                   onLongPress={() => handleLongPress('inspected')}
@@ -1762,9 +1778,7 @@ const InspectionDetails = ({route, navigation}) => {
                   <Pressable
                     style={[styles.fab, styles.fabOnHold]}
                     android_ripple={{
-                      color: '#F6F6F6',
-                      borderless: true,
-                      radius: 28,
+                      /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
                     }}
                     onPress={handleInspectionOnHoldPress}
                     onLongPress={() => handleLongPress('onHold')}
@@ -1782,9 +1796,7 @@ const InspectionDetails = ({route, navigation}) => {
                 <Pressable
                   style={[styles.fab, styles.fabOnHold]} // Using fabOnHold style for now, you can create a specific fabRevert style
                   android_ripple={{
-                    color: '#F6F6F6',
-                    borderless: true,
-                    radius: 28,
+                    /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
                   }}
                   onPress={handleRevertInspection} // New handler for reverting
                   onLongPress={() => handleLongPress('revert')}
@@ -1807,9 +1819,7 @@ const InspectionDetails = ({route, navigation}) => {
                 <Pressable
                   style={[styles.fab, styles.fabAddDeliveryDate]}
                   android_ripple={{
-                    color: '#F6F6F6',
-                    borderless: false,
-                    radius: 28,
+                    /* color: '#F6F6F6', */ borderless: false /* radius: 28 */,
                   }}
                   onPress={handleAddDeliveryDate}
                   onLongPress={() => handleLongPress('addDeliveryDate')}
@@ -1969,7 +1979,9 @@ const InspectionDetails = ({route, navigation}) => {
           transparent={true}
           animationType="none"
           statusBarTranslucent={true}
-          visible={editDeliveryDateLoading || isAddingDeliveryDate || isRemovingImage}>
+          visible={
+            editDeliveryDateLoading || isAddingDeliveryDate || isRemovingImage
+          }>
           <View style={styles.loadingOverlay}>
             <View style={styles.loadingPanel}>
               <ActivityIndicator size="large" color="#1a508c" />
@@ -2032,6 +2044,161 @@ const InspectionDetails = ({route, navigation}) => {
           currentImageCount={previewImages.length} // Pass current count for limiting
         />
       </View>
+      <>
+        <Modal
+          animationType="fade" // Changed from 'slide' to 'fade' for a softer modern feel
+          transparent={true}
+          statusBarTranslucent={true}
+          visible={showGuideModal}
+          onRequestClose={() => setShowGuideModal(false)}>
+          <View style={styles.guideModalContainer}>
+            <View style={styles.guideModalContent}>
+              <Text style={styles.guideModalTitle}>How Inspection Works</Text>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.guideModalText}>
+                  This guide provides an overview of the inspection process:
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 1: Review Details
+                  </Text>
+                  Before starting an inspection, review the payment, purchase
+                  order, and delivery details provided. Ensure all information
+                  is accurate and matches the physical items being inspected.
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 2: Inspect Items
+                  </Text>
+                  Go through each item listed in the Purchase Order. Verify the
+                  quantity, unit, and description against the actual items
+                  received. Select each item as you inspect it.
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 3: Take Photos
+                  </Text>
+                  Document the condition of the items by taking clear photos.
+                  You can use your camera or browse from your gallery. Ensure
+                  images are well-lit and show any discrepancies or damage.
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 4: Mark as Inspected or On Hold
+                  </Text>
+                  - <Text style={{fontWeight: 'bold'}}>Inspected:</Text> If all
+                  selected items are in order, mark them as "Inspected." If the
+                  payment status is "Inspection On Hold," you will be prompted
+                  to enter invoice details. -{' '}
+                  <Text style={{fontWeight: 'bold'}}>On Hold:</Text> If there
+                  are issues (e.g., incomplete delivery, incorrect quantity),
+                  you can mark items as "Inspection On Hold" and provide a
+                  reason.
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 5: Revert Inspection (if needed)
+                  </Text>
+                  If an item was mistakenly marked as "Inspected," you can
+                  revert its status back to "For Inspection."
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 6: Edit Delivery Date
+                  </Text>
+                  You can adjust the delivery date if there are changes to the
+                  schedule.
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Step 7: Add Delivery Date (for On Hold items)
+                  </Text>
+                  If an inspection was put "On Hold" due to a missed delivery
+                  date, you can add a new delivery date once it's rescheduled.
+                  {'\n\n'}
+                  <Text style={styles.guideModalStepTitle}>
+                    Understanding the Action Buttons (FABs):
+                  </Text>
+                  The Floating Action Buttons (FABs) at the bottom right of the
+                  screen provide quick access to key actions. Tap the main{' '}
+                  <Icon name="add" size={16} color="#333" /> button to show or
+                  hide the following FABs:
+                  {'\n\n'}
+                  <Text
+                    style={{
+                      fontWeight: 'bold',
+                      fontSize: 20,
+                      textAlign: 'center',
+                    }}>
+                    • Take Photo
+                  </Text>{' '}
+                  (<Icon name="camera" size={30} color="#333" />
+                  ): Open your device's camera to capture new photos of the
+                  inspected items.
+                  {'\n'}
+                  <Text
+                    style={{
+                      fontWeight: 'bold',
+                      fontSize: 20,
+                      textAlign: 'center',
+                    }}>
+                    • Browse
+                  </Text>{' '}
+                  (<Icon name="image" size={30} color="#333" />
+                  ): Select existing photos from your device's gallery to
+                  upload.
+                  {'\n'}
+                  <Text style={{fontWeight: 'bold'}}>• Edit Date</Text> (
+                  <MaterialCommunityIcon
+                    name="calendar-edit"
+                    size={30}
+                    color="#333"
+                  />
+                  ): Modify the scheduled delivery date and time.
+                  {'\n'}
+                  <Text style={{fontWeight: 'bold'}}>• Inspected</Text> (
+                  <Icon
+                    name="checkmark-done-circle-outline"
+                    size={30}
+                    color="#333"
+                  />
+                  ): Mark all selected items as successfully inspected.
+                  {'\n'}
+                  <Text style={{fontWeight: 'bold'}}>• On Hold</Text> (
+                  <Icon name="pause-circle-outline" size={30} color="#333" />
+                  ): Put selected items on hold if there are issues, requiring
+                  you to provide a reason. This button is only available if the
+                  payment status is 'For Inspection'.
+                  {'\n'}
+                  <Text style={{fontWeight: 'bold'}}>• Revert</Text> (
+                  <Icon
+                    name="arrow-undo-circle-outline"
+                    size={30}
+                    color="#333"
+                  />
+                  ): Change the status of 'Inspected' items back to 'For
+                  Inspection'.
+                  {'\n'}
+                  <Text style={{fontWeight: 'bold'}}>
+                    • Add Delivery Date
+                  </Text>{' '}
+                  (<Icon name="calendar-outline" size={30} color="#333" />
+                  ): Add a new delivery date for items currently marked as
+                  'Inspection On Hold'.
+                  {'\n\n'}
+                  Remember to save your changes and sync regularly to ensure all
+                  inspection data is up-to-date.
+                </Text>
+              </ScrollView>
+              <Pressable
+                style={styles.guideCloseButton}
+                android_ripple={{
+                  color: '#F6F6F6',
+                  borderless: false,
+                  radius: 20,
+                }}
+                onPress={() => setShowGuideModal(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close guide">
+                <Text style={styles.guideCloseButtonText}>Got It!</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </>
     </View>
   );
 };
@@ -2415,6 +2582,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a508c',
+  },
+  guideModalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Slightly less opaque background
+  },
+  guideModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16, // Larger border radius for a softer look
+    padding: 24, // Increased padding
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4}, // Softer, more diffused shadow
+    shadowOpacity: 0.15, // Reduced opacity
+    shadowRadius: 10, // Increased radius for diffusion
+    elevation: 8, // Increased elevation for Android
+  },
+  guideModalTitle: {
+    fontSize: 22, // Slightly larger title
+    fontWeight: '700', // Bolder title
+    color: '#1a508c',
+    marginBottom: 20, // More space below title
+    textAlign: 'center',
+  },
+  guideModalText: {
+    fontSize: 16, // Slightly larger body text
+    color: '#333',
+    lineHeight: 24, // Increased line height for better readability
+    marginBottom: 20,
+  },
+  guideModalStepTitle: {
+    fontWeight: 'bold', // For bolding the step titles within the text
+    color: '#1a508c', // Make step titles stand out
+  },
+  guideCloseButton: {
+    backgroundColor: '#1a508c',
+    paddingVertical: 14, // Taller button
+    borderRadius: 12, // Match modal border radius
+    alignItems: 'center',
+    marginTop: 15, // Space above button
+  },
+  guideCloseButtonText: {
+    color: '#fff',
+    fontSize: 17, // Slightly larger text
+    fontWeight: '600', // Semi-bold
   },
 });
 

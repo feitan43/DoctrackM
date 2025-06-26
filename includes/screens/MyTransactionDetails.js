@@ -17,6 +17,7 @@ import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
+import { officeMap } from '../utils/officeMap';
 
 const MyTransactionDetails = ({route, navigation}) => {
   const {selectedItem} = route.params;
@@ -127,7 +128,7 @@ const MyTransactionDetails = ({route, navigation}) => {
 
         <View style={styles.detailsCard}>
           <DetailRow label="Year" value={selectedItem.Year} />
-          <DetailRow label="Office" value={selectedItem.OfficeName} />
+          <DetailRow label="Office" value={officeMap[selectedItem.Office]} />
 
           <DetailRow label="TN" value={selectedItem.TrackingNumber} />
           <DetailRow label="Claimant" value={selectedItem.Claimant} />

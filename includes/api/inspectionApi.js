@@ -83,11 +83,9 @@ export const fetchInspectorImage = async (year, trackingNumber) => {
        const image_URL = `https://www.davaocityportal.com/`;
       return data.images.map(image => `${image_URL}/tempUpload/${image}`);
     } else {
-      //console.error('Failed to fetch images:', data.error || 'Unknown error');
       return [];
     }
   } catch (error) {
-    console.error('Error fetching images:', error.message || error);
     return [];
   }
 };

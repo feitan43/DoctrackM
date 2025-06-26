@@ -26,6 +26,7 @@ import {useInspectorImages} from '../hooks/useInspection';
 import CustomModal from '../components/CustomModal';
 import RecentActivity from './inspector/RecentActivity';
 import TransactionProgress from '../components/TransactionProgress'; // Import the new component
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const DoctrackScreen = ({
   myTransactionsLength,
@@ -1297,13 +1298,17 @@ const DoctrackScreen = ({
                 {
                   label: 'Access',
                   icon: true,
-                  //condition: officeAdmin === '1',
+                  iconName: 'crown-outline',
                   screen: 'SuperAccess',
                 },
+                {
+                  label: 'Edit',
+                  icon: true,
+                  iconName: 'pencil-outline',
+                  screen: 'BossEditScreen',
+                },
               ].map((item, index) => {
-                if (item.condition === false) {
-                  return null;
-                }
+                if (item.condition === false) return null;
 
                 return (
                   <Pressable
@@ -1334,21 +1339,18 @@ const DoctrackScreen = ({
                     {({pressed}) => (
                       <>
                         {item.icon ? (
-                          <View style={{paddingVertical: 5}}>
-                            {/*  <Image
-                              source={require('../../assets/images/access.png')}
-                              style={{
-                                width: 30,
-                                height: 30,
-                                tintColor: pressed ? 'white' : '#007bff',
-                              }}
-                            /> */}
-                            <Icon
-                              name="glasses-outline"
-                              size={30}
-                              color={pressed ? 'white' : '#007bff'}
-                            />
-                          </View>
+                          <MaterialCommunityIcons
+                            name={item.iconName}
+                            size={30}
+                            color={
+                              pressed
+                                ? 'white'
+                                : item.iconName === 'crown-outline'
+                                ? '#007bff'
+                                : '#007bff'
+                            }
+                            style={{paddingVertical: 5}}
+                          />
                         ) : (
                           <Text
                             style={{
