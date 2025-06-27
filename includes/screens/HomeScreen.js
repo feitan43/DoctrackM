@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import BASE_URL from '../../config';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import {createDrawerNavigator} from '@react-navigation/drawer';
 import {
   View,
   StyleSheet,
@@ -18,9 +18,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
-import notifee, { AuthorizationStatus } from '@notifee/react-native';
-import { HStack, Banner } from '@react-native-material/core';
+import {Dropdown} from 'react-native-element-dropdown';
+import notifee, {AuthorizationStatus} from '@notifee/react-native';
+import {HStack, Banner} from '@react-native-material/core';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DoctrackScreen from './DoctrackScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,43 +38,40 @@ import useMyTransactions from '../api/useMyTransactions';
 import useUserInfo from '../api/useUserInfo';
 import useRecentlyUpdated from '../api/useRecentlyUpdated';
 import useOthers from '../api/useOthers';
-import { useBackButtonHandler } from '../utils/useBackButtonHandler';
+import {useBackButtonHandler} from '../utils/useBackButtonHandler';
 import useTransactionSummary from '../api/useTransactionSummary';
 import SearchScreen from './SearchScreen';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-//import useInspection from '../api/useInspection';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import useReceiving from '../api/useReceiving';
 import useTrackingSummary from '../api/useTrackingSummary';
 import useRegTrackingSummary from '../api/useRegTrackingSummary';
 import useMyAccountability from '../api/useMyAccountabilty';
 import useRequestInspection from '../api/useRequestInspection';
 import useOnSchedule from '../api/useOnSchedule';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import useRecentActivity from '../api/useRecentActivity';
-import { useEvaluationByStatus } from '../hooks/useEvaluationByStatus';
+import {useEvaluationByStatus} from '../hooks/useEvaluationByStatus';
 import {
   Menu,
   Divider,
   Provider as PaperProvider,
-  Dialog,
-  Portal,
-  RadioButton,
   Button,
 } from 'react-native-paper';
-import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { useEvaluatorSummary } from '../hooks/useEvaluatorSummary';
-import { useInspection } from '../hooks/useInspection';
-import DocTrackReceiverScreen from './DocTrackReceiverScreen';
+import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import {useEvaluatorSummary} from '../hooks/useEvaluatorSummary';
+import {
+  useInspection,
+  useInspectionRecentActivity,
+} from '../hooks/useInspection';
 
 const Drawer = createDrawerNavigator();
 
 const Tab = createBottomTabNavigator();
 const currentYear = new Date().getFullYear();
 
-const HomeScreen = ({ navigation }) => {
-  const { officeDelaysData, officeDelaysLength, fetchOfficeDelays } =
+const HomeScreen = ({navigation}) => {
+  const {officeDelaysData, officeDelaysLength, fetchOfficeDelays} =
     useOfficeDelays();
-  const { regOfficeDelaysLength, fetchDataRegOfficeDelays } =
+  const {regOfficeDelaysLength, fetchDataRegOfficeDelays} =
     useDelaysRegOffice();
   const {
     myTransactionsLength,
@@ -90,7 +87,11 @@ const HomeScreen = ({ navigation }) => {
     permission,
     accountType,
     token,
+    gsoInspection,
+    procurement,
+    officeAdmin,
     caoReceiver,
+    caoEvaluator,
   } = useUserInfo();
   const {
     recentlyUpdatedData,
@@ -128,20 +129,12 @@ const HomeScreen = ({ navigation }) => {
     loadingUseOthers,
     refetchDataOthers,
   } = useOthers(selectedYear);
-  /*  const {
-     forInspection,
-     inspected,
-     inspectionOnHold,
-     inspectionList,
-     inspectionListLoading,
-     error: inspectionListError,
-   } = useInspection(); */
   const {
-    recentActivityData,
-    recentActivityError,
-    recentActivityLoading,
-    fetchRecentActivity,
-  } = useRecentActivity();
+    data: recentActivityData,
+    isError: recentActivityError,
+    isLoading: recentActivityLoading,
+  } = useInspectionRecentActivity();
+
   const {
     receivingCountData,
     receivedMonthly,
@@ -151,8 +144,7 @@ const HomeScreen = ({ navigation }) => {
     receivingCount,
   } = useReceiving(selectedYear);
 
-
-  const { trackSumData, trackSumError, trackSumLoading, refetchTrackSum } =
+  const {trackSumData, trackSumError, trackSumLoading, refetchTrackSum} =
     useTrackingSummary(selectedYear);
   const {
     regTrackSumData,
@@ -160,32 +152,32 @@ const HomeScreen = ({ navigation }) => {
     regTrackSumLoading,
     refetchRegTrackSum,
   } = useRegTrackingSummary(selectedYear);
-  const { accountabilityData, error, fetchMyAccountability } =
+  const {accountabilityData, error, fetchMyAccountability} =
     useMyAccountability();
   const {
     requestsLength,
     loading: requestsLoading,
     fetchRequests,
   } = useRequestInspection();
-  const { dataLength: OnScheduleLength } = useOnSchedule();
-  const { data: onEvalData } = useEvaluationByStatus(
+
+  const {dataLength: OnScheduleLength} = useOnSchedule();
+  const {data: onEvalData} = useEvaluationByStatus(
     selectedYear,
     'On Evaluation - Accounting',
   );
-  const { data: evaluatedData } = useEvaluationByStatus(
+  const {data: evaluatedData} = useEvaluationByStatus(
     selectedYear,
     'Evaluated - Accounting',
   );
-  const { data: evalPendingData } = useEvaluationByStatus(
+  const {data: evalPendingData} = useEvaluationByStatus(
     selectedYear,
     'Pending at CAO',
   );
-  const { data: evalPendingReleased } = useEvaluationByStatus(
+  const {data: evalPendingReleased} = useEvaluationByStatus(
     selectedYear,
     'Pending Released - CAO',
   );
-  const { data: evaluatorSummary } = useEvaluatorSummary(selectedYear);
-
+  const {data: evaluatorSummary} = useEvaluatorSummary(selectedYear);
   const {
     data: inspection,
     isLoading: inspectionLoading,
@@ -194,28 +186,28 @@ const HomeScreen = ({ navigation }) => {
 
   const forInspection = Array.isArray(inspection)
     ? inspection.filter(
-      item => item?.Status?.toLowerCase() === 'for inspection',
-    ).length
+        item => item?.Status?.toLowerCase() === 'for inspection',
+      ).length
     : 0;
 
   const inspected = Array.isArray(inspection)
     ? inspection.filter(
-      item =>
-        item.DateInspected !== null &&
-        item.DateInspected !== '' &&
-        item?.Status?.toLowerCase() !== 'for inspection' &&
-        item?.Status?.toLowerCase() !== 'inspection on hold',
-    ).length
+        item =>
+          item.DateInspected !== null &&
+          item.DateInspected !== '' &&
+          item?.Status?.toLowerCase() !== 'for inspection' &&
+          item?.Status?.toLowerCase() !== 'inspection on hold',
+      ).length
     : 0;
 
   const inspectionOnHold = Array.isArray(inspection)
     ? inspection.filter(
-      item => item?.Status?.toLowerCase() === 'inspection on hold',
-    ).length
+        item => item?.Status?.toLowerCase() === 'inspection on hold',
+      ).length
     : 0;
 
   const years = Array.from(
-    { length: Math.max(0, currentYear - 2023 + 1) },
+    {length: Math.max(0, currentYear - 2023 + 1)},
     (_, index) => ({
       label: `${currentYear - index}`,
       value: currentYear - index,
@@ -254,15 +246,13 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   const handleYearSelect = year => {
-    setLoading(true); // Show loading indicator
+    setLoading(true);
     setSelectedYear(year);
     bottomSheetRef.current?.dismiss();
 
     setTimeout(() => {
-      setLoading(false); // Hide loading indicator after fetching data
-    }, 1500); // Adjust timing as needed
-
-
+      setLoading(false);
+    }, 1500);
   };
 
   const handleNotification = async () => {
@@ -294,7 +284,7 @@ const HomeScreen = ({ navigation }) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ EmployeeNumber: employeeNumber }),
+        body: JSON.stringify({EmployeeNumber: employeeNumber}),
       };
 
       const response = await fetch(`${BASE_URL}/logoutApi`, requestOptions);
@@ -335,7 +325,11 @@ const HomeScreen = ({ navigation }) => {
           privilege={privilege}
           permission={permission}
           caoReceiver={caoReceiver}
+          caoEvaluator={caoEvaluator}
           accountType={accountType}
+          officeAdmin={officeAdmin}
+          gsoInspection={gsoInspection}
+          procurement={procurement}
           liveUpdatedNowData={liveUpdatedNowData}
           updatedDateTime={updatedDateTime}
           dataPR={dataPR}
@@ -374,7 +368,7 @@ const HomeScreen = ({ navigation }) => {
           recentActivityData={recentActivityData}
           recentActivityError={recentActivityError}
           recentActivityLoading={recentActivityLoading}
-          fetchRecentActivity={fetchRecentActivity}
+          //fetchRecentActivity={fetchRecentActivity}
           receivingCount={receivingCount}
           receivingCountData={receivingCountData}
           // receivedMonthly={receivedMonthly}
@@ -401,12 +395,31 @@ const HomeScreen = ({ navigation }) => {
           evalPendingReleasedCount={evalPendingReleasedCount}
           evaluatorSummary={evaluatorSummary}
         />
-
       </>
     );
   };
 
-  const SettingsScreenComponent = ({ }) => {
+  const SearchScreenComponent = ({}) => {
+    return (
+      <SearchScreen
+        navigation={navigation}
+        officeCode={officeCode}
+        officeName={officeName}
+        privilege={privilege}
+        fullName={fullName}
+        employeeNumber={employeeNumber}
+        permission={permission}
+        caoReceiver={caoReceiver}
+        caoEvaluator={caoEvaluator}
+        accountType={accountType}
+        officeAdmin={officeAdmin}
+        gsoInspection={gsoInspection}
+        procurement={procurement}
+      />
+    );
+  };
+
+  const SettingsScreenComponent = ({}) => {
     return (
       <SettingsScreen
         navigation={navigation}
@@ -415,6 +428,13 @@ const HomeScreen = ({ navigation }) => {
         privilege={privilege}
         fullName={fullName}
         employeeNumber={employeeNumber}
+        permission={permission}
+        caoReceiver={caoReceiver}
+        caoEvaluator={caoEvaluator}
+        accountType={accountType}
+        officeAdmin={officeAdmin}
+        gsoInspection={gsoInspection}
+        procurement={procurement}
       />
     );
   };
@@ -426,14 +446,14 @@ const HomeScreen = ({ navigation }) => {
   const layout = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const [routes] = useState([
-    { key: 'doctrack', title: 'Home', icon: 'home-outline' },
-    { key: 'search', title: 'Search', icon: 'search-outline' },
-    { key: 'settings', title: 'More', icon: 'menu-outline' },
+    {key: 'doctrack', title: 'Home', icon: 'home-outline'},
+    {key: 'search', title: 'Search', icon: 'search-outline'},
+    {key: 'settings', title: 'More', icon: 'menu-outline'},
   ]);
 
   const renderScene = SceneMap({
     doctrack: DoctrackScreenComponent,
-    search: SearchScreen,
+    search: SearchScreenComponent,
     settings: SettingsScreenComponent,
   });
 
@@ -448,13 +468,8 @@ const HomeScreen = ({ navigation }) => {
           <SafeAreaLoader>
             {() => (
               <>
-                <StatusBar
-                  barStyle="light-content"
-                  backgroundColor="orange"
-                  translucent={true}
-                />
                 <ImageBackground
-                  source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
+                  source={require('../../assets/images/CirclesBG.png')}
                   style={styles.header}>
                   <Image
                     source={require('../../assets/images/docmobilelogo2.png')}
@@ -466,15 +481,6 @@ const HomeScreen = ({ navigation }) => {
                       tintColor: '#fff',
                     }}
                   />
-                  {/*  {accountType === '1' ||
-              (accountType === '4' && ( */}
-                  {/*  <View>
-                  <YearDropdown
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                  />
-                </View> */}
-                  {/*  ))} */}
 
                   <Menu
                     visible={visible}
@@ -530,12 +536,11 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                   </Modal>
 
-                  {/* Progress Modal */}
                   <Modal
                     animationType="fade"
                     transparent={true}
                     visible={progressModalVisible}
-                    onRequestClose={() => { }}>
+                    onRequestClose={() => {}}>
                     <View style={styles.modalOverlay}>
                       <View style={styles.modalContainer}>
                         <ActivityIndicator
@@ -561,7 +566,7 @@ const HomeScreen = ({ navigation }) => {
                         keyExtractor={item => item.value.toString()}
                         contentContainerStyle={styles.scrollableList} // Makes it scrollable
                         showsVerticalScrollIndicator={false} // Hides the scrollbar
-                        renderItem={({ item }) => (
+                        renderItem={({item}) => (
                           <Pressable
                             style={styles.yearItem}
                             onPress={() => handleYearSelect(item.value)}>
@@ -569,7 +574,7 @@ const HomeScreen = ({ navigation }) => {
                               style={[
                                 styles.yearText,
                                 selectedYear === item.value &&
-                                styles.selectedYear,
+                                  styles.selectedYear,
                               ]}>
                               {item.label}
                             </Text>
@@ -584,33 +589,32 @@ const HomeScreen = ({ navigation }) => {
                     style={styles.bannerContainer}
                     text="You haven't enabled notifications. Enable them for timely updates."
                     buttons={
-                      <HStack spacing={2}>
+                      <View style={styles.buttonStack}>
                         <Button
-                          key="fix-it"
-                          variant="contained"
-                          title="Enable Notifications"
+                          mode="contained"
                           onPress={handleNotification}
-                          titleStyle={{ fontSize: 12 }}
-                          style={{ backgroundColor: '#1a508c' }}
-                        />
+                          labelStyle={styles.buttonLabel}
+                          style={styles.containedButton}>
+                          Enable Notifications
+                        </Button>
                         <Button
-                          key="learn-more"
-                          variant="text"
+                          mode="text"
                           onPress={() => setShowReminder(false)}
-                          title="Dismiss"
-                          titleStyle={{ fontSize: 12, color: '#1a508c' }}
-                        />
-                      </HStack>
+                          labelStyle={styles.dismissButtonLabel}>
+                          Dismiss
+                        </Button>
+                      </View>
                     }
                   />
                 )}
                 <TabView
-                  navigationState={{ index, routes }}
+                  navigationState={{index, routes}}
                   renderScene={renderScene}
                   onIndexChange={setIndex}
-                  initialLayout={{ width: layout.width }}
+                  initialLayout={{width: layout.width}}
                   tabBarPosition="bottom"
                   transitionStyle="scroll"
+                  swipeEnabled={false} // 👈 disables swipe
                   // style={{backgroundColor: 'pink'}}
                   renderTabBar={props => (
                     <ImageBackground
@@ -618,7 +622,7 @@ const HomeScreen = ({ navigation }) => {
                       style={styles.tabBarBackground}>
                       <TabBar
                         {...props}
-                        renderIcon={({ route, focused }) => (
+                        renderIcon={({route, focused}) => (
                           <Icon
                             name={route.icon}
                             size={focused ? 22 : 20}
@@ -627,19 +631,19 @@ const HomeScreen = ({ navigation }) => {
                           />
                         )}
                         style={styles.tabBar}
-                        indicatorStyle={[styles.indicator, { top: 0 }]}
+                        indicatorStyle={[styles.indicator, {top: 0}]}
                         labelStyle={styles.tabLabel}
-                        getLabelText={({ route }) => route.title}
+                        getLabelText={({route}) => route.title}
                         android_ripple={false}
                         pressColor="transparent"
                       />
                     </ImageBackground>
                   )}
-                  pager={props => <TransitionPager {...props} />}
+                 /*  pager={props => <TransitionPager {...props} />} */
                 />
                 {loading && (
                   <View style={styles.loadingContainer}>
-                    <Text style={{ color: 'white' }}>
+                    <Text style={{color: 'white'}}>
                       Changing year to {selectedYear}...
                     </Text>
                   </View>
@@ -658,8 +662,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bannerContainer: {
-    paddingTop: 30,
     backgroundColor: 'white',
+  },
+  buttonStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // Add spacing between buttons, if not handled by a true HStack component
+    // For example, you might add margin to individual buttons
+  },
+  containedButton: {
+    backgroundColor: '#1a508c', // Your specified background color
+    marginRight: 8, // Add some space between buttons
+  },
+  buttonLabel: {
+    fontSize: 12,
+    color: 'white', // Contained buttons usually have white text
+  },
+  dismissButtonLabel: {
+    fontSize: 12,
+    color: '#1a508c', // Text buttons usually have colored text
   },
   scene: {
     flex: 1,
@@ -778,7 +799,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: {width: 0, height: -2},
   },
   handleIndicator: {
     width: 40,
@@ -788,10 +809,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 8,
   },
-  bottomSheetContent: { flex: 1, padding: 20, alignItems: 'center' },
+  bottomSheetContent: {flex: 1, padding: 20, alignItems: 'center'},
 
   // Title Styling
-  title: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+  title: {fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15},
 
   // Year Item Styling
   yearItem: {
@@ -801,7 +822,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-  yearText: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  yearText: {fontSize: 20, fontWeight: 'bold', color: '#333'},
   selectedYear: {
     fontWeight: 'bold',
     color: '#007AFF',

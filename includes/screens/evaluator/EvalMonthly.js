@@ -261,7 +261,6 @@ const EvalMonthly = ({navigation}) => {
             ListFooterComponent={() => (
               <View style={[styles.row, styles.footerRow]}>
                 <Text style={[styles.cell, {flex: 1.0, fontWeight: 'bold'}]}>
-                  {/* Total */}
                 </Text>
                 <Text style={[styles.cell, styles.totalCell]}>
                   {totalOnEvaluation}

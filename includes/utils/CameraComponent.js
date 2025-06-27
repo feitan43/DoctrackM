@@ -1,13 +1,15 @@
-import React, {useRef, useState, useEffect, useMemo} from 'react';
+import React, {useRef, useState, useEffect, useMemo, useCallback} from 'react';
 import {
   View,
   TouchableOpacity,
   Text,
-  PermissionsAndroid,
   StyleSheet,
   Alert,
   Image,
-  Pressable,
+  Platform,
+  Linking,
+  SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Camera,
@@ -17,60 +19,39 @@ import {
   CameraProps,
 } from 'react-native-vision-camera';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {CameraRoll, useCameraRoll} from '@react-native-camera-roll/camera-roll';
+import {CameraRoll} from '@react-native-camera-roll/camera-roll'; // Note: useCameraRoll is a hook, but CameraRoll.save is a static method
 import Reanimated, {
   useAnimatedProps,
   useSharedValue,
+  interpolate,
+  Extrapolation,
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
-import {interpolate, Extrapolation} from 'react-native-reanimated';
 
+// Reanimated must be whitelisted for direct prop manipulation
 Reanimated.addWhitelistedNativeProps({
   zoom: true,
 });
+
+// Create a reanimated version of the Camera component for animated props like zoom
 const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera);
 
-const CameraComponent = () => {
-  const [isPressed, setIsPressed] = useState(false);
-  const zoom = useSharedValue(device?.neutralZoom ?? 1); // Assuming 1 is a default value if neutralZoom is undefined
-  const [photo, setPhoto] = useState(null); // State variable to hold the photo object
-
-  const zoomOffset = useSharedValue(0);
-  const gesture = Gesture.Pinch()
-    .onBegin(() => {
-      zoomOffset.value = zoom.value;
-    })
-    .onUpdate(event => {
-      const z = zoomOffset.value * event.scale;
-      zoom.value = interpolate(
-        z,
-        [1, 10],
-        [device.minZoom, device.maxZoom],
-        Extrapolation.CLAMP,
-      );
-    });
-
-  const animatedProps =
-    useAnimatedProps < CameraProps > (() => ({zoom: zoom.value}), [zoom]);
-  const handlePressIn = () => {
-    setIsPressed(true);
-  };
-
-  const handlePressOut = () => {
-    setIsPressed(false);
-  };
-
-  const {hasPermission} = useCameraPermission();
-  const [cameraReady, setCameraReady] = useState(false);
-  const [cameraDevice, setCameraDevice] = useState('back'); // Initialize camera device state
-  const camera = useRef(null);
-  const [photos, getPhotos, save] = useCameraRoll();
-
-  const openCameraRoll = async () => {
-
-  };
-
-  
+/**
+ * CameraComponent
+ * A full-screen camera view for taking photos with zoom and device switching.
+ * It integrates with react-native-vision-camera and react-native-reanimated
+ * for camera control and gestures.
+ *
+ * @param {object} props - The component props.
+ * @param {function(string): void} props.onPhotoTaken - Callback function to be called with the URI of the captured photo.
+ * @param {function(): void} props.onClose - Callback function to close the camera view.
+ */
+const CameraComponent = ({onPhotoTaken, onClose}) => {
+  // State for camera device ('back' or 'front')
+  const [cameraDevice, setCameraDevice] = useState('back');
+  // Vision Camera hook for camera permission
+  const {hasPermission, requestPermission} = useCameraPermission();
+  // Camera device object from Vision Camera
   const device = useCameraDevice(cameraDevice, {
     physicalDevices: [
       'ultra-wide-angle-camera',
@@ -79,265 +60,331 @@ const CameraComponent = () => {
     ],
   });
 
-  const takePhoto = async () => {
-    console.log('TAKING PHOTO');
+  // Reanimated shared value for zoom level, initialized with neutralZoom if available
+  const zoom = useSharedValue(device?.neutralZoom ?? 1);
+  // Reanimated shared value for zoom offset during pinch gesture
+  const zoomOffset = useSharedValue(0);
+
+  // State to hold the most recently taken photo object (for preview in camera roll button)
+  const [lastSavedPhoto, setLastSavedPhoto] = useState(null);
+  // State to indicate if a photo is currently being captured
+  const [isCapturing, setIsCapturing] = useState(false);
+  // State to manage button press visual feedback
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
+
+  // Ref to access the Camera component methods
+  const cameraRef = useRef(null);
+
+  // Gesture handler for pinch-to-zoom
+  const pinchGesture = Gesture.Pinch()
+    .onBegin(() => {
+      zoomOffset.value = zoom.value; // Store current zoom at gesture start
+    })
+    .onUpdate(event => {
+      // Calculate new zoom based on pinch scale, clamping within device's min/max zoom
+      const newZoom = zoomOffset.value * event.scale;
+      zoom.value = interpolate(
+        newZoom,
+        [1, 10], // Input range for scale, can be adjusted
+        [device.minZoom, device.maxZoom], // Output range based on device capabilities
+        Extrapolation.CLAMP, // Clamp values to stay within bounds
+      );
+    });
+
+  // Animated props for the Camera component (specifically for zoom)
+  const animatedCameraProps = useAnimatedProps(() => ({
+    zoom: zoom.value,
+  }), [zoom]);
+
+  // Request camera permission on component mount if not already granted
+  useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
+
+  // Handles requesting camera permission and alerts user if denied
+  const handleRequestPermission = useCallback(async () => {
+    const granted = await requestPermission();
+    if (!granted) {
+      Alert.alert(
+        'Permission Denied',
+        'Camera access is required to take photos. Please enable it in your device settings.',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {text: 'Open Settings', onPress: () => Linking.openSettings()},
+        ],
+      );
+    }
+  }, [requestPermission]);
+
+  // Function to capture a photo
+  const takePhoto = useCallback(async () => {
+    if (cameraRef.current == null || isCapturing) {
+      // Prevent multiple captures simultaneously or if camera ref is not ready
+      return;
+    }
+
+    if (!hasPermission) {
+      // Ensure permission is granted before attempting to take photo
+      Alert.alert(
+        'Permission Required',
+        'Camera permission is needed to take photos. Please grant access.',
+      );
+      handleRequestPermission(); // Prompt for permission
+      return;
+    }
+
+    setIsCapturing(true); // Indicate that capture is in progress
+    setIsButtonPressed(true); // Visual feedback for button press
+
     try {
-      const photo = await camera.current.takePhoto({
-        flash: 'off',
-        enableAutoRedEyeReduction: true,
+      const photo = await cameraRef.current.takePhoto({
+        qualityPrioritization: 'quality', // Prioritize image quality
+        flash: 'off', // Can be 'on', 'off', 'auto'
+        enableShutterAndAutoFocusing: true,
       });
 
-      // Check if photo is not undefined before accessing its path property
       if (photo && photo.path) {
-        console.log('Took photo:', photo);
+        const photoUri = `file://${photo.path}`;
 
-        // Save the photo to camera roll using its path
-        await CameraRoll.save(photo.path);
+        // Save photo to device's camera roll
+        // This requires write permissions (READ_EXTERNAL_STORAGE/WRITE_EXTERNAL_STORAGE or READ_MEDIA_IMAGES)
+        try {
+          await CameraRoll.save(photoUri, {type: 'photo'});
+          setLastSavedPhoto(photo); // Update state for the camera roll preview icon
+          console.log('Photo saved to camera roll:', photoUri);
+        } catch (saveError) {
+          console.error('Failed to save photo to camera roll:', saveError);
+          // Alert user that photo was taken but couldn't be saved to gallery
+          Alert.alert('Save Error', 'Photo taken, but failed to save to gallery.');
+        }
 
-        setPhoto(photo);
-        console.log('Photo saved to camera roll');
+        // Pass the photo URI back to the parent component
+        onPhotoTaken(photoUri);
       } else {
-        throw new Error('Photo path is undefined');
+        throw new Error('Photo path is undefined after capture.');
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.'); // Display error message
+      Alert.alert('Capture Error', 'Failed to take photo. Please try again.');
+    } finally {
+      setIsCapturing(false); // Reset capture state
+      // Add a slight delay for visual feedback before resetting button state
+      setTimeout(() => setIsButtonPressed(false), 200);
     }
-  };
+  }, [hasPermission, isCapturing, onPhotoTaken, handleRequestPermission]);
 
-  const requestCameraPermission = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.CAMERA,
-        {
-          title: 'Camera Permission',
-          message: 'This app needs camera permission to take pictures.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        // console.log('Camera permission granted');
-        setCameraReady(true); // Set camera ready state to true
-      } else {
-        //console.log('Camera permission denied');
-        Alert.alert(
-          'Permission Denied',
-          'Camera permission is required to use this feature.',
-        );
-      }
-    } catch (err) {
-      console.warn(err);
-      Alert.alert(
-        'Error',
-        'Failed to request camera permission. Please try again.',
-      ); // Display error message
-    }
-  };
-
-  useEffect(() => {
-    requestCameraPermission();
-    /*     return () => {
-      if (camera.current) {
-        camera.current.release();
-      }
-    }; */
+  // Toggle between front and back camera
+  const toggleCameraDevice = useCallback(() => {
+    setCameraDevice(prevDevice => (prevDevice === 'back' ? 'front' : 'back'));
   }, []);
 
-  const PermissionsPage = () => {
+  // Use camera format for specific resolutions or FPS (optional, but good for control)
+  const format = useCameraFormat(device, [
+    {videoAspectRatio: 16 / 9},
+    {videoResolution: {width: 1920, height: 1080}}, // Example: Full HD capture
+    {fps: 30}, // Example: 30 FPS
+  ]);
+
+  // Render permission request page if no permission
+  if (!hasPermission) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.text}>Camera permission required.</Text>
-        <TouchableOpacity onPress={requestCameraPermission}>
-          <Text style={styles.buttonText}>Request Permission</Text>
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>Camera permission required.</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={handleRequestPermission}>
+          <Text style={styles.permissionButtonText}>Grant Camera Access</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.closeModalButton} onPress={onClose}>
+          <Icon name="close-circle-outline" size={40} color="white" />
+          <Text style={styles.closeModalButtonText}>Close</Text>
         </TouchableOpacity>
       </View>
     );
-  };
+  }
 
-  const toggleCameraDevice = () => {
-    const newCameraDevice = cameraDevice === 'back' ? 'front' : 'back';
-    setCameraDevice(newCameraDevice);
-  };
-
-  const NoCameraDeviceError = () => {
+  // Render error if no camera device is found
+  if (device === null) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.text}>No camera device found.</Text>
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>No camera device found.</Text>
+        <TouchableOpacity style={styles.closeModalButton} onPress={onClose}>
+          <Icon name="close-circle-outline" size={40} color="white" />
+          <Text style={styles.closeModalButtonText}>Close</Text>
+        </TouchableOpacity>
       </View>
     );
-  };
-
-  const format = useCameraFormat(device, [
-    {videoAspectRatio: 16 / 9},
-    {videoResolution: {width: 640, height: 480}},
-    {fps: 60},
-  ]);
-
-  const fps = format.maxFps >= 240 ? 240 : format.maxFps;
-
-  if (!hasPermission) return <PermissionsPage />;
-  if (device === null) return <NoCameraDeviceError />;
+  }
 
   return (
-    <View style={styles.container}>
-      {cameraReady ? (
-        <GestureDetector gesture={gesture}>
-          <ReanimatedCamera
-            ref={camera}
-            style={StyleSheet.absoluteFill}
-            device={device}
-            photo={true}
-            isActive={true}
-            animatedProps={animatedProps}
-          />
-        </GestureDetector>
-      ) : null}
+    <SafeAreaView style={styles.container}>
+      <GestureDetector gesture={pinchGesture}>
+        <ReanimatedCamera
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          device={device}
+          photo={true}
+          isActive={true} // Camera is active when this component is mounted
+          animatedProps={animatedCameraProps}
+          format={format} // Apply the selected format
+          fps={format.fps} // Set FPS based on format
+        />
+      </GestureDetector>
 
-      <View style={styles.buttonContainer}>
+      <View style={styles.controlsContainer}>
+        {/* Close Button */}
+        <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityLabel="Close Camera">
+          <Icon name="close-outline" size={35} color="white" />
+        </TouchableOpacity>
+
+        {/* Camera Roll Preview Button */}
         <TouchableOpacity
-          onPress={openCameraRoll}
-          style={styles.cameraRollButton}>
-          {photo && (
-            <Image source={{uri: photo.path}} style={styles.cameraRollIcon} />
+          onPress={() => {
+            // This button could optionally launch react-native-image-picker's gallery
+            // if you want to allow users to select from the gallery directly from here.
+            // For now, it's just a visual placeholder for the last photo.
+            Alert.alert('Camera Roll', 'This button can be linked to your photo gallery.');
+          }}
+          style={styles.cameraRollButton}
+          accessibilityLabel="View last taken photo or open camera roll">
+          {lastSavedPhoto ? (
+            <Image
+              source={{uri: `file://${lastSavedPhoto.path}`}}
+              style={styles.cameraRollIcon}
+            />
+          ) : (
+            <Icon name="image-outline" size={30} color="white" />
           )}
         </TouchableOpacity>
 
-        {/*     <View style={{borderRadius: 999, borderWidth: 6}}>
-        <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-            styles.cameraButton,
-          ]}
-          android_ripple={{color: 'gray'}}
-          onPress={takePhoto}>
-        </Pressable>
-        </View> */}
-
+        {/* Take Photo Button */}
         <TouchableOpacity
           onPress={takePhoto}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          activeOpacity={1} // To disable the default opacity change on press
-          style={[styles.photoButton, isPressed && styles.pressed]}>
-          <View style={[styles.circle, isPressed && styles.circlePressed]} />
-          <View style={[styles.ring, isPressed && styles.ringPressed]} />
+          onPressIn={() => setIsButtonPressed(true)}
+          onPressOut={() => setIsButtonPressed(false)}
+          activeOpacity={1}
+          style={[styles.photoButton, isButtonPressed && styles.photoButtonPressed]}
+          disabled={isCapturing}
+          accessibilityLabel="Take Photo">
+          {isCapturing ? (
+            <ActivityIndicator size="large" color="#007BFF" />
+          ) : (
+            <View style={styles.captureCircle} />
+          )}
         </TouchableOpacity>
-        <View
-          style={{backgroundColor: '#242424', padding: 10, borderRadius: 999}}>
-          <TouchableOpacity
-            style={({pressed}) => [
-              pressed && {backgroundColor: 'gray'},
-              styles.cameraButton,
-            ]}
-            android_ripple={{color: 'gray'}}
-            onPress={toggleCameraDevice}>
-            <Icon name="camera-reverse-outline" size={30} color="white" />
-          </TouchableOpacity>
-        </View>
+
+        {/* Toggle Camera Device Button */}
+        <TouchableOpacity
+          style={styles.toggleButton}
+          onPress={toggleCameraDevice}
+          disabled={isCapturing}
+          accessibilityLabel="Toggle Camera (Front/Back)">
+          <Icon name="camera-reverse-outline" size={30} color="white" />
+        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black', // Set background color to black
+    backgroundColor: 'black',
   },
-  text: {
-    color: 'white', // Set text color to white
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  permissionText: {
+    color: 'white',
     fontSize: 18,
+    textAlign: 'center',
     marginBottom: 20,
   },
-  buttonContainer: {
-    marginHorizontal: 40,
+  permissionButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+  },
+  permissionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeModalButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 30,
+    padding: 10,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  closeModalButtonText: {
+    color: 'white',
+    marginLeft: 5,
+    fontSize: 16,
+  },
+  controlsContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 0,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: Platform.OS === 'ios' ? 30 : 20, // Adjust padding for iOS bottom safe area
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Semi-transparent background
   },
-  button: {
-    backgroundColor: 'blue',
-    padding: 15,
-    borderRadius: 10,
+  closeButton: {
+    padding: 10,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  buttonText: {
-    color: 'white',
-    fontSize: 20,
-  },
-  camera: {
-    flex: 1,
-    aspectRatio: 16 / 9, // Set aspect ratio for camera preview
-  },
-  cameraButton: {
-    width: 60,
-    height: 60,
-    backgroundColor: 'gray',
-    borderRadius: 30,
-    alignItems: 'center',
+  cameraRollButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden', // Ensure image respects border radius
+  },
+  cameraRollIcon: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   photoButton: {
     width: 75,
     height: 75,
-    borderRadius: 999,
-    borderWidth: 6,
-    borderColor: 'transparent',
+    borderRadius: 999, // Makes it a perfect circle
+    borderWidth: 5,
+    borderColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-  pressed: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  photoButtonPressed: {
+    backgroundColor: 'rgba(255,255,255,0.2)', // Slight transparent fill when pressed
   },
-  circle: {
-    width: '75%',
-    height: '75%',
-    borderRadius: 999,
-    backgroundColor: '#ffffff',
-    opacity: 0,
-  },
-  circlePressed: {
-    opacity: 1,
-  },
-  ring: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-    borderRadius: 999,
-    borderWidth: 5,
-    borderColor: '#ffffff',
-    opacity: 0.8,
-  },
-  ringPressed: {
-    opacity: 1,
-  },
-  bottomContainer: {
-    flex: 1,
-    justifyContent: 'flex-end', // Align the content to the bottom
-  },
-  blackBackground: {
-    backgroundColor: 'black', // Black background color
-    height: 130, // Adjust height as needed
-  },
-  cameraRollButton: {
+  captureCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: 'white',
   },
-  cameraRollIcon: {
+  toggleButton: {
     width: 50,
     height: 50,
-    backgroundColor: 'gray',
-    resizeMode: 'contain',
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

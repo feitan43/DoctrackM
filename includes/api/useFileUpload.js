@@ -61,14 +61,12 @@ const useFileUpload = () => {
         },
       );
 
-      //console.log
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
 
       const data2 = await response.text();
-      console.log(data2);
 
       const text = await response.text();
       const data = JSON.parse(text);

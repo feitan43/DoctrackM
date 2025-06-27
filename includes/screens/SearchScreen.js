@@ -19,181 +19,71 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Dropdown} from 'react-native-element-dropdown';
-
 import {Menu, Divider, IconButton, PaperProvider} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import useSearchTrack from '../api/useSearchTrack';
 import useUserInfo from '../api/useUserInfo';
-
-/* const insertCommas = value => {
-  if (value === null || value === '') {
-    return '';
-  }
-  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}; */
-
-const years = ['2025', '2024', '2023'];
-
-/* const years = Array.from(
-  {length: Math.max(0, currentYear - 2023 + 1)},
-  (_, index) => ({
-    label: `${currentYear - index}`,
-    value: currentYear - index,
-  }),
-); */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RenderSearchList = memo(({item, index, onPressItem}) => {
-  // const modifiedDate = item.DateModified.split(' ')[0];
-  // const isDateMatched = modifiedDate === formattedDate;
-  // const dateTextColor = isDateMatched ? 'rgba(6, 70, 175, 1)' : 'gray';
-
   return (
-    <View
-      style={{
-        backgroundColor: 'white',
-        //marginHorizontal: 10,
-        marginTop: 10,
-        marginBottom: 10,
-        borderWidth: 1,
-        borderColor: 'silver',
-        //elevation: 2,
-      }}>
-      <View
-        style={{
-          backgroundColor: 'white',
-          //paddingBottom: 10,
-          //borderWidth: 1,
-          //borderColor: '#252525',
-        }}>
-        <TouchableOpacity onPress={() => onPressItem(index, item)}>
-          <View style={{flexDirection: 'row'}}>
-            <View
-              style={{
-                backgroundColor: 'rgba(134, 140, 163, 0.2)',
-                alignSelf: 'baseline',
-              }}>
-              <Text
-                style={{
-                  //backgroundColor: dateTextColor,
-                  // backgroundColor: 'rgba(37, 89, 200, 1)',
-                  backgroundColor: 'rgba(0, 116, 255, 0.7)',
-
-                  paddingHorizontal: 15,
-                  fontFamily: 'Oswald-Regular',
-                  fontSize: 16,
-                  color: 'white',
-                  textAlign: 'center',
-                }}>
-                {index + 1}
-              </Text>
-            </View>
-            <View style={{flex: 1}}>
-              <LinearGradient
-                colors={['rgba(0, 116, 255, 0.7)', 'rgba(0, 116, 255, 0.7)']}
-                start={{x: 0, y: 0}}
-                end={{x: 3, y: 0}}
-                style={{elevation: 1}}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: '#252525',
-                    fontSize: 16,
-                    color: 'white',
-                    paddingStart: 5,
-                  }}>
-                  {item.TrackingNumber ? item.TrackingNumber : ''}
-                </Text>
-              </LinearGradient>
-              <View
-                style={{
-                  /* marginVertical: 5,  */ /* paddingStart: 10, */
-                  paddingBottom: 10,
-                  paddingStart: 5,
-                }}>
-                <View style={{rowGap: -5}}>
-                  <Text
-                    style={{
-                      /* color: item.Status.includes('Pending')
-                        ? 'rgba(250, 135, 0, 1)'
-                        : 'rgba(252, 191, 27, 1)', */
-                      color: '#252525',
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 18,
-                      //textShadowRadius: 1,
-                      //elevation: 1,
-                      //textShadowOffset: {width: 1, height: 2},
-                    }}>
-                    {item.Status ? item.Status : ''}
-                  </Text>
-                  <Text
-                    style={{
-                      color: 'silver',
-                      fontFamily: 'Oswald-Light',
-                      fontSize: 12,
-                    }}>
-                    {item.DateModified ? item.DateModified : ''}
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    color: '#252525',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                    marginTop: 5,
-                  }}>
-                  {item.DocumentType ? item.DocumentType : ''}
-                </Text>
-                <Text
-                  style={{
-                    color: '#252525',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {
-                    /* insertCommas */ item.Amount
-                      ? /* insertCommas */ item.Amount
-                      : ''
-                  }
-                </Text>
-                <Text
-                  style={{
-                    color: '#252525',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {
-                    /* insertCommas */ item.PeriodMonth
-                      ? /* insertCommas */ item.PeriodMonth
-                      : ''
-                  }
-                </Text>
-              </View>
-            </View>
-            <View>
-              <Text
-                style={{
-                  backgroundColor: 'rgba(0, 116, 255, 0.7)',
-                  paddingHorizontal: 10,
-                  fontFamily: 'Oswald-Regular',
-                  color: 'white',
-                  fontSize: 16,
-                  textAlign: 'center',
-                }}>
-                {item.Year ? item.Year : ''}
-              </Text>
-            </View>
+    <View style={styles.card}>
+      <TouchableOpacity
+        onPress={() => onPressItem(index, item)}
+        style={styles.touchable}>
+        <View style={styles.headerContainer}>
+          <View style={styles.indexBadge}>
+            <Text style={styles.indexText}>{index + 1}</Text>
           </View>
-        </TouchableOpacity>
-      </View>
+          <LinearGradient
+            colors={['#0074FF', '#005BBF']} // Slightly darker blue for a more modern feel
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}} // Changed end x to 1 for a more subtle gradient
+            style={styles.trackingNumberGradient}>
+            <Text style={styles.trackingNumberText}>
+              {item.TrackingNumber || 'N/A'}
+            </Text>
+          </LinearGradient>
+          <View style={styles.yearBadge}>
+            <Text style={styles.yearText}>{item.Year || 'N/A'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.detailsContainer}>
+          <Text style={styles.statusText}>{item.Status || 'N/A'}</Text>
+          <Text style={styles.dateModifiedText}>
+            {item.DateModified || 'N/A'}
+          </Text>
+          <Text style={styles.detailText}>{item.DocumentType || 'N/A'}</Text>
+          {/*  <Text style={styles.detailText}>
+            {item.Amount ? `Amount: ${item.Amount}` : 'N/A'}
+          </Text>
+          <Text style={styles.detailText}>
+            {item.PeriodMonth ? `Period: ${item.PeriodMonth}` : 'N/A'}
+          </Text> */}
+        </View>
+      </TouchableOpacity>
     </View>
   );
 });
 
-const SearchScreen = () => {
-  const currentYear = new Date().getFullYear().toString();
-  const {caoReceiver} = useUserInfo();
+const STORAGE_KEY = '@search_history';
 
-  const [searchText, setSearchText] = useState('');
+const SearchScreen = ({}) => {
+  const currentYear = new Date().getFullYear().toString();
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+
+  const years = Array.from(
+    {length: Math.max(0, currentYear - 2023 + 1)},
+    (_, index) => ({
+      label: `${currentYear - index}`,
+      value: currentYear - index,
+    }),
+  );
+
+  const {caoReceiver, cboReceiver} = useUserInfo();
+  const [searchText, setSearchText] = useState(selectedSearch);
+  const [selectedSearch, setSelectedSearch] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [modalVisible, setModalVisible] = useState(false);
@@ -206,6 +96,8 @@ const SearchScreen = () => {
 
   const [dataError, setDataError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [searchHistory, setSearchHistory] = useState([]);
+
   const {
     searchTrackData,
     setSearchTrackData,
@@ -217,6 +109,53 @@ const SearchScreen = () => {
     fetchDataSearchTrack,
     fetchDataSearchPayroll,
   } = useSearchTrack(searchText, selectedYear, search);
+
+  const getSearchHistory = async () => {
+    try {
+      const history = await AsyncStorage.getItem(STORAGE_KEY);
+      if (history) {
+        setSearchHistory(JSON.parse(history));
+      }
+    } catch (error) {
+      console.log('Error retrieving search history:', error);
+    }
+  };
+
+  const addSearchItem = async item => {
+    const trimmedItem = item.trim();
+    if (trimmedItem.length === 0) return;
+
+    const newHistory = [
+      trimmedItem,
+      ...searchHistory.filter(i => i !== trimmedItem),
+    ];
+    const limitedHistory = newHistory.slice(0, 5);
+    setSearchHistory(limitedHistory);
+    await saveSearchHistory(limitedHistory);
+  };
+
+  const removeSearchItem = async item => {
+    const updatedHistory = searchHistory.filter(i => i !== item);
+    setSearchHistory(updatedHistory);
+    await saveSearchHistory(updatedHistory);
+  };
+
+  const handleHistorySelect = async item => {
+    console.log(item);
+    setSearchText(item);
+  };
+
+  useEffect(() => {
+    getSearchHistory();
+  }, []);
+
+  const saveSearchHistory = async newHistory => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
+    } catch (error) {
+      console.log('Error saving search history:', error);
+    }
+  };
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
@@ -238,6 +177,10 @@ const SearchScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
+  };
+  const handleSearch = () => {
+    console.log('Searching for:', searchText);
+    setSearchModalVisible(truex);
   };
 
   const navigation = useNavigation();
@@ -279,13 +222,22 @@ const SearchScreen = () => {
     setSearchFirstName(text);
   };
 
-  const searchTrackingNumber = async () => {
-    if (!searchText || searchText.length < 3) {
+  /*  const searchTrackingNumber = async (searchFromHistory) => {
+    if (!searchText || searchText.length < 3 || searchFromHistory) {
       setDataError(true);
       triggerShakeAnimation();
       setErrorMessage('at least 3 characters.');
       return;
     }
+    addSearchItem(searchText);
+
+    setSearchHistory(prev => {
+      const newHistory = [
+        searchText,
+        ...prev.filter(item => item !== searchText),
+      ];
+      return newHistory.slice(0, 5); // Keep only the last 5 searches
+    });
 
     const validText = /^[a-zA-Z0-9-]*$/;
 
@@ -302,7 +254,8 @@ const SearchScreen = () => {
 
     setSearchTrackData(null);
     try {
-      const data = await fetchDataSearchTrack();
+
+      const data = await fetchDataSearchTrack(searchText);
       if (
         !data ||
         data.count === 0 ||
@@ -322,6 +275,86 @@ const SearchScreen = () => {
             ? searchText
             : data.results[0].TrackingNumber;
 
+        setSearchModalVisible(false);
+        setSearchText('');
+
+        navigation.navigate('Detail', {
+          index: 0,
+          selectedItem: {
+            Year: selectedYear,
+            TrackingNumber: trackingNumber,
+            TrackingType: data.results[0].TrackingType,
+            data: data.results[0],
+          },
+        });
+      } else {
+        console.log('No unique results found for the search.');
+      }
+      //setSearchModalVisible(false);
+      setSearch(true);
+    } catch (fetchError) {
+      setDataError(true); // Set error
+      triggerShakeAnimation(); // Trigger the shake animation
+      setErrorMessage('Fetch error:', fetchError);
+    }
+  }; */
+
+  /*  const searchTrackingNumber = async keywordParam => {
+    const keyword =
+      typeof keywordParam === 'string' ? keywordParam : searchText;
+
+    if (!keyword || keyword.length < 3) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage('At least 3 characters.');
+      return;
+    }
+
+    addSearchItem(keyword);
+
+    setSearchHistory(prev => {
+      const newHistory = [keyword, ...prev.filter(item => item !== keyword)];
+      return newHistory.slice(0, 5);
+    });
+
+    const validText = /^[a-zA-Z0-9-]*$/;
+    if (!validText.test(keyword)) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        'Only alphanumeric characters and hyphen (-) are allowed.',
+      );
+      return;
+    } else {
+      setDataError(false);
+    }
+
+    setSearchTrackData(null);
+
+    try {
+      const data = await fetchDataSearchTrack(keyword);
+
+      if (
+        !data ||
+        data.count === 0 ||
+        !data.results ||
+        data.results.length === 0
+      ) {
+        setDataError(true);
+        triggerShakeAnimation();
+        setErrorMessage('No results found.');
+        return;
+      }
+
+      if (data.count === 1 && data.results.length > 0) {
+        const trackingNumber =
+          keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
+            ? keyword
+            : data.results[0].TrackingNumber;
+
+        setSearchModalVisible(false);
+        setSearchText('');
+
         navigation.navigate('Detail', {
           index: 0,
           selectedItem: {
@@ -337,9 +370,94 @@ const SearchScreen = () => {
 
       setSearch(true);
     } catch (fetchError) {
-      setDataError(true); // Set error
-      triggerShakeAnimation(); // Trigger the shake animation
-      setErrorMessage('Fetch error:', fetchError);
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        `Fetch error: ${fetchError.message || fetchError.toString()}`,
+      );
+      console.error(fetchError);
+    }
+  }; */
+
+  const searchTrackingNumber = async keywordParam => {
+    const keyword =
+      typeof keywordParam === 'string' ? keywordParam : searchText;
+
+    if (!keyword || keyword.length < 3) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage('At least 3 characters.');
+      return;
+    }
+
+    const validText = /^[a-zA-Z0-9-]*$/;
+    if (!validText.test(keyword)) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        'Only alphanumeric characters and hyphen (-) are allowed.',
+      );
+      return;
+    } else {
+      setDataError(false);
+    }
+
+    setSearchTrackData(null);
+
+    try {
+      const data = await fetchDataSearchTrack(keyword);
+
+      if (
+        !data ||
+        data.count === 0 ||
+        !data.results ||
+        data.results.length === 0
+      ) {
+        setDataError(true);
+        triggerShakeAnimation();
+        setErrorMessage('No results found.');
+        return;
+      }
+
+      if (data.count === 1 && data.results.length > 0) {
+        const trackingNumber =
+          keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
+            ? keyword
+            : data.results[0].TrackingNumber;
+        // ✅ Add to history only on successful fetch
+        addSearchItem(keyword);
+        setSearchHistory(prev => {
+          const newHistory = [
+            keyword,
+            ...prev.filter(item => item !== keyword),
+          ];
+          return newHistory.slice(0, 5);
+        });
+
+        setSearchModalVisible(false);
+        setSearchText('');
+
+        navigation.navigate('Detail', {
+          index: 0,
+          selectedItem: {
+            Year: selectedYear,
+            TrackingNumber: trackingNumber,
+            TrackingType: data.results[0].TrackingType,
+            data: data.results[0],
+          },
+        });
+      } else {
+        console.log('No unique results found for the search.');
+      }
+
+      setSearch(true);
+    } catch (fetchError) {
+      setDataError(true);
+      triggerShakeAnimation();
+      setErrorMessage(
+        `Fetch error: ${fetchError.message || fetchError.toString()}`,
+      );
+      console.error(fetchError);
     }
   };
 
@@ -480,16 +598,9 @@ const SearchScreen = () => {
                 alignItems: 'center',
                 width: '80%',
               }}>
-              {/* Search Bar */}
               <View style={{flex: 1}}>
                 <View style={styles.searchBarInput}>
-                  <View
-                    style={
-                      {
-                        /* width: '40%',  */
-                        //borderWidth:1
-                      }
-                    }>
+                  <View style={{}}>
                     <YearDropdown
                       selectedYear={selectedYear}
                       setSelectedYear={setSelectedYear}
@@ -510,13 +621,11 @@ const SearchScreen = () => {
                       {
                         fontSize: 14,
                         color: 'black',
-                        //fontFamily: 'Inter_28pt-Regular',
                       },
                     ]}
                     autoCapitalize="characters"
                     placeholderTextColor="silver"
                     placeholderStyle={styles.placeholderText}
-                    //autoFocus={true}
                     autoCorrect={false}
                     autoCompleteType="off"
                     textContentType="none"
@@ -538,7 +647,6 @@ const SearchScreen = () => {
               </View>
             </View>
 
-            {/* Search Button */}
             <TouchableOpacity
               style={{
                 width: '18%',
@@ -558,12 +666,7 @@ const SearchScreen = () => {
               </View>
             </TouchableOpacity>
           </View>
-          <View style={{padding: 8}}>
-            {/* <Text>Select Type</Text> */}
-            {/* <TouchableOpacity onPress={() => navigation.navigate('Receiver')}>
-              <Icon name="chevron-back" size={24} />
-            </TouchableOpacity> */}
-          </View>
+          <View style={{padding: 8}}></View>
         </View>
       );
     } else if (selectedView === 'SearchName') {
@@ -609,7 +712,7 @@ const SearchScreen = () => {
                     styles.searchBarInput,
                     {
                       fontSize: 14,
-                      color: 'black' /* textTransform:'uppercase' */,
+                      color: 'black',
                     },
                   ]}
                   autoCapitalize="characters"
@@ -627,7 +730,6 @@ const SearchScreen = () => {
             <TouchableOpacity
               style={{
                 width: '20%',
-                //backgroundColor: 'rgba(3, 92, 251, 1)',
                 backgroundColor: 'rgba(34, 150, 243, 1)',
                 paddingHorizontal: 5,
                 paddingRight: 5,
@@ -675,37 +777,6 @@ const SearchScreen = () => {
             </View>
             <View
               style={{width: '30%', padding: 10, paddingVertical: 20}}></View>
-            {/* <View
-              style={{
-                width: '30%',
-                //backgroundColor: 'rgba(3, 92, 251, 1)',
-                backgroundColor: 'rgba(34, 150, 243, 1)',
-                paddingHorizontal: 5,
-                paddingRight: 5,
-                elevation: 5,
-                borderWidth: 0.5,
-                borderColor: 'silver',
-                padding: 10,
-              }}
-              //onPress={searchPayrollName}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-evenly',
-                }}>
-                <Icon name="search" size={20} style={{}} color="transparent" />
-
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                  }}>
-                  Search
-                </Text>
-              </View>
-            </View> */}
           </View>
         </>
       );
@@ -797,7 +868,7 @@ const SearchScreen = () => {
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(255,255,255,0.2)',
+            // backgroundColor: 'rgba(255,255,255,0.2)',
             marginTop: 10,
           }}>
           <Animated.View // Apply the shake animation to this View
@@ -810,14 +881,14 @@ const SearchScreen = () => {
         </View>
       );
     }
-    if (searchTrackLoading) {
+    /*  if (searchTrackLoading) {
       return (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color="rgba(0, 116, 255, 0.7)" />
-          {/*   <Text style={styles.loadingText}>Loading...</Text> */}
+          
         </View>
       );
-    }
+    } */
 
     if (error) {
       return <Text style={styles.errorText}>Error loading data: {error}</Text>;
@@ -843,7 +914,7 @@ const SearchScreen = () => {
 
     return (
       <View style={styles.noDataContainer}>
-        <Text style={styles.noDataText}>{/* No results found */}</Text>
+        <Text style={styles.noDataText}></Text>
       </View>
     );
   };
@@ -915,6 +986,11 @@ const SearchScreen = () => {
     closeMenu();
   };
 
+  const handleSearchTextChange = text => {
+    setSearchText(text.toUpperCase()); // Convert to uppercase here
+  };
+  const searchInputRef = useRef(null);
+
   const renderYearItem = ({item}) => (
     <TouchableOpacity style={styles.modalItem} onPress={() => selectYear(item)}>
       <Text style={styles.modalItemText}>{item}</Text>
@@ -923,186 +999,321 @@ const SearchScreen = () => {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-      <View
-        style={{
-          marginTop: 10,
-          flexDirection: 'row',
-          paddingStart: 10,
-          marginHorizontal: 5,
-          marginBottom: 10,
-          alignItems: 'center',
-          // Aligns items vertically in the row
-          justifyContent: 'space-between', // Distributes items evenly in the row
-        }}>
-        {/* <TouchableOpacity onPress={openYearModal} style={{}}>
+      <ImageBackground
+        source={require('../../assets/images/bgasset.jpg')}
+        style={{flex: 1}}
+        resizeMode="cover">
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}
+        />
+        <View
+          style={{
+            margin: 10,
+            borderWidth: 1,
+            backgroundColor: 'rgba(255,255,255,0.5)',
+            borderColor: '#eee',
+          }}>
+          <View
+            style={{
+              marginTop: 10,
+              paddingStart: 10,
+              marginHorizontal: 5,
+              marginBottom: 10,
+              alignItems: 'flex-start',
+            }}>
+            {/* <TouchableOpacity
+              onPress={() => navigation.navigate('Receiver')}
+              style={{ top: 10, right: 10}}>
+              <Icons name="qrcode-scan" size={40} color="#252525" />
+            </TouchableOpacity> */}
+
+           <View
+  style={{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    //backgroundColor: 'yellow',
+    marginBottom: 20,
+    marginTop: 10,
+    width:'100%'
+  }}>
+  
+  {/* Left Side - Title */}
+  <View>
+    <Text
+      style={{
+        fontFamily: 'Inter_24pt-Bold',
+        fontSize: 24,
+        color: '#252525',
+      }}>
+      Search
+    </Text>
+  </View>
+
+  {/* Right Side - Filter + QR Scanner */}
+  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+    <TouchableOpacity
+      style={[styles.filterButton]}
+      // onPress={handlePresentYearFilterSheet}
+      accessibilityLabel={`Currently filtered by year ${
+        selectedYear || 'All Years'
+      }. Tap to change.`}>
+      <Icon name="filter-outline" size={22} color="#FFFFFF" />
+      <Text style={styles.filterButtonText}>
+        {selectedYear ? selectedYear : 'Year'}
+      </Text>
+      {selectedYear && (
+        <TouchableOpacity
+          onPress={() => setSelectedYear(null)}
+          style={styles.clearYearFilter}
+          accessibilityLabel="Clear year filter">
+          <Icon name="close-circle" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+
+    {(caoReceiver === '1' || cboReceiver === '1') && (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Receiver')}
+        style={{marginLeft: 10}}>
+        <Icons name="qrcode-scan" size={40} color="black" />
+      </TouchableOpacity>
+    )}
+  </View>
+</View>
+
+            {/*    <View
+              style={{
+                marginTop: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
+              <TouchableOpacity
+                style={{
+                  height: 40,
+                  width: '95%',
+                  marginEnd: 20,
+                  borderColor: '#ccc',
+                  borderWidth: 1,
+                  paddingHorizontal: 10,
+                  marginTop: 10,
+                  borderRadius: 5,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                }}
+                onPress={() => setSearchModalVisible(true)}>
+                <Icons
+                  name="magnify"
+                  size={24}
+                  color="#252525"
+                  style={{marginRight: 10}}
+                />
+                <Text style={{fontSize: 16, color: '#252525'}}>Enter here</Text>
+              </TouchableOpacity>
+            </View> */}
+          </View>
+
+          <View style={{paddingTop: 10}}>
+            <View style={styles.searchFilterRow}>
+              <View style={styles.searchInputWrapper}>
+                {/* <Icon
+                        name="search-outline"
+                        size={25}
+                        color={styles.searchIcon.color}
+                        style={styles.searchIcon}
+                      /> */}
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Tracking Number"
+                  placeholderTextColor="#9CA3AF"
+                  value={searchText}
+                  autoCapitalize="characters"
+                  onChangeText={setSearchText}
+                  accessibilityHint="Type to search for inventory items by tracking number."
+                  //onEndEditing={handleSearch}
+                  onSubmitEditing={searchTrackingNumber}
+                  // editable={!isSearching}
+                />
+                {searchText?.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchText('')}
+                    style={styles.clearSearchButton}
+                    accessibilityLabel="Clear search query">
+                    <Icon
+                      name="close-circle"
+                      size={20}
+                      color={styles.searchIcon.color}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* New Filter Icon Button */}
+              {/*  <TouchableOpacity
+                              onPress={handlePresentSystemFilterModalPress}
+                              style={styles.filterIconButton}>
+                              <Icon name="filter" size={24} color="#1a508c" />
+                            </TouchableOpacity> */}
+              <TouchableOpacity
+                onPress={searchTrackingNumber}
+                style={styles.filterIconButton} // Uses your existing style
+                //disabled={isSearching}
+              >
+                <Icon name="search" size={24} color="#fff" />
+                {/*  {isSearching ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Color matches your button background
+                      ) : (
+                        <Icon name="search" size={24} color="#fff" />
+                      )} */}
+              </TouchableOpacity>
+            </View>
             <View
               style={{
-                backgroundColor: 'rgba(13, 85, 199, 0.8)',
-                paddingHorizontal: 10,
-                borderRightWidth: 2,
-                borderRightColor: 'silver',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}>
-              <Text
-                style={{
-                  fontFamily: 'Oswald-Regular',
-                  fontSize: 16,
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                }}>
-                {selectedYear}
+              <Icons name="qrcode-scan" size={26} color="#252525" />
+              <Text style={{fontSize: 14, fontWeight: '400', marginLeft: 5}}>
+                Scan using QR
               </Text>
             </View>
-          </TouchableOpacity> */}
-
-        <View
-          /* onPress={() => setSelectedView('DocumentSearch')} */
-          style={{marginLeft: 10}}>
-          <Text
-            style={{
-              fontFamily: 'Inter_24pt-Bold',
-              fontSize: 24,
-              color: '#252525',
-            }}>
-            {/* Document */}Search
-          </Text>
-          <Text
-            style={{
-              fontFamily: 'Inter_24pt-Regular',
-              fontSize: 14,
-              color: '#252525',
-            }}>
-            your tracking number
-          </Text>
-        </View>
-
-        {caoReceiver === '1' && (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Receiver')}
-            style={{marginRight: 25}}>
-            <Icons name="qrcode-scan" size={40} color="black" />
-          </TouchableOpacity>
-        )}
-
-        {/* <View
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              alignSelf: 'flex-end',
-            }}>
-            <Menu
-              visible={visible}
-              onDismiss={closeMenu}
-              statusBarHeight={-20}
-              anchor={
-                <TouchableOpacity
-                  style={{
-                    marginEnd: 10,
-                    padding: 10,
-                    borderWidth: 0.5,
-                    borderColor: 'rgba(13, 85, 199, 0.8)',
-                    borderRadius: 5,
-                  }}
-                  onPress={openMenu}>
-                  <Icon
-                    name="filter"
-                    size={16}
-                    color="rgba(13, 85, 199, 0.8)"
-                  />
-                </TouchableOpacity>
-              }>
-              <Menu.Item
-                onPress={() => {
-                  setSelectedView('DocumentSearch');
-                  closeMenu();
-                }}
-                title="Search by TN or Claimant"
-                titleStyle={{fontSize: 14}}
-              />
-              <Divider />
-              <Menu.Item
-                onPress={() => {
-                  setSelectedView('SearchEmployeeNumber');
-                  setSearchTrackData(null);
-                  setSearchPayrollData(null);
-                  setDataError(false);
-                  closeMenu();
-                }}
-                title="Search by Employee Number"
-                titleStyle={{fontSize: 14}}
-              />
-              <Divider />
-              <Menu.Item
-                onPress={() => {
-                  setSelectedView('SearchName');
-                  setSearchTrackData(null);
-                  setSearchPayrollData(null);
-                  setDataError(false);
-                  closeMenu();
-                }}
-                title="Search by Name"
-                titleStyle={{fontSize: 14}}
-              />
-              <Divider />
-            </Menu>
-          </View> */}
-      </View>
-
-      <View></View>
-
-      <View style={{paddingHorizontal: 20, paddingBottom: 20}}>
-        {renderContent()}
-      </View>
-
-      <View
-        style={{
-          backgroundColor: 'rgba(232, 232, 232, 1)',
-          flex: 1,
-          paddingHorizontal: 20,
-        }}>
-        {selectedView === 'DocumentSearch' ? renderData() : renderDataPayroll()}
-      </View>
-
-      <Modal transparent={true} visible={modalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <FlatList
-              data={years}
-              renderItem={renderYearItem}
-              keyExtractor={item => item}
-            />
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={closeYearModal}>
-              <Text style={styles.modalCloseButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-      {/* </ImageBackground> */}
+        <Modal transparent={true} visible={modalVisible} animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <FlatList
+                data={years}
+                renderItem={renderYearItem}
+                keyExtractor={item => item}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={closeYearModal}>
+                <Text style={styles.modalCloseButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={searchModalVisible}
+          transparent={false}
+          animationType="fade"
+          onRequestClose={() => setSearchModalVisible(false)}>
+          <View style={styles.safeArea}>
+            <View style={styles.fullScreenModal}>
+              <View style={styles.searchHeader}>
+                <TouchableOpacity
+                  onPress={() => setSearchModalVisible(false)}
+                  style={styles.backButton}>
+                  <Icon name="arrow-back" size={28} color="#333" />
+                </TouchableOpacity>
+                <View style={styles.searchInputOuterContainer}>
+                  <Icon
+                    name="search"
+                    size={22}
+                    color="#888"
+                    style={styles.inputSearchIcon}
+                  />
+                  <TextInput
+                    ref={searchInputRef}
+                    style={styles.searchInput}
+                    placeholder="Search tracking number"
+                    value={searchText}
+                    onChangeText={handleSearchTextChange}
+                    // autoFocus={true} // REMOVE THIS PROP
+                    clearButtonMode={
+                      Platform.OS === 'ios' ? 'while-editing' : 'never'
+                    } // 'never' is default on Android, 'while-editing' is useful on iOS
+                    underlineColorAndroid="transparent" // Only for Android, hides the default underline
+                    placeholderTextColor="#999"
+                    autoCapitalize="characters" // Suggests uppercase keyboard on iOS (doesn't force on Android, so onChangeText is crucial)
+                    // inputMode="search" // Modern alternative to keyboardType='default' for search fields
+                    returnKeyType="search" // Changes the keyboard return key to "Search"
+                  />
+                  {searchText?.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchText('')}
+                      style={styles.clearButton}>
+                      <Icon name="close" size={22} color="#888" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.searchActionButton,
+                  searchText?.trim().length === 0 &&
+                    styles.searchButtonDisabled,
+                ]}
+                onPress={searchTrackingNumber}
+                disabled={searchText?.trim().length === 0 || searchTrackLoading} // Disable during loading as well
+              >
+                {searchTrackLoading ? (
+                  <ActivityIndicator size="small" color="#ffffff" /> // Or any color that fits your design
+                ) : (
+                  <Text style={styles.searchButtonText}>Search</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.resultsContainer}>{renderData()}</View>
+
+              <View style={styles.contentArea}>
+                {searchHistory.length > 0 && (
+                  <View style={styles.historySection}>
+                    <Text style={styles.historyTitle}>Search History</Text>
+                    {searchHistory.map((item, index) => (
+                      <View key={index} style={styles.historyItem}>
+                        <TouchableOpacity
+                          onPress={() => searchTrackingNumber(item)}
+                          style={styles.historyItemTextContainer}>
+                          <Icon
+                            name="search-outline"
+                            size={20}
+                            color="#555"
+                            style={styles.historyItemIcon}
+                          />
+                          <Text style={styles.historyText} numberOfLines={1}>
+                            {item}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => removeSearchItem(item)}
+                          style={styles.removeHistoryButton}>
+                          <Icon name="close" size={20} color="#777" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {searchHistory.length === 0 &&
+                  !renderData() && ( // Show if no history and no initial results
+                    <Text style={styles.noHistoryText}>
+                      No recent searches.
+                    </Text>
+                  )}
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </ImageBackground>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  searchBarContainer: {
-    //backgroundColor: 'white',
-    //borderRadius: 5,
-    //marginVertical: 10,
-  },
   searchBarInput: {
-    //backgroundColor: 'rgba(238, 240, 248, 1)',
-    //backgroundColor: 'transparent',
     flex: 1,
     backgroundColor: 'rgba(245, 244, 244, 0.79)',
     flexDirection: 'row',
     borderRadius: 5,
-    //borderWidth:1,
-    //borderWidth: 1,
-    //borderBottomWidth: 1,
-    // borderColor: 'black',
-    //paddingStart: 10,
   },
   modalContainer: {
     flex: 1,
@@ -1160,21 +1371,435 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorContainer: {
-    marginTop: 10,
-    padding: 10,
-    //backgroundColor:'rgba(255,255,255,0.2)',
-    //backgroundColor: 'rgba(255, 0, 0, 0.1)', // Light red background for error
-    borderRadius: 5,
+    marginHorizontal: 20,
+    padding: 12,
+    backgroundColor: '#ffe5e5',
+    borderRadius: 10,
+    //borderWidth: 1,
+    //borderColor: '#ff4d4d',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   errorText: {
-    color: '#252525',
-    fontFamily: 'Oswald-Light',
-    fontSize: 16,
+    color: '#cc0000',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  overlay: {
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noDataContainer: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
   },
   dropdown: {
     width: 80,
     height: 40,
     paddingHorizontal: 10,
+  },
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  backButton: {
+    padding: 8,
+    marginRight: 10,
+  },
+
+  backIcon: {
+    fontSize: 22,
+    color: '#252525',
+  },
+
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    height: 40,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#252525',
+    paddingVertical: 0,
+  },
+
+  clearButton: {
+    marginLeft: 8,
+  },
+
+  clearIcon: {
+    fontSize: 20,
+    color: '#999',
+  },
+
+  searchButton: {
+    marginTop: 20,
+    marginHorizontal: 15,
+    backgroundColor: '#252525',
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+
+  searchButtonDisabled: {
+    opacity: 0.5,
+  },
+  historyContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  historyTitle: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 5,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  historyText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  removeIcon: {
+    fontSize: 18,
+    color: '#f00',
+    paddingHorizontal: 10,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF', // Modal background color
+  },
+  fullScreenModal: {
+    flex: 1,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+  },
+  backButton: {
+    padding: 8, // Increased touch area
+    marginRight: 8,
+  },
+  searchInputOuterContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 25, // More rounded for modern look
+    paddingHorizontal: 15,
+    height: 48, // Standard height
+  },
+  inputSearchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333333',
+    paddingVertical: 10, // Ensure text is centered
+  },
+  clearButton: {
+    padding: 8, // Increased touch area
+    marginLeft: 8,
+  },
+  searchActionButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10, // Space before history or content
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  searchButtonDisabled: {
+    backgroundColor: '#B0C4DE',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  searchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10, // Space after search button
+  },
+  historySection: {
+    marginBottom: 20,
+  },
+  historyTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 12,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  historyItemTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10, // Space before the close icon
+  },
+  historyItemIcon: {
+    marginRight: 10,
+  },
+  historyText: {
+    fontSize: 16,
+    color: '#444444',
+    flexShrink: 1, // Allow text to shrink if container is too small
+  },
+  removeHistoryButton: {
+    padding: 8, // Increased touch area
+  },
+  noHistoryText: {
+    textAlign: 'center',
+    color: '#777777',
+    fontSize: 15,
+    marginTop: 40, // Give some space if no history and no initial results
+  },
+  resultsContainer: {
+    height: 80, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
+  },
+  card: {
+    backgroundColor: 'white',
+    marginHorizontal: 5, // Add some horizontal margin
+    marginTop: 10,
+    marginBottom: 5, // Reduce bottom margin slightly
+    borderRadius: 8, // Rounded corners for a softer look
+    borderWidth: 1,
+    borderColor: '#E0E0E0', // Lighter border color
+    elevation: 3, // Subtle shadow for depth
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  touchable: {
+    padding: 0, // Remove padding from touchable, will add to inner views
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch', // Stretch items to fill height
+    borderTopLeftRadius: 8, // Apply radius to the top of the header
+    borderTopRightRadius: 8,
+    overflow: 'hidden', // Ensure children respect border radius
+  },
+  indexBadge: {
+    backgroundColor: '#0074FF', // Primary blue for consistency
+    paddingHorizontal: 12, // Adjust padding
+    justifyContent: 'center', // Center text vertically
+    alignItems: 'center', // Center text horizontally
+  },
+  indexText: {
+    fontFamily: 'Oswald-Regular',
+    fontSize: 18, // Slightly larger for prominence
+    color: 'white',
+  },
+  trackingNumberGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10, // Add vertical padding
+    paddingStart: 10,
+  },
+  trackingNumberText: {
+    fontFamily: 'Oswald-Regular',
+    color: 'white',
+    fontSize: 17, // Consistent with index
+  },
+  yearBadge: {
+    backgroundColor: '#0074FF', // Primary blue for consistency
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearText: {
+    fontFamily: 'Oswald-Regular',
+    color: 'white',
+    fontSize: 16, // Consistent with index
+    textAlign: 'center',
+  },
+  detailsContainer: {
+    padding: 15, // Uniform padding for details section
+  },
+  statusText: {
+    fontFamily: 'Oswald-Regular',
+    fontSize: 19, // More prominent status
+    color: '#252525', // Darker text for readability
+    marginBottom: 5, // Space between status and date
+  },
+  dateModifiedText: {
+    fontFamily: 'Oswald-Light',
+    color: 'gray', // Softer gray for less important info
+    fontSize: 13,
+    marginBottom: 10, // More space after date
+  },
+  detailText: {
+    fontFamily: 'Oswald-Light',
+    color: '#4A4A4A', // Slightly darker gray for better contrast
+    fontSize: 14,
+    marginBottom: 3, // Small margin for each detail line
+  },
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginHorizontal: 15,
+    marginTop: -40,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    marginRight: 10,
+    height: 55,
+    paddingLeft: 10,
+  },
+  searchIcon: {
+    marginRight: 5,
+    color: '#6C757D',
+    padding: 5,
+  },
+  searchInput: {
+    flex: 1,
+    height: 55,
+    fontSize: 15,
+    color: '#343A40',
+  },
+  clearSearchButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  filterIconButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    padding: 12, // Adjust padding to make the icon visible and clickable
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 55, // Match height of search input
+    width: 70,
+  },
+  searchSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 18,
+  },
+  filterButton: {
+    backgroundColor: '#1a508c',
+    borderRadius: 12,
+    height: 55,
+    paddingHorizontal: 15,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  filterButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  clearYearFilter: {
+    marginLeft: 8,
+    padding: 2,
   },
 });
 

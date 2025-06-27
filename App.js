@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, memo} from 'react';
 import {
   View,
   StyleSheet,
@@ -10,33 +10,39 @@ import {
   StatusBar,
   Alert,
   Linking,
-  NativeEventEmitter,
-  NativeModules,
-  LogBox,
+  Button,
+  Modal,
 } from 'react-native';
 import {Route} from './includes/navigation/Route';
 import NetInfo from '@react-native-community/netinfo';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import FlashMessage from 'react-native-flash-message';
-import { HotUpdater, useHotUpdaterStore, addListener   } from "@hot-updater/react-native";
-import UpdateFallback from './includes/utils/UpdateFallback';
-
+import {HotUpdater, useHotUpdaterStore} from '@hot-updater/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {showMessage} from 'react-native-flash-message';
+import ImmersiveMode from 'react-native-immersive-mode';
 
 const queryClient = new QueryClient();
 
-
 const App = () => {
   const [isConnected, setIsConnected] = useState(true);
+
+  const {progress, isBundleUpdated} = useHotUpdaterStore();
+
   useEffect(() => {
-    LogBox.ignoreLogs(['new NativeEventEmitter() was called']);
+    ImmersiveMode.fullLayout(true);
+    ImmersiveMode.setBarMode('BottomSticky');
+    ImmersiveMode.setBarStyle('Light');
+    ImmersiveMode.setBarTranslucent(true);
+    //ImmersiveMode.setBarColor('#003166');
   }, []);
+
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
     return () => unsubscribe();
-    
   }, []);
 
   const openWifiSettings = () => {
@@ -62,24 +68,36 @@ const App = () => {
     });
   };
 
+  function extractFormatDateFromUUIDv7(uuid) {
+    const timestampHex = uuid.split('-').join('').slice(0, 12);
+    const timestamp = parseInt(timestampHex, 16);
+
+    const date = new Date(timestamp);
+    const year = date.getFullYear().toString().slice(2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+
+    return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+  }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{flex: 1}}>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <QueryClientProvider client={queryClient}>
         <StatusBar
           barStyle="light-content"
           backgroundColor="transparent"
           translucent
         />
 
-        <FlashMessage position="bottom" />
+        <FlashMessage position="bottom" zIndex={9999} />
 
         <View style={styles.container}>
           {isConnected ? (
             <>
               <Route />
-             {/*  <UpdateFallback progress={0.5} status="CHECKING UPDATE" /> */}
-
             </>
           ) : (
             <View style={styles.noInternetContainer}>
@@ -103,8 +121,8 @@ const App = () => {
             </View>
           )}
         </View>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 };
 
@@ -154,34 +172,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
   },
-  reloadButton: {
-    padding: 20,
-    backgroundColor: '#007bff',
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-    alignSelf: 'center',
-  },
-  reloadText: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
-  },
 });
-
-//export default App;
 
 export default HotUpdater.wrap({
   source: 'https://zyuesdlbgbzhlstywrfi.supabase.co/functions/v1/update-server',
-  //source: '',  
-  requestHeaders: {
-    // Add any necessary request headers here
-  },
   reloadOnForceUpdate: true,
-  fallbackComponent: (props) => {
-    const updaterStore = useHotUpdaterStore();
-    return <UpdateFallback {...props} progress={updaterStore.progress} status={updaterStore.isBundleUpdated ? 'UPDATED' : 'UPDATING'} />;
-  }
-  
-}
-)(App);
+})(App);

@@ -1,22 +1,26 @@
-import React from 'react';
+import React, {useState} from 'react'; // Import useState
 import {
   View,
   Text,
   StyleSheet,
   Image,
-  Button,
   TouchableOpacity,
   Linking,
   Pressable,
-  StatusBar
+  StatusBar,
+  ScrollView,
+  //SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import useUserInfo from '../api/useUserInfo';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {WebView} from 'react-native-webview';
+const statusBarContentStyle = 'dark-content';
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 const ContactUsScreen = ({navigation}) => {
-  const {employeeNumber, fullName, officeName, officeCode, accountType} =
-    useUserInfo();
+  const [showMapWebView, setShowMapWebView] = useState(false);
+  const [currentMapUrl, setCurrentMapUrl] = useState('');
 
   const handleEmailPress = () => {
     Linking.openURL('mailto:projectdoctrack@gmail.com');
@@ -28,8 +32,8 @@ const ContactUsScreen = ({navigation}) => {
 
   const handleFacebookPress = () => {
     const facebookURL =
-      'fb://facewebmodal/f?href=https://www.facebook.com/projectdoctrack'; // Opens in the Facebook app if installed
-    const fallbackURL = 'https://www.facebook.com/projectdoctrack'; // Opens in browser if app is not installed
+      'fb://facewebmodal/f?href=https://www.facebook.com/projectdoctrack';
+    const fallbackURL = 'https://www.facebook.com/projectdoctrack';
 
     Linking.canOpenURL(facebookURL)
       .then(supported => {
@@ -42,266 +46,284 @@ const ContactUsScreen = ({navigation}) => {
       .catch(err => console.error('An error occurred', err));
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+  const handleMapPress = () => {
+    const mapURL = `https://maps.app.goo.gl/DeFtpdf1rEZXSMU68`;
+    setCurrentMapUrl(mapURL);
+    setShowMapWebView(true);
+  };
 
-      {/* Header with Back Button */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#fff',
-          paddingBottom: 5,
-          shadowColor: '#000',
-          shadowOffset: {width: 0, height: 2},
-          shadowOpacity: 0.2,
-          shadowRadius: 3,
-          elevation: 3,
-        }}>
-        <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginStart: 10,
-              padding: 10,
-              borderRadius: 24,
-            },
-          ]}
-          android_ripple={{
-            color: '#F6F6F6',
-            borderless: true,
-            radius: 24,
-          }}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="gray" />
-        </Pressable>
-
-        <Text
-          style={{
-            padding: 10,
-            color: '#252525',
-            fontFamily: 'Inter_28pt-Bold',
-            fontSize: 16,
-          }}>
-          Contact Us
-        </Text>
+  const ContactItem = ({iconName, imageSource, label, value, onPress}) => (
+    <Pressable
+      onPress={onPress}
+      style={({pressed}) => [
+        styles.contactItem,
+        pressed && styles.contactItemPressed,
+      ]}
+      android_ripple={{color: '#E0E0E0', borderless: false}}>
+      {iconName && <Icon name={iconName} size={22} color="#607D8B" />}
+      {imageSource && (
+        <Image source={imageSource} style={styles.contactItemImage} />
+      )}
+      <View style={styles.contactTextContainer}>
+        <Text style={styles.contactLabel}>{label}</Text>
+        <Text style={styles.contactValue}>{value}</Text>
       </View>
-      <View style={{paddingHorizontal: 20, paddingTop: 20}}>
-        <Text style={styles.label}>E-mail us</Text>
+    </Pressable>
+  );
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            alignSelf: 'flex-start',
-            alignContent: 'center',
-            padding: 10,
-          }}>
-          <Image
-            source={require('../../assets/images/gmail.png')}
-            style={styles.profileImage}
-          />
-          <TouchableOpacity onPress={handleEmailPress}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Regular',
-                fontSize: 14,
-                color: '#333333',
-                textDecorationLine: 'underline',
-                paddingStart: 10,
-              }}>
-              {'projectdoctrack@gmail.com'}
-            </Text>
-          </TouchableOpacity>
+  if (showMapWebView) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => setShowMapWebView(false)}
+            style={({pressed}) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            android_ripple={{color: '#F0F0F0', borderless: true, radius: 24}}>
+            <Icon name="arrow-back" size={24} color="#424242" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Office Location</Text>
         </View>
-
-        <View
-          style={{
-            height: 1,
-            marginTop: 5,
-            marginBottom: 10,
-            backgroundColor: 'rgba(174, 171, 171, 0.2)',
-          }}
+        <WebView
+          source={{uri: currentMapUrl}}
+          style={styles.webView}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
         />
-        <View style={{paddingTop: 10}}>
-          <Text style={styles.label}>Project Doctrack Hotline</Text>
-        </View>
+      </SafeAreaView>
+    );
+  }
 
-        <View style={{flexDirection: 'row', padding: 10}}>
-          <Icon name="call-sharp" size={24} color="gray" />
-          <TouchableOpacity onPress={() => handlePhonePress('0823083246')}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-                paddingStart: 10,
-                textDecorationLine: 'underline',
-              }}>
-              {'(082) 308 3246'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{flexDirection: 'row', padding: 10}}>
-          <Icon name="phone-portrait-sharp" size={24} color="gray" />
-          <TouchableOpacity onPress={() => handlePhonePress('09541673749')}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-                paddingStart: 10,
-                textDecorationLine: 'underline',
-              }}>
-              {'0954 167 3749 - (GLOBE)'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{flexDirection: 'row', padding: 10, paddingBottom: 20}}>
-          <Icon name="phone-portrait-sharp" size={24} color="gray" />
-          <TouchableOpacity onPress={() => handlePhonePress('09626827702')}>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-                paddingStart: 10,
-                textDecorationLine: 'underline',
-              }}>
-              {'0962 682 7702 - (SMART)'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View
-        style={{
-          height: 5,
-          marginTop: 5,
-          backgroundColor: 'rgba(174, 171, 171, 0.2)',
-        }}
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle={statusBarContentStyle}
       />
 
-      <View style={{padding: 20}}>
-        <Text style={styles.label}>Find us on social media</Text>
-
+      <View style={styles.header}>
         <Pressable
-          onPress={handleFacebookPress}
-          android_ripple={{
-            color: 'rgba(42, 125, 216, 0.2)', // Ripple color
-            //radius: 30, // Optional: adjust the radius of the ripple
-          }}>
-          <View style={{flexDirection: 'row', paddingStart: 10}}>
-            <Image
-              source={require('../../assets/images/fblogo.png')}
-              style={styles.profileImage}
-            />
-            <Text
-              style={{
-                paddingStart: 10,
-                paddingVertical: 20,
-                fontFamily: 'Inter_28pt-Regular',
-                fontSize: 16,
-                color: '#252525',
-              }}>
-              Project Doctrack
-            </Text>
-          </View>
+          onPress={() => navigation.goBack()}
+          style={({pressed}) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
+          android_ripple={{color: '#F0F0F0', borderless: true, radius: 24}}>
+          <Icon name="arrow-back" size={24} color="#424242" />
         </Pressable>
+        <Text style={styles.headerTitle}>Contact Us</Text>
       </View>
 
-      <View
-        style={{
-          height: 5,
-          marginTop: 5,
-          backgroundColor: 'rgba(174, 171, 171, 0.2)',
-        }}
-      />
-      <View style={{padding: 20}}>
-        <Text style={styles.label}>Visit Us</Text>
+      
 
-        <View style={{flexDirection: 'row', padding: 10}}>
-          <Icon name="location-outline" size={24} color="gray" />
-          <View>
-            <Text
-              style={{
-                fontFamily: 'Inter_28pt-Regular',
-                fontSize: 14,
-                color: '#252525',
-                paddingStart: 10,
-                //textDecorationLine: 'underline',
-              }}>
-              {`G/F Project Doctrack Office (Old CHO Building) Pichon St. Brgy. 1-A Poblacion District, Davao City`}
-            </Text>
-          </View>
-        </View>
-      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContentContainer}>
+
+        {/* Banner */}
+               <View style={styles.bannerContainer}>
+              <Image
+                source={require('../../assets/images/trackyhelp.png')}
+                style={styles.bannerImage}
+                resizeMode="contain"
+              />
+              <View style={styles.bannerTextWrapper}>
+                <Text style={styles.bannerTitle}>Want quick answers?</Text>
+                <Text style={styles.bannerSubtitle}>
+                  Try our Help Center!
+                </Text>
+        
+                {/* Contact Us Button */}
+                <TouchableOpacity
+                  style={styles.helpcenterButton}
+                  onPress={() => navigation.navigate('HelpCenter')}
+                >
+                  <Text style={styles.helpcenterButtonText}>Help Center</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+
+        <Text style={styles.sectionTitle}>Email Us</Text>
+        <ContactItem
+          imageSource={require('../../assets/images/gmail.png')}
+          label="General Inquiries"
+          value="projectdoctrack@gmail.com"
+          onPress={handleEmailPress}
+        />
+        <Text style={styles.sectionTitle}>Project Doctrack Hotline</Text>
+        <ContactItem
+          iconName="call-sharp"
+          label="Landline"
+          value="(082) 308 3246"
+          onPress={() => handlePhonePress('0823083246')}
+        />
+        <ContactItem
+          iconName="phone-portrait-sharp"
+          label="Mobile (GLOBE)"
+          value="0954 167 3749"
+          onPress={() => handlePhonePress('09541673749')}
+        />
+        <ContactItem
+          iconName="phone-portrait-sharp"
+          label="Mobile (SMART)"
+          value="0962 682 7702"
+          onPress={() => handlePhonePress('09626827702')}
+        />
+
+        <Text style={styles.sectionTitle}>Find Us on Social Media</Text>
+        <ContactItem
+          imageSource={require('../../assets/images/fblogo.png')}
+          label="Facebook"
+          value="Project Doctrack"
+          onPress={handleFacebookPress}
+        />
+
+        <Text style={styles.sectionTitle}>Visit Us</Text>
+        <ContactItem
+          iconName="location-outline"
+          label="Office Location"
+          value="G/F Project Doctrack Office (Old CHO Building) Pichon St. Brgy. 1-A Poblacion District, Davao City"
+          onPress={handleMapPress}
+        />
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    //backgroundColor: '#f5f5f5',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: 'row',
+   flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingTop: 40,
-    padding: 10,
-    paddingStart: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    //borderBottomWidth:1,
+    //borderColor:'#ccc',
+    height: 30 + statusBarHeight,
   },
   backButton: {
-    marginRight: 10,
+    padding: 10,
+    borderRadius: 24,
+    marginRight: 5,
+  },
+  backButtonPressed: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   headerTitle: {
     fontSize: 18,
-    color: '#252525',
-    fontFamily: 'Inter_28pt-Bold',
-  },
-  profileImage: {
-    width: 25,
-    height: 25,
-    alignSelf: 'center',
-  },
-  name: {
-    fontSize: 24,
-    fontFamily: 'Oswald-Medium',
-    color: '#333333',
-    textAlign: 'center',
-    marginBottom: 10,
-    textTransform: 'capitalize',
-  },
-  button: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignSelf: 'center',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: '#212121',
+    marginLeft: 5,
     fontWeight: 'bold',
   },
-  label: {
-    fontFamily: 'Inter_28pt-Regular',
-    fontSize: 14,
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#F5F8FA'
   },
-  labelValue: {
-    fontFamily: 'Oswald-Light',
-    fontSize: 12,
+  scrollViewContentContainer: {
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    color: '#424242',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingLeft: 5,
+    fontWeight: 'bold',
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  contactItemPressed: {
+    backgroundColor: '#F0F0F0',
+  },
+  contactItemImage: {
+    width: 22,
+    height: 22,
+    marginRight: 15,
+    marginTop: 2,
+  },
+  contactTextContainer: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  contactLabel: {
+    fontSize: 13,
+    color: '#757575',
+  },
+  contactValue: {
+    fontSize: 15,
+    color: '#212121',
+    marginTop: 2,
+  },
+  webView: {
+    flex: 1,
+  },
+  bannerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F0FE',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 25,
+  },
+  bannerImage: {
+    width: 100,
+    height: 100,
+    marginRight: 15,
+  },
+  bannerTextWrapper: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2F4B99',
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    fontSize: 16,
+    color: '#3D3D3D',
+  },
+   helpcenterButton: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    alignSelf:'flex-end',
+    marginTop:10
+  },
+  helpcenterButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign:'right'
   },
 });
 

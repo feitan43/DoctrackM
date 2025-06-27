@@ -12,9 +12,9 @@ import {
   Image,
   Modal,
   ImageBackground,
+  SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import useTrackingSummaryList from '../api/useTrackingSummaryList';
 import {Shimmer} from '../utils/useShimmer';
 import {insertCommas} from '../utils/insertComma';
@@ -25,12 +25,12 @@ const RenderTrackingSummary = memo(({item, index, onPressItem}) => {
   return (
     <View
       style={{
-        backgroundColor: 'rgba(179, 196, 233, 0.1)',
+        //backgroundColor: 'rgba(179, 196, 233, 0.1)',
         marginVertical: 5,
         padding: 10,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#B0C4DE',
+        borderColor: '#ccc',
       }}>
       <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
         <View style={{paddingHorizontal: 10, justifyContent: 'center'}}>
@@ -287,7 +287,6 @@ const TrackingSummaryScreen = ({route}) => {
     <PaperProvider>
       <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
         <View style={styles.container}>
-          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
           <ImageBackground
             source={require('../../assets/images/CirclesBG.png')} // Change this to your background image
             style={styles.bgHeader}>
@@ -498,13 +497,13 @@ const styles = StyleSheet.create({
     marginStart: 10,
   },
   bgHeader: {
-    height: 60,
+    paddingTop: 35,
+    height: 80,
     backgroundColor: '#1a508c',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 10,
-    elevation: 4, // Shadow effect
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',

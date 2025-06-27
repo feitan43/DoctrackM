@@ -1,4 +1,4 @@
-import React, {useState, memo, useCallback} from 'react';
+import React, {useState, memo, useMemo, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -9,547 +9,717 @@ import {
   Pressable,
   RefreshControl,
   Image,
-  StatusBar,
-  Modal,
   ImageBackground,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {Button, PaperProvider} from 'react-native-paper';
 import useMyTransactions from '../api/useMyTransactions';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import {Shimmer} from '../utils/useShimmer';
 import {insertCommas} from '../utils/insertComma';
-import {Menu, PaperProvider} from 'react-native-paper';
-import {Dropdown} from 'react-native-element-dropdown';
-
-const currentYear = new Date().getFullYear();
+import BottomSheet, {BottomSheetBackdrop} from '@gorhom/bottom-sheet';
+import {years, currentYear, width} from '../utils';
 
 const RenderTransaction = memo(({item, index, onPressItem}) => {
-  const getShortMonth = month => month.slice(0, 3);
+  const getShortMonth = month => month?.slice(0, 3) || '';
 
   return (
-    <View
-      style={{
-        backgroundColor: '#fff',
-        borderRadius: 8, // Increased for smoother edges
-        padding: 10, // More padding for better spacing
-        marginVertical: 10, // Replaces marginTop & marginBottom
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.15, // Slightly stronger for better visibility
-        shadowRadius: 4,
-        elevation: 5, // Lower elevation to match shadow
-        borderWidth: 1, // Optional: Thin border for refinement
-        borderColor: 'rgba(0, 0, 0, 0.1)', // Light border for subtle separation
-      }}>
-      <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
-        {/* Index Badge */}
-        <View
-          style={{
-            //backgroundColor: '#007bff',
-            marginBottom: 8,
-            paddingBottom: 6,
-            borderRadius: 50,
-            width: 28,
-            height: 28,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <Text
-            style={{
-              color: item?.Status?.includes('Pending') ? '#FF4343' : '#007bff',
-              fontWeight: 'bold',
-              fontSize: 16,
-            }}>
-            {index + 1}
-          </Text>
+    <Pressable
+      onPress={() => onPressItem(index, item)}
+      style={({pressed}) => [
+        styles.transactionCard,
+        pressed && styles.transactionCardPressed,
+      ]}>
+      <View style={styles.cardContainer}>
+        {/* Left Column - Index Number */}
+        <View style={styles.indexColumn}>
+          <Text style={styles.indexText}>{index + 1}</Text>
         </View>
 
-        {/* Content Section */}
-        <View style={{flex: 1, marginLeft: 10}}>
-          {/* Status Indicator */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 8,
-              borderBottomWidth: 1,
-              paddingBottom: 6,
-              borderColor: item?.Status?.includes('Pending')
-                ? '#FF4343'
-                : '#252525',
-            }}>
+        {/* Right Column - Content */}
+        <View style={styles.contentColumn}>
+          {/* Status Row */}
+          <View style={styles.statusRow}>
             <Text
-              style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                color: item?.Status?.includes('Pending') ? '#FF4343' : '#333',
-                flex: 1,
-              }}>
+              style={[
+                styles.statusText,
+                item?.Status?.includes('Pending') && styles.pendingStatus,
+              ]}>
               {item?.Status ?? ''}
             </Text>
           </View>
 
-          {/* Transaction Details */}
-          <View style={{paddingVertical: 8}}>
+          {/* Details Section */}
+          <View style={styles.detailsSection}>
             <View style={styles.textRow}>
-              <Text style={styles.label}>Claimant</Text>
-              <Text style={styles.value}>{item.Claimant}</Text>
+              <Text style={styles.label}>Year </Text>
+              <Text style={styles.value}>{item.Year}</Text>
             </View>
-
             <View style={styles.textRow}>
-              <Text style={styles.label}>TN</Text>
+              <Text style={styles.label}>TN </Text>
               <Text style={styles.value}>{item.TrackingNumber}</Text>
             </View>
 
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Document</Text>
-              <Text style={styles.value}>{item.DocumentType}</Text>
-            </View>
+            {item.TrackingType !== 'PR' ? (
+              <>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>Claimant </Text>
+                  <Text style={styles.value}>{item.Claimant}</Text>
+                </View>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>Document </Text>
+                  <Text style={styles.value}>{item.DocumentType}</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>PR Number </Text>
+                  <Text style={styles.value}>{item.PR_Number}</Text>
+                </View>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>PR Sched </Text>
+                  <Text style={styles.value}>
+                    {item.PR_Month >= 1 && item.PR_Month <= 3
+                      ? '1st Quarter'
+                      : item.PR_Month >= 4 && item.PR_Month <= 6
+                      ? '2nd Quarter'
+                      : item.PR_Month >= 7 && item.PR_Month <= 9
+                      ? '3rd Quarter'
+                      : '4th Quarter'}
+                  </Text>
+                </View>
+                <View style={styles.textRow}>
+                  <Text style={styles.label}>Fund </Text>
+                  <Text style={styles.value}>{item.Fund}</Text>
+                </View>
+              </>
+            )}
 
             <View style={styles.textRow}>
-              <Text style={styles.label}>Month</Text>
+              <Text style={styles.label}>Period </Text>
               <Text style={styles.value}>
                 {getShortMonth(item.PeriodMonth)}
               </Text>
             </View>
 
             <View style={styles.textRow}>
-              <Text style={styles.label}>Amount</Text>
-              <Text
-                style={[styles.value, { color: '#007bff'}]}>
-                {insertCommas(item.Amount)}
-              </Text>
+              <Text style={styles.label}>Amount </Text>
+              <Text style={styles.amountText}>{insertCommas(item.Amount)}</Text>
             </View>
-          </View>
-
-          {/* Actions Section */}
-          <View style={{alignSelf: 'flex-end'}}>
-            <Pressable
-              style={({pressed}) => [
-                {
-                  alignSelf: 'flex-end',
-                  padding: 10,
-                  //elevation: 2,
-                },
-              ]}
-              onPress={() => onPressItem(index, item)}>
-              <Text style={{color: 'orange'}}>See Details</Text>
-            </Pressable>
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 });
 
 const MyTransactionsScreen = ({navigation}) => {
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const {myTransactionsData, loading, error, fetchMyPersonal} =
+
+  const {myTransactionsData, isLoading: loading, error, refetch: fetchMyPersonal} =
     useMyTransactions(selectedYear);
-  const [selectedItems, setSelectedItems] = useState([]);
+
   const [visibleItems, setVisibleItems] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const scrollY = new Animated.Value(0);
+  const [showTitleInHeader, setShowTitleInHeader] = useState(false);
+
+  // Declare bottomSheetRef using useRef
+  const bottomSheetRef = useRef(null);
+
+  // Define snap points for the BottomSheet
+  const snapPoints = useMemo(() => ['25%', '50%'], []); // Adjust snap points as needed
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchMyPersonal();
+    await fetchMyPersonal(); // Use refetch from react-query
     setRefreshing(false);
   }, [fetchMyPersonal]);
 
-  /*   const years = Array.from(
-    {length: 3},
-    (_, index) => new Date().getFullYear() - index,
-  );
- */
-  const years = Array.from(
-    {length: Math.max(0, new Date().getFullYear() - 2023 + 1)},
-    (_, index) => new Date().getFullYear() - index,
-  );
-
-  const openMenu = () => setVisible(true);
-  const closeMenu = () => setVisible(false);
-
   const onPressItem = useCallback(
-    index => {
+    (index, item) => {
       navigation.navigate('MyTransactionsDetails', {
-        selectedItem: myTransactionsData[index],
+        selectedItem: item,
       });
     },
-    [navigation, myTransactionsData],
+    [navigation],
   );
 
-  const handleLoadMore = () => {
-    if (!isLoadingMore && myTransactionsData.length > visibleItems) {
+  const handleScroll = Animated.event(
+    [{nativeEvent: {contentOffset: {y: scrollY}}}],
+    {
+      listener: event => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setShowTitleInHeader(offsetY > 10); // Adjust threshold as needed
+      },
+      useNativeDriver: false,
+    },
+  );
+
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && myTransactionsData?.length > visibleItems) {
       setIsLoadingMore(true);
       setTimeout(() => {
-        setVisibleItems(prevVisibleItems => prevVisibleItems + 10);
+        setVisibleItems(prev => prev + 10);
         setIsLoadingMore(false);
       }, 1000);
     }
-  };
+  }, [isLoadingMore, myTransactionsData, visibleItems]);
 
-  const openYearModal = () => setModalVisible(true);
-  const closeYearModal = () => setModalVisible(false);
-
-  const selectYear = year => {
-    setSelectedYear(year);
-    closeYearModal();
-    closeMenu();
-  };
-
-  const renderYearItem = ({item}) => (
-    <TouchableOpacity style={styles.modalItem} onPress={() => selectYear(item)}>
-      <Text style={styles.modalItemText}>{item}</Text>
-    </TouchableOpacity>
+  const renderFooter = useCallback(
+      () =>
+        isLoadingMore ? (
+          <View style={styles.loadMoreIndicator}>
+            <ActivityIndicator size="small" color="#007bff" />
+          </View>
+        ) : null,
+      [isLoadingMore],
   );
 
-  const YearDropdown = ({selectedYear, setSelectedYear}) => {
-    const years = Array.from(
-      {length: Math.max(0, currentYear - 2023 + 1)},
-      (_, index) => ({
-        label: `${currentYear - index}`,
-        value: currentYear - index,
-      }),
-    );
+  const renderEmptyComponent = useCallback(
+      () => (
+        <View style={styles.emptyContainer}>
+          <Image
+            source={require('../../assets/images/noresultsstate.png')}
+            style={styles.emptyImage}
+          />
+          <Text style={styles.emptyText}>No transactions found</Text>
+        </View>
+      ),
+      [],
+  );
 
-    return (
-      <View
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          borderWidth: 1,
-          borderColor: 'silver',
-          borderRadius: 5,
-        }}>
-        <Dropdown
-          style={[styles.dropdown, {elevation: 10}]}
-          data={years}
-          labelField="label"
-          valueField="value"
-          placeholder={`${selectedYear}`}
-          selectedTextStyle={{color: '#fff'}}
-          placeholderStyle={{color: '#fff'}}
-          iconStyle={{tintColor: '#fff'}}
-          value={selectedYear}
-          onChange={item => {
-            setSelectedYear(item.value);
-          }}
-        />
-      </View>
-    );
-  };
+  const renderErrorComponent = useCallback(
+      () => (
+        <View style={styles.errorContainer}>
+          <Image
+            source={require('../../assets/images/errorState.png')}
+            style={styles.errorImage}
+          />
+          <Text style={styles.errorText}>
+            {error?.message || 'An error occurred'}
+          </Text>
+          <Button
+            mode="contained"
+            onPress={fetchMyPersonal}
+            style={styles.retryButton}
+            labelStyle={styles.retryButtonText}>
+            Retry
+          </Button>
+        </View>
+      ),
+      [error, fetchMyPersonal],
+  );
 
-  const renderContent = () => {
-    return (
-      <>
-        <FlatList
-          contentContainerStyle={{paddingVertical: 10}}
-          data={myTransactionsData.slice(0, visibleItems)}
-          renderItem={({item, index}) => (
-            <RenderTransaction
-              item={item}
-              index={index}
-              onPressItem={onPressItem}
-            />
+  const renderLoadingComponent = useCallback(
+      () => (
+        <View style={styles.loadingContainer}>
+          {[...Array(4)].map((_, index) => (
+            <Shimmer key={`shimmer-${index}`} />
+          ))}
+        </View>
+      ),
+      [],
+  );
+
+  const renderHeader = useCallback(
+    () => (
+      <View style={styles.headerContainer}>
+        <View style={styles.headerContent}>
+          {!showTitleInHeader && (
+            <Text style={styles.listHeaderTitle}>My Transactions</Text>
           )}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          keyExtractor={(item, index) =>
-            item && item.Id ? item.Id.toString() : index.toString()
-          }
-          style={styles.transactionList}
-          extraData={selectedItems}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.1}
-          ListFooterComponent={() =>
-            loading ? <ActivityIndicator color="white" /> : null
-          }
-        />
-        {isLoadingMore && (
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 30,
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              alignSelf: 'center',
-              backgroundColor: 'white',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1,
-            }}>
-            <ActivityIndicator size="large" color="gray" />
-          </View>
-        )}
-      </>
-    );
+        </View>
+      </View>
+    ),
+    [showTitleInHeader], // removed selectedYear as it's not used here
+  );
+
+  const handleSelectYear = year => {
+    setSelectedYear(year);
+    setBottomSheetVisible(false);
+    bottomSheetRef.current?.close(); // Close bottom sheet after selection
+    // useQuery refetches automatically when queryKey changes (due to selectedYear)
   };
+
   return (
     <PaperProvider>
-      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-        <View style={styles.container}>
-          <ImageBackground
-            source={require('../../assets/images/CirclesBG.png')} 
-            style={styles.bgHeader}>
-            <View style={styles.header}>
-              <Pressable
-                style={({pressed}) => [
-                  pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                  styles.backButton,
-                ]}
-                android_ripple={{
-                  color: '#F6F6F6',
-                  borderless: true,
-                  radius: 24,
-                }}
-                onPress={() => navigation.goBack()}>
-                <Icon name="arrow-back" size={24} color="#fff" />
-              </Pressable>
+      <SafeAreaView style={styles.safeArea}>
+        <ImageBackground
+          source={require('../../assets/images/bgasset.jpg')}
+          style={styles.backgroundImage}
+          resizeMode="cover">
+          <View style={styles.overlay} />
 
-              <Text style={styles.title}>Salaries</Text>
-              <View>
-                <YearDropdown
-                  selectedYear={selectedYear}
-                  setSelectedYear={setSelectedYear}
-                />
+          <View style={styles.container}>
+            <ImageBackground
+              source={require('../../assets/images/CirclesBG.png')}
+              style={styles.appBar}
+              resizeMode="cover">
+              <View style={styles.appBarContent}>
+                <Pressable
+                  style={({pressed}) => [
+                    styles.backButton,
+                    pressed && styles.backButtonPressed,
+                  ]}
+                  android_ripple={styles.backButtonRipple}
+                  onPress={navigation.goBack}>
+                  <Icon name="arrow-back" size={24} color="#fff" />
+                </Pressable>
+                {showTitleInHeader && (
+                  <Text style={styles.title}>My Transactions</Text>
+                )}
+                <Pressable
+                  style={({pressed}) => [
+                    styles.menuButton,
+                    pressed && styles.menuButtonPressed,
+                  ]}
+                  android_ripple={styles.menuButtonRipple}
+                  onPress={() => setBottomSheetVisible(true)}>
+                  <Icon name="ellipsis-vertical" size={24} color="#fff" />
+                </Pressable>
               </View>
-            </View>
-          </ImageBackground>
+            </ImageBackground>
 
-          <View style={{flex: 1, backgroundColor: '#F6F6F6'}}>
-            {loading ? (
-              <View style={[styles.container2, {top: 80}]}>
-                {[...Array(7)].map((_, index) => (
-                  <Shimmer key={index} />
-                ))}
-              </View>
-            ) : error ? (
-              <View
-                style={{
-                  flex: 1,
-                  top: 80,
-                }}>
-                <Image
-                  source={require('../../assets/images/errorState.png')}
-                  style={{
-                    width: '60%',
-                    height: '25%',
-                    alignSelf: 'center',
-                  }}
+            <View style={styles.contentContainer}>
+              {/* Prioritize showing loading if data is not yet available, regardless of 'loading' being undefined */}
+              {(!myTransactionsData && !error) || loading ? (
+                renderLoadingComponent()
+              ) : error ? (
+                renderErrorComponent()
+              ) : (myTransactionsData && myTransactionsData.length > 0) ? (
+                <FlatList
+                  data={myTransactionsData?.slice(0, visibleItems) || []}
+                  renderItem={({item, index}) => (
+                    <RenderTransaction
+                      item={item}
+                      index={index}
+                      onPressItem={onPressItem}
+                    />
+                  )}
+                  ListEmptyComponent={renderEmptyComponent}
+                  ListHeaderComponent={renderHeader}
+                  ListFooterComponent={renderFooter}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      colors={['#007bff']}
+                      tintColor="#007bff"
+                    />
+                  }
+                  keyExtractor={(item, index) =>
+                    item?.Id ? item.Id.toString() : index.toString()
+                  }
+                  contentContainerStyle={styles.listContent}
+                  onEndReached={handleLoadMore}
+                  onEndReachedThreshold={0.2}
+                  stickyHeaderIndices={[0]}
+                  showsVerticalScrollIndicator={false}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
                 />
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Light',
-                    alignSelf: 'center',
-                    color: 'gray',
-                    fontSize: 16,
-                    textAlign: 'center',
-                    padding: 5,
-                  }}>
-                  {typeof error === 'string'
-                    ? error
-                    : error.message || 'An unknown error occurred'}
-                </Text>
-              </View>
-            ) : myTransactionsData === null ? (
-              <View style={[styles.container2, {top: 80}]}>
-                {[...Array(7)].map((_, index) => (
-                  <Shimmer key={index} />
-                ))}
-              </View>
-            ) : myTransactionsData.length === 0 ? (
-              <View
-                style={{
-                  flex: 1,
-                  top: 80,
-                }}>
-                <Image
-                  source={require('../../assets/images/noresultsstate.png')}
-                  style={{
-                    width: '60%',
-                    height: '25%',
-                    alignSelf: 'center',
-                  }}
-                />
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Light',
-                    alignSelf: 'center',
-                    color: 'gray',
-                    fontSize: 16,
-                    textAlign: 'center',
-                    padding: 5,
-                  }}>
-                  NO RESULTS FOUND
-                </Text>
-              </View>
-            ) : (
-              <View style={{height: '100%' /* paddingBottom: 55 */}}>
-                {renderContent()}
-              </View>
-            )}
-          </View>
-        </View>
-
-        <Modal transparent={true} visible={modalVisible} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <FlatList
-                data={years}
-                renderItem={renderYearItem}
-                keyExtractor={item => item}
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={closeYearModal}>
-                <Text style={styles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
+              ) : (
+                renderEmptyComponent()
+              )}
             </View>
           </View>
-        </Modal>
+
+          {bottomSheetVisible && (
+            <BottomSheet
+              ref={bottomSheetRef} // Assign the ref here
+              index={0}
+              snapPoints={snapPoints} // Use snapPoints from useMemo
+              backdropComponent={props => (
+                <BottomSheetBackdrop
+                  {...props}
+                  disappearsOnIndex={-1}
+                  appearsOnIndex={0}
+                />
+              )}
+              onClose={() => setBottomSheetVisible(false)}>
+              <View style={styles.bottomSheetContent}>
+                <Text style={styles.bottomSheetTitle}>Select Year</Text>
+                {years.map(year => (
+                  <TouchableOpacity
+                    key={year}
+                    onPress={() => handleSelectYear(year)}
+                    style={[
+                      styles.yearItem,
+                      year === selectedYear && styles.selectedYearItem,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.yearText,
+                        year === selectedYear && styles.selectedYearText,
+                      ]}>
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </BottomSheet>
+          )}
+        </ImageBackground>
       </SafeAreaView>
     </PaperProvider>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
   container: {
     flex: 1,
-    width: '100%',
   },
-  transactionItem: {
-    flexDirection: 'column',
+  appBar: {
+    height: 80,
+    paddingTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    elevation: 4,
   },
-  transactionTitle: {
-    fontFamily: 'Roboto-Bold',
-    fontSize: 16,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-    alignSelf: 'center',
-  },
-  transactionList: {
-    marginBottom: 10,
+  appBarContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     width: '100%',
+  },
+  headerContainer: {
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  headerContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  listHeaderTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
   },
   backButton: {
     width: 40,
-    backgroundColor: 'transparent',
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  shimmerWrapper: {
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0,0,0, 0.1)',
-  },
-  gradient: {
-    flex: 1,
-  },
-  container2: {
-    gap: 10,
-    marginTop: 50,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 20,
   },
-  transactionListContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5', // Example background
+  backButtonPressed: {
+    transform: [{scale: 0.95}],
   },
-  transactionList: {
-    padding: 10, // Inner padding for list items
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-  },
-  modalItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  modalItemText: {
-    fontSize: 16,
-  },
-  modalCloseButton: {
-    marginTop: 20,
-    backgroundColor: 'rgba(13, 85, 199, 1)',
-    paddingVertical: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  dropdown: {
-    width: 80,
-    paddingHorizontal: 10,
-    marginVertical: 5,
-  },
-  textRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 5,
-  },
-  label: {
-    fontSize: 14,
-    color: 'silver',
-    fontFamily: 'Inter_28pt-Regular',
-    flex: 0.3, // Label takes 30% width,
-    textAlign: 'right',
-  },
-  value: {
-    paddingStart: 10,
-    fontSize: 14,
-    color: '#252525',
-    fontFamily: 'Inter_28pt-SemiBold',
-    flex: 0.7,
-  },
-  bgHeader: {
-    paddingTop:30,
-    height: 80,
-    backgroundColor: '#1a508c',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    elevation: 4, // Shadow effect
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    //backgroundColor: '#fff',
-    paddingBottom: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    //elevation: 2,
+  backButtonRipple: {
+    color: 'rgba(255, 255, 255, 0.2)',
+    borderless: true,
+    radius: 20,
   },
   title: {
     flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
-    //padding: 10,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  menuButtonPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    transform: [{scale: 0.95}],
+  },
+  menuButtonRipple: {
+    color: 'rgba(255, 255, 255, 0.2)',
+    borderless: true,
+    radius: 20,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#F5F8FA',
+  },
+  listContent: {
+    paddingVertical: 8,
+  },
+
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerBackButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  filterButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 20,
+    backgroundColor: '#007bff',
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  transactionCard: {
+    marginHorizontal: 12,
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    marginBottom:10,
+    elevation:1
+  },
+  transactionCardPressed: {
+    backgroundColor: '#F5F8FA'
+  },
+  cardContainer: {
+    flexDirection: 'row',
+  },
+  indexColumn: {
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginRight: 12,
+  },
+  contentColumn: {
+    flex: 1,
+  },
+  indexText: {
+    fontSize: 16,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#007bff',
+  },
+  statusRow: {
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  statusText: {
+    fontSize: 16,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#252525',
+  },
+  pendingStatus: {
+    color: '#FF9800',
+  },
+  detailsSection: {
+    flex: 1,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  textRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  label: {
+    width: '25%',
+    fontSize: 12,
+    fontFamily: 'Inter_28pt-Light',
+    textAlign: 'right',
+    color: '#666',
+  },
+  value: {
+    width: '70%',
+    fontSize: 14,
+    fontFamily: 'Inter_28pt-Regular',
+    color: '#333',
+    marginLeft: 8,
+  },
+  amountText: {
+    width: '70%',
+    fontSize: 14,
+    fontFamily: 'Inter_28pt-Bold',
+    color: '#007bff',
+    marginLeft: 8,
+  },
+  detailsButtonContainer: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+  },
+  detailsButtonText: {
+    color: '#007bff',
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex:1,
+    paddingTop: 20,
+    paddingHorizontal: 10,
+    gap:10
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyImage: {
+    width: 160,
+    height: 160,
+    resizeMode: 'contain',
+    marginBottom: 16,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorImage: {
+    width: 160,
+    height: 160,
+    resizeMode: 'contain',
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    borderRadius: 6,
+    backgroundColor: '#007bff',
+  },
+  retryButtonText: {
+    color: '#fff',
+  },
+  loadMoreIndicator: {
+    paddingVertical: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: {
+    width: width * 0.8,
+    maxHeight: '70%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    textAlign: 'center',
+    backgroundColor: '#f9f9f9',
+  },
+  modalItem: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedYearItem: {
+    backgroundColor: 'rgba(0, 123, 255, 0.05)',
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  selectedYearText: {
+    color: '#007bff',
+    fontWeight: 'bold',
+  },
+  modalCloseButton: {
+    padding: 16,
+    backgroundColor: '#007bff',
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  filterButton: {
+    margin: 16,
+    backgroundColor: '#007bff',
+  },
+  filterButtonText: {
+    color: '#fff',
+  },
+  bottomSheetContent: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+
+  yearItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+
+  selectedYearItem: {
+    backgroundColor: '#f0f8ff',
+  },
+
+  yearText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+  },
+
+  selectedYearText: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#007bff',
   },
 });
 

@@ -3,199 +3,263 @@ import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {scale, verticalScale, moderateScale} from 'react-native-size-matters';
 
 export const InspectionList = ({item, index, onPressItem}) => {
+  const deliveryDates = item.DeliveryDatesHistory
+    ? item.DeliveryDatesHistory.split(',')
+    : [];
+  const lastIndex = deliveryDates.length - 1;
+
+  const isForInspection = item.Status === 'For Inspection';
+  let inspectionDateInfo = null;
+
+  if (isForInspection && item.DeliveryDate) {
+    // Parse the date string 'YYYY-MM-DD HH:MM AM/PM'
+    const [datePart, timePart, ampmPart] = item.DeliveryDate.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    let [hours, minutes] = timePart.split(':').map(Number);
+
+    // Adjust hours for PM
+    if (ampmPart === 'PM' && hours < 12) {
+      hours += 12;
+    }
+    // Adjust hours for 12 AM (midnight)
+    if (ampmPart === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    // Create a Date object with the parsed components. Month is 0-indexed.
+    const inspectionDate = new Date(year, month - 1, day, hours, minutes);
+
+    const today = new Date();
+    // Set hours, minutes, seconds, milliseconds to 0 for today for accurate day comparison
+    today.setHours(0, 0, 0, 0);
+    // Set hours, minutes, seconds, milliseconds to 0 for inspectionDate for accurate day comparison
+    inspectionDate.setHours(0, 0, 0, 0);
+
+    const diffTime = inspectionDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Calculate days difference
+
+    if (diffDays < 0) {
+      inspectionDateInfo = {
+        text: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`,
+        style: styles.overdueText,
+      };
+    } else if (diffDays === 0) {
+      inspectionDateInfo = {
+        text: 'Today is the inspection day!',
+        style: styles.todayInspectionText,
+      };
+    } else {
+      inspectionDateInfo = {
+        text: `${diffDays} day${diffDays === 1 ? '' : 's'} till inspection`,
+        style: styles.daysTillInspectionText,
+      };
+    }
+  }
+
   return (
-    <View
-      style={styles.card}
-      accessibilityLabel={`Inspection item ${index + 1}`}>
-      <View style={styles.container}>
-        <View style={styles.indexContainer}>
-          <Text style={styles.index}>{index + 1}</Text>
+    <View style={styles.card}>
+      <View style={styles.headerContainer}>
+        <View style={styles.indexCircle}>
+          <Text style={styles.indexText}>{index + 1}</Text>
         </View>
 
-        <View style={styles.infoContainer}>
-          <View style={styles.officeContainer}>
-            <Text style={styles.officeName}>{item.OfficeName}</Text>
-          </View>
-
-          <View style={styles.detailsContainer}>
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Category</Text>
-              <Text style={styles.value}>
-                {item.CategoryCode}
-                {'\n'}
-                {item.CategoryName}
-              </Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Year</Text>
-              <Text style={styles.value}>{item.Year}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Payment TN</Text>
-              <Text style={styles.value}>{item.TrackingNumber}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>PO TN</Text>
-              <Text style={styles.value}>{item.TrackingPartner}</Text>
-            </View>
-
-            
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Date</Text>
-              <Text style={styles.value}>{item.DeliveryDate}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Delivery</Text>
-              <View>
-                {item.DeliveryDatesHistory ? (
-                  item.DeliveryDatesHistory.split(', ').map(
-                    (date, idx, arr) => (
-                      <View key={idx} style={styles.deliveryDateRow}>
-                        <Text
-                          style={[
-                            styles.deliveryIndex,
-                            {
-                              backgroundColor:
-                                idx === arr.length - 1 ? '#5FA8D3' : '#BDC3C7',
-                            },
-                          ]}>
-                          {idx + 1}
-                        </Text>
-                        <Text style={styles.value}>{date}</Text>
-                      </View>
-                    ),
-                  )
-                ) : (
-                  <Text style={styles.value}>N/A</Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Address</Text>
-              <Text style={styles.value}>{item.Address || 'N/A'}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}>Contact</Text>
-              <Text style={styles.value}>{item.ContactPerson || 'N/A'}</Text>
-            </View>
-
-            <View style={styles.textRow}>
-              <Text style={styles.label}> </Text>
-              <Text style={styles.value}>{item.ContactNumber || 'N/A'}</Text>
-            </View>
-
-            <Pressable
-              style={styles.button}
-              onPress={() => onPressItem(item)}
-              android_ripple={{color: '#ddd', borderless: false}}>
-              <Text style={styles.buttonText}>See Inspection</Text>
-            </Pressable>
-          </View>
+        <View style={styles.trackingInfo}>
+          <Text style={styles.trackingText}>
+            <Text style={styles.yearText}>{item.Year}</Text>
+            {'   '}
+            <Text style={styles.separator}>|</Text>
+            {'   '}
+            {item.TrackingNumber || item.RefTrackingNumber}
+          </Text>
         </View>
       </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.detailsContainer}>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Office</Text>
+          <Text style={styles.detailValue}>{item.OfficeName}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Category</Text>
+          <Text style={styles.detailValue}>
+            {item.CategoryCode} - {item.CategoryName}
+          </Text>
+        </View>
+
+        <Text style={styles.deliveryHeader}>Delivery</Text>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Address</Text>
+          <Text style={styles.detailValue}>{item.Address || 'N/A'}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Contact</Text>
+          <Text style={styles.detailValue}>{item.ContactPerson || 'N/A'}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Date</Text>
+          <Text style={styles.detailValue}>{item.DeliveryDate || 'N/A'}</Text>
+        </View>
+        {/*  <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>DateInspected</Text>
+          <Text style={styles.detailValue}>{item.DateInspected || 'N/A'}</Text>
+        </View> */}
+
+        {isForInspection && inspectionDateInfo && (
+          <View style={styles.inspectionInfoRow}>
+            <Text style={styles.detailLabel}>{/* Inspection Status */}</Text>
+            <Text style={[styles.detailValue, inspectionDateInfo.style]}>
+              {inspectionDateInfo.text}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <Pressable
+        style={({pressed}) => [styles.enhancedButton, pressed && styles.enhancedButtonPressed]}
+        android_ripple={{color: 'rgba(243, 156, 18, 0.1)', borderless: false}}
+        onPress={() => onPressItem(item)}>
+        <Text style={styles.enhancedButtonText}>See Inspection</Text>
+      </Pressable>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: scale(10),
-    padding: scale(12),
+    backgroundColor: '#FFFFFF',
+    borderRadius: moderateScale(12),
+    padding: moderateScale(16),
     marginVertical: verticalScale(8),
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: verticalScale(3)},
-    shadowOpacity: 0.12,
-    shadowRadius: scale(5),
-    elevation: scale(4),
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    shadowOffset: {width: 0, height: verticalScale(4)},
+    shadowOpacity: 0.1,
+    shadowRadius: moderateScale(6),
+    elevation: 6,
+    borderWidth: 0,
+    marginHorizontal: moderateScale(10),
   },
-  container: {
+
+  headerContainer: {
     flexDirection: 'row',
-  },
-  indexContainer: {
-    paddingHorizontal: scale(12),
-    paddingVertical: verticalScale(6),
     alignItems: 'center',
+    marginBottom: verticalScale(10),
   },
-  index: {
-    fontSize: moderateScale(18),
-    textAlign: 'right',
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: '#3498DB',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: {width: 0, height: verticalScale(1)},
-    textShadowRadius: scale(3),
+  indexCircle: {
+    width: moderateScale(32),
+    height: moderateScale(32),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: moderateScale(16),
+    backgroundColor: '#E6EEF9',
+    marginRight: moderateScale(15),
   },
-  officeContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDE2E5',
-    paddingVertical: verticalScale(6),
-  },
-  officeName: {
+  indexText: {
     fontSize: moderateScale(16),
-    fontFamily: 'Inter_28pt-Medium',
-    color: '#333',
+    fontWeight: '700',
+    color: '#2980B9',
   },
-  infoContainer: {
+  trackingInfo: {
     flex: 1,
   },
+  trackingText: {
+    fontSize: moderateScale(17),
+    fontWeight: 'bold',
+    color: '#34495E',
+  },
+  yearText: {
+    fontWeight: 'normal',
+    color: '#7F8C8D',
+  },
+  separator: {
+    color: '#BDC3C7',
+    fontSize: moderateScale(16),
+  },
+
+  divider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EAECEE',
+    marginVertical: verticalScale(10),
+  },
+
   detailsContainer: {
-    marginTop: verticalScale(8),
+    paddingVertical: verticalScale(5),
   },
-  textRow: {
+  detailRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: verticalScale(2),
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(6),
   },
-  label: {
+  detailLabel: {
+    fontSize: moderateScale(14),
+    fontWeight: '500',
+    color: '#607D8B',
     width: '30%',
-    fontSize: moderateScale(14),
-    fontFamily: 'Inter_28pt-Light',
-    textAlign: 'right',
-    color: '#6C757D',
   },
-  value: {
-    width: '65%',
+  detailValue: {
     fontSize: moderateScale(14),
-    fontFamily: 'Inter_28pt-SemiBold',
-    color: '#2C3E50',
-    marginStart: scale(10),
-  },
-  deliveryDateRow: {
-    flexDirection: 'row',
-    marginBottom: 5,
-    alignItems: 'center',
-  },
-  deliveryIndex: {
-    marginStart: 10,
-    paddingHorizontal: 10,
-    color: 'white',
-    borderRadius: scale(4),
-    //marginRight: scale(8),
-    fontSize: moderateScale(14),
-    textAlign: 'center',
     fontWeight: '600',
+    color: '#2C3E50',
+    flex: 1,
+    textAlign: 'right',
   },
-  button: {
-    alignSelf: 'flex-end',
-    padding: scale(10),
-    borderRadius: scale(6),
-    //backgroundColor: '#F39C12',
+
+  deliveryHeader: {
+    fontSize: moderateScale(15),
+    fontWeight: 'bold',
+    color: '#1A508C',
+    marginTop: verticalScale(15),
+    marginBottom: verticalScale(8),
+  },
+
+  inspectionInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: verticalScale(10),
+    marginBottom: verticalScale(6),
+    paddingTop: verticalScale(5),
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EAECEE',
   },
-  buttonText: {
+  overdueText: {
+    color: '#E74C3C',
+    fontWeight: 'bold',
+    fontSize: moderateScale(14),
+  },
+  todayInspectionText: {
+    color: '#27AE60',
+    fontWeight: 'bold',
+    fontSize: moderateScale(14),
+  },
+  daysTillInspectionText: {
+    color: '#3498DB',
+    fontWeight: 'bold',
+    fontSize: moderateScale(14),
+  },
+
+  enhancedButton: {
+    alignSelf: 'flex-end',
+    marginTop: verticalScale(15),
+    paddingHorizontal: moderateScale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(8),
+    borderColor: 'rgba(243, 156, 18, 0.3)',
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
+  enhancedButtonText: {
     color: '#F39C12',
     fontSize: moderateScale(14),
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '700',
+    textDecorationLine: 'none',
+  },
+  enhancedButtonPressed: {
+    backgroundColor: 'rgba(243, 156, 18, 0.2)',
+    opacity: 0.9,
   },
 });
 

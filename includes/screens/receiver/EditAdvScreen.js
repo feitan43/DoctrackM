@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import { useUpdateQRData } from '../../api/useUpdateQRData';
+import { useUpdateQRDataADV } from '../../api/useUpdateQRData';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const EditAdvScreen = ({ route }) => {
     const navigation = useNavigation();
     const { item } = route.params;
 
-    const { mutateAsync, isPending } = useUpdateQRData();
+    const { mutateAsync, isPending } = useUpdateQRDataADV();
+
     const advNumber = item?.ADV1 || '';
     const year = item?.Year;
     const trackingNumber = item?.TrackingNumber;

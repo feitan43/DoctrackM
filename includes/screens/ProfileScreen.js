@@ -4,257 +4,269 @@ import {
   Text,
   StyleSheet,
   Image,
-  Button,
   TouchableOpacity,
   Pressable,
-  StatusBar
+  StatusBar,
+  //SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useUserInfo from '../api/useUserInfo';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context'; // Import this
+
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 const ProfileScreen = ({navigation}) => {
-  const {employeeNumber, fullName, officeName, officeCode, accountType} =
-    useUserInfo();
+  const {
+    employeeNumber,
+    fullName,
+    officeName,
+    officeCode,
+    accountType,
+    procurement,
+    officeAdmin,
+    gsoInspection,
+    caoReceiver,
+    caoEvaluator,
+    cboReceiver,
+  } = useUserInfo();
 
-  // PERMISSIONS:
-  // 10 - gso
-  // 11 - gso
-  // 30 - ling
-  // 31 - cbo
-  // 32 - PPMP
-  // 33 - light/water
-  // 34 - ling hr
-  // 35 - bac
-  // 36 - cancel
-  // 37 - cto check management
-  // 38 - BAC Secretariat
-  // 39 - BAC Chairman
-  // 40 - CEO PDD
-  // 41 - CEO Construction
-  // 42 - CEO Admin
-  // 43 - CAO trust fund controller
-  // 44 - CBO gen fund fund controller
-  // 45 - Inventory Assets Module viewer
-  // 46 - REMI Account for all access program and account codes
-  // 47 - Disaster Account
-  // 48 - Receiver Admin -New-
-  // 49 - Receiver GSO -New-
-  // 50 - Receiver CTO -New-
-  // 51 - Receiver CBO -New-
-  // 52 - Receiver CEO -New-
-  // 53 - Receiver CAO -New-
+  const getAccountTypeName = type => {
+    switch (parseInt(type)) {
+      case 1:
+        return 'Officer';
+      case 2:
+        return 'DTS Officer';
+      case 3:
+        return 'Doctrack Administrator';
+      case 4:
+        return 'Master Receiver';
+      case 5:
+        return 'Master Releaser';
+      case 6:
+        return 'Pending Master';
+      case 7:
+        return 'Programmer';
+      case 8:
+        return 'SLP Master';
+      case 9:
+        return 'Master Adviser';
+      case 10:
+        return 'BAC Officer';
+      default:
+        return 'Unknown Account Type';
+    }
+  };
 
-  // PRIVILEGES:
-  // 1 - CAO Mai2 (For AP Cancellation Button)
-  // 2 - CAO Janice (Master Receiver)
-  // 3 - CAO Do2 and Kervih (Document Receivers)
-  // 4 - For PR - EDIT STATUS function
-  // 5 - Admin Operations Receiving
+  const getRoleNames = () => {
+    const roles = [];
+    if (procurement === '1') {
+      roles.push('Procurement');
+    }
+    if (officeAdmin === '1') {
+      roles.push('Office Admin');
+    }
+    if (gsoInspection === '1') {
+      roles.push('Inspector');
+    }
+    if (caoReceiver === '1' || cboReceiver === '1') {
+      roles.push('Receiver');
+    }
+    if (caoEvaluator === '1') {
+      roles.push('Evaluator');
+    }
+    return roles;
+  };
+
+  const currentRoles = getRoleNames();
+  const statusBarContentStyle = 'dark-content';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-      {/* Header with Back Button */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#fff',
-          paddingBottom: 5,
-          shadowColor: '#000',
-          shadowOffset: {width: 0, height: 2},
-          shadowOpacity: 0.2,
-          shadowRadius: 3,
-          elevation: 3,
-        }}>
-        <Pressable
-          style={({pressed}) => [
-            pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginStart: 10,
-              padding: 10,
-              borderRadius: 24,
-            },
-          ]}
-          android_ripple={{
-            color: '#F6F6F6',
-            borderless: true,
-            radius: 24,
-          }}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="gray" />
-        </Pressable>
-
-        <Text
-          style={{
-            padding: 10,
-            color: '#252525',
-            fontFamily: 'Inter_28pt-Bold',
-            fontSize: 16,
-          }}>
-          Profile
-        </Text>
-      </View>
-
-      {/* Profile Picture */}
-      <Image
-        source={require('../../assets/images/davao.png')}
-        style={styles.profileImage}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar
+        translucent={true}
+        backgroundColor="transparent"
+        barStyle={statusBarContentStyle}
       />
-      <View style={{paddingHorizontal: 20, rowGap: 5}}>
-        <Text style={styles.label}>Employee Number</Text>
-        <Text style={styles.labelValue}>{employeeNumber}</Text>
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
-
-        <Text style={styles.label}>Account Name</Text>
-        <Text style={styles.labelValue}>{fullName}</Text>
-
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
-
-        <Text style={styles.label}>Office</Text>
-        <Text style={styles.labelValue}>{officeName}</Text>
-
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
-
-        <Text style={styles.label}>Account Type </Text>
-        <Text style={styles.labelValue}>
-          {parseInt(accountType) === 1
-            ? 'Officer'
-            : parseInt(accountType) === 2
-            ? 'DTS Officer'
-            : parseInt(accountType) === 3
-            ? 'Doctrack Administrator'
-            : parseInt(accountType) === 4
-            ? 'Master Receiver'
-            : parseInt(accountType) === 5
-            ? 'Master Releaser'
-            : parseInt(accountType) === 6
-            ? 'Pending Master'
-            : parseInt(accountType) === 7
-            ? 'Programmer'
-            : parseInt(accountType) === 8
-            ? 'SLP Master'
-            : parseInt(accountType) === 9
-            ? 'Master Adviser'
-            : parseInt(accountType) === 10
-            ? 'BAC Officer'
-            : 'Unknown Account Type'}
-        </Text>
-
-        <View
-          style={{
-            height: 1,
-            marginTop: 10,
-            backgroundColor: 'gray',
-          }}
-        />
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({pressed}) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
+          android_ripple={{color: '#F0F0F0', borderless: true, radius: 24}}>
+          <Icon name="arrow-back" size={24} color="#424242" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
-      {/* Name */}
-      {/*  <Text>Name</Text>
-      <Text style={styles.name}>{fullName}</Text>
+      <View style={styles.container}>
+        <View style={styles.profileImageContainer}>
+          <Image
+            source={require('../../assets/images/davao.png')}
+            style={styles.profileImage}
+          />
+          <Text style={styles.userName}>{fullName}</Text>
+          <Text style={styles.userRole}>{getAccountTypeName(accountType)}</Text>
+        </View>
 
-      <Text style={styles.name}>{employeeNumber}</Text>
+        <View style={styles.detailsContainer}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Employee Number</Text>
+            <Text style={styles.detailValue}>{employeeNumber}</Text>
+          </View>
+          <View style={styles.divider} />
 
-      <Text style={styles.name}>{officeName}</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Office</Text>
+            <Text style={styles.detailValue}>{officeName}</Text>
+          </View>
 
-      <Text style={styles.name}>{officeCode}</Text>
- */}
-      {/* Edit Profile Button */}
-      {/* <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Edit Profile</Text>
-      </TouchableOpacity> */}
+          {currentRoles.length > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Roles</Text>
+                <Text style={styles.detailValue}>
+                  {currentRoles.join(', ')}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    //backgroundColor: '#F5F8FA',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingTop: 40,
-    padding: 10,
-    paddingStart: 20,
     backgroundColor: '#fff',
-    paddingBottom: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
+    //borderBottomWidth: 1,
+    //borderColor: '#ccc',
+    height: 30 + statusBarHeight,
   },
   backButton: {
-    marginRight: 10,
+    padding: 10,
+    borderRadius: 24,
+    marginRight: 5,
+  },
+  backButtonPressed: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
   headerTitle: {
-    fontSize: 18,
-    color: '#252525',
     fontFamily: 'Inter_28pt-Bold',
+    fontSize: 18,
+    color: '#212121',
+    marginLeft: 5,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+    backgroundColor: '#F5F8FA',
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
+    marginBottom: 20,
+    marginTop: 10,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-    marginTop: 40,
-    marginBottom: 40,
-    opacity: 0.5,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 15,
+    borderWidth: 3,
+    borderColor: '#E0E0E0',
+    opacity:0.7,
   },
-  name: {
-    fontSize: 24,
-    fontFamily: 'Oswald-Medium',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 10,
+  userName: {
+    fontFamily: 'Inter_28pt-Bold',
+    fontSize: 22,
+    color: '#212121',
     textTransform: 'capitalize',
+    marginBottom: 5,
   },
-  button: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
+  userRole: {
+    fontFamily: 'Inter_28pt-Regular',
+    fontSize: 15,
+    color: '#616161',
+  },
+  detailsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
     paddingHorizontal: 20,
-    borderRadius: 5,
+    paddingVertical: 15,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+  },
+  detailLabel: {
+    fontFamily: 'Inter_28pt-Regular',
+    fontSize: 13,
+    color: '#757575',
+    width: 120,
+    marginRight: 10,
+  },
+  detailValue: {
+    fontFamily: 'Inter_28pt-Medium',
+    fontSize: 15,
+    color: '#212121',
+    flex: 1,
+    textAlign: 'right',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#EEEEEE',
+    marginVertical: 0,
+  },
+  editButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 14,
+    borderRadius: 8,
     alignSelf: 'center',
+    width: '90%',
+    marginTop: 30,
+    shadowColor: '#007BFF',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  buttonText: {
-    color: '#fff',
+  editButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  label: {
-    fontFamily: 'Inter_28pt-Regular',
-    color: 'rgba(107, 107, 107, 0.53)',
-    fontSize: 12,
-  },
-  labelValue: {
-    fontFamily: 'Inter_28pt-Regular',
-    fontSize: 14,
-    color: 'black',
+    fontFamily: 'Inter_28pt-Bold',
+    textAlign: 'center',
   },
 });
 

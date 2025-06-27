@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
 import {
   View,
   StyleSheet,
@@ -15,9 +15,9 @@ import {
   ImageBackground,
   Keyboard,
   TouchableWithoutFeedback,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
 } from 'react-native';
-import { TextInput } from 'react-native-paper'
+import {TextInput} from 'react-native-paper';
 import {
   Camera,
   useCameraPermission,
@@ -27,18 +27,18 @@ import {
   useFrameProcessor,
   useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useGetQRData } from '../../api/useGetQRData';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import {useGetQRData} from '../../api/useGetQRData';
+import BottomSheet, {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import useUserInfo from '../../api/useUserInfo';
-import { insertCommas } from '../../utils/insertComma';
+import {insertCommas} from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
-import { Button } from 'react-native-paper';
-import { Divider } from '@rneui/themed';
+import {Button} from 'react-native-paper';
+import {Divider} from '@rneui/themed';
 
-const { width, height } = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 const squareSize = 250;
 
 const QRManual = () => {
@@ -58,38 +58,68 @@ const QRManual = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [trackingNumber, setTrackingNumber] = useState('');
 
-  const { data: qrData, isLoading: qrLoading, error: qrError, refetch } = useGetQRData({
+  const {
+    data: qrData,
+    isLoading: qrLoading,
+    error: qrError,
+    refetch,
+  } = useGetQRData({
     year,
     trackingNumber,
   });
-  const handleEdit = (item) => {
-    navigation.navigate('EditAdvScreen', { item });
+  const handleEditADV = item => {
+    navigation.navigate('EditAdvScreen', {item});
   };
 
-  const { fetchDataSearchReceiver, setSearchTNData, loading, searchTNData } =
+  const handleEditOBR = item => {
+    navigation.navigate('EditOBRScreen', {item});
+  };
+
+  const {fetchDataSearchReceiver, setSearchTNData, loading, searchTNData} =
     useSearchReceiver();
 
-  const { officeCode, privilege, permission, accountType, employeeNumber, caoReceiver } =
-    useUserInfo();
+  const {
+    officeCode,
+    privilege,
+    permission,
+    accountType,
+    employeeNumber,
+    caoReceiver,
+  } = useUserInfo();
 
-
-  const { autoReceive, revertReceived, isRevertLoading, isReceivedLoading } = useReceiving();
+  const {autoReceive, revertReceived, isRevertLoading, isReceivedLoading} =
+    useReceiving();
 
   const bottomSheetRef = useRef(null);
 
-  // const snapPoints = keyboardVisible ? ['60%', '80%'] : ['60%'];
-  const snapPoints = useMemo(() => ["60%"], []);
+  const snapPoints = useMemo(() => ['60%'], []);
 
-  const handleSheetChange = useCallback((index) => {
+  const handleSheetChange = useCallback(index => {
     console.log('handleSheetChanges', index);
   }, []);
 
-
-  const handleReceived = async (year, trackingNumber, trackingType, documentType, status, inputParams) => {
+  const handleReceived = async (
+    year,
+    trackingNumber,
+    trackingType,
+    documentType,
+    status,
+    inputParams,
+  ) => {
     autoReceive(
-      { year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams },
       {
-        onSuccess: async (payload) => {
+        year,
+        trackingNumber,
+        trackingType,
+        documentType,
+        status,
+        accountType,
+        privilege,
+        officeCode,
+        inputParams,
+      },
+      {
+        onSuccess: async payload => {
           if (payload?.status === 'success') {
             setModalMessage(payload?.message || 'Unknown error');
             setModalType(true);
@@ -99,23 +129,38 @@ const QRManual = () => {
           }
           setModalVisible(true);
         },
-        onError: (error) => {
+        onError: error => {
           console.error('Auto receive failed:', error);
           setModalMessage('An error occurred during the process');
           setModalType(false);
           setModalVisible(true);
-        }
-      }
+        },
+      },
     );
   };
 
-
-  const handleRevert = async (year, trackingNumber, trackingType, documentType, status, inputParams) => {
+  const handleRevert = async (
+    year,
+    trackingNumber,
+    trackingType,
+    documentType,
+    status,
+    inputParams,
+  ) => {
     revertReceived(
-      { year, trackingNumber, trackingType, documentType, status, accountType, privilege, officeCode, inputParams },
       {
-        onSuccess: async (payload) => {
-
+        year,
+        trackingNumber,
+        trackingType,
+        documentType,
+        status,
+        accountType,
+        privilege,
+        officeCode,
+        inputParams,
+      },
+      {
+        onSuccess: async payload => {
           if (payload?.status === 'success') {
             setModalMessage(payload?.message || 'Unknown error');
             setModalType(true);
@@ -125,68 +170,86 @@ const QRManual = () => {
           }
           setModalVisible(true);
         },
-        onError: (error) => {
+        onError: error => {
           console.error('Auto receive failed:', error);
           setModalMessage('An error occurred during the process');
           setModalType(false);
           setModalVisible(true);
-        }
-      }
+        },
+      },
     );
   };
-
 
   // --------- Render Item QR Manual
 
-  const renderItem = ({ item }) => {
-
-    const showReceivedButton = (() => {
-      const { TrackingType, privilege, officeCode, Status, OBRType } = item || {};
+  const renderItem = ({item}) => {
+   /*  const showReceivedButton = (() => {
+      const {TrackingType, privilege, Office, Status, OBRType} = item || {};
 
       const isPR = TrackingType === 'PR' && privilege === '8';
-      const isPO = TrackingType === 'PO' && ['8', '5', '9'].includes(privilege);
+      const isPO =
+        TrackingType === 'PO'; 
       const isPX = TrackingType === 'PX';
       const isPY = TrackingType === 'PY';
 
       if (isPR && Status === 'CTO Received') {
         return true;
-      };
+      }
 
       if (
         isPO &&
-        ['1031', '1071'].includes(officeCode) &&
+        ['1031', '1071', 'TRAC'].includes(officeCode) &&
         ['Supplier Conformed', 'Check Preparation - CTO'].includes(Status)
       ) {
         return true;
       }
-
-      if (isPY && Status === 'Admin Operation Received' && OBRType === '1') {
+      if (
+        (isPY && Status === 'Admin Operation Received' && OBRType === '1') ||
+        (isPY && Status === 'Supplier Conformed' && officeCode === 'TRAC')
+      ) {
         return true;
       }
 
       if (isPX && Status === 'Check Preparation - CTO') return true;
 
       return false;
-    })();
-
+    })(); */
 
     const showCAOReceivedButton = (() => {
-      const { TrackingType, Status, DocumentType, Fund } = item;
+      const {TrackingType, Status, DocumentType, Fund} = item;
 
       const isPY = TrackingType === 'PY';
       const isPX = TrackingType === 'PX';
       const isIP = TrackingType === 'IP';
       const isPR = TrackingType === 'PR';
 
-      if (isPY && ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(Status)) {
+      if (
+        isPY &&
+        ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(
+          Status,
+        )
+      ) {
         return true;
       }
 
-      if (isPY && ['Encoded'].includes(Status) && (DocumentType === 'Liquidation' || DocumentType === 'Remitance - HDMF') && (Fund === 'Trust Fund')) {
+      if (
+        isPY &&
+        ['Encoded'].includes(Status) &&
+        (DocumentType === 'Liquidation' ||
+          DocumentType === 'Remitance - HDMF') &&
+        Fund === 'Trust Fund'
+      ) {
         return true;
       }
 
-      if (isPX && ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(Status)) {
+      if (
+        isPX &&
+        [
+          'Voucher Received - Inspection',
+          'Voucher Received - Inventory',
+          'Pending Released - CAO',
+        ].includes(Status)
+      ) {
         return true;
       }
 
@@ -198,11 +261,10 @@ const QRManual = () => {
     })();
 
     const showCAORevertButton = (() => {
-      const { TrackingType, Status } = item;
+      const {TrackingType, Status} = item;
       //PX
       if (TrackingType === 'PX') {
-        if (Status === 'CAO Received'
-        ) {
+        if (Status === 'CAO Received') {
           return true;
         }
       }
@@ -229,48 +291,172 @@ const QRManual = () => {
       return false;
     })();
 
+    const showCBOReceivedButton = (() => {
+      const {TrackingType, Status, DocumentType, Fund} = item;
+
+      const isPY = TrackingType === 'PY';
+      const isPO = TrackingType === 'PO';
+      const isNF = TrackingType === 'NF';
+      const isPX = TrackingType === 'PX';
+      const isIP = TrackingType === 'IP';
+      const isPR = TrackingType === 'PR';
+
+      if (isPY && ['Encoded', 'Pending Released - CBO'].includes(Status)) {
+        return true;
+      }
+
+      if (
+        isPO &&
+        ['Supplier Conformed', 'Admin Operation Received'].includes(Status)
+      ) {
+        return true;
+      }
+
+      if (
+        isNF &&
+        [
+          'OBR Implementing Office Signed',
+          'CBO Received',
+          'Pending Released - CBO',
+          'Obligation Request for Pick-up',
+        ].includes(Status)
+      ) {
+        return true;
+      }
+
+      return false;
+    })();
+
+    const showCBORevertButton = (() => {
+      const {TrackingType, Status} = item;
+
+      //PX
+      if (TrackingType === 'PO') {
+        if (Status === 'Fund Control') {
+          return true;
+        }
+      }
+
+      if (TrackingType === 'NF') {
+        if (Status === 'CBO Received') {
+          return true;
+        }
+        if (Status === 'Obligation Request for Pick-up') {
+          return true;
+        }
+          if (Status === 'Obligation Request Signed') {
+          return true;
+        }
+      
+      }
+
+      // )
+    
+      return false;
+    })();
 
 
     return (
       <View style={styles.itemContainer}>
         <View style={styles.textRow}>
-          <Text style={styles.label}>Year:</Text>
-          <Text style={styles.value}>{item.Year}</Text>
+          <Text style={styles.label}>Year | TN</Text>
+          <Text style={styles.value}>
+            {item.Year} - {item.TrackingNumber}
+          </Text>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{ bottom: 5 }}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
+
         <View style={styles.textRow}>
-          <Text style={styles.label}>Tracking Type:</Text>
-          <Text style={styles.value}>{item.TrackingType}</Text>
+          <Text style={styles.label}>Status</Text>
+          <Text style={styles.value}>{item.Status}</Text>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{ bottom: 5 }}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
+
         <View style={styles.textRow}>
-          <Text style={styles.label}>Tracking Number:</Text>
-          <Text style={styles.value}>{item.TrackingNumber}</Text>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.label}>ADV Number</Text>
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={[styles.value]}>
+                  {item?.ADV1 ? item.ADV1 : ''}
+                </Text>
+
+                {caoReceiver === '1' && (
+                  <View style={{alignContent: 'flex-end'}}>
+                    <TouchableOpacity
+                      onPress={() => handleEditADV(item)}
+                      style={{flexDirection: 'row'}}>
+                      <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{ bottom: 5 }}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
+
         <View style={styles.textRow}>
-          <Text style={styles.label}>Document Type:</Text>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.label}>OBR Number</Text>
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={[styles.value]}>
+                  {item?.OBR_Number ? item.OBR_Number : ''}
+                </Text>
+                {officeCode === '1071' && (
+                  <View style={{alignContent: 'flex-end'}}>
+                    <TouchableOpacity
+                      onPress={() => handleEditOBR(item)}
+                      style={{flexDirection: 'row'}}>
+                      <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Doc Type</Text>
           <Text style={styles.value}>{item.DocumentType}</Text>
         </View>
         <Divider
@@ -279,209 +465,36 @@ const QRManual = () => {
           borderStyle={'dashed'}
           marginHorizontal={10}
           marginBottom={5}
-          style={{ bottom: 5 }}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
 
         <View style={styles.textRow}>
-          <View style={{ flexDirection: 'row' }}>
-            <Text style={styles.label}>ADV Number:</Text>
-            <View style={{ flexDirection: 'column', flex: 1 }}>
-
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={[styles.value]}>
-                  {item?.ADV1 ? item.ADV1 : ''}
-                </Text>
-
-                <View style={{ alignContent: "flex-end" }}>
-                  <TouchableOpacity onPress={() => handleEdit(item)} style={{ flexDirection: 'row' }}>
-                    <Text style={[styles.value, { marginRight: 2 }]}>Edit</Text>
-                    <Icon name="create-outline" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-
-
-        <Divider
-          width={1.9}
-          color={'rgba(217, 217, 217, 0.1)'}
-          borderStyle={'dashed'}
-          marginHorizontal={10}
-          marginBottom={5}
-          style={{ bottom: 5 }}
-        />
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{item.Status}</Text>
-        </View>
-        <Divider
-          width={1.9}
-          color={'rgba(217, 217, 217, 0.1)'}
-          borderStyle={'dashed'}
-          marginHorizontal={10}
-          marginBottom={5}
-          style={{ bottom: 5 }}
-        />
-        <View style={styles.textRow}>
-          <Text style={styles.label}>Amount:</Text>
+          <Text style={styles.label}>Amount</Text>
           <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
         </View>
+
         <Divider
           width={1.9}
           color={'rgba(217, 217, 217, 0.1)'}
           borderStyle={'dashed'}
           marginHorizontal={10}
-          style={{ bottom: 5 }}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
         />
 
-
-
-        <View style={{ flexDirection: 'column' }}>
-          {showReceivedButton && (
-            <>
-              {item.Status === 'Supplier Conformed' && (
-                <View
-                  style={{
-                    alignSelf: 'center',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}>
-                  {item.OBR_Number && (
-                    <Text
-                      style={{
-                        marginRight: 10,
-                        color: '#000',
-                        marginTop: 10,
-                      }}>
-                      OBR #
-                    </Text>
-                  )}
-
-                  <TextInput
-                    style={{
-                      height: 40,
-                      borderColor: '#ccc',
-                      borderWidth: 1,
-                      borderRadius: 4,
-                      padding: 10,
-                      marginTop: 10,
-                      color: '#000',
-                    }}
-                    placeholder={'Enter OBR #'}
-                    placeholderTextColor="#aaa"
-                    keyboardType="numeric"
-                    maxLength={10}
-                    value={inputParams || item.OBR_Number} // Use inputParams if it exists, otherwise fallback to item.OBR_Number
-                    onChangeText={text => {
-                      const numericText = text.replace(/[^0-9]/g, ''); // Remove non-numeric characters
-                      setInputParams(numericText); // Update inputParams state with valid numeric text
-                    }}
-                    editable={false} // Always make the TextInput editable
-                  />
-                </View>
-              )}
-              {/* Received Button */}
-              <Button
-                mode="contained"
-                loading={isLoading}
-                disabled={isLoading}
-                style={{
-                  marginTop: 20,
-                  borderRadius: 8,
-                  elevation: 1,
-                  backgroundColor: "#007bff"
-                }}
-
-                onPress={() => {
-                  if (item.TrackingType === 'PO') {
-                    if (officeCode === '1071' && privilege === '9') {
-                      if (item.Status === 'Supplier Conformed') {
-                        if (!item.OBR_Number || item.OBR_Number.trim() === '') {
-                          if (inputParams === '') {
-                            Alert.alert(
-                              'OBR Number Required',
-                              'Please enter a valid OBR number.'
-                            );
-                            return;
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  handleReceived(
-                    item.Year,
-                    item.TrackingNumber,
-                    item.TrackingType,
-                    item.DocumentType,
-                    item.Status,
-                    inputParams
-                  );
-                }}
-              >
-                Received
-              </Button>
-
-
-            </>
-          )}
+        <View style={{flexDirection: 'column'}}>
+       
 
           {showCAOReceivedButton && (
             <>
-              {item.Status === 'Supplier Conformed' && (
-                <View
-                  style={{
-                    alignSelf: 'center',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    alignContent: 'center',
-                  }}>
-                  {item.OBR_Number && (
-                    <Text
-                      style={{
-                        marginRight: 10,
-                        color: '#000',
-                        marginTop: 10,
-                      }}>
-                      OBR #
-                    </Text>
-                  )}
-
-                  <TextInput
-                    style={{
-                      height: 40,
-                      borderColor: '#ccc',
-                      borderWidth: 1,
-                      borderRadius: 4,
-                      padding: 10,
-                      marginTop: 10,
-                      color: '#000',
-                    }}
-                    placeholder={'Enter OBR #'}
-                    placeholderTextColor="#aaa"
-                    keyboardType="numeric"
-                    maxLength={10}
-                    value={inputParams || item.OBR_Number}
-                    onChangeText={text => {
-                      const numericText = text.replace(/[^0-9]/g, '');
-                      setInputParams(numericText);
-                    }}
-                    editable={false}
-                  />
-                </View>
-              )}
-              {/* Received Button */}
-              <Button
+                <Button
                 mode="contained"
                 loading={isReceivedLoading}
                 disabled={isReceivedLoading}
                 style={{
                   marginTop: 10,
                   borderRadius: 8,
-                  backgroundColor: "#007bff"
+                  backgroundColor: '#007bff',
                 }}
                 onPress={() => {
                   if (item.TrackingType === 'PO') {
@@ -491,7 +504,7 @@ const QRManual = () => {
                           if (inputParams === '') {
                             Alert.alert(
                               'OBR Number Required',
-                              'Please enter a valid OBR number.'
+                              'Please enter a valid OBR number.',
                             );
                             return;
                           }
@@ -506,13 +519,11 @@ const QRManual = () => {
                     item.TrackingType,
                     item.DocumentType,
                     item.Status,
-                    inputParams
+                    inputParams,
                   );
-                }}
-              >
+                }}>
                 Receive
               </Button>
-
 
               {/* if (item.Status === 'Admin Operation Received') {
           if (inputParams === '') {
@@ -543,7 +554,7 @@ const QRManual = () => {
                 marginTop: 10,
                 borderRadius: 8,
                 elevation: 1,
-                backgroundColor: "orange"
+                backgroundColor: 'orange',
               }}
               onPress={() =>
                 handleRevert(
@@ -553,12 +564,76 @@ const QRManual = () => {
                   item.DocumentType,
                   item.Status,
                 )
-              }
-            >
+              }>
               Revert
             </Button>
           )}
 
+          {showCBOReceivedButton && (
+            <>
+              <Button
+                mode="contained"
+                loading={isReceivedLoading}
+                disabled={isReceivedLoading}
+                style={{
+                  marginTop: 10,
+                  borderRadius: 8,
+                  backgroundColor: '#007bff',
+                }}
+                onPress={() => {
+                  if (item.TrackingType === 'PO') {
+                    if (officeCode === '1071' && privilege === '9') {
+                      if (item.Status === 'Supplier Conformed') {
+                        if (!item.OBR_Number || item.OBR_Number.trim() === '') {
+                          if (inputParams === '') {
+                            Alert.alert(
+                              'OBR Number Required',
+                              'Please enter a valid OBR number.',
+                            );
+                            return;
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  handleReceived(
+                    item.Year,
+                    item.TrackingNumber,
+                    item.TrackingType,
+                    item.DocumentType,
+                    item.Status,
+                    inputParams,
+                  );
+                }}>
+                Receive
+              </Button>
+            </>
+          )}
+          
+          {showCBORevertButton && (
+            <Button
+              mode="contained"
+              loading={isRevertLoading}
+              disabled={isRevertLoading}
+              style={{
+                marginTop: 10,
+                borderRadius: 8,
+                elevation: 1,
+                backgroundColor: 'orange',
+              }}
+              onPress={() =>
+                handleRevert(
+                  item.Year,
+                  item.TrackingNumber,
+                  item.TrackingType,
+                  item.DocumentType,
+                  item.Status,
+                )
+              }>
+              Revert
+            </Button>
+          )}
 
         </View>
 
@@ -570,7 +645,6 @@ const QRManual = () => {
           <TouchableOpacity
             style={{
               flexDirection: 'row',
-              // paddingTop: 10,
             }}
             onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
             <Text
@@ -588,20 +662,19 @@ const QRManual = () => {
     );
   };
 
-
-
   const handleShowDetails = async (trackingNumber, year) => {
+    console.log("tn", trackingNumber, year );
     const data = await fetchDataSearchReceiver(trackingNumber, year);
-    console.log("Fetched Data:", data.adv);
+    console.log('Fetched Data:', data.adv);
 
     if (!data || !data.results || data.results.length === 0) {
-      console.warn("No results found.");
-      return;  // Exit early if there's no data
+      console.warn('No results found.');
+      return; // Exit early if there's no data
     }
 
     const resultTrackingNumber =
       trackingNumber.substring(4, 5) === '-' ||
-        trackingNumber.substring(0, 3) === 'PR-'
+      trackingNumber.substring(0, 3) === 'PR-'
         ? trackingNumber
         : data.results[0].TrackingNumber;
 
@@ -616,9 +689,8 @@ const QRManual = () => {
     });
   };
 
-
   const format = useCameraFormat(cameraDevice, [
-    { videoResolution: { width: 1280, height: 720 } },
+    {videoResolution: {width: 1280, height: 720}},
   ]);
 
   const decryptScannedCode = scannedCode => {
@@ -642,7 +714,7 @@ const QRManual = () => {
 
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
-    onCodeScanned: async (codes) => {
+    onCodeScanned: async codes => {
       if (codes.length === 0) return;
 
       const scannedCode = codes[0].value;
@@ -655,7 +727,8 @@ const QRManual = () => {
 
         const isValidYear = scannedYear >= 2024 && scannedYear <= 2025;
         const isValidTrackingNumber =
-          scannedTrackingNumber.startsWith('PR-') || scannedTrackingNumber.includes('-');
+          scannedTrackingNumber.startsWith('PR-') ||
+          scannedTrackingNumber.includes('-');
 
         if (!isValidYear || !isValidTrackingNumber) {
           ToastAndroid.show('Please scan a valid QR code.', ToastAndroid.SHORT);
@@ -665,21 +738,22 @@ const QRManual = () => {
         setYear(scannedYear);
         setTrackingNumber(scannedTrackingNumber);
 
-        const { data } = await refetch();
+        const {data} = await refetch();
 
         if (data && data.length && data[0]?.TrackingNumber) {
-          setScannedCodes((prev) => [...prev, scannedCode]);
+          setScannedCodes(prev => [...prev, scannedCode]);
           setCameraIsActive(false);
           bottomSheetRef.current?.expand?.();
         }
-
       } catch (error) {
         console.error('Error fetching QR data:', error);
-        Alert.alert('Error', 'Something went wrong while fetching the QR data.');
+        Alert.alert(
+          'Error',
+          'Something went wrong while fetching the QR data.',
+        );
       }
     },
   });
-
 
   const handleSheetClose = () => {
     bottomSheetRef.current?.close();
@@ -688,57 +762,17 @@ const QRManual = () => {
 
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#fff',
-          paddingBottom: 5,
-          // shadowColor: '#000',
-          // shadowOffset: { width: 0, height: 2 },
-          // shadowOpacity: 0.2,
-          // shadowRadius: 3,
-          zIndex: 1,
-          width: '100%',
-          //elevation: 3,
-        }}>
-        <Pressable
-          style={({ pressed }) => [
-            pressed && { backgroundColor: 'rgba(0, 0, 0, 0.1)' },
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginStart: 10,
-              padding: 10,
-              borderRadius: 24,
-            },
-          ]}
-          android_ripple={{
-            color: '#F6F6F6',
-            borderless: true,
-            radius: 24,
-            foreground: true,
-          }}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="gray" />
-        </Pressable>
-        <Text
-          style={{
-            padding: 10,
-            color: '#252525',
-            fontSize: 16,
-            fontFamily: 'Inter_24pt-Bold',
-          }}>
-          Search via QR Code
-        </Text>
-      </View>
+        <View style={styles.header}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}>
+                <Icon name="arrow-back" size={24} color="#000" />
+              </TouchableOpacity>
+              <Text style={styles.headerText}>Manual Receive</Text>
+              <View style={{ paddingHorizontal: 10, marginVertical: 10 }}></View>
+            </View>
 
       <View style={styles.cameraPreview}>
-        {/*<View style={{zIndex: 1, top: -300}}>
-          <Text style={{color: 'gray', fontWeight: 'bold', fontSize: 20}}>
-            Scan QR
-          </Text>
-        </View>*/}
         {qrLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingIndicator}>
@@ -754,7 +788,7 @@ const QRManual = () => {
             format={format}
             isActive={cameraIsActive}
             videoStabilization={true}
-            cameraOptions={{ focusDepth: 0.5, exposureCompensation: 0.5 }}
+            cameraOptions={{focusDepth: 0.5, exposureCompensation: 0.5}}
             onError={e => console.log(e)}
           />
         )}
@@ -779,7 +813,7 @@ const QRManual = () => {
       <View>
         <Modal
           visible={modalVisible}
-          animationType='fade'
+          animationType="fade"
           transparent={true}
           onRequestClose={() => setModalVisible(false)}>
           <View
@@ -848,53 +882,48 @@ const QRManual = () => {
         <BottomSheet
           ref={bottomSheetRef}
           snapPoints={snapPoints}
-          keyboardBehavior="interactive"
-        >
-
+          keyboardBehavior="interactive">
           <View style={styles.bottomSheetContent}>
-            <ImageBackground style={{ flex: 1 }} source={require('../../../assets/images/docmobileBG.png')}>
+            <ImageBackground
+              style={{flex: 1}}
+              source={require('../../../assets/images/docmobileBG.png')}>
               <View
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'flex-end',
                   alignItems: 'center',
-                  padding: 10
+                  padding: 10,
                 }}>
                 <TouchableOpacity
                   onPress={() => {
                     handleSheetClose();
                   }}
-
                   style={{
                     padding: 5,
                     borderColor: 'gray',
                     flexDirection: 'row',
                     alignItems: 'center',
-                  }}
-                >
+                  }}>
                   <Icon
                     name="backspace-outline"
                     size={22}
                     // color={'#252525'}
                     color={'#fff'}
-                    style={{ marginRight: 2 }}
+                    style={{marginRight: 2}}
                   />
-                  <Text
+                   <Text
                     style={{
                       fontSize: 13,
                       fontFamily: 'Inter_28pt-Bold',
                       // color: '#252525',
                       color: '#fff',
-                    }}
-                  >
+                    }}>
                     Close
                   </Text>
                 </TouchableOpacity>
-
-
               </View>
 
-              <View style={{ flex: 1, paddingHorizontal: 10, }}>
+              <View style={{flex: 1, paddingHorizontal: 10}}>
                 <BottomSheetFlatList
                   data={qrData}
                   renderItem={renderItem}
@@ -902,14 +931,11 @@ const QRManual = () => {
                   contentContainerStyle={styles.bottomSheetList}
                 />
               </View>
-
             </ImageBackground>
-
           </View>
-
-        </BottomSheet >
+        </BottomSheet>
       )}
-    </View >
+    </View>
   );
 };
 
@@ -935,7 +961,7 @@ const styles = StyleSheet.create({
     elevation: 1,
     // iOS shadow
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 1,
     zIndex: 1,
@@ -955,7 +981,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 10,
     elevation: 0,
-    justifyContent: 'center'
+    justifyContent: 'center',
     // width: '100%',
   },
   itemText: {
@@ -970,30 +996,25 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 16,
-    //fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
-    fontFamily: 'Oswald-Regular',
   },
   textRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     paddingBottom: 10,
-    // paddingStart: 10,
   },
   label: {
-    width: '25%',
+    width: '30%',
     color: 'white',
     paddingStart: 10,
     fontSize: 12,
-    fontFamily: 'Oswald-Light',
     opacity: 0.6,
   },
   value: {
     // width: '70%',
     color: 'white',
     fontSize: 14,
-    fontFamily: 'Oswald-Regular',
     marginStart: 10,
   },
   cameraPreview: {
@@ -1090,8 +1111,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
-  animationContainer: { alignItems: 'center', marginTop: 10 },
-  lottie: { width: 50, height: 50 },
+  animationContainer: {alignItems: 'center', marginTop: 10},
+  lottie: {width: 50, height: 50},
   loadingContainer: {
     zIndex: 1,
     //flex: 1,
@@ -1107,7 +1128,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: 'white',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,

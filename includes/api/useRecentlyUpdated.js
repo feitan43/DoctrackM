@@ -22,7 +22,6 @@ const useRecentlyUpdated = () => {
 
   const fetchRecentlyUpdatedData = useCallback(async () => {
     if (permission === '10' || permission === '11') return;
-    console.log('Permission: ', permission)
     try {
       setRecentLoading(true);
 

@@ -30,6 +30,7 @@ import useUserInfo from '../../api/useUserInfo';
 import { insertCommas } from '../../utils/insertComma';
 import useSearchReceiver from '../../api/useSearchReceiver';
 import useReceiving from '../../api/useReceiving';
+import { showMessage } from "react-native-flash-message";
 
 import { Divider } from '@rneui/base';
 
@@ -38,7 +39,6 @@ const squareSize = 250;
 
 const QRAuto = () => {
   const navigation = useNavigation();
-  //const cameraPermission = useCameraPermission();
   const cameraDevice = useCameraDevice('back');
   const [cameraIsActive, setCameraIsActive] = useState(true);
   const isCameraReady = cameraDevice?.isAvailable;
@@ -71,14 +71,10 @@ const QRAuto = () => {
     setCameraIsActive(true);
   };
 
-
-
-
-
   const renderItem = useMemo(() => {
     return ({ item }) => (
       <View>
-        <View style={{ flexDirection: 'row' }}>
+      {/*   <View style={{ flexDirection: 'row' }}>
           <View style={styles.itemContainer}>
             <View style={styles.textRow}>
               <Text style={styles.label}>Year:</Text>
@@ -187,8 +183,153 @@ const QRAuto = () => {
             </View>
           </View>
 
+        </View> */}
+         <View style={styles.itemContainer}>
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Year | TN</Text>
+          <Text style={styles.value}>
+            {item.Year} - {item.TrackingNumber}
+          </Text>
         </View>
 
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Status</Text>
+          <Text style={styles.value}>{item.Status}</Text>
+        </View>
+
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.label}>ADV Number</Text>
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={[styles.value]}>
+                  {item?.ADV1 ? item.ADV1 : ''}
+                </Text>
+
+                {officeCode === '1081' && (
+                  <View style={{alignContent: 'flex-end'}}>
+                    <TouchableOpacity
+                      onPress={() => handleEditADV(item)}
+                      style={{flexDirection: 'row'}}>
+                      <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.label}>OBR Number</Text>
+            <View style={{flexDirection: 'column', flex: 1}}>
+              <View
+                style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text style={[styles.value]}>
+                  {item?.OBR_Number ? item.OBR_Number : ''}
+                </Text>
+                {officeCode === '1071' && (
+                  <View style={{alignContent: 'flex-end'}}>
+                    <TouchableOpacity
+                      onPress={() => handleEditOBR(item)}
+                      style={{flexDirection: 'row'}}>
+                      <Text style={[styles.value, {marginRight: 2}]}>Edit</Text>
+                      <Icon name="create-outline" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Doc Type</Text>
+          <Text style={styles.value}>{item.DocumentType}</Text>
+        </View>
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+
+        <View style={styles.textRow}>
+          <Text style={styles.label}>Amount</Text>
+          <Text style={styles.value}>{insertCommas(item.Amount)}</Text>
+        </View>
+
+        <Divider
+          width={1.9}
+          color={'rgba(217, 217, 217, 0.1)'}
+          borderStyle={'dashed'}
+          marginHorizontal={10}
+          marginBottom={5}
+          style={{bottom: 5, width: '65%', alignSelf: 'flex-end'}}
+        />
+        <View
+          style={{
+            alignSelf: 'flex-end',
+            paddingTop: 10,
+          }}>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+            }}
+            onPress={() => handleShowDetails(item.TrackingNumber, item.Year)}>
+            <Text
+              style={{
+                color: '#fff',
+                fontSize: 14,
+              }}>
+              Show More
+            </Text>
+
+            <Icon name="chevron-forward" size={18} color={'#fff'} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       </View>
     );
@@ -222,8 +363,6 @@ const QRAuto = () => {
     { videoResolution: { width: 1280, height: 720 } },
   ]);
 
-
-
   const decryptScannedCode = scannedCode => {
     if (!scannedCode || scannedCode.length < 6) {
       throw new Error('Invalid scanned code');
@@ -239,8 +378,6 @@ const QRAuto = () => {
     return combinedCode;
   };
 
-
-
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
     onCodeScanned: async (codes) => {
@@ -249,7 +386,7 @@ const QRAuto = () => {
       const scannedCode = codes[0].value;
 
       if (lastScannedRef.current === scannedCode && scannedActive) {
-        ToastAndroid.show('Already received by CAO.', ToastAndroid.SHORT);
+        ToastAndroid.show('Already received', ToastAndroid.SHORT);
         scanningLock.current = false;
         return;
       }
@@ -280,12 +417,22 @@ const QRAuto = () => {
         const { TrackingType, Status, DocumentType, Fund } = data[0];
 
         if (Status === 'CAO Received') {
+          console.log(Status)
           setTimeout(() => {
             ToastAndroid.show('Already received by CAO.', ToastAndroid.SHORT);
           }, 1000);
           scanningLock.current = false;
           return;
         }
+
+        if (Status === 'CBO Received' || Status === 'Fund Control') {
+          setTimeout(() => {
+            ToastAndroid.show('Already received by CBO.', ToastAndroid.SHORT);
+          }, 1000);
+          scanningLock.current = false;
+          return;
+        }
+
 
 
         if (!isEligibleForProcessing(Status, TrackingType, DocumentType, Fund)) {
@@ -305,7 +452,6 @@ const QRAuto = () => {
     },
   });
 
-
   const isValidCode = (year, trackingNumber) => {
     const isValidYear = /^\d{4}$/.test(year) && parseInt(year) >= 2024 && parseInt(year) <= 2025;
     const isValidTrackingNumber = trackingNumber.startsWith('PR-') || trackingNumber.includes('-');
@@ -316,30 +462,39 @@ const QRAuto = () => {
     return Array.isArray(data) && data.length > 0;
   };
 
-  const isEligibleForProcessing = (status, trackingType, documentType, fund) => {
-    const isValidStatus = (() => {
-      switch (trackingType) {
-        case 'PY':
-          return ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(status) ||
-            (status === 'Encoded' && fund === 'Trust Fund') ||
-            (status === 'Encoded' && ['Liquidation', 'Remittance - HDMF'].includes(documentType) && fund === 'Trust Fund');
-        case 'PX':
-          return ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(status);
-        case 'IP':
-          return ['Pending Released - CAO', 'Encoded'].includes(status);
-        default:
-          return false;
-      }
-    })();
-
-    if (!isValidStatus) {
-      ToastAndroid.show('Status not eligible for scanning!', ToastAndroid.SHORT);
+ const isEligibleForProcessing = (status, trackingType, documentType, fund) => {
+  const isValidStatus = (() => {
+    switch (trackingType) {
+      case 'PY':
+        if (officeCode === '1081') {
+          return ['CBO Released', 'Pending Released - CAO'].includes(status);
+        } else if (officeCode === '1071') {
+          return ['Encoded','Pending Released - CBO'].includes(status);
+        }
+        /* return ['CBO Released', 'Pending Released - CAO', 'CBO Received'].includes(status) ||
+          (status === 'Encoded' && fund === 'Trust Fund') ||
+          (status === 'Encoded' && ['Liquidation', 'Remittance - HDMF'].includes(documentType) && fund === 'Trust Fund'); */
+      case 'PX':
+        return ['Voucher Received - Inspection', 'Voucher Received - Inventory', 'Pending Released - CAO'].includes(status);
+      case 'PO':
+         if (officeCode === '1071') {
+          return ['Supplier Conformed'].includes(status);
+        } 
+      case 'IP':
+        return ['Pending Released - CAO', 'Encoded'].includes(status);
+      default:
+        return false;
     }
+  })();
 
-    return isValidStatus;
+  if (!isValidStatus) {
+    ToastAndroid.show('Status not eligible for scanning!', ToastAndroid.SHORT);
+  }
+
+  return isValidStatus;
   };
 
-  const handleAutoReceive = async (year, trackingNumber, trackingType, documentType, status) => {
+/*   const handleAutoReceive = async (year, trackingNumber, trackingType, documentType, status) => {
     try {
       const response = await autoReceive({
         year,
@@ -358,10 +513,49 @@ const QRAuto = () => {
       console.error('Error during auto receive:', error);
       throw new Error('Auto receive failed');
     }
-  };
+  }; */
 
+  const handleAutoReceive = async (year, trackingNumber, trackingType, documentType, status) => {
 
+  try {
+    const response = await autoReceive({
+      year,
+      trackingNumber,
+      trackingType,
+      documentType,
+      status,
+      accountType,
+      privilege,
+      officeCode,
+      inputParams: '',
+    });
 
+    showMessage({
+      message: "Auto receive successful",
+      description: `Tracking Number: ${trackingNumber}`,
+      type: "success",
+      icon: "success",
+      duration: 3000,
+      floating: true
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Error during auto receive:", error);
+
+    showMessage({
+      message: "Auto receive failed",
+      description: error.message,
+      type: "danger",
+      icon: "danger",
+      duration: 3000,
+      floating: true
+
+    });
+
+    throw new Error("Auto receive failed");
+  }
+};
 
   return (
     <View style={styles.container}>
@@ -376,12 +570,6 @@ const QRAuto = () => {
       </View>
 
       <View style={styles.cameraPreview}>
-        {/* <View style={{ zIndex: 1, top: -300 }}>
-          <Text style={{ color: 'gray', fontWeight: 'bold', fontSize: 20 }}>
-            Scan QR
-          </Text>
-        </View> */}
-
         {qrLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingIndicator}>
@@ -541,7 +729,6 @@ const styles = StyleSheet.create({
     //fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
-    fontFamily: 'Oswald-Regular',
   },
   textRow: {
     flexDirection: 'row',

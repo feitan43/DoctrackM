@@ -1,482 +1,281 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Pressable,
-  SafeAreaView,
-  ImageBackground,
-  Image,
-  Modal,
   TouchableOpacity,
+  SafeAreaView,
+  Modal,
   Alert,
   ActivityIndicator,
+  ImageBackground,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DeviceInfo from 'react-native-device-info';
 import BASE_URL from '../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Rate, {AndroidMarket} from 'react-native-rate';
+import {Linking, Platform} from 'react-native';
 
 const version = DeviceInfo.getVersion();
+const statusBarContentStyle = 'dark-content';
+const statusBarHeight =
+  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
 
 const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [progressModalVisible, setProgressModalVisible] = useState(false);
 
-  const handleProfile = async () => {
-    if (navigation) {
-      navigation.navigate('Profile');
-    }
-  };
+  const handleProfile = () => navigation?.navigate('Profile');
+  const handleNotifications = () => navigation?.navigate('Notifications');
+  const handleContactUs = () => navigation?.navigate('ContactUs');
+  const handleHelpCenter = () => navigation?.navigate('HelpCenter');
+  /* const handleFeedback = () => {
+    const options = {
+      GooglePackageName: 'com.doctrackm',
+      preferredAndroidMarket: AndroidMarket.Google,
+      preferInApp: false,
+      openAppStoreIfInAppFails: true,
+    };
 
-  const handleNotifications = async () => {
-    if (navigation) {
-      navigation.navigate('Notifications');
-    }
-  };
+    Rate.rate(options, success => {
+      if (success) {
+        console.log('User successfully interacted with the rating UI');
+      }
+    });
+  }; */
 
-  const handleContactUs = async () => {
-    if (navigation) {
-      navigation.navigate('ContactUs');
-    }
-  };
+/*   const handleFeedback = () => {
+  const packageName = 'com.doctrackm'; // 🔁 replace with your actual package name
+  const url = Platform.select({
+    android: `market://details?id=${packageName}`,
+    ios: `itms-apps://itunes.apple.com/app/idYOUR_APP_ID`, // optional for iOS
+  });
+
+  Linking.openURL(url).catch(() => {
+    // fallback to web URL
+    Linking.openURL(`https://play.google.com/store/apps/details?id=${packageName}`);
+  });
+}; */
 
   const logout = async () => {
-    setModalVisible(false); // Close confirmation modal
-    setProgressModalVisible(true); // Show progress modal
+    setModalVisible(false);
+    setProgressModalVisible(true);
 
     try {
-      const storedToken = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem('token');
 
-      const requestOptions = {
+      const response = await fetch(`${BASE_URL}/logoutApi`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${storedToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({EmployeeNumber: employeeNumber}),
-      };
+      });
 
-      const response = await fetch(`${BASE_URL}/logoutApi`, requestOptions);
-
-      if (!response.ok) {
-        throw new Error(
-          `Logout request failed with status: ${response.status}`,
-        );
-      }
+      if (!response.ok) throw new Error(`Logout failed: ${response.status}`);
 
       await AsyncStorage.removeItem('token');
-      navigation.replace('Login'); 
-
+      navigation.replace('Login');
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Logout Error', 'Failed to log out. Please try again.');
+    } finally {
       setProgressModalVisible(false);
-    } catch (error) {
-      console.error('Error while logging out:', error);
-      Alert.alert('Error', 'Failed to log out. Please try again.');
-      setProgressModalVisible(false); 
     }
   };
 
+  const SettingItem = ({icon, label, onPress, danger}) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={styles.settingItem}>
+      <Icon name={icon} size={22} color={danger ? '#ff3b30' : '#666'} />
+      <Text style={[styles.settingLabel, danger && {color: '#ff3b30'}]}>
+        {label}
+      </Text>
+      <Icon name="chevron-forward" size={20} color="#bbb" />
+    </TouchableOpacity>
+  );
+
   return (
-    <>
-      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-        <View style={styles.container}>
-          {/*   <ImageBackground
-          source={require('../../assets/images/docmobileBG.png')}
-          style={{flex: 1, paddingTop: 30}}> */}
-          {/* <View>
-            <Text>Settings</Text>
-          </View> */}
-          {/*  <View
-            style={{
-              //backgroundColor: 'rgba(239, 239, 239, 1)',
-              backgroundColor: 'white',
-              margin: 20,
-              borderWidth: 1,
-              borderColor: 'silver',
-              borderRadius: 5,
-            }}>
-            <Pressable
-              onPress={handleProfile} // Add onPress to handle navigation
-              style={({pressed}) => [
-                {
-                  flexDirection: 'row',
-                  paddingVertical: 10,
-                  paddingHorizontal: 15,
-                  alignItems: 'center',
-                  backgroundColor: pressed ? 'rgba(0,0,0,0.05)' : 'transparent',
-                  borderRadius: 10,
-                },
-              ]}
-              android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-              <View style={{padding: 10}}>
-                <Image
-                  source={require('../../assets/images/doctracklogo.png')}
-                  style={{height: 50, width: 40}}
-                />
-              </View>
-              <View style={{flex: 1}}>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={{
-                    color: '#333',
-                    textTransform: 'capitalize',
-                    fontFamily: 'Oswald-Regular',
-                    fontSize: 18,
-                    flexShrink: 1,
-                  }}>
-                  {fullName}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={{
-                    color: '#333',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                    flexShrink: 1,
-                  }}>
-                  {officeName}
-                </Text>
-              </View>
-            </Pressable>
-          </View> */}
+    <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('../../assets/images/bgasset.jpg')}
+        style={{flex: 1}}
+        resizeMode="cover">
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          }}
+        />
+        <View style={styles.sectionCard}>
+          <SettingItem
+            icon="person-outline"
+            label="Profile"
+            onPress={handleProfile}
+          />
+          <SettingItem
+            icon="notifications-outline"
+            label="Notifications"
+            onPress={handleNotifications}
+          />
+          <SettingItem
+            icon="call-outline"
+            label="Contact Us"
+            onPress={handleContactUs}
+          />
+         {/*  <SettingItem
+            icon="chatbubbles-outline"
+            label="Feedback and Suggestions"
+            onPress={handleFeedback}
+          /> */}
+          <SettingItem
+            icon="help-circle-outline"
+            label="Help Center"
+            onPress={handleHelpCenter}
+          />
+          <SettingItem
+            icon="exit-outline"
+            label="Log out"
+            onPress={() => setModalVisible(true)}
+            danger
+          />
+        </View>
 
-          <View style={{flex: 1, backgroundColor: 'rgba(232, 232, 232, 1)'}}>
-            <View
-              style={{
-                backgroundColor: 'white',
-                margin: 10,
-                borderRadius: 10,
-              }}>
-              <Pressable
-                onPress={handleProfile}
-                style={({pressed}) => [
-                  {
-                    flexDirection: 'row',
-                    paddingVertical: 10,
-                    paddingHorizontal: 15,
-                    alignItems: 'center',
-                    backgroundColor: pressed
-                      ? 'rgba(0,0,0,0.05)'
-                      : 'transparent',
-                    borderRadius: 10,
-                  },
-                ]}
-                android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
-                <Icon
-                  name="person-outline"
-                  size={24}
-                  padding={10}
-                  color="gray"
-                />
-                <Text
-                  style={{
-                    flex: 1,
-                    paddingStart: 10,
-                    color: '#252525',
-                    fontFamily: 'Inter_28pt-Regular',
-                    fontSize: 14,
-                  }}>
-                  Profile
-                </Text>
-                <Icon
-                  name="chevron-forward"
-                  size={20}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                />
-              </Pressable>
-              <Pressable
-                onPress={handleNotifications}
-                style={({pressed}) => [
-                  {
-                    flexDirection: 'row',
-                    paddingVertical: 10,
-                    paddingHorizontal: 15,
-                    alignItems: 'center',
-                    backgroundColor: pressed
-                      ? 'rgba(0,0,0,0.05)'
-                      : 'transparent',
-                    borderRadius: 10,
-                  },
-                ]}
-                android_ripple={{color: 'rgba(232, 232, 232, 1)'}}>
-                <Icon
-                  name="notifications-outline"
-                  size={24}
-                  padding={10}
-                  color="gray"
-                />
-                <Text
-                  style={{
-                    flex: 1,
-                    paddingStart: 10,
-                    color: '#252525',
-                    fontFamily: 'Inter_28pt-Regular',
-                    fontSize: 14,
-                  }}>
-                  Notifications
-                </Text>
-                <Icon
-                  name="chevron-forward"
-                  size={20}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                />
-              </Pressable>
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Version {version}</Text>
+        </View>
 
-              {/* Divider */}
-              {/*   <View
-                style={{
-                  height: 1,
-                  backgroundColor: 'silver',
-                }}
-              />
- */}
-              <Pressable
-                onPress={handleContactUs}
-                style={({pressed}) => [
-                  {
-                    flexDirection: 'row',
-                    paddingVertical: 10,
-                    paddingHorizontal: 15,
-                    alignItems: 'center',
-                    backgroundColor: pressed
-                      ? 'rgba(0,0,0,0.05)'
-                      : 'transparent',
-                    borderRadius: 10,
-                  },
-                ]}
-                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-                <Icon name="call-outline" size={24} padding={10} color="gray" />
-                <Text
-                  style={{
-                    flex: 1,
-                    paddingStart: 10,
-                    color: '#252525',
-                    fontFamily: 'Inter_28pt-Regular',
-                    fontSize: 14,
-                  }}>
-                  Contact Us
-                </Text>
-                <Icon
-                  name="chevron-forward"
-                  size={20}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                />
-              </Pressable>
-
-              {/* Divider */}
-              {/*  <View
-                style={{
-                  height: 1,
-                  backgroundColor: 'silver',
-                }}
-              /> */}
-
-              <Pressable
-                onPress={() => setModalVisible(true)}
-                style={({pressed}) => [
-                  {
-                    flexDirection: 'row',
-                    paddingVertical: 10,
-                    paddingHorizontal: 15,
-                    alignItems: 'center',
-                    backgroundColor: pressed
-                      ? 'rgba(0,0,0,0.05)'
-                      : 'transparent',
-                    borderRadius: 10,
-                  },
-                ]}
-                android_ripple={{color: 'rgba(0, 0, 0, 0.1)'}}>
-                <View style={{}}>
-                  {/* <Image
-                    source={require('../../assets/images/logout.png')}
-                    style={{
-                      height: 20,
-                      width: 20,
-                      padding: 10,
-                      tintColor: 'rgba(123, 123, 123, 1)',
-                    }}
-                     name="log-out-outline"
-                  size={25}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                  /> */}
-                  <Icon
-                    name="exit-outline"
-                    size={24}
-                    padding={10}
-                    color={'rgb(253, 0, 0)'}
-                  />
-                </View>
-
-                <Text
-                  style={{
-                    flex: 1,
-                    paddingStart: 10,
-                    color: 'rgb(253, 0, 0)',
-                    fontFamily: 'Inter_28pt-Regular',
-                    fontSize: 14,
-                  }}>
-                  Log out
-                </Text>
-                {/*  <Icon
-                  name="chevron-forward"
-                  size={20}
-                  padding={10}
-                  color="rgba(123, 123, 123, 1)"
-                /> */}
-              </Pressable>
-            </View>
-
-            <View style={{alignSelf: 'center'}}>
-              <Text style={{fontFamily: 'Inter_28pt-Thin', fontSize: 16}}>
-                Version {version}{' '}
+        {/* Logout Confirmation Modal */}
+        <Modal
+          transparent
+          animationType="slide"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Confirm Logout</Text>
+              <Text style={styles.modalMessage}>
+                Are you sure you want to log out?
               </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.confirmButton]}
+                  onPress={logout}>
+                  <Text style={styles.buttonText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-          {/* </ImageBackground> */}
+        </Modal>
 
-          {/* Logout Confirmation Modal */}
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContainer}>
-                <Text style={styles.modalTitle}>Confirm Logout</Text>
-                <Text style={styles.modalMessage}>
-                  Are you sure you want to log out?
-                </Text>
-
-                <View style={styles.modalActions}>
-                  {/* Cancel Button */}
-                  <TouchableOpacity
-                    style={[styles.button, styles.cancelButton]}
-                    onPress={() => setModalVisible(false)}>
-                    <Text style={styles.buttonText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  {/* Confirm Logout Button */}
-                  <TouchableOpacity
-                    style={[styles.button, styles.confirmButton]}
-                    onPress={logout}>
-                    <Text style={styles.buttonText}>Logout</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+        {/* Progress Modal */}
+        <Modal transparent animationType="fade" visible={progressModalVisible}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <ActivityIndicator size="large" color="#2a7dd8" />
+              <Text style={styles.modalMessage}>Logging out...</Text>
             </View>
-          </Modal>
-
-          {/* Progress Modal */}
-          <Modal
-            animationType="fade"
-            transparent={true}
-            visible={progressModalVisible}
-            onRequestClose={() => {}}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContainer}>
-                <ActivityIndicator size="large" color="rgba(42, 125, 216, 1)" />
-                <Text style={styles.modalMessage}>Logging out...</Text>
-              </View>
-            </View>
-          </Modal>
-        </View>
-      </SafeAreaView>
-    </>
+          </View>
+        </Modal>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollViewContent: {
-    flexGrow: 1,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#f5f6f8',
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    margin: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   settingItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    marginStart: 10,
   },
-  settingText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
+  settingLabel: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 15,
+    color: '#222',
+    fontFamily: 'Inter_28pt-Regular',
   },
-  button: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
+  versionContainer: {
     alignItems: 'center',
+    marginTop: 12,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  logoutButton: {
-    backgroundColor: '#ff3b3b',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  versionText: {
+    fontSize: 13,
+    color: '#999',
   },
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    backgroundColor: 'white',
-    paddingVertical: 20,
-    paddingHorizontal: 50,
-    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
     alignItems: 'center',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   modalMessage: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: 12,
+    fontSize: 15,
+    color: '#555',
     textAlign: 'center',
   },
   modalActions: {
     flexDirection: 'row',
     marginTop: 20,
+    width: '100%',
+    justifyContent: 'space-between',
   },
   button: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginHorizontal: 10,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 8,
+    alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: 'gray',
+    backgroundColor: '#ccc',
   },
   confirmButton: {
-    backgroundColor: 'red',
+    backgroundColor: '#ff3b30',
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

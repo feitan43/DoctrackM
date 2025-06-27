@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import useUserInfo from './useUserInfo';
 import BASE_URL from '../../config';
 
-const useSearchTrack = (searchText, selectedYear, search, searchQuery) => {
+const useSearchTrack = (initialSearchText, selectedYear, search, searchQuery) => {
   const [searchTrackData, setSearchTrackData] = useState(null);
   const [token, setToken] = useState(null);
   const [error, setError] = useState(null);
@@ -13,22 +13,22 @@ const useSearchTrack = (searchText, selectedYear, search, searchQuery) => {
   const [searchPayrollData, setSearchPayrollData] = useState(null);
   const [searchPayrollLoading, setSearchPayrollLoading] = useState(false);
 
-  const fetchDataSearchTrack = async () => {
+  const fetchDataSearchTrack = async (textToSearch) => {
     setSearchTrackLoading(true);
     setError(null);
     let data;
-
+    console.log("text",textToSearch)
     try {
       const storedToken = await AsyncStorage.getItem('token');
       setToken(storedToken);
 
-      if (!officeCode || !accountType || !searchText) {
+      if (!officeCode || !accountType || !textToSearch) { // Use textToSearch here
         setSearchTrackLoading(false);
         return null;
       }
 
       const response = await fetch(
-        `${BASE_URL}/searchTrackingNumber?year=${selectedYear}&office=${officeCode}&accountType=${accountType}&key=${searchText}`,
+        `${BASE_URL}/searchTrackingNumber?year=${selectedYear}&office=${officeCode}&accountType=${accountType}&key=${textToSearch}`,
         {
           method: 'GET',
           headers: {
@@ -40,7 +40,7 @@ const useSearchTrack = (searchText, selectedYear, search, searchQuery) => {
 
       if (response.ok) {
         data = await response.json();
-        console.log('DATA: ', data)
+        //console.log('DATA: ', data)
         setSearchTrackData(data);
       } else {
         setSearchTrackData(null);

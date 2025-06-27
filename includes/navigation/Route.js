@@ -65,7 +65,8 @@ import BASE_URL from '../../config';
 
 import CameraComponent from '../utils/CameraComponent';
 import DeviceInfo from 'react-native-device-info';
-import RNFetchBlob from 'react-native-blob-util';
+import RNBlobUtil  from 'react-native-blob-util';
+
 import BootSplash from 'react-native-bootsplash';
 import RNBootSplash from 'react-native-bootsplash';
 import StatusView from '../screens/procProgress/StatusView';
@@ -103,8 +104,15 @@ import EvalPendingReleasedScreen from '../screens/evaluator/EvalPendingReleasedS
 import EvalDaily from '../screens/evaluator/EvalDaily';
 import EvalMonthly from '../screens/evaluator/EvalMonthly';
 import EvalAnnual from '../screens/evaluator/EvalAnnual';
-
+import AttachmentsScreen from '../screens/AttachmentsScreen';
+import AccessScreen from '../screens/AccessScreen';
 import MonthlyReceivedScreen from '../screens/receiver/MonthlyReceivedScreen';
+import EditOBRScreen from '../screens/receiver/EditOBRScreen';
+import SuperAccessScreen from '../screens/SuperAccessScreen';
+import HelpCenterScreen from '../screens/HelpCenterScreen';
+import FeedbackScreen from '../screens/FeedbackScreen';
+import BACAttachmentsScreen from '../screens/BACAttachmentsScreen';
+import InventoryScreen from '../screens/InventoryScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -162,9 +170,7 @@ export function Route() {
 
   const checkForUpdates = async currentVersion => {
     try {
-      //console.log('Checking for updates...');
       const response = await fetch(`${BASE_URL}/get-latest-version`);
-      //console.log('Response:', response);
       const data = await response.json();
       const latestVersionFromServer = data.latestVersion;
       const url = latestVersionFromServer.updateUrl;
@@ -180,9 +186,10 @@ export function Route() {
   };
 
 
-  const handleUpdate = async updateUrl => {
+  /* const handleUpdate = async updateUrl => {
     const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
     const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
+
 
     const path = `${RNFetchBlob.fs.dirs.DocumentDir}/update.apk`;
     await notifee.createChannel({
@@ -252,8 +259,98 @@ export function Route() {
         await notifee.cancelNotification('progress');
         console.error('Failed to download update:', error);
       });
-  };
+  }; */
 
+const handleUpdate = async updateUrl => {
+  const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
+  const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
+  const path = `${RNBlobUtil.fs.dirs.DownloadDir}/update.apk`; 
+
+  // Create Notifee channel
+  const channelId = await notifee.createChannel({
+    id: 'update',
+    name: 'Update Channel',
+    importance: AndroidImportance.HIGH,
+  });
+
+  // Show initial notification
+  await notifee.displayNotification({
+    id: 'download-progress',
+    title: 'Downloading Update',
+    body: 'Please wait while the update is being downloaded...',
+    android: {
+      channelId,
+      smallIcon: 'ic_launcher_round',
+      progress: {
+        max: 100,
+        current: 0,
+        indeterminate: true,
+      },
+    },
+  });
+
+  RNBlobUtil.config({
+    path,
+    fileCache: true,
+  })
+    .fetch('GET', url)
+    .progress(async (received, total) => {
+      const progress = Math.floor((received / total) * 100);
+
+      // Update progress notification
+      await notifee.displayNotification({
+        id: 'download-progress',
+        title: 'Downloading Update',
+        body: `Downloading... ${progress}%`,
+        android: {
+          channelId,
+          progress: {
+            max: 100,
+            current: progress,
+            indeterminate: false,
+          },
+        },
+      });
+    })
+    .then(async res => {
+      const filePath = res.path();
+
+      await notifee.cancelNotification('download-progress');
+
+      await notifee.displayNotification({
+        title: 'Download Complete',
+        body: 'The update has been downloaded successfully.',
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher_round',
+          importance: AndroidImportance.HIGH,
+        },
+      });
+
+      if (Platform.OS === 'android') {
+        RNBlobUtil.android.actionViewIntent(filePath, 'application/vnd.android.package-archive');
+      } else if (Platform.OS === 'ios') {
+        Linking.openURL(appStoreUrl);
+      }
+    })
+    .catch(async error => {
+      console.error('Download failed:', error);
+
+      // Cancel progress notification
+      await notifee.cancelNotification('download-progress');
+
+      // Show error notification
+      await notifee.displayNotification({
+        title: 'Download Failed',
+        body: 'The update could not be downloaded. Please try again later.',
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher_round',
+          importance: AndroidImportance.HIGH,
+        },
+      });
+    });
+};
 
 
   useEffect(() => {
@@ -418,11 +515,6 @@ export function Route() {
 
   return (
     <NavigationContainer ref={NavigationService.setTopLevelNavigator}>
-      {/*  <StatusBar
-        barStyle="light-content"
-        backgroundColor={'transparent'}
-        translucent
-      /> */}
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
@@ -430,9 +522,15 @@ export function Route() {
           gestureEnabled: true,
           gestureDirection: 'vertical',
           ...TransitionPresets.SlideFromRightIOS,
+          cardStyleInterpolator: ({ current }) => ({
+            cardStyle: {
+              opacity: current.progress,
+            },
+          }),
           navigationBarColor: 'transparent',
-          animationDuration: 500,
+          animationDuration: 2000,
           presentation: 'transparentModal',
+          
         }}>
         <Stack.Screen name="Home">
           {props => (
@@ -481,6 +579,7 @@ export function Route() {
 
         <Stack.Screen name='QRManual' component={QRManual} />
         <Stack.Screen name='EditAdvScreen' component={EditAdvScreen} />
+        <Stack.Screen name='EditOBRScreen' component={EditOBRScreen} />
         <Stack.Screen name='QRAuto' component={QRAuto} />
         <Stack.Screen name='QRRevert' component={QRRevert} />
 
@@ -496,7 +595,6 @@ export function Route() {
         <Stack.Screen name='RequestScreen' component={RequestScreen} />
         <Stack.Screen name='OnScheduleScreen' component={OnScheduleScreen} />
 
-
         <Stack.Screen name='Evaluate' component={EvaluateScreen} />
         <Stack.Screen name='OnEvaluation' component={OnEvaluationScreen} />
         <Stack.Screen name='Evaluated' component={EvaluatedScreen} />
@@ -505,6 +603,32 @@ export function Route() {
         <Stack.Screen name='EvalDaily' component={EvalDaily} />
         <Stack.Screen name='EvalMonthly' component={EvalMonthly} />
         <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
+
+        <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
+        <Stack.Screen name='MyAccess' component={AccessScreen}/>
+        <Stack.Screen name='SuperAccess' component={SuperAccessScreen}/>
+
+         <Stack.Screen
+          name="HelpCenter"
+          component={HelpCenterScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+         <Stack.Screen
+          name="Feedback"
+          component={FeedbackScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+        <Stack.Screen
+          name="BACAttachments"
+          component={BACAttachmentsScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+          <Stack.Screen
+          name="InventoryScreen"
+          component={InventoryScreen}
+         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+
 
         <Stack.Screen
           name="ProjectCleansing"
@@ -524,6 +648,7 @@ export function Route() {
         <Stack.Screen name="MonthlyReceivedScreen" component={MonthlyReceivedScreen} />
 
       </Stack.Navigator>
+      
       <Modal
         animationType="slide"
         transparent={true}
