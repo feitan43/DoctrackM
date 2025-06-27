@@ -162,7 +162,6 @@ export const useUpdateUserSuperAccess = () => {
 };
 
 export const updateUserInfo = async (payload) => {
-  console.log("pay2",payload)
   if (
     payload.employeeNumber === undefined ||
     payload.employeeNumber === '' 
@@ -218,8 +217,6 @@ export const useUpdateUserInfo = () => {
 
   return mutation;
 };
-
-
 
 export const fetchSystemsList = async () => {
   try {

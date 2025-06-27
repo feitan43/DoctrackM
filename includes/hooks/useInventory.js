@@ -2,7 +2,26 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import useUserInfo from '../api/useUserInfo.js';
 import apiClient from '../api/apiClient.js';
 
-export const fetchInventory = async officeCode => {
+export const fetchInventory = async (officeCode, trackingNumber = '', year = '') => {
+  if (!officeCode) throw new Error('Office Code is required');
+  const url = `/getInventory?OfficeCode=${officeCode}&TrackingNumber=${trackingNumber ?? ''}&Year=${year ?? ''}`;
+  const { data } = await apiClient.get(url);
+  return data;
+};
+
+export const useInventory = (trackingNumber = '', year = '', shouldTriggerFetch = true) => {
+  const { officeCode } = useUserInfo();
+
+  return useQuery({
+    queryKey: ['getInventory', officeCode, trackingNumber, year],
+    queryFn: () => fetchInventory(officeCode, trackingNumber, year),
+    enabled: Boolean(officeCode) && shouldTriggerFetch,
+    staleTime: 5 * 60 * 1000, 
+    retry: 2,
+  });
+};
+
+/* export const fetchInventory = async officeCode => {
   if (!officeCode) throw new Error('Office Code are required');
   const {data} = await apiClient.get(`/getInventory?OfficeCode=${officeCode}`);
   return data;
@@ -17,7 +36,9 @@ export const useInventory = () => {
   staleTime: 5 * 60 * 1000,
   retry: 2,
 });
-};
+}; */
+
+
 
 export const uploadInventory = async ({
   imagePath,

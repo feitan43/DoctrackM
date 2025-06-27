@@ -92,7 +92,7 @@ const HomeScreen = ({navigation}) => {
     officeAdmin,
     caoReceiver,
     caoEvaluator,
-    boss
+    boss,
   } = useUserInfo();
   const {
     recentlyUpdatedData,
@@ -642,7 +642,7 @@ const HomeScreen = ({navigation}) => {
                       />
                     </ImageBackground>
                   )}
-                 /*  pager={props => <TransitionPager {...props} />} */
+                  /*  pager={props => <TransitionPager {...props} />} */
                 />
                 {loading && (
                   <View style={styles.loadingContainer}>

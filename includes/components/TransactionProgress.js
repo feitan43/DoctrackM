@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 15,
     marginTop: 15,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     elevation: 2,
     shadowColor: '#000',

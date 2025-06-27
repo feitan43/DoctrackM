@@ -65,7 +65,7 @@ const InventoryScreen = ({navigation}) => {
 
   const [isCameraVisible, setIsCameraVisible] = useState(false);
 
-  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedYear, setSelectedYear] = useState('2024');
   const [availableYears, setAvailableYears] = useState([]);
 
   const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
@@ -86,53 +86,6 @@ const InventoryScreen = ({navigation}) => {
       item?.Office || 'UnknownOffice'
     }~${item?.TrackingNumber || 'UnknownTracking'}~`;
   }, []);
-
-  /* const handlePresentImageUploadSheet = useCallback(
-    item => {
-      let primaryImageUrl = item.imageUrl;
-      let existingMultipleImageUrls = [];
-
-      const getFileExtension = url => {
-        const parts = url.split('.');
-        return parts.length > 1 ? `.${parts.pop()}` : '';
-      };
-
-      const primaryExtension = primaryImageUrl
-        ? getFileExtension(primaryImageUrl)
-        : '.jpg';
-
-      if (item.UploadFiles) {
-        const parts = item.UploadFiles.split('-');
-        const imageNumbers = parts.filter(
-          part => !isNaN(parseInt(part, 10)) && part.trim() !== '',
-        );
-
-        if (imageNumbers.length > 0) {
-          existingMultipleImageUrls = imageNumbers.map(num => {
-            const extensionToUse = primaryExtension || '.jpg';
-            return `${getBaseImageUrl(item)}${parseInt(
-              num,
-              10,
-            )}${extensionToUse}`;
-          });
-
-          if (!primaryImageUrl && existingMultipleImageUrls.length > 0) {
-            primaryImageUrl = existingMultipleImageUrls[0];
-          }
-        }
-      }
-
-      setSelectedItem({
-        ...item,
-        imageUrl: primaryImageUrl,
-        multipleImageUrls: existingMultipleImageUrls,
-      });
-
-      setPreviewImage([]);
-      imageUploadBottomSheetRef.current?.expand();
-    },
-    [getBaseImageUrl],
-  ); */
 
   const handlePresentImageUploadSheet = (item, imageUrls = []) => {
     setSelectedImage(imageUrls);
@@ -165,104 +118,6 @@ const InventoryScreen = ({navigation}) => {
     setSelectedImage(imageUrl);
     setModalVisible(true);
   };
-
-  /* useEffect(() => {
-    if (data && data.length > 0) {
-      originalInventoryData.current = data;
-      const years = [...new Set(data.map(item => item.Year))]
-        .filter(Boolean)
-        .sort((a, b) => parseInt(b) - parseInt(a));
-      setAvailableYears(years);
-    }
-  }, [data]);
-
-  const filteredInventoryItems = useMemo(() => {
-    let items = originalInventoryData.current;
-
-    if (selectedYear) {
-      items = items.filter(item => item.Year === selectedYear);
-    }
-
-    if (searchQuery.trim() !== '') {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      items = items.filter(item =>
-        (item.TrackingNumber || '').toLowerCase().includes(lowerCaseQuery),
-      );
-    }
-    return items;
-  }, [searchQuery, selectedYear, data]);
-
-  const displayData = useMemo(() => {
-    if (!filteredInventoryItems.length && !isLoading) {
-      return [];
-    }
-
-    if (searchQuery.trim() !== '') {
-      const groups = {};
-      filteredInventoryItems.forEach(item => {
-        const tn = item.TrackingNumber || 'No TN';
-        const year = item.Year || 'No Year';
-        if (!groups[tn]) {
-          groups[tn] = {};
-        }
-        if (!groups[tn][year]) {
-          groups[tn][year] = [];
-        }
-        groups[tn][year].push(item);
-      });
-
-      const groupHeaders = [];
-      Object.keys(groups)
-        .sort()
-        .forEach(tn => {
-          Object.keys(groups[tn])
-            .sort((a, b) => parseInt(b) - parseInt(a))
-            .forEach(year => {
-              groupHeaders.push({
-                type: 'groupHeader',
-                trackingNumber: tn,
-                year: year,
-                itemCount: groups[tn][year].length,
-                id: `group-${tn}-${year}`,
-                items: groups[tn][year],
-              });
-            });
-        });
-      return groupHeaders;
-    }
-
-    const groups = {};
-    filteredInventoryItems.forEach(item => {
-      const tn = item.TrackingNumber || 'No TN';
-      const year = item.Year || 'No Year';
-      if (!groups[tn]) {
-        groups[tn] = {};
-      }
-      if (!groups[tn][year]) {
-        groups[tn][year] = [];
-      }
-      groups[tn][year].push(item);
-    });
-
-    const groupHeaders = [];
-    Object.keys(groups)
-      .sort()
-      .forEach(tn => {
-        Object.keys(groups[tn])
-          .sort((a, b) => parseInt(b) - parseInt(a))
-          .forEach(year => {
-            groupHeaders.push({
-              type: 'groupHeader',
-              trackingNumber: tn,
-              year: year,
-              itemCount: groups[tn][year].length,
-              id: `group-${tn}-${year}`,
-              items: groups[tn][year],
-            });
-          });
-      });
-    return groupHeaders;
-  }, [filteredInventoryItems, searchQuery, isLoading]); */
 
   const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
@@ -372,21 +227,6 @@ const InventoryScreen = ({navigation}) => {
     setIsCameraVisible(false);
   }, []);
 
-  /* const onRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      queryClient.invalidateQueries({
-        queryKey: ['getInventory', officeCode],
-      });
-      console.log('Simulating data refetch...');
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network request
-    } catch (error) {
-      console.error('Error during refresh:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, []); */
-
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -399,89 +239,6 @@ const InventoryScreen = ({navigation}) => {
       setIsRefreshing(false);
     }
   }, [queryClient, officeCode]);
-
-  /*  const confirmUploadImages = useCallback(async () => {
-    if (!selectedItem || previewImage.length === 0) {
-      Alert.alert('No Images', 'Please select images for preview first.');
-      return;
-    }
-
-    setUploadProgress(0);
-    uploadImages(
-      {
-        id: selectedItem.Id,
-        office: selectedItem.Office,
-        tn: selectedItem.TrackingNumber,
-        imagePath: previewImage,
-      },
-      {
-        onSuccess: data => {
-          if (data && data.status === 'success') {
-            showMessage({
-              message: data.message || 'Upload successful!',
-              type: 'success',
-              icon: 'success',
-              floating: true,
-              duration: 3000,
-            });
-
-            const finalImageUrl = data.imageUrls ? data.imageUrls[0] : null;
-
-            const updatedOriginalItems = originalInventoryData.current.map(
-              item =>
-                item.Id === selectedItem.Id
-                  ? {
-                      ...item,
-                      imageUrl: finalImageUrl,
-                      multipleImageUrls: data.imageUrls,
-                    }
-                  : item,
-            );
-            originalInventoryData.current = updatedOriginalItems;
-
-            setSelectedItem
-            (prev => ({
-              ...prev,
-              imageUrl: finalImageUrl,
-              multipleImageUrls: data.imageUrls,
-            }));
-            handleCloseImageUploadSheet();
-          } else {
-            console.warn('Upload success but server returned non-success status:', data);
-            Alert.alert(
-              'Upload Failed',
-              data.message || 'Server did not indicate a successful upload.',
-            );
-          }
-        },
-        onError: err => {
-          console.error('Mutation specific error handler in component:', err);
-          showMessage({
-            message: 'Upload failed!',
-            description: err.message || 'Something went wrong during upload.',
-            type: 'danger',
-            icon: 'danger',
-            floating: true,
-            duration: 3000,
-          });
-
-        },
-        onSettled: () => {
-          setUploadProgress(0);
-        },
-      },
-    );
-  }, [
-    selectedItem,
-    previewImage,
-    uploadImages,
-    handleCloseImageUploadSheet,
-    originalInventoryData,
-    setSelectedItem,
-    // If you are using showMessage, ensure it's stable (e.g., from a context or defined once)
-    // or add it to dependencies if it's a memoized function.
-    // showMessage,
-  ]); */
 
   const confirmUploadImages = useCallback(async () => {
     if (!selectedItem || previewImage.length === 0) {
@@ -621,130 +378,11 @@ const InventoryScreen = ({navigation}) => {
     }
   };
 
-  const InventoryItemComponent = ({
-    inventoryItem,
-    index,
-    handlePresentImageUploadSheet,
-  }) => {
-    const {data: fetchedImageUrls, isLoading} = useInventoryImages(
-      inventoryItem.Id,
-      inventoryItem.Office,
-      inventoryItem.TrackingNumber,
-    );
-    // console.log(fetchedImageUrls); // Keep this for debugging if needed
-
-    // Determine the image source safely
-    const imageSource =
-      fetchedImageUrls && fetchedImageUrls.length > 0
-        ? {uri: fetchedImageUrls[0]} // Use the first image URL if available
-        : null; // Fallback to null if no URLs are fetched
-
-    return (
-      <TouchableOpacity
-        style={styles.itemContainer}
-        onPress={() =>
-          handlePresentImageUploadSheet(inventoryItem, fetchedImageUrls)
-        }
-        accessibilityLabel={`View details for ${
-          inventoryItem.Item || 'No Item Name'
-        }`}>
-        <View style={styles.itemImageContainer}>
-          {isLoading ? (
-            <View style={styles.loadingImagePlaceholder}>
-              <Text style={styles.loadingImagePlaceholderText}>Loading...</Text>
-            </View>
-          ) : imageSource ? ( // Check if imageSource is valid (not null)
-            <Image
-              source={imageSource} // Use the safely determined imageSource
-              style={styles.itemImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.noImagePlaceholder}>
-              <Icon
-                name="image-outline"
-                size={30}
-                color={styles.noImagePlaceholderText.color}
-              />
-              <Text style={styles.noImagePlaceholderText}>No image</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.itemDetails}>
-          <Text style={styles.itemIndex}>{index + 1}</Text>
-          <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">
-            {inventoryItem.Item || 'N/A'}
-          </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>Brand:</Text>{' '}
-            {inventoryItem.Brand || 'N/A'}
-          </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>Common Name:</Text>{' '}
-            {inventoryItem.CommonName || 'N/A'}
-          </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>Assigned to:</Text>{' '}
-            {inventoryItem.NameAssignedTo || 'N/A'}
-          </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>NumOfFiles:</Text>{' '}
-            {inventoryItem.NumOfFiles || 'N/A'}
-          </Text>
-          <Text style={styles.itemMeta}>
-            <Text style={styles.itemMetaLabel}>UploadFiles:</Text>{' '}
-            {inventoryItem.UploadFiles || 'N/A'}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderListItem = useCallback(
+  const renderInventory = useCallback(
     ({item, index}) => {
-      if (item.type === 'groupHeader') {
-        return (
-          <TouchableOpacity
-            style={styles.groupHeaderContainer}
-            onPress={() => handleViewGroup(item)}
-            accessibilityLabel={`View ${
-              item.itemCount || 0
-            } items for tracking number ${item.trackingNumber} in year ${
-              item.year
-            }`}>
-            <View style={styles.groupHeaderContent}>
-              <Text style={styles.groupIndex}>{index + 1}</Text>
-              <Text style={styles.groupHeaderText}>
-                <Text style={styles.groupHeaderYear}>{item.year} | </Text>
-                <Text style={styles.groupHeaderTrackingNumber}>
-                  {item.trackingNumber}
-                </Text>
-              </Text>
-            </View>
-            <View style={styles.groupRightSection}>
-              {item.itemCount > 0 && (
-                <View style={styles.itemCountBadge}>
-                  <Text style={styles.itemCountText}>{item.itemCount}</Text>
-                </View>
-              )}
-              <Icon
-                name="chevron-forward"
-                size={24}
-                color={styles.groupHeaderIcon.color}
-              />
-            </View>
-          </TouchableOpacity>
-        );
-      } else {
-        //const inventoryItem = item.data;
-        return (
-          <InventoryItemComponent
-            inventoryItem={item.data}
-            index={index}
-            handlePresentImageUploadSheet={handlePresentImageUploadSheet}
-          />
-        );
-      }
+     <View>
+      <Text>{item.TrackingNumber}</Text>
+     </View>
     },
     [handlePresentImageUploadSheet, handleViewGroup, getBaseImageUrl],
   );
@@ -867,7 +505,7 @@ const InventoryScreen = ({navigation}) => {
           ) : (
             <FlashList
               data={data}
-              renderItem={renderListItem}
+              renderItem={renderInventory}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.listContent}
               estimatedItemSize={150}
@@ -1184,91 +822,6 @@ const InventoryScreen = ({navigation}) => {
                         </TouchableOpacity>
                       )}
                     </View>
-                    {/* https://davaocityportal.com/tempUpload/53198~TRAC~TRAC-10~1.jpg */}
-                    {/* {previewImage.length > 0 ? (
-                      <View style={styles.modalMultipleImagesContainer}>
-                        <FlatList
-                          data={previewImage}
-                          horizontal
-                          showsHorizontalScrollIndicator={true}
-                          keyExtractor={(item, index) => item + '_' + index}
-                          renderItem={({item: imageUrl, index}) => (
-                            <View style={styles.imagePreviewWrapper}>
-                              <Image
-                                source={{uri: imageUrl}}
-                                style={styles.modalMultiImagePreview}
-                                resizeMode="contain"
-                              />
-                              <TouchableOpacity
-                                style={styles.removeImageButton}
-                                onPress={() => handleRemovePreviewImage(index)}
-                                accessibilityLabel={`Remove image ${
-                                  index + 1
-                                }`}>
-                                <Text
-                                  style={{color: 'white', fontWeight: 'bold'}}>
-                                  X
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
-                        />
-                        {uploadingImage ? (
-                          <Text style={styles.uploadingProgressText}>
-                            Uploading {uploadProgress} of{' '}
-                            {previewImage.length} image(s)...
-                          </Text>
-                        ) : (
-                          <Text style={styles.previewCountText}>
-                            {previewImage.length} image(s) selected for
-                            upload
-                          </Text>
-                        )}
-                      </View>
-                    ) : (
-                      (() => {
-                        const multipleImageUrls =
-                          selectedItem?.multipleImageUrls;
-                        if (multipleImageUrls && multipleImageUrls.length > 0) {
-                          return (
-                            <View style={styles.modalMultipleImagesContainer}>
-                              <FlatList
-                                data={multipleImageUrls}
-                                horizontal
-                                showsHorizontalScrollIndicator={true}
-                                keyExtractor={(item, index) => item + index}
-                                renderItem={({item: imageUrl}) => (
-                                  <Pressable
-                                    onPress={() => handleImagePress(imageUrl)}>
-                                    <Image
-                                      source={{uri: imageUrl}}
-                                      style={styles.modalMultiImagePreview}
-                                      resizeMode="contain"
-                                    />
-                                  </Pressable>
-                                )}
-                              />
-                            </View>
-                          );
-                        } else if (selectedItem?.imageUrl) {
-                          return (
-                            <Image
-                              source={{uri: selectedItem.imageUrl}}
-                              style={styles.modalImagePreview}
-                              resizeMode="contain"
-                            />
-                          );
-                        } else {
-                          return (
-                            <View style={styles.modalImagePlaceholder}>
-                              <Text style={styles.modalImagePlaceholderText}>
-                                No image(s) yet
-                              </Text>
-                            </View>
-                          );
-                        }
-                      })()
-                    )} */}
 
                     {previewImage.length > 0 ? (
                       <View style={styles.modalMultipleImagesContainer}>

@@ -10,19 +10,19 @@ import {
   StatusBar,
   ImageBackground,
   Platform,
-  Animated, // Import Animated
-  PanResponder, // Import PanResponder
-  LayoutAnimation, // For smooth updates on Android (still good to have)
-  NativeModules, // For LayoutAnimation on Android
-  Keyboard, // Import Keyboard
+  Animated,
+  PanResponder,
+  LayoutAnimation,
+  NativeModules,
+  Keyboard,
+  RefreshControl,
 } from 'react-native';
-import {FlashList} from '@shopify/flash-list'; // Keep FlashList for performance
+import {FlashList} from '@shopify/flash-list';
 import DatePicker from 'react-native-date-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {Dropdown} from 'react-native-element-dropdown';
-import {officeMap} from '../utils/officeMap'; // Assuming this path is correct
+import {officeMap} from '../utils/officeMap';
 
-// Enable LayoutAnimation on Android
 if (Platform.OS === 'android') {
   if (
     NativeModules.UIManager &&
@@ -32,7 +32,6 @@ if (Platform.OS === 'android') {
   }
 }
 
-// Helper function to parse PHP-style datetime string
 function parseCustomDateTime(dateTimeStr) {
   if (!dateTimeStr) return null;
   const [datePart, timePart, meridian] = dateTimeStr.split(/[\s]+/);
@@ -43,71 +42,55 @@ function parseCustomDateTime(dateTimeStr) {
   return new Date(year, month - 1, day, hour, minute);
 }
 
-// --- Nested Component for each List Item (now handles its own swipe) ---
 const DeliveryRecordItem = ({
   item,
   openEditor,
   handleDelete,
-  swipedItemId, // New prop
-  setSwipedItemId, // New prop
+  swipedItemId,
+  setSwipedItemId,
 }) => {
-  // Animated value for horizontal swipe translation
   const pan = useRef(new Animated.ValueXY()).current;
-  // State to track if the item is currently swiped open
   const [isSwipedOpen, setIsSwipedOpen] = useState(false);
 
-  // Define swipe threshold (how much to swipe to reveal the delete button)
-  const SWIPE_THRESHOLD = -90; // Negative for leftward swipe
+  const SWIPE_THRESHOLD = -90;
 
-  // Effect to close the row if another item is swiped open
   useEffect(() => {
     if (swipedItemId !== item.Id && isSwipedOpen) {
       closeRow();
     }
   }, [swipedItemId]);
 
-  // Create PanResponder to handle touch gestures
   const panResponder = useRef(
     PanResponder.create({
-      // Should we become the responder for this touch sequence?
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond if horizontal movement is significant and more horizontal than vertical
         return (
           Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2 &&
-          Math.abs(gestureState.dx) > 10 // Minimum horizontal movement
+          Math.abs(gestureState.dx) > 10
         );
       },
-      // When the responder starts moving
       onPanResponderMove: (evt, gestureState) => {
-        // If another item is swiped open, don't allow this one to swipe
         if (swipedItemId && swipedItemId !== item.Id) {
           return;
         }
 
         if (gestureState.dx < 0) {
-          // Allow swiping left (negative dx)
           pan.setValue({x: gestureState.dx, y: 0});
         } else if (isSwipedOpen) {
-          // If already open, allow swiping right to close
-          // Adjust to start from the open position
           pan.setValue({x: SWIPE_THRESHOLD + gestureState.dx, y: 0});
         }
       },
-      // When the responder is released
       onPanResponderRelease: (evt, gestureState) => {
         if (gestureState.dx < SWIPE_THRESHOLD / 2) {
-          // If swiped beyond half the threshold, snap to open position
           Animated.spring(pan, {
             toValue: {x: SWIPE_THRESHOLD, y: 0},
             useNativeDriver: true,
-            bounciness: 0, // No bounce
-            speed: 20, // Faster snap
+            bounciness: 0,
+            speed: 20,
           }).start(() => {
             setIsSwipedOpen(true);
-            setSwipedItemId(item.Id); // Set this item as the swiped one
+            setSwipedItemId(item.Id);
           });
         } else {
-          // Otherwise, snap back to close position
           Animated.spring(pan, {
             toValue: {x: 0, y: 0},
             useNativeDriver: true,
@@ -116,14 +99,12 @@ const DeliveryRecordItem = ({
           }).start(() => {
             setIsSwipedOpen(false);
             if (swipedItemId === item.Id) {
-              setSwipedItemId(null); // Clear swiped item if this one is closing
+              setSwipedItemId(null);
             }
           });
         }
       },
-      // When another responder takes over (e.g., list scrolls)
       onPanResponderTerminate: () => {
-        // Snap back to close position if gesture is interrupted
         Animated.spring(pan, {
           toValue: {x: 0, y: 0},
           useNativeDriver: true,
@@ -139,7 +120,6 @@ const DeliveryRecordItem = ({
     }),
   ).current;
 
-  // Function to manually close the row (e.g., after delete confirmation)
   const closeRow = () => {
     Animated.spring(pan, {
       toValue: {x: 0, y: 0},
@@ -154,23 +134,20 @@ const DeliveryRecordItem = ({
     });
   };
 
-  // Handle press on the hidden delete button
   const onDeletePress = () => {
-    handleDelete(item, closeRow); // Pass item and a callback to close the row
+    handleDelete(item, closeRow);
   };
 
-  // Handle press on the visible part of the card
   const handleCardPress = () => {
     if (isSwipedOpen) {
-      closeRow(); // If swiped open, tapping closes the swipe
+      closeRow();
     } else {
-      openEditor(item); // Otherwise, open the editor
+      openEditor(item);
     }
   };
 
   return (
     <View style={itemStyles.swipeContainer}>
-      {/* Hidden Delete Button (Back Layer) */}
       <View style={itemStyles.hiddenDeleteButtonContainer}>
         <TouchableOpacity
           style={itemStyles.hiddenDeleteButton}
@@ -180,7 +157,6 @@ const DeliveryRecordItem = ({
         </TouchableOpacity>
       </View>
 
-      {/* Main Card Content (Front Layer) */}
       <Animated.View
         style={[itemStyles.animatedCard, {transform: [{translateX: pan.x}]}]}
         {...panResponder.panHandlers}>
@@ -215,19 +191,16 @@ const DeliveryRecordItem = ({
   );
 };
 
-// --- Styles specifically for the DeliveryRecordItem and its swipe parts ---
 const itemStyles = StyleSheet.create({
   swipeContainer: {
-    // This view holds both the front card and the hidden back button
-    position: 'relative', // Necessary for absolute positioning of hidden button
+    position: 'relative',
     width: '100%',
-    height: undefined, // Let content define height
-    marginBottom: 12, // Provides spacing between rows
-    overflow: 'hidden', // Ensures hidden button doesn't spill out
-    borderRadius: 12, // Matches the border-radius of the card itself
+    height: undefined,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderRadius: 12,
   },
   animatedCard: {
-    // This wraps the main card content and will be animated
     flex: 1,
   },
   itemBox: {
@@ -235,10 +208,10 @@ const itemStyles = StyleSheet.create({
     padding: 18,
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
     borderLeftWidth: 5,
     borderLeftColor: '#4A90E2',
   },
@@ -279,18 +252,18 @@ const itemStyles = StyleSheet.create({
     top: 0,
     bottom: 0,
     right: 0,
-    width: 90, // Match SWIPE_THRESHOLD
+    width: 90,
     justifyContent: 'center',
-    alignItems: 'flex-end', // Align delete button to the right
+    alignItems: 'flex-end',
     paddingRight: 10,
-    backgroundColor: '#FF3B30', // Red background for delete
-    borderRadius: 12, // Match parent container and card
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
   },
   hiddenDeleteButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    flex: 1, // Make button fill height
-    width: '100%', // Make button fill width
+    flex: 1,
+    width: '100%',
   },
   hiddenDeleteButtonText: {
     color: '#FFF',
@@ -301,28 +274,26 @@ const itemStyles = StyleSheet.create({
 });
 
 const BossEditScreen = ({navigation}) => {
-  const [allData, setAllData] = useState([]); // This will now hold only the *currently fetched* data
-  const [filteredData, setFilteredData] = useState([]); // This will be filtered based on year
+  const [allData, setAllData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [yearOptions, setYearOptions] = useState([]);
 
-  // State for the tracking number input field
   const [trackingNumberInput, setTrackingNumberInput] = useState('');
-  // State for the tracking number used to *trigger API call*
   const [trackingNumberFilter, setTrackingNumberFilter] = useState('');
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [deliveryDate, setDeliveryDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
-  // New state to track the ID of the currently swiped open item
   const [swipedItemId, setSwipedItemId] = useState(null);
 
-  // Function to load data from the API
   const loadData = async (tn = '') => {
     setLoading(true);
+    setRefreshing(true);
     try {
       const url = `https://davaocityportal.com/gord/ajax/dataprocessor.php?shalltear=1${
         tn ? `&tn=${tn}` : ''
@@ -330,22 +301,17 @@ const BossEditScreen = ({navigation}) => {
       const res = await fetch(url);
       const json = await res.json();
 
-      // Ensure 'json' is an array before setting state
       const data = Array.isArray(json) ? json : [];
 
-      setAllData(data); // Set the fetched data
-      setFilteredData(data); // Initially, filtered data is all fetched data
+      setAllData(data);
+      setFilteredData(data);
 
-      // Only update year options on the initial load (when tn is empty)
-      // or if the data completely changes and affects years
       if (!tn && data.length > 0) {
         const years = [...new Set(data.map(item => item.Year))].sort(
           (a, b) => b - a,
         );
         setYearOptions(years.map(y => ({label: String(y), value: y})));
       } else if (data.length === 0) {
-        // If search returns no results, clear year options if needed or reset
-        // For now, keep existing year options
       }
     } catch (err) {
       console.error('Failed to load inspection data:', err);
@@ -353,33 +319,31 @@ const BossEditScreen = ({navigation}) => {
         'Error',
         'Failed to load inspection data. Please try again later.',
       );
-      setAllData([]); // Clear data on error
+      setAllData([]);
       setFilteredData([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  // Initial data load on component mount and when trackingNumberFilter changes
   useEffect(() => {
     loadData(trackingNumberFilter);
-  }, [trackingNumberFilter]); // This effect now depends on trackingNumberFilter
+  }, [trackingNumberFilter]);
 
-  // Filter `allData` (which is already filtered by TN from API) by selected year
   useEffect(() => {
     const filtered = allData.filter(item => {
       const matchYear = !selectedYear || item.Year === selectedYear;
       return matchYear;
     });
     setFilteredData(filtered);
-  }, [selectedYear, allData]); // This effect now depends on selectedYear and allData
+  }, [selectedYear, allData]);
 
   const handleSearch = () => {
-    // Only trigger API call if trackingNumberInput is different from current filter
     if (trackingNumberInput !== trackingNumberFilter) {
-      setTrackingNumberFilter(trackingNumberInput); // This will trigger the useEffect to call loadData
+      setTrackingNumberFilter(trackingNumberInput);
     }
-    Keyboard.dismiss(); // Dismiss the keyboard after search
+    Keyboard.dismiss();
   };
 
   const openEditor = item => {
@@ -415,7 +379,6 @@ const BossEditScreen = ({navigation}) => {
           text: 'Cancel',
           style: 'cancel',
           onPress: () => {
-            // If user cancels, close the swiped row
             if (closeRowCallback) {
               closeRowCallback();
             }
@@ -440,7 +403,6 @@ const BossEditScreen = ({navigation}) => {
 
               if (response.ok && result.success) {
                 Alert.alert('Success', 'Record deleted successfully!');
-                // Refetch data after deletion to ensure the list is up-to-date
                 loadData(trackingNumberFilter);
               } else {
                 Alert.alert(
@@ -456,7 +418,6 @@ const BossEditScreen = ({navigation}) => {
                 'An error occurred while deleting the record.',
               );
             } finally {
-              // Always close row after action, whether success or error
               if (closeRowCallback) {
                 closeRowCallback();
               }
@@ -472,8 +433,8 @@ const BossEditScreen = ({navigation}) => {
       item={item}
       openEditor={openEditor}
       handleDelete={handleDelete}
-      swipedItemId={swipedItemId} // Pass the globally swiped item ID
-      setSwipedItemId={setSwipedItemId} // Pass the setter function
+      swipedItemId={swipedItemId}
+      setSwipedItemId={setSwipedItemId}
     />
   );
 
@@ -520,17 +481,23 @@ const BossEditScreen = ({navigation}) => {
             )}
           />
 
-          {/* Tracking Number Input with Search Button */}
           <View style={styles.trackingNumberInputContainer}>
             <TextInput
               placeholder="Search by Tracking Number..."
               placeholderTextColor="#888"
-              style={styles.trackingNumberInput} // Apply specific style for TextInput
+              style={styles.trackingNumberInput}
               value={trackingNumberInput}
-              onChangeText={setTrackingNumberInput} // Update input state directly
-              clearButtonMode="while-editing"
-              onSubmitEditing={handleSearch} // Trigger search on keyboard submit
+              onChangeText={setTrackingNumberInput}
+              clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
+              onSubmitEditing={handleSearch}
             />
+            {Platform.OS === 'android' && trackingNumberInput.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setTrackingNumberInput('')}
+                style={styles.clearButton}>
+                <Icon name="close-circle" size={20} color="#888" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={handleSearch}
               style={styles.searchButton}>
@@ -539,7 +506,7 @@ const BossEditScreen = ({navigation}) => {
           </View>
         </View>
 
-        {loading ? (
+        {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1A508C" />
             <Text style={styles.loadingText}>Loading data...</Text>
@@ -551,6 +518,9 @@ const BossEditScreen = ({navigation}) => {
             keyExtractor={item => String(item.Id)}
             estimatedItemSize={120}
             contentContainerStyle={styles.listContentContainer}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => loadData(trackingNumberFilter)} tintColor="#1A508C" />
+            }
             ListEmptyComponent={
               <View style={styles.emptyListContainer}>
                 <Icon
@@ -559,7 +529,7 @@ const BossEditScreen = ({navigation}) => {
                   color="#999"
                 />
                 <Text style={styles.emptyListText}>
-                  No matching records found.
+                  No matching records found. Try adjusting your filters or search.
                 </Text>
               </View>
             }
@@ -580,6 +550,7 @@ const BossEditScreen = ({navigation}) => {
         theme="light"
         confirmText="Confirm"
         cancelText="Cancel"
+        title={selectedItem ? `Set Date for TN: ${selectedItem.TrackingNumber}` : 'Select Delivery Date'}
       />
     </View>
   );
@@ -649,10 +620,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   dropdown: {
     backgroundColor: '#F5F5F5',
@@ -692,20 +663,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginBottom: 10,
-    paddingRight: 5, // Space for the button
+    paddingRight: 5,
   },
   trackingNumberInput: {
-    flex: 1, // Allow text input to take available space
+    flex: 1,
     paddingHorizontal: 15,
     paddingVertical: Platform.OS === 'ios' ? 14 : 12,
     fontSize: 16,
     color: '#333',
   },
+  clearButton: {
+    padding: 5,
+    marginRight: 5,
+  },
   searchButton: {
-    backgroundColor: '#4A90E2', // Blue background for the search button
+    backgroundColor: '#4A90E2',
     borderRadius: 8,
     padding: 8,
-    marginLeft: 8, // Space between input and button
+    marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },

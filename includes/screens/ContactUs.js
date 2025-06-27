@@ -43,7 +43,9 @@ const ContactUsScreen = ({navigation}) => {
           return Linking.openURL(fallbackURL);
         }
       })
-      .catch(err => console.error('An error occurred', err));
+      .catch(err =>
+        console.error('An error occurred trying to open Facebook link:', err),
+      );
   };
 
   const handleMapPress = () => {
@@ -119,35 +121,28 @@ const ContactUsScreen = ({navigation}) => {
         <Text style={styles.headerTitle}>Contact Us</Text>
       </View>
 
-      
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContentContainer}>
-
         {/* Banner */}
-               <View style={styles.bannerContainer}>
-              <Image
-                source={require('../../assets/images/trackyhelp.png')}
-                style={styles.bannerImage}
-                resizeMode="contain"
-              />
-              <View style={styles.bannerTextWrapper}>
-                <Text style={styles.bannerTitle}>Want quick answers?</Text>
-                <Text style={styles.bannerSubtitle}>
-                  Try our Help Center!
-                </Text>
-        
-                {/* Contact Us Button */}
-                <TouchableOpacity
-                  style={styles.helpcenterButton}
-                  onPress={() => navigation.navigate('HelpCenter')}
-                >
-                  <Text style={styles.helpcenterButtonText}>Help Center</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+        <View style={styles.bannerContainer}>
+          <Image
+            source={require('../../assets/images/trackyhelp.png')}
+            style={styles.bannerImage}
+            resizeMode="contain"
+          />
+          <View style={styles.bannerTextWrapper}>
+            <Text style={styles.bannerTitle}>Want quick answers?</Text>
+            <Text style={styles.bannerSubtitle}>Try our Help Center!</Text>
 
+            {/* Contact Us Button */}
+            <TouchableOpacity
+              style={styles.helpcenterButton}
+              onPress={() => navigation.navigate('HelpCenter')}>
+              <Text style={styles.helpcenterButtonText}>Help Center</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <Text style={styles.sectionTitle}>Email Us</Text>
         <ContactItem
@@ -202,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-   flexDirection: 'row',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     paddingVertical: 12,
@@ -231,7 +226,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F5F8FA'
+    backgroundColor: '#F5F8FA',
   },
   scrollViewContentContainer: {
     paddingHorizontal: 15,
@@ -311,19 +306,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#3D3D3D',
   },
-   helpcenterButton: {
+  helpcenterButton: {
     backgroundColor: '#2563eb',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    alignSelf:'flex-end',
-    marginTop:10
+    alignSelf: 'flex-end',
+    marginTop: 10,
   },
   helpcenterButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    textAlign:'right'
+    textAlign: 'right',
   },
 });
 
