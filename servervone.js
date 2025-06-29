@@ -3026,12 +3026,13 @@ async function fetchAndEmitAnnouncements({emit = false} = {}) {
   const data = await apiResponse.json();
 
   if (emit) {
-    console.log('🔔 Emitting new announcements to clients...');
     io.emit('announcements:update', data);
   }
 
   return data;
 }
+
+
 
 app.get('/empFetchAnnouncements', async (req, res) => {
   const auth = (req.headers['x-announce-token'] || '').trim();
@@ -3039,11 +3040,15 @@ app.get('/empFetchAnnouncements', async (req, res) => {
 
   try {
     const data = await fetchAndEmitAnnouncements({emit: isInternal});
+
+    
     res.json(data);
   } catch (error) {
     res.status(500).json({error: 'Internal Server Error'});
   }
 });
+
+
 
 // app.get('/realme', async (req, res) => {
 //   const auth = req.headers['x-announce-token'];
