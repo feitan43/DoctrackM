@@ -1,6 +1,6 @@
 require('dotenv').config();
 const SECRET_TOKEN = process.env.SECRET_TOKEN;
-
+// const SECRET_TOKEN = 'super-secret-123';
 const express = require('express');
 const http = require('http');
 const axios = require('axios');
@@ -3020,38 +3020,44 @@ let lastPayload = [];
 //   }
 // }, 3000);
 
-app.set('trust proxy', true);
-
-async function fetchAndEmitAnnouncements() {
+async function fetchAndEmitAnnouncements({emit = false} = {}) {
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?voljin=1`;
   const apiResponse = await fetch(apiUrl);
   const data = await apiResponse.json();
-  io.emit('announcements:update', data);
+
+  if (emit) {
+    console.log('🔔 Emitting new announcements to clients...');
+    io.emit('announcements:update', data);
+  }
+
   return data;
 }
 
 app.get('/empFetchAnnouncements', async (req, res) => {
+  const auth = (req.headers['x-announce-token'] || '').trim();
+  const isInternal = auth === (SECRET_TOKEN || '').trim();
+
   try {
-    const data = await fetchAndEmitAnnouncements();
+    const data = await fetchAndEmitAnnouncements({emit: isInternal});
     res.json(data);
   } catch (error) {
     res.status(500).json({error: 'Internal Server Error'});
   }
 });
 
-app.get('/realme', async (req, res) => {
-  const auth = req.headers['x-announce-token'];
-  if (auth !== SECRET_TOKEN) {
-    return res.status(403).json({error: 'Forbidden'});
-  }
+// app.get('/realme', async (req, res) => {
+//   const auth = req.headers['x-announce-token'];
+//   if (auth !== SECRET_TOKEN) {
+//     return res.status(403).json({error: 'Forbidden'});
+//   }
 
-  try {
-    const data = await fetchAndEmitAnnouncements();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({error: 'Failed to fetch announcements'});
-  }
-});
+//   try {
+//     const data = await fetchAndEmitAnnouncements();
+//     res.json(data);
+//   } catch (err) {
+//     res.status(500).json({error: 'Failed to fetch announcements'});
+//   }
+// });
 
 server.listen(3308, () => {
   console.log('Server is running on port 3308');
