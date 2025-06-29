@@ -1,3 +1,6 @@
+require('dotenv').config();
+const SECRET_TOKEN = process.env.SECRET_TOKEN;
+
 const express = require('express');
 const http = require('http');
 const axios = require('axios');
@@ -3016,7 +3019,8 @@ let lastPayload = [];
 //     console.error('Polling failed:', err.message);
 //   }
 // }, 3000);
-app.set('trust proxy', true); 
+
+app.set('trust proxy', true);
 
 async function fetchAndEmitAnnouncements() {
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?voljin=1`;
@@ -3026,28 +3030,26 @@ async function fetchAndEmitAnnouncements() {
   return data;
 }
 
-
-
 app.get('/empFetchAnnouncements', async (req, res) => {
   try {
     const data = await fetchAndEmitAnnouncements();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({error: 'Internal Server Error'});
   }
 });
 
 app.get('/realme', async (req, res) => {
-  try {
-    const ip = req.ip;
-    if (!['::ffff:192.168.254.131'].includes(ip)) {
-      return res.status(403).json({ error: 'Forbidden', yourIp: ip });
-    }
+  const auth = req.headers['x-announce-token'];
+  if (auth !== SECRET_TOKEN) {
+    return res.status(403).json({error: 'Forbidden'});
+  }
 
+  try {
     const data = await fetchAndEmitAnnouncements();
     res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+  } catch (err) {
+    res.status(500).json({error: 'Failed to fetch announcements'});
   }
 });
 
