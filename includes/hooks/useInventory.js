@@ -2,21 +2,49 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import useUserInfo from '../api/useUserInfo.js';
 import apiClient from '../api/apiClient.js';
 
-export const fetchInventory = async (officeCode, trackingNumber = '', year = '') => {
+export const fetchInventory = async (
+  officeCode,
+  trackingNumber = '',
+  year = '',
+) => {
   if (!officeCode) throw new Error('Office Code is required');
-  const url = `/getInventory?OfficeCode=${officeCode}&TrackingNumber=${trackingNumber ?? ''}&Year=${year ?? ''}`;
-  const { data } = await apiClient.get(url);
+  const url = `/getInventory?OfficeCode=${officeCode}&TrackingNumber=${
+    trackingNumber ?? ''
+  }&Year=${year ?? ''}`;
+  const {data} = await apiClient.get(url);
   return data;
 };
 
-export const useInventory = (trackingNumber = '', year = '', shouldTriggerFetch = true) => {
-  const { officeCode } = useUserInfo();
-
+export const useInventory = (trackingNumber = '', year) => {
+  const {officeCode} = useUserInfo();
   return useQuery({
     queryKey: ['getInventory', officeCode, trackingNumber, year],
     queryFn: () => fetchInventory(officeCode, trackingNumber, year),
-    enabled: Boolean(officeCode) && shouldTriggerFetch,
-    staleTime: 5 * 60 * 1000, 
+    enabled: Boolean(officeCode),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+};
+
+export const fetchInventoryDetails = async (
+  id,
+  trackingNumber = '',
+  year = '',
+) => {
+  if (!id) throw new Error('id is required');
+  const url = `/getInventoryDetails?Id=${id}&TrackingNumber=${
+    trackingNumber ?? ''
+  }&Year=${year ?? ''}`;
+  const {data} = await apiClient.get(url);
+  return data;
+};
+
+export const useInventoryDetails = (id = '', trackingNumber = '', year) => {
+  return useQuery({
+    queryKey: ['getInventoryDetails', id, trackingNumber, year],
+    queryFn: () => fetchInventoryDetails(id, trackingNumber, year),
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 };
@@ -38,8 +66,6 @@ export const useInventory = () => {
 });
 }; */
 
-
-
 export const uploadInventory = async ({
   imagePath,
   id,
@@ -50,14 +76,13 @@ export const uploadInventory = async ({
   if (!imagePath || !id || !office || !tn) {
     throw new Error('Missing required parameters');
   }
-
   const formData = new FormData();
-  formData.append('uploadInventory', '1');
+  formData.append('uploadInventory', 1);
   formData.append('id', id);
   formData.append('office', office);
   formData.append('tn', tn);
-  formData.append('withImgs', imagePath.length.toString());
-  formData.append('numOfImages', imagePath.length.toString());
+  formData.append('withImgs', imagePath.length);
+  formData.append('numOfImages', imagePath.length);
 
   imagePath.forEach((image, index) => {
     formData.append(`images[${index + 1}]`, {
@@ -73,10 +98,6 @@ export const uploadInventory = async ({
   const res = await fetch(upload_URL, {
     method: 'POST',
     body: formData,
-    /*  headers: {
-      Authorization: `Bearer ${storedToken}`,
-      Accept: 'application/json',
-    }, */
   });
   const responseText = await res.text();
   if (!res.ok) {
@@ -100,11 +121,16 @@ export const useUploadInventory = () => {
         variables.office,
         variables.tn,
       ]);
-
-      if (variables.office) {
-        queryClient.invalidateQueries(['getInventory', variables.office]);
+     /*  console.log('data', data); */
+      /*  if (variables.office) {
+        queryClient.invalidateQueries([
+          'getInventoryDetails',
+          variables.id,
+          variables.trackingNumber,
+          variables.year,
+        ]);
       }
-
+ */
       return data;
     },
     onError: error => {
@@ -155,7 +181,7 @@ export const removeImageInv = async imageUri => {
   }
 };
 
-export const useRemoveImageInv= (onSuccess, onError) => {
+export const useRemoveImageInv = (onSuccess, onError) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -163,13 +189,13 @@ export const useRemoveImageInv= (onSuccess, onError) => {
     mutationFn: removeImageInv,
     retry: 2,
     onSuccess: (data, variables) => {
-        queryClient.invalidateQueries({
-        queryKey: ['getInventory', variables.office]
+      queryClient.invalidateQueries({
+        queryKey: ['getInventory', variables.office],
       });
 
       if (onSuccess) onSuccess(data);
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Image removal failed:', error.message);
       if (onError) onError(error);
     },
