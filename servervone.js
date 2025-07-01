@@ -43,6 +43,12 @@ const io = new Server(server, {
 io.on('connection', socket => {
   console.log('Client connected:', socket.id);
 
+  socket.on('join', officeCode => {
+    const room = officeCode.toString();
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined room: ${room}`);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
@@ -3003,52 +3009,51 @@ app.get('/myAccountabilities', async (req, res) => {
   }
 });
 
-let lastPayload = [];
+async function fetchAndEmitAnnouncements({emit = false, officeCode} = {}) {
+  if (!officeCode) throw new Error('OfficeCode is required');
 
-// setInterval(async () => {
-//   console.log('Fetching announcements at', new Date().toISOString());
-//   try {
-//     const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?voljin=1`;
-//     const response = await fetch(apiUrl);
-//     const data = await response.json();
-//     if (JSON.stringify(data) !== JSON.stringify(lastPayload)) {
-//       lastPayload = data;
-//       io.emit('announcements:update', data);
-//     }
-//   } catch (err) {
-//     console.error('Polling failed:', err.message);
-//   }
-// }, 3000);
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?voljin=1&officeCode=${encodeURIComponent(
+    officeCode,
+  )}`;
 
-async function fetchAndEmitAnnouncements({emit = false} = {}) {
-  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?voljin=1`;
   const apiResponse = await fetch(apiUrl);
   const data = await apiResponse.json();
 
   if (emit) {
-    io.emit('announcements:update', data);
+    console.log('Emitting to room:', officeCode, 'Sockets in room:', [
+      ...(io.sockets.adapter.rooms.get(officeCode.toString()) || []),
+    ]);
+
+    io.to(officeCode.toString()).emit('announcements:update', data);
+    console.log('[Socket Emit] Emitting announcements to:', officeCode, data);
+  } else {
+    console.log('[fetchAndEmitAnnouncements] Emit skipped (emit is false)');
   }
 
   return data;
 }
 
-
-
 app.get('/empFetchAnnouncements', async (req, res) => {
   const auth = (req.headers['x-announce-token'] || '').trim();
   const isInternal = auth === (SECRET_TOKEN || '').trim();
+  const officeCode = req.query.officeCode;
+  if (!officeCode) {
+    return res.status(400).json({error: 'officeCode is required'});
+  }
 
   try {
-    const data = await fetchAndEmitAnnouncements({emit: isInternal});
+    const data = await fetchAndEmitAnnouncements({
+      emit: isInternal,
+      officeCode,
+    });
 
-    
+    console.log('[empFetchAnnouncements] Sending response to client');
     res.json(data);
   } catch (error) {
+    console.error('Announcement fetch failed:', error.message);
     res.status(500).json({error: 'Internal Server Error'});
   }
 });
-
-
 
 // app.get('/realme', async (req, res) => {
 //   const auth = req.headers['x-announce-token'];
