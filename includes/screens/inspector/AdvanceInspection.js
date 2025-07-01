@@ -16,6 +16,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlashList } from '@shopify/flash-list';
 import { useAdvanceInspection } from '../../hooks/useInspection';
+import { formatDisplayDateTime } from '../../utils/dateUtils';
+import { officeMap } from '../../utils/officeMap';
 
 const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a real RN app
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,7 +25,6 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
   const [activeTab, setActiveTab] = useState('ForInspection'); // Added state for active tab
 
   const { data, loading: dataLoading, error: dataError, refetch } = useAdvanceInspection();
-  console.log(data?.length);
 
   const [invLoading, setInvLoading] = useState(false); // Used for search/refresh indication
   const [invError, setInvError] = useState(false); // Used for search/refresh error
@@ -39,7 +40,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
   }, []);
 
   // Filter data based on search query and active tab
-  const filteredData = useMemo(() => {
+ /*  const filteredData = useMemo(() => {
     if (!data) return [];
     let currentFiltered = data;
 
@@ -50,19 +51,101 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           String(value).toLowerCase().includes(lowerCaseQuery)
         )
       );
+    } */
+
+        const parseDeliveryDateString = useCallback((dateString) => {
+    if (!dateString || dateString.trim() === '' || dateString.toLowerCase() === 'n/a') {
+      return null; // Return null for invalid or missing dates
     }
 
-    switch (activeTab) {
-      case 'ForInspection':
-        return currentFiltered.filter(item => item.Status === 'For Inspection');
-      case 'Inspected':
-        return currentFiltered.filter(item => /* item.Status === 'Inspected' && */ item.DateInspected && item.DateInspected.trim() !== '');
-      case 'OnHold':
-        return currentFiltered.filter(item => item.Status === 'Inspection On Hold');
-      default:
-        return currentFiltered;
+    const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})\s+(AM|PM)/i);
+    if (parts) {
+      const year = parseInt(parts[1], 10);
+      const month = parseInt(parts[2], 10) - 1; // Month is 0-indexed
+      const day = parseInt(parts[3], 10);
+      let hour = parseInt(parts[4], 10);
+      const minute = parseInt(parts[5], 10);
+      const ampm = parts[6].toLowerCase();
+
+      if (ampm === 'pm' && hour < 12) {
+        hour += 12;
+      } else if (ampm === 'am' && hour === 12) {
+        hour = 0; // Midnight (12 AM)
+      }
+
+      const date = new Date(year, month, day, hour, minute);
+      return isNaN(date.getTime()) ? null : date;
     }
-  }, [data, searchQuery, hasSearched, activeTab]);
+
+    // Fallback for other formats, or if the custom format regex fails
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  }, []);
+
+     const sortedData = useMemo(() => {
+    if (!data?.length) return [];
+
+    // Filter data based on active tab
+    const filteredByTab = data.filter(item => {
+      switch (activeTab) {
+        case 'ForInspection':
+          return item.Status === 'For Inspection';
+        case 'Inspected':
+          // For 'Inspected', check status and if DateInspected exists and is not empty
+          return /* item.Status === 'Inspected' && */ item.DateInspected && item.DateInspected.trim() !== '';
+        case 'OnHold':
+          return item.Status === 'Inspection On Hold';
+        default:
+          return true; // Should not happen if tabs are controlled, but as a fallback
+      }
+    });
+
+    // Apply search query filter
+    const searchedData = hasSearched && searchQuery.length > 0
+      ? filteredByTab.filter(item =>
+          item.RefTrackingNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.Inspector?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.CategoryName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.Status?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : filteredByTab;
+
+    return [...searchedData].sort((a, b) => {
+      const dateA = parseDeliveryDateString(a.DeliveryDate);
+      const dateB = parseDeliveryDateString(b.DeliveryDate);
+
+      // Handle null/invalid dates: place them at the end
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1; // a is invalid, so b comes first (invalid to end)
+      if (!dateB) return -1; // b is invalid, so a comes first (invalid to end)
+
+      // Sort in descending order (latest date first)
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [data, activeTab, hasSearched, searchQuery, parseDeliveryDateString]);
+
+  //   // Filter data based on active tab
+  //   const filteredByTab = data.filter(item => {
+  //     if (activeTab === 'ForInspection') {
+  //       return item.Status === 'For Inspection';
+  //     }
+  //     if (activeTab === 'Inspected') {
+  //       return item.Status === 'Inspected';
+  //     }
+  //     return true; // If no specific tab is selected, return all
+  //   });
+
+  //   switch (activeTab) {
+  //     case 'ForInspection':
+  //       return currentFiltered.filter(item => item.Status === 'For Inspection');
+  //     case 'Inspected':
+  //       return currentFiltered.filter(item => /* item.Status === 'Inspected' && */ item.DateInspected && item.DateInspected.trim() !== '');
+  //     case 'OnHold':
+  //       return currentFiltered.filter(item => item.Status === 'Inspection On Hold');
+  //     default:
+  //       return currentFiltered;
+  //   }
+  // }, [data, searchQuery, hasSearched, activeTab]);
 
   const InspectionItem = ({ item, navigation, index }) => {
     return (
@@ -87,47 +170,63 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           </View>
         </View>
 
-         <View style={styles.detailRow}>
+         <View style={[styles.detailRow, {alignItems:'center'}]}>
           {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
-          <Icon name='calendar-outline' size={30} color='#6C757D'/>
-          <Text style={styles.detailLabel}>{item?.DeliveryDate ?? 'N/A'}</Text>
+          <Icon name='calendar-outline' size={25} color='#6C757D'/>
+          <Text style={[styles.detailLabel,{marginStart:10,fontSize:15}]}>{formatDisplayDateTime(item?.DeliveryDate ?? 'N/A')}</Text>
+        </View>
+         <View style={[styles.detailRow, {alignItems:'center'}]}>
+          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
+          <Icon name='cube-outline' size={25} color='#6C757D'/>
+          <Text style={[styles.detailLabel,{marginStart:10,fontSize:13}]}>{item?.CategoryName ?? 'N/A'}</Text>
+        </View>
+        <View style={[styles.detailRow, {alignItems:'center'}]}>
+          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
+          <Icon name='location-outline' size={25} color='#6C757D'/>
+          <Text style={[styles.detailLabel,{marginStart:10,fontSize:13}]}>{item?.Address ?? 'N/A'}</Text>
+        </View>
+        <View style={[styles.detailRow, {alignItems:'center'}]}>
+          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
+          <Icon name='person-outline' size={25} color='#6C757D'/>
+          <Text style={[styles.detailLabel,{marginStart:10,fontSize:13}]}>{item?.ContactPerson ?? 'N/A'}</Text>
         </View>
 
-        <View style={styles.detailRow}>
+
+       {/*  <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Office:</Text>
-          <Text style={styles.detailValue}>{item?.OfficeName ?? 'N/A'}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Category:</Text>
+          <Text style={styles.detailValue}>{officeMap[item?.Office ?? 'N/A']}</Text>
+        </View> */}
+        {/* <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}><Icon name='cube-outline' size={30}/></Text>
           <Text style={styles.detailValue}>{item?.CategoryName ?? 'N/A'}</Text>
-        </View>
+        </View> */}
        
-        <View style={styles.detailRow}>
+        {/* <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Inspected By:</Text>
           <Text style={styles.detailValue}>{item?.Inspector ?? 'N/A'}</Text>
-        </View>
-        <View style={styles.detailRow}>
+        </View> */}
+        {/* <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Date Inspected:</Text>
           <Text style={styles.detailValue}>{item?.DateInspected ?? 'N/A'}</Text>
-        </View>
-        <View style={styles.detailRow}>
+        </View> */}
+       {/*  <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Address:</Text>
           <Text style={styles.detailValue}>{item?.Address ?? 'N/A'}</Text>
-        </View>
-        <View style={styles.detailRow}>
+        </View> */}
+        {/* <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Contact Person:</Text>
           <Text style={styles.detailValue}>{item?.ContactPerson ?? 'N/A'}</Text>
-        </View>
-        <View style={styles.detailRow}>
+        </View> */}
+      {/*   <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Contact Number:</Text>
           <Text style={styles.detailValue}>{item?.ContactNumber ?? 'N/A'}</Text>
-        </View>
-        <View style={styles.detailRow}>
+        </View> */}
+    {/*     <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Tracking Partner:</Text>
           <Text style={styles.detailValue}>
             {item?.TrackingPartner ?? 'N/A'}
           </Text>
-        </View>
+        </View> */}
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Status:</Text>
           <Text style={styles.detailValue}>{item?.Status ?? 'N/A'}</Text>
@@ -161,13 +260,13 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
                 style={styles.searchInput}
                 placeholder="Search items..."
                 placeholderTextColor="#9CA3AF"
-                autoCapitalize="none"
+                autoCapitalize="characters"
                 value={searchQuery}
                 onChangeText={text => {
                   setSearchQuery(text);
                   setHasSearched(false);
                 }}
-                onSubmitEditing={handleSearch}
+                //onSubmitEditing={handleSearch}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
@@ -239,7 +338,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
             </View>
           ) : (
             <FlashList
-              data={filteredData}
+              data={sortedData}
               renderItem={({ item, index }) => (
                 <InspectionItem
                   item={item}
