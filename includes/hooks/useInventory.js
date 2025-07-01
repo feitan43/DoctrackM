@@ -88,9 +88,11 @@ export const uploadInventory = async ({
     formData.append(`images[${index + 1}]`, {
       uri: image.uri,
       type: image.type,
-      name: image.name,
+      name: image.fileName,
     });
   });
+
+  //console.log('res', imagePath);
 
   const upload_URL =
     'https://www.davaocityportal.com/gord/ajax/dataprocessor.php';

@@ -12,23 +12,27 @@ import {
   StatusBar,
   PermissionsAndroid,
   Alert,
-  RefreshControl, // Keep RefreshControl as it's used
+  RefreshControl,
+  Pressable, // Import Pressable for show more/less button
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import BottomSheet, {BottomSheetBackdrop, BottomSheetFlatList} from '@gorhom/bottom-sheet';
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetFlatList,
+} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {useInventory} from '../hooks/useInventory';
 import {FlashList} from '@shopify/flash-list';
 import useUserInfo from '../api/useUserInfo';
-import {useQueryClient} from '@tanstack/react-query';
+import {insertCommas} from '../utils/insertComma';
 
 const InventoryScreen = ({navigation}) => {
-  const [searchQuery, setSearchQuery] = useState('TRAC-1');
-  //const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString()); // Initialize with current year
-const [selectedYear, setSelectedYear] = useState('2023');
-  const [submittedSearchQuery, setSubmittedSearchQuery] = useState('');
-  const [submittedYear, setSubmittedYear] = useState(selectedYear);
-  const [isRefreshing, setIsRefreshing] = useState(false); // Keep isRefreshing state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString(),
+  );
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const yearFilterBottomSheetRef = useRef(null);
 
@@ -40,13 +44,16 @@ const [selectedYear, setSelectedYear] = useState('2023');
     (_, i) => (startYear + i).toString(),
   );
 
-  const {data, isLoading, error, refetch} = useInventory(
-    submittedSearchQuery,
-    submittedYear,
-  );
-
   const {officeCode} = useUserInfo();
-  const queryClient = useQueryClient();
+
+  const {
+    data,
+    isLoading: invLoading,
+    error: invError,
+    refetch,
+  } = useInventory(searchQuery, selectedYear, {
+    enabled: hasSearched && Boolean(officeCode), 
+  });
 
   const yearFilterSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
 
@@ -58,19 +65,36 @@ const [selectedYear, setSelectedYear] = useState('2023');
     yearFilterBottomSheetRef.current?.close();
   }, []);
 
+  const handleSearch = useCallback(() => {
+    setHasSearched(true); 
+    refetch(); 
+  }, [refetch]);
+
   const onRefresh = useCallback(async () => {
-    setIsRefreshing(true); // Set refreshing to true
+    setIsRefreshing(true);
     try {
-      await refetch(); // Use the refetch function from useInventory hook
+      await refetch();
     } catch (error) {
       console.error('Error during refresh:', error);
     } finally {
-      setIsRefreshing(false); // Set refreshing to false when done
+      setIsRefreshing(false);
     }
   }, [refetch]);
 
+  const COLLAPSED_DESCRIPTION_MIN_HEIGHT = 60;
 
-  const renderItem = ({item}) => {
+  const InventoryItem = ({item, navigation, index}) => {
+    const [showFullDescription, setShowFullDescription] = useState(false);
+    const [hasMoreLines, setHasMoreLines] = useState(false);
+
+    const handleTextLayout = useCallback(e => {
+      if (e.nativeEvent.lines.length > 3) {
+        setHasMoreLines(true);
+      } else {
+        setHasMoreLines(false);
+      }
+    }, []);
+
     return (
       <TouchableOpacity
         style={styles.itemContainer}
@@ -83,11 +107,17 @@ const [selectedYear, setSelectedYear] = useState('2023');
           })
         }>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTrackingNumber}>
-            {item?.Year} | {item?.TrackingNumber ?? 'N/A'}
-          </Text>
+          <Text style={styles.itemIndex}>{index + 1} </Text>
+          <View style={styles.headerRightContent}>
+            <Text style={styles.itemTrackingNumber}>
+              {item?.Year} |{' '}
+              <Text style={styles.itemName}>
+                {item?.TrackingNumber ?? 'N/A'}
+              </Text>
+            </Text>
+            <Text style={styles.itemIdText}>{item?.Id ?? 'Unknown Item'}</Text>
+          </View>
         </View>
-        <Text style={styles.itemName}>{item?.Id ?? 'Unknown Item'}</Text>
 
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Brand:</Text>
@@ -95,10 +125,31 @@ const [selectedYear, setSelectedYear] = useState('2023');
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Description:</Text>
-          <Text style={styles.detailValue}>
+          <Text
+            style={[
+              styles.detailValue,
+              !showFullDescription &&
+                hasMoreLines && {minHeight: COLLAPSED_DESCRIPTION_MIN_HEIGHT},
+            ]}
+            numberOfLines={showFullDescription ? undefined : 3}
+            onTextLayout={handleTextLayout}>
             {item?.Description ?? 'N/A'}
           </Text>
         </View>
+        {hasMoreLines && (
+          <Pressable
+            onPress={() => setShowFullDescription(!showFullDescription)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showFullDescription
+                ? 'Show less description'
+                : 'Show full description'
+            }>
+            <Text style={styles.showMoreLessButton}>
+              {showFullDescription ? 'Show Less' : 'Show More'}
+            </Text>
+          </Pressable>
+        )}
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Unit:</Text>
           <Text style={styles.detailValue}>{item?.Unit ?? 'N/A'}</Text>
@@ -117,7 +168,9 @@ const [selectedYear, setSelectedYear] = useState('2023');
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Property No.:</Text>
-          <Text style={styles.detailValue}>{item?.PropertyNumber ?? 'N/A'}</Text>
+          <Text style={styles.detailValue}>
+            {item?.PropertyNumber ?? 'N/A'}
+          </Text>
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Sticker No.:</Text>
@@ -125,7 +178,9 @@ const [selectedYear, setSelectedYear] = useState('2023');
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Amount:</Text>
-          <Text style={styles.detailValue}>₱{item?.Amount ?? '0.00'}</Text>
+          <Text style={styles.detailValue}>
+            ₱{insertCommas(item?.Amount) ?? '0.00'}
+          </Text>
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Total:</Text>
@@ -133,7 +188,9 @@ const [selectedYear, setSelectedYear] = useState('2023');
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Assigned To:</Text>
-          <Text style={styles.detailValue}>{item?.NameAssignedTo ?? 'N/A'}</Text>
+          <Text style={styles.detailValue}>
+            {item?.NameAssignedTo ?? 'N/A'}
+          </Text>
         </View>
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Current User:</Text>
@@ -174,11 +231,18 @@ const [selectedYear, setSelectedYear] = useState('2023');
                 placeholderTextColor="#9CA3AF"
                 autoCapitalize="characters"
                 value={searchQuery}
-                onChangeText={setSearchQuery}
+                onChangeText={text => {
+                  setSearchQuery(text);
+                  setHasSearched(false); // Reset hasSearched when text changes
+                }}
+                onSubmitEditing={handleSearch} // Trigger search on keyboard submit
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setHasSearched(false); // Reset hasSearched when clearing input
+                  }}
                   style={styles.clearSearchButton}>
                   <Icon
                     name="close-circle"
@@ -190,13 +254,18 @@ const [selectedYear, setSelectedYear] = useState('2023');
             </View>
 
             <TouchableOpacity
-              onPress={() => {
-                setSubmittedSearchQuery(searchQuery);
-                setSubmittedYear(selectedYear);
-              }}
-              style={[styles.filterButton, {marginLeft: 10}]}>
-              <Icon name="search" size={20} color="#fff" />
-              <Text style={styles.filterButtonText}>Search</Text>
+              onPress={handleSearch}
+              style={[styles.filterButton, {marginLeft: 10}]}
+              disabled={invLoading} // optional: disable while loading
+            >
+              {invLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Icon name="search" size={20} color="#fff" />
+                  <Text style={styles.filterButtonText}>Search</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -221,13 +290,13 @@ const [selectedYear, setSelectedYear] = useState('2023');
             </Text>
           </TouchableOpacity>
 
-          {isLoading ? (
+          {invLoading && hasSearched ? ( // Only show loading if a search has been initiated
             <ActivityIndicator
               size="large"
               color={styles.loadingIndicator.color}
               style={styles.loadingIndicator}
             />
-          ) : error ? (
+          ) : invError && hasSearched ? ( // Only show error if a search has been initiated
             <View style={styles.emptyStateContainer}>
               <Icon name="warning-outline" size={50} color="#DC3545" />
               <Text style={styles.noItemsText}>Error loading data</Text>
@@ -238,29 +307,52 @@ const [selectedYear, setSelectedYear] = useState('2023');
             </View>
           ) : (
             <FlashList
-              data={data}
-              renderItem={renderItem}
+              data={hasSearched ? data : []} // Only show data if a search has been initiated
+              renderItem={(
+                {item, index}, // Destructure index here
+              ) => (
+                <InventoryItem
+                  item={item}
+                  navigation={navigation}
+                  index={index}
+                /> // Pass index to InventoryItem
+              )}
               keyExtractor={item => item?.Id?.toString()}
               contentContainerStyle={styles.listContent}
               estimatedItemSize={150}
               ListEmptyComponent={
-                <View style={styles.emptyStateContainer}>
-                  <Icon
-                    name="cube-outline"
-                    size={50}
-                    color={styles.noItemsText?.color ?? '#999'}
-                  />
-                  <Text style={styles.noItemsText}>No items found</Text>
-                  <Text style={styles.noItemsSubText}>
-                    {selectedYear
-                      ? `No items found for year ${selectedYear}.`
-                      : 'Try adjusting your search or filters.'}
-                  </Text>
-                </View>
+                hasSearched ? ( // Only show empty state if a search has been initiated
+                  <View style={styles.emptyStateContainer}>
+                    <Icon
+                      name="cube-outline"
+                      size={50}
+                      color={styles.noItemsText?.color ?? '#999'}
+                    />
+                    <Text style={styles.noItemsText}>No items found</Text>
+                    <Text style={styles.noItemsSubText}>
+                      {selectedYear
+                        ? `No items found for year ${selectedYear}.`
+                        : 'Try adjusting your search or filters.'}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.emptyStateContainer}>
+                    <Icon
+                      name="search-outline"
+                      size={50}
+                      color={styles.noItemsText?.color ?? '#999'}
+                    />
+                    <Text style={styles.noItemsText}>Start Searching</Text>
+                    <Text style={styles.noItemsSubText}>
+                      Enter a tracking number and/or select a year to find
+                      inventory items.
+                    </Text>
+                  </View>
+                )
               }
               refreshControl={
                 <RefreshControl
-                  refreshing={isLoading} // Use isLoading from react-query to indicate refreshing
+                  refreshing={invLoading && hasSearched}
                   onRefresh={onRefresh}
                 />
               }
@@ -291,6 +383,7 @@ const [selectedYear, setSelectedYear] = useState('2023');
                   onPress={() => {
                     setSelectedYear(item);
                     handleCloseYearFilterSheet();
+                    handleSearch(); // Trigger search when the year changes
                   }}
                   accessibilityLabel={`Filter by year ${item}`}>
                   <Text
@@ -441,51 +534,69 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     backgroundColor: '#FFFFFF',
-    padding: 20, // Increased padding for more breathing room
+    padding: 20,
     marginVertical: 8,
     marginHorizontal: 10,
-    borderRadius: 12, // Slightly more rounded corners
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4, // Increased shadow for a more pronounced lift
+      height: 4,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 6, // Larger shadow radius
-    elevation: 8, // Higher elevation for Android
+    shadowRadius: 6,
+    elevation: 8,
   },
   itemHeader: {
-    alignSelf: 'flex-end', // Aligns the header content to the right
-    marginBottom: 10, // Adds space below the header
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  itemIndex: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#343A40',
+    marginRight: 10,
+    textAlign: 'right',
+  },
+  headerRightContent: {
+    alignItems: 'flex-end',
+  },
+  itemIdText: {
+    // New style for the ID text
+    fontSize: 10,
+    textAlign: 'right',
+    color: '#6C757D', // You can adjust the color
+    marginBottom: 2, // Small margin below ID
   },
   itemTrackingNumber: {
-    fontSize: 16, // Slightly smaller than before for a sub-heading feel
-    fontWeight: '600', // Medium bold
-    color: '#6C757D', // Muted color for less prominence
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6C757D',
+    textAlign: 'right', // Align text to the right
   },
   itemName: {
-    fontSize: 20, // Larger and more prominent for the main item name
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#343A40', // Darker for high readability
-    marginBottom: 15, // More space below the item name
+    color: '#343A40',
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: 8, // Consistent spacing between detail rows
-    alignItems: 'baseline', // Aligns the text baselines
+    marginBottom: 8,
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: '500', // Medium weight for labels
-    color: '#495057', // Slightly darker than values
-    marginRight: 10, // Space between label and value
-    minWidth: 90, // Give labels a consistent minimum width for alignment
+    fontWeight: '500',
+    color: '#495057',
+    marginRight: 10,
+    minWidth: 90,
   },
   detailValue: {
-    flex: 1, // Allows the value text to wrap
+    flex: 1,
     fontSize: 14,
-    color: '#212529', // Darker for the actual values
-    lineHeight: 20, // Improved line height for readability
+    color: '#212529',
+    lineHeight: 20,
   },
   bottomSheetContent: {
     paddingHorizontal: 20,
@@ -529,6 +640,14 @@ const styles = StyleSheet.create({
   selectedYearOptionText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  showMoreLessButton: {
+    color: '#1a508c',
+    marginTop: 5,
+    fontWeight: 'bold',
+    alignSelf: 'flex-end',
+    padding: 5,
+    backgroundColor: '#eaf4ff',
   },
 });
 

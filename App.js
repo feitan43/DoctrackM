@@ -131,7 +131,7 @@ const App = () => {
           let updateOptions = {};
           if (Platform.OS === 'android') {
             updateOptions = {
-              updateType: IAUUpdateKind.IMMEDIATE, // Or IAUUpdateKind.IMMEDIATE
+              updateType: IAUUpdateKind.IMMEDIATE, 
             };
           } else if (Platform.OS === 'ios') {
             updateOptions = {

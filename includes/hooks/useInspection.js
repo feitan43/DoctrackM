@@ -213,3 +213,26 @@ export const useEditDeliveryDate = () => {
   return mutation;
 };
 
+export const fetchAdvanceInspection = async (employeeNumber) => {
+  if (!employeeNumber)
+    throw new Error('Employee Number are required');
+  const {data} = await apiClient.get(
+    `/getAdvanceInspection?EmployeeNumber=${employeeNumber}`,
+  );
+  return data;
+};
+
+export const useAdvanceInspection = () => {
+  const { employeeNumber } = useUserInfo();
+  
+  return useQuery({
+    queryKey: ['advanceInspection', employeeNumber], 
+    queryFn: () => fetchAdvanceInspection(employeeNumber),
+    enabled: Boolean(employeeNumber), 
+    staleTime: 5 * 60 * 1000, 
+    retry: 2, 
+  });
+};
+
+
+

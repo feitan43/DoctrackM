@@ -24,6 +24,7 @@ import {
 } from '../hooks/useInventory';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import {showMessage} from 'react-native-flash-message'; // Make sure this is installed: npm install react-native-flash-message
+import FastImage from 'react-native-fast-image';
 
 const InventoryDetails = ({route, navigation}) => {
   const {Id, Year, TrackingNumber, Office} = route.params;
@@ -46,6 +47,8 @@ const InventoryDetails = ({route, navigation}) => {
     TrackingNumber,
   );
 
+  console;
+
   console.log(
     'imageUrls fetched by hook:',
     imageUrls,
@@ -66,7 +69,7 @@ const InventoryDetails = ({route, navigation}) => {
 
   const {
     mutate: uploadImages,
-    isLoading: isUploading, // From react-query's useMutation
+    isLoading: isUploading,
     error: uploadError,
   } = useUploadInventory();
 
@@ -240,8 +243,8 @@ const InventoryDetails = ({route, navigation}) => {
     inventoryItem,
     previewImage,
     uploadImages,
-    refetch, // Keep refetch for overall details
-    refetchImages, // To explicitly refetch images from the server
+    refetch,
+    refetchImages,
     Office,
     TrackingNumber,
     Id,
@@ -264,7 +267,6 @@ const InventoryDetails = ({route, navigation}) => {
             ? 'Removing image...'
             : 'Loading details...'}
         </Text>
-        {/* Progress bar would require more sophisticated implementation within uploadInventory to update state */}
         {isUploading && uploadProgress > 0 && (
           <Text style={styles.loadingText}>{`Progress: ${Math.round(
             uploadProgress * 100,
@@ -275,7 +277,6 @@ const InventoryDetails = ({route, navigation}) => {
   }
 
   if (error || uploadError) {
-    // Both network errors and application-level errors from useUploadInventory will be caught here
     return (
       <SafeAreaView style={styles.errorContainer}>
         <Text style={styles.errorText}>
@@ -341,6 +342,13 @@ const InventoryDetails = ({route, navigation}) => {
                     {getDetail(inventoryItem?.TrackingNumber)}
                   </Text>
                 </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Id:</Text>
+                  <Text style={styles.value}>
+                    {getDetail(inventoryItem?.Id)}
+                  </Text>
+                </View>
+
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Brand:</Text>
                   <Text style={styles.value}>
@@ -409,6 +417,18 @@ const InventoryDetails = ({route, navigation}) => {
                     {getDetail(inventoryItem?.DateAcquired)}
                   </Text>
                 </View>
+                 <View style={styles.detailRow}>
+                  <Text style={styles.label}>NumOfFiles:</Text>
+                  <Text style={styles.value}>
+                    {getDetail(inventoryItem?.NumOfFiles)}
+                  </Text>
+                </View>
+                 <View style={styles.detailRow}>
+                  <Text style={styles.label}>UploadFiles:</Text>
+                  <Text style={styles.value}>
+                    {getDetail(inventoryItem?.UploadFiles)}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -459,7 +479,6 @@ const InventoryDetails = ({route, navigation}) => {
               </View>
             )}
 
-            {/* Item Image Section - now uses previewImage, imageUrls from hook, and upload functionality */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionTitleWrapper}>
                 <Text style={styles.sectionTitle}>Item Images</Text>
@@ -468,8 +487,13 @@ const InventoryDetails = ({route, navigation}) => {
               {allImagesToDisplay.length > 0 ? (
                 allImagesToDisplay.map((image, index) => (
                   <View key={`image-${index}`} style={styles.imageWrapper}>
-                    <Image
-                      source={{uri: image.uri}}
+                    <FastImage
+                      source={{
+                        uri: `${image.uri}?t=${new Date().getTime()}`,
+                        priority: FastImage.priority.normal,
+                        cache: FastImage.cacheControl.web,
+                      }}
+                      //source={{uri: image.uri}}
                       style={styles.itemImage}
                       resizeMode="contain"
                       onError={e =>
@@ -479,7 +503,7 @@ const InventoryDetails = ({route, navigation}) => {
                         )
                       }
                     />
-                    {!image.isLocal && ( // Only show remove button for already uploaded images
+                    {!image.isLocal && (
                       <TouchableOpacity
                         style={styles.removeImageButton}
                         onPress={() => handleRemoveImage(image.uri)}
@@ -491,12 +515,11 @@ const InventoryDetails = ({route, navigation}) => {
                 ))
               ) : (
                 <View style={styles.noImageContainer}>
-                  <Icon name="image-off-outline" size={50} color="#777777" />
+                  {/* <Icon name="image--outline" size={50} color="#777777" /> */}
                   <Text style={styles.noImageText}>No Images Available</Text>
                 </View>
               )}
 
-              {/* Buttons for image interaction */}
               <View style={styles.imageActionButtons}>
                 <TouchableOpacity
                   style={styles.actionButton}

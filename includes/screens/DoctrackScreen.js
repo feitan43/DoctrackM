@@ -680,6 +680,11 @@ const DoctrackScreen = ({
                           screen: 'InspectionOnHold',
                           length: `${inspectionOnHold ?? 0}`,
                         },
+                         {
+                          label: 'Advance',
+                          screen: 'AdvanceInspection',
+                          length: `${inspectionOnHold ?? 0}`,
+                        },
                       ].map((item, index, arr) => (
                         <Pressable
                           key={index}
@@ -959,8 +964,8 @@ const DoctrackScreen = ({
                                 <View style={{width: '80%'}}>
                                   <Text
                                     style={{
-                                      fontFamily: 'Inter_28pt-Light',
                                       fontSize: 14,
+                                      fontFamily: 'Inter_28pt-Regular',
                                     }}>
                                     {item.Status}
                                   </Text>
@@ -1178,7 +1183,7 @@ const DoctrackScreen = ({
                   condition: procurement === '1',
                   screen: 'BACAttachments',
                 }, */
-                 {
+                {
                   label: 'Inventory',
                   icon: true,
                   condition: procurement === '1',
@@ -1303,12 +1308,12 @@ const DoctrackScreen = ({
                   iconName: 'crown-outline',
                   screen: 'SuperAccess',
                 },
-                {
+                /* {
                   label: 'Edit',
                   icon: true,
                   iconName: 'pencil-outline',
                   screen: 'BossEditScreen',
-                },
+                }, */
               ].map((item, index) => {
                 if (item.condition === false) return null;
 
