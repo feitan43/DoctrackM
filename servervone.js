@@ -3009,7 +3009,51 @@ app.get('/myAccountabilities', async (req, res) => {
   }
 });
 
-async function fetchAndEmitAnnouncements({emit = false, officeCode} = {}) {
+async function fetchAndEmitAllAnnouncement({emit = false, officeCode} = {}) {
+  if (!officeCode) throw new Error('OfficeCode is required');
+
+  const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?rigwarl=1&officeCode=${encodeURIComponent(
+    officeCode,
+  )}`;
+
+  const apiResponse = await fetch(apiUrl);
+  const data = await apiResponse.json();
+
+  if (emit) {
+    console.log('Emitting to room:', officeCode, 'Sockets in room:', [
+      ...(io.sockets.adapter.rooms.get(officeCode.toString()) || []),
+    ]);
+
+    io.to(officeCode.toString()).emit('announcements:update', data);
+  } else {
+    console.log('[fetchAndEmitAnnouncements] Emit skipped (emit is false)');
+  }
+
+  return data;
+}
+
+app.get('/empFetchAllAnnouncement', async (req, res) => {
+  const auth = (req.headers['x-announce-token'] || '').trim();
+  const isInternal = auth === (SECRET_TOKEN || '').trim();
+  const officeCode = req.query.officeCode;
+  if (!officeCode) {
+    return res.status(400).json({error: 'officeCode is required'});
+  }
+
+  try {
+    const data = await fetchAndEmitAllAnnouncement({
+      emit: isInternal,
+      officeCode,
+    });
+
+    res.json(data);
+  } catch (error) {
+    console.error('Announcement fetch failed:', error.message);
+    res.status(500).json({error: 'Internal Server Error'});
+  }
+});
+
+async function fetchAndEmitAnnouncement({emit = false, officeCode} = {}) {
   if (!officeCode) throw new Error('OfficeCode is required');
 
   const apiUrl = `${ServerIp}/gord/ajax/dataprocessor.php?voljin=1&officeCode=${encodeURIComponent(
@@ -3025,7 +3069,6 @@ async function fetchAndEmitAnnouncements({emit = false, officeCode} = {}) {
     ]);
 
     io.to(officeCode.toString()).emit('announcements:update', data);
-    console.log('[Socket Emit] Emitting announcements to:', officeCode, data);
   } else {
     console.log('[fetchAndEmitAnnouncements] Emit skipped (emit is false)');
   }
@@ -3033,7 +3076,7 @@ async function fetchAndEmitAnnouncements({emit = false, officeCode} = {}) {
   return data;
 }
 
-app.get('/empFetchAnnouncements', async (req, res) => {
+app.get('/empFetchAnnouncement', async (req, res) => {
   const auth = (req.headers['x-announce-token'] || '').trim();
   const isInternal = auth === (SECRET_TOKEN || '').trim();
   const officeCode = req.query.officeCode;
@@ -3042,32 +3085,17 @@ app.get('/empFetchAnnouncements', async (req, res) => {
   }
 
   try {
-    const data = await fetchAndEmitAnnouncements({
+    const data = await fetchAndEmitAnnouncement({
       emit: isInternal,
       officeCode,
     });
 
-    console.log('[empFetchAnnouncements] Sending response to client');
     res.json(data);
   } catch (error) {
     console.error('Announcement fetch failed:', error.message);
     res.status(500).json({error: 'Internal Server Error'});
   }
 });
-
-// app.get('/realme', async (req, res) => {
-//   const auth = req.headers['x-announce-token'];
-//   if (auth !== SECRET_TOKEN) {
-//     return res.status(403).json({error: 'Forbidden'});
-//   }
-
-//   try {
-//     const data = await fetchAndEmitAnnouncements();
-//     res.json(data);
-//   } catch (err) {
-//     res.status(500).json({error: 'Failed to fetch announcements'});
-//   }
-// });
 
 server.listen(3308, () => {
   console.log('Server is running on port 3308');
