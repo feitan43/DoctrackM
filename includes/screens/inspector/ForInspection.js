@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     marginHorizontal: 10,
-    paddingBottom: 10,
+    //paddingBottom: 10,
   },
   officeSectionTitle: {
     fontSize: 18,

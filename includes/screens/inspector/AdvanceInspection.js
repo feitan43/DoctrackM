@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import React, {useState, useCallback, useRef, useMemo, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,18 +13,24 @@ import {
   Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { FlashList } from '@shopify/flash-list';
-import { useAdvanceInspection } from '../../hooks/useInspection';
-import { formatDisplayDateTime } from '../../utils/dateUtils';
-import { officeMap } from '../../utils/officeMap';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {FlashList} from '@shopify/flash-list';
+import {useAdvanceInspection} from '../../hooks/useInspection';
+import {formatDisplayDateTime} from '../../utils/dateUtils';
+import {officeMap} from '../../utils/officeMap';
 
-const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a real RN app
+const AdvanceInspection = ({navigation}) => {
+  // Keep navigation prop for a real RN app
   const [searchQuery, setSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [activeTab, setActiveTab] = useState('ForInspection'); // Added state for active tab
 
-  const { data, loading: dataLoading, error: dataError, refetch } = useAdvanceInspection();
+  const {
+    data,
+    loading: dataLoading,
+    error: dataError,
+    refetch,
+  } = useAdvanceInspection();
 
   const [invLoading, setInvLoading] = useState(false); // Used for search/refresh indication
   const [invError, setInvError] = useState(false); // Used for search/refresh error
@@ -40,7 +46,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
   }, []);
 
   // Filter data based on search query and active tab
- /*  const filteredData = useMemo(() => {
+  /*  const filteredData = useMemo(() => {
     if (!data) return [];
     let currentFiltered = data;
 
@@ -53,12 +59,18 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
       );
     } */
 
-        const parseDeliveryDateString = useCallback((dateString) => {
-    if (!dateString || dateString.trim() === '' || dateString.toLowerCase() === 'n/a') {
+  const parseDeliveryDateString = useCallback(dateString => {
+    if (
+      !dateString ||
+      dateString.trim() === '' ||
+      dateString.toLowerCase() === 'n/a'
+    ) {
       return null; // Return null for invalid or missing dates
     }
 
-    const parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})\s+(AM|PM)/i);
+    const parts = dateString.match(
+      /(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})\s+(AM|PM)/i,
+    );
     if (parts) {
       const year = parseInt(parts[1], 10);
       const month = parseInt(parts[2], 10) - 1; // Month is 0-indexed
@@ -82,7 +94,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
     return isNaN(date.getTime()) ? null : date;
   }, []);
 
-     const sortedData = useMemo(() => {
+  const sortedData = useMemo(() => {
     if (!data?.length) return [];
 
     // Filter data based on active tab
@@ -92,7 +104,10 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           return item.Status === 'For Inspection';
         case 'Inspected':
           // For 'Inspected', check status and if DateInspected exists and is not empty
-          return /* item.Status === 'Inspected' && */ item.DateInspected && item.DateInspected.trim() !== '';
+          return (
+            /* item.Status === 'Inspected' && */ item.DateInspected &&
+            item.DateInspected.trim() !== ''
+          );
         case 'OnHold':
           return item.Status === 'Inspection On Hold';
         default:
@@ -101,60 +116,45 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
     });
 
     // Apply search query filter
-    const searchedData = hasSearched && searchQuery.length > 0
-      ? filteredByTab.filter(item =>
-          item.RefTrackingNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.Inspector?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.CategoryName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.Status?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : filteredByTab;
+    const searchedData =
+      hasSearched && searchQuery.length > 0
+        ? filteredByTab.filter(
+            item =>
+              item.RefTrackingNumber?.toLowerCase().includes(
+                searchQuery.toLowerCase(),
+              ) ||
+              item.Inspector?.toLowerCase().includes(
+                searchQuery.toLowerCase(),
+              ) ||
+              item.CategoryName?.toLowerCase().includes(
+                searchQuery.toLowerCase(),
+              ) ||
+              item.Status?.toLowerCase().includes(searchQuery.toLowerCase()),
+          )
+        : filteredByTab;
 
     return [...searchedData].sort((a, b) => {
       const dateA = parseDeliveryDateString(a.DeliveryDate);
       const dateB = parseDeliveryDateString(b.DeliveryDate);
 
-      // Handle null/invalid dates: place them at the end
       if (!dateA && !dateB) return 0;
-      if (!dateA) return 1; // a is invalid, so b comes first (invalid to end)
-      if (!dateB) return -1; // b is invalid, so a comes first (invalid to end)
+      if (!dateA) return 1;
+      if (!dateB) return -1;
 
-      // Sort in descending order (latest date first)
       return dateB.getTime() - dateA.getTime();
     });
   }, [data, activeTab, hasSearched, searchQuery, parseDeliveryDateString]);
 
-  //   // Filter data based on active tab
-  //   const filteredByTab = data.filter(item => {
-  //     if (activeTab === 'ForInspection') {
-  //       return item.Status === 'For Inspection';
-  //     }
-  //     if (activeTab === 'Inspected') {
-  //       return item.Status === 'Inspected';
-  //     }
-  //     return true; // If no specific tab is selected, return all
-  //   });
-
-  //   switch (activeTab) {
-  //     case 'ForInspection':
-  //       return currentFiltered.filter(item => item.Status === 'For Inspection');
-  //     case 'Inspected':
-  //       return currentFiltered.filter(item => /* item.Status === 'Inspected' && */ item.DateInspected && item.DateInspected.trim() !== '');
-  //     case 'OnHold':
-  //       return currentFiltered.filter(item => item.Status === 'Inspection On Hold');
-  //     default:
-  //       return currentFiltered;
-  //   }
-  // }, [data, searchQuery, hasSearched, activeTab]);
-
-  const InspectionItem = ({ item, navigation, index }) => {
+  const InspectionItem = ({item, navigation, index}) => {
     return (
       <TouchableOpacity
         style={styles.itemContainer}
         onPress={() =>
           navigation?.navigate('AdvanceInspectionDetails', {
-            itemId: item?.Id, 
-            itemData: item, 
+            Id: item?.Id,
+            Year: item?.Year,
+            RefTrackingNumber: item?.RefTrackingNumber,
+            itemData: item,
           })
         }>
         <View style={styles.itemHeader}>
@@ -170,29 +170,36 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           </View>
         </View>
 
-         <View style={[styles.detailRow, {alignItems:'center'}]}>
+        <View style={[styles.detailRow, {alignItems: 'center'}]}>
           {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
-          <Icon name='calendar-outline' size={25} color='#6C757D'/>
-          <Text style={[styles.detailLabel,{marginStart:10,fontSize:15}]}>{formatDisplayDateTime(item?.DeliveryDate ?? 'N/A')}</Text>
+          <Icon name="calendar-outline" size={25} color="#6C757D" />
+          <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 15}]}>
+            {formatDisplayDateTime(item?.DeliveryDate ?? 'N/A')}
+          </Text>
         </View>
-         <View style={[styles.detailRow, {alignItems:'center'}]}>
+        <View style={[styles.detailRow, {alignItems: 'center'}]}>
           {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
-          <Icon name='cube-outline' size={25} color='#6C757D'/>
-          <Text style={[styles.detailLabel,{marginStart:10,fontSize:13}]}>{item?.CategoryName ?? 'N/A'}</Text>
+          <Icon name="cube-outline" size={25} color="#6C757D" />
+          <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
+            {item?.CategoryName ?? 'N/A'}
+          </Text>
         </View>
-        <View style={[styles.detailRow, {alignItems:'center'}]}>
+        <View style={[styles.detailRow, {alignItems: 'center'}]}>
           {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
-          <Icon name='location-outline' size={25} color='#6C757D'/>
-          <Text style={[styles.detailLabel,{marginStart:10,fontSize:13}]}>{item?.Address ?? 'N/A'}</Text>
+          <Icon name="location-outline" size={25} color="#6C757D" />
+          <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
+            {item?.Address ?? 'N/A'}
+          </Text>
         </View>
-        <View style={[styles.detailRow, {alignItems:'center'}]}>
+        <View style={[styles.detailRow, {alignItems: 'center'}]}>
           {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
-          <Icon name='person-outline' size={25} color='#6C757D'/>
-          <Text style={[styles.detailLabel,{marginStart:10,fontSize:13}]}>{item?.ContactPerson ?? 'N/A'}</Text>
+          <Icon name="person-outline" size={25} color="#6C757D" />
+          <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
+            {item?.ContactPerson ?? 'N/A'}
+          </Text>
         </View>
 
-
-       {/*  <View style={styles.detailRow}>
+        {/*  <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Office:</Text>
           <Text style={styles.detailValue}>{officeMap[item?.Office ?? 'N/A']}</Text>
         </View> */}
@@ -200,7 +207,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           <Text style={styles.detailLabel}><Icon name='cube-outline' size={30}/></Text>
           <Text style={styles.detailValue}>{item?.CategoryName ?? 'N/A'}</Text>
         </View> */}
-       
+
         {/* <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Inspected By:</Text>
           <Text style={styles.detailValue}>{item?.Inspector ?? 'N/A'}</Text>
@@ -209,7 +216,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           <Text style={styles.detailLabel}>Date Inspected:</Text>
           <Text style={styles.detailValue}>{item?.DateInspected ?? 'N/A'}</Text>
         </View> */}
-       {/*  <View style={styles.detailRow}>
+        {/*  <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Address:</Text>
           <Text style={styles.detailValue}>{item?.Address ?? 'N/A'}</Text>
         </View> */}
@@ -217,11 +224,11 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           <Text style={styles.detailLabel}>Contact Person:</Text>
           <Text style={styles.detailValue}>{item?.ContactPerson ?? 'N/A'}</Text>
         </View> */}
-      {/*   <View style={styles.detailRow}>
+        {/*   <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Contact Number:</Text>
           <Text style={styles.detailValue}>{item?.ContactNumber ?? 'N/A'}</Text>
         </View> */}
-    {/*     <View style={styles.detailRow}>
+        {/*     <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Tracking Partner:</Text>
           <Text style={styles.detailValue}>
             {item?.TrackingPartner ?? 'N/A'}
@@ -231,7 +238,6 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           <Text style={styles.detailLabel}>Status:</Text>
           <Text style={styles.detailValue}>{item?.Status ?? 'N/A'}</Text>
         </View>
-    
       </TouchableOpacity>
     );
   };
@@ -250,7 +256,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
                 <Text style={styles.backButtonText}>Back</Text>
               </TouchableOpacity>
               <Text style={styles.screenTitle}>Advanced Inspection</Text>
-              <View style={{ width: 60 }} />
+              <View style={{width: 60}} />
             </View>
           </View>
 
@@ -286,7 +292,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
 
             <TouchableOpacity
               onPress={handleSearch}
-              style={[styles.filterButton, { marginLeft: 10 }]}
+              style={[styles.filterButton, {marginLeft: 10}]}
               disabled={invLoading}>
               {invLoading ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -302,22 +308,46 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           {/* Tab Navigation */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'ForInspection' && styles.activeTab]}
-              onPress={() => setActiveTab('ForInspection')}
-            >
-              <Text style={[styles.tabText, activeTab === 'ForInspection' && styles.activeTabText]}>For Inspection</Text>
+              style={[
+                styles.tabButton,
+                activeTab === 'ForInspection' && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab('ForInspection')}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'ForInspection' && styles.activeTabText,
+                ]}>
+                For Inspection
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'Inspected' && styles.activeTab]}
-              onPress={() => setActiveTab('Inspected')}
-            >
-              <Text style={[styles.tabText, activeTab === 'Inspected' && styles.activeTabText]}>Inspected</Text>
+              style={[
+                styles.tabButton,
+                activeTab === 'Inspected' && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab('Inspected')}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'Inspected' && styles.activeTabText,
+                ]}>
+                Inspected
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'OnHold' && styles.activeTab]}
-              onPress={() => setActiveTab('OnHold')}
-            >
-              <Text style={[styles.tabText, activeTab === 'OnHold' && styles.activeTabText]}>On Hold</Text>
+              style={[
+                styles.tabButton,
+                activeTab === 'OnHold' && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab('OnHold')}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'OnHold' && styles.activeTabText,
+                ]}>
+                On Hold
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -339,7 +369,7 @@ const AdvanceInspection = ({ navigation }) => { // Keep navigation prop for a re
           ) : (
             <FlashList
               data={sortedData}
-              renderItem={({ item, index }) => (
+              renderItem={({item, index}) => (
                 <InspectionItem
                   item={item}
                   navigation={navigation}
@@ -403,7 +433,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20, // Rounded bottom corners
     borderBottomRightRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
@@ -455,7 +485,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
@@ -487,7 +517,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
@@ -607,7 +637,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,

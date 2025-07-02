@@ -174,7 +174,6 @@ const Inspected = ({navigation}) => {
     ({item}) => {
       if (item.type === 'header') {
         return (
-          <View style={{paddingHorizontal:10}}>
           <LinearGradient
             colors={['rgb(209, 238, 248)', '#fff']}
             style={styles.gradientContainer}
@@ -187,7 +186,6 @@ const Inspected = ({navigation}) => {
               <Text style={styles.officeSectionTitle}>{item.title}</Text>
             </View>
           </LinearGradient>
-          </View>
         );
       } else if (item.type === 'item') {
         return (
@@ -671,6 +669,7 @@ const styles = StyleSheet.create({
   // officeSection is no longer needed as a wrapper around items
   gradientContainer: {
     paddingVertical: 10,
+    marginBottom: 5,
   },
   officeHeaderContent: {
     flexDirection: 'row',

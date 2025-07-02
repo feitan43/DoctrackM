@@ -1,5 +1,5 @@
 // AdvanceInspectionDetails.js
-import React, { useState, useCallback, useEffect } from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -8,651 +8,456 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
-  ScrollView,
-  Alert,
-  TextInput,
-  Modal,
-  Pressable,
   ActivityIndicator,
+  ScrollView,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { formatDisplayDateTime } from '../../utils/dateUtils'; // Assuming this utility exists
+import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useAdvanceInspectionDetails} from '../../hooks/useInspection';
+import { formatDisplayDateTime } from '../../utils/dateUtils';
 
-// You'll likely need to create/import hooks for API interactions
-// For example:
-// import { useUpdateInspectionStatus, useAddInspectionSchedule, useUpdateInspectionDeliveryDate } from '../../hooks/useInspectionDetails';
 
-const AdvanceInspectionDetails = ({ route, navigation }) => {
-  const { itemData } = route.params; // Get the item data passed from the previous screen
+const AdvanceInspectionDetails = ({route, navigation}) => {
+  const {Id, Year, RefTrackingNumber} = route.params;
 
-  const [inspectionItem, setInspectionItem] = useState(itemData);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isEditingDeliveryDate, setIsEditingDeliveryDate] = useState(false);
-/*   const [newDeliveryDate, setNewDeliveryDate] = useState(
-    itemData?.DeliveryDate ? new Date(itemData.DeliveryDate).toISOString().split('T')[0] : '' // YYYY-MM-DD
-  ); */
-  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [scheduleTime, setScheduleTime] = useState('');
-  const [scheduleNotes, setScheduleNotes] = useState('');
+  const {data, loading, error} = useAdvanceInspectionDetails(
+    Id,
+    Year,
+    RefTrackingNumber,
+  );
 
-  // Example API call functions (replace with actual implementations)
-  const markAsInspected = useCallback(async () => {
-    Alert.alert(
-      'Confirm Inspection',
-      'Are you sure you want to mark this item as Inspected?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              // Simulate API call
-              console.log(`Marking item ${inspectionItem.Id} as Inspected`);
-              // const response = await yourApi.markItemInspected(inspectionItem.Id);
-              // if (response.success) {
-              setInspectionItem(prev => ({
-                ...prev,
-                Status: 'Inspected',
-                DateInspected: new Date().toISOString(), // Update with current date/time
-              }));
-              Alert.alert('Success', 'Item marked as Inspected!');
-              navigation.goBack(); // Go back after successful update
-              // } else {
-              //   setError('Failed to mark as inspected.');
-              //   Alert.alert('Error', 'Failed to mark as inspected.');
-              // }
-            } catch (err) {
-              setError('An error occurred.');
-              Alert.alert('Error', 'An error occurred while marking as inspected.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [inspectionItem, navigation]);
+  const deliveryData = data?.delivery[0];
+  const prRecord = data?.prRecord;
+  const prItems = data?.prRecord || []; // Use data?.prRecord as the array of items
 
-  const markAsOnHold = useCallback(async () => {
-    Alert.alert(
-      'Confirm On Hold',
-      'Are you sure you want to mark this item as On Hold?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              // Simulate API call
-              console.log(`Marking item ${inspectionItem.Id} as On Hold`);
-              // const response = await yourApi.markItemOnHold(inspectionItem.Id);
-              // if (response.success) {
-              setInspectionItem(prev => ({
-                ...prev,
-                Status: 'Inspection On Hold',
-              }));
-              Alert.alert('Success', 'Item marked as On Hold!');
-              navigation.goBack(); // Go back after successful update
-              // } else {
-              //   setError('Failed to mark as on hold.');
-              //   Alert.alert('Error', 'Failed to mark as on hold.');
-              // }
-            } catch (err) {
-              setError('An error occurred.');
-              Alert.alert('Error', 'An error occurred while marking as on hold.');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [inspectionItem, navigation]);
+  const renderDeliveryDetails = () => {
+    if (!deliveryData) return null;
 
- /*  const handleUpdateDeliveryDate = useCallback(async () => {
-    if (!newDeliveryDate) {
-      Alert.alert('Error', 'Please enter a valid date.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      // Simulate API call to update delivery date
-      console.log(
-        `Updating delivery date for ${inspectionItem.Id} to ${newDeliveryDate}`
-      );
-      // const response = await yourApi.updateDeliveryDate(inspectionItem.Id, newDeliveryDate);
-      // if (response.success) {
-      setInspectionItem(prev => ({
-        ...prev,
-        DeliveryDate: newDeliveryDate,
-      }));
-      Alert.alert('Success', 'Delivery Date updated successfully!');
-      setIsEditingDeliveryDate(false);
-      // } else {
-      //   setError('Failed to update delivery date.');
-      //   Alert.alert('Error', 'Failed to update delivery date.');
-      // }
-    } catch (err) {
-      setError('An error occurred.');
-      Alert.alert('Error', 'An error occurred while updating delivery date.');
-    } finally {
-      setLoading(false);
-    }
-  }, [inspectionItem, newDeliveryDate]);
- */
-  const handleAddSchedule = useCallback(async () => {
-    if (!scheduleDate || !scheduleTime) {
-      Alert.alert('Error', 'Please enter both date and time for the schedule.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      // Simulate API call to add schedule
-      const fullScheduleDateTime = `${scheduleDate}T${scheduleTime}:00`; // Assuming ISO format for backend
-      console.log(
-        `Adding schedule for ${inspectionItem.Id}: ${fullScheduleDateTime}, Notes: ${scheduleNotes}`
-      );
-      // const response = await yourApi.addInspectionSchedule(inspectionItem.Id, fullScheduleDateTime, scheduleNotes);
-      // if (response.success) {
-      // You might want to update the inspectionItem state to reflect the new schedule
-      // setInspectionItem(prev => ({
-      //   ...prev,
-      //   Schedule: { date: scheduleDate, time: scheduleTime, notes: scheduleNotes } // Example
-      // }));
-      Alert.alert('Success', 'Schedule added successfully!');
-      setScheduleModalVisible(false);
-      setScheduleDate('');
-      setScheduleTime('');
-      setScheduleNotes('');
-      // } else {
-      //   setError('Failed to add schedule.');
-      //   Alert.alert('Error', 'Failed to add schedule.');
-      // }
-    } catch (err) {
-      setError('An error occurred.');
-      Alert.alert('Error', 'An error occurred while adding schedule.');
-    } finally {
-      setLoading(false);
-    }
-  }, [inspectionItem, scheduleDate, scheduleTime, scheduleNotes]);
-
-  if (!inspectionItem) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <Text style={styles.errorText}>No inspection item data found.</Text>
+      <View style={styles.card}>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle}>Delivery Details</Text>
         </View>
+        <View style={styles.cardBody}>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="calendar"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Scheduled Delivery Date"
+            />
+            <Text style={styles.detailLabel}>Scheduled Delivery:</Text>
+            <Text style={styles.detailValue}>
+              {formatDisplayDateTime(deliveryData.DeliveryDate)}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="map-marker"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Delivery Address"
+            />
+            <Text style={styles.detailLabel}>Delivery Address:</Text>
+            <Text style={styles.detailValue}>
+              {deliveryData.Address || 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="account"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Contact Person"
+            />
+            <Text style={styles.detailLabel}>Contact Person:</Text>
+            <Text style={styles.detailValue}>
+              {deliveryData.ContactPerson || 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="phone"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Contact Number"
+            />
+            <Text style={styles.detailLabel}>Contact Number:</Text>
+            <Text style={styles.detailValue}>
+              {deliveryData.ContactNumber || 'N/A'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderPRDetails = () => {
+    if (!prRecord) return null;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle}>Purchase Request Details</Text>
+        </View>
+        <View style={styles.cardBody}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Unit:</Text>
+            <Text style={styles.detailValue}>{prRecord.Unit || 'N/A'}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Qty:</Text>
+            <Text style={styles.detailValue}>{prRecord.Qty || 'N/A'}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Date Created:</Text>
+            <Text style={styles.detailValue}>
+              {formatDisplayDateTime(prRecord.DateCreated)}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Department:</Text>
+            <Text style={styles.detailValue}>
+              {prRecord.Department || 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Division:</Text>
+            <Text style={styles.detailValue}>{prRecord.Division || 'N/A'}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+ /*  const renderSupplierInformation = () => {
+    if (!prRecord) return null;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle}>Supplier Information</Text>
+        </View>
+        <View style={styles.cardBody}>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="domain"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Supplier Name"
+            />
+            <Text style={styles.detailLabel}>Supplier Name:</Text>
+            <Text style={styles.detailValue}>
+              {prRecord.SupplierName || 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="email"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Supplier Email"
+            />
+            <Text style={styles.detailLabel}>Email:</Text>
+            <Text style={styles.detailValue}>
+              {prRecord.SupplierEmail || 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <MaterialCommunityIcon
+              name="phone"
+              size={20}
+              color="#607D8B"
+              style={styles.iconStyle}
+              accessibilityLabel="Supplier Contact"
+            />
+            <Text style={styles.detailLabel}>Contact No.:</Text>
+            <Text style={styles.detailValue}>
+              {prRecord.SupplierContactNo || 'N/A'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }; */
+
+  const renderPRItems = () => {
+    if (!prItems || prItems.length === 0) return null;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle}>Items Requested</Text>
+        </View>
+        <View style={styles.cardBody}>
+          {prItems.map((item, index) => {
+            const [showFullDescription, setShowFullDescription] = useState(false);
+            const [hasMoreLines, setHasMoreLines] = useState(false);
+
+            const handleTextLayout = useCallback(e => {
+              // Check if the text exceeds 2 lines
+              if (e.nativeEvent.lines.length > 2) {
+                setHasMoreLines(true);
+              } else {
+                setHasMoreLines(false); // Reset if text shrinks
+              }
+            }, []);
+
+            return (
+              <View key={index} style={styles.itemContainer}>
+                <Text style={styles.itemIndex}>Item {index + 1}</Text>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Item Code:</Text>
+                  <Text style={styles.detailValue}>
+                    {item.ItemCode || 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Description:</Text>
+                  <View style={{flex: 1}}>
+                    <Text
+                      style={[styles.detailValue, styles.multiline]}
+                      numberOfLines={showFullDescription ? undefined : 2}
+                      onTextLayout={handleTextLayout}>
+                      {item.Description || 'N/A'}
+                    </Text>
+                    {hasMoreLines && (
+                      <Pressable
+                        onPress={() =>
+                          setShowFullDescription(!showFullDescription)
+                        }>
+                        <Text style={styles.showMoreLessButton}>
+                          {showFullDescription ? 'Show Less' : 'Show More'}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Quantity:</Text>
+                  <Text style={styles.detailValue}>
+                    {`${item.Qty || 'N/A'} ${item.Unit || ''}`}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Unit Price:</Text>
+                  <Text style={styles.detailValue}>
+                    {/* Assuming Amount and Total are numbers that need formatting */}
+                    {item.Amount ? `$${parseFloat(item.Amount).toFixed(2)}` : 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Total Amount:</Text>
+                  <Text style={styles.detailValue}>
+                    {item.Total ? `$${parseFloat(item.Total).toFixed(2)}` : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1a508c" />
+        <Text style={styles.loadingText}>Loading inspection details...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <Text style={styles.errorText}>
+          Error fetching details: {error.message || 'Unknown error'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.bgHeader}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => navigation?.goBack()}
-              style={styles.backButton}>
-              <Icon name="chevron-back-outline" size={26} color="#FFFFFF" />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.screenTitle}>Inspection Details</Text>
-            <View style={{ width: 60 }} />
-          </View>
-        </View>
-
-        {loading && (
-          <ActivityIndicator size="large" color={styles.loadingIndicator.color} style={styles.loadingOverlay} />
-        )}
-
-        <ScrollView contentContainerStyle={styles.detailsContent}>
-          {/* PR Details */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Purchase Request Details</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>ID:</Text>
-              <Text style={styles.detailValue}>{inspectionItem?.Id ?? 'N/A'}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Tracking Number:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.RefTrackingNumber ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Year:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.Year ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Category:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.CategoryName ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.Status ?? 'N/A'}
-              </Text>
-            </View>
-            {inspectionItem.Status === 'Inspected' && inspectionItem.DateInspected && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Date Inspected:</Text>
-                <Text style={styles.detailValue}>
-                  {/* {formatDisplayDateTime(inspectionItem?.DateInspected)} */}
-                </Text>
-              </View>
-            )}
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Inspected By:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.Inspector ?? 'N/A'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Delivery Details */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Delivery Details</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Delivery Date:</Text>
-              {isEditingDeliveryDate ? (
-                <View style={styles.editDateContainer}>
-                  {/* <TextInput
-                    style={styles.dateInput}
-                    value={newDeliveryDate}
-                    onChangeText={setNewDeliveryDate}
-                    placeholder="YYYY-MM-DD"
-                    keyboardType="numeric" // Use a proper date picker for production
-                  /> */}
-                  <TouchableOpacity
-                    onPress={handleUpdateDeliveryDate}
-                    style={styles.saveButton}>
-                    <Icon name="checkmark-circle-outline" size={24} color="#28A745" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setIsEditingDeliveryDate(false)}
-                    style={styles.cancelButton}>
-                    <Icon name="close-circle-outline" size={24} color="#DC3545" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.detailValueWithEdit}>
-                  <Text style={styles.detailValue}>
-                    {/* {formatDisplayDateTime(inspectionItem?.DeliveryDate ?? 'N/A')} */}
-                  </Text>
-                  {inspectionItem.Status !== 'Inspected' && ( // Allow editing if not yet inspected
-                    <TouchableOpacity
-                      onPress={() => setIsEditingDeliveryDate(true)}
-                      style={styles.editIcon}>
-                      <Icon name="pencil-outline" size={20} color="#1a508c" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Address:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.Address ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Contact Person:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.ContactPerson ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Contact Number:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.ContactNumber ?? 'N/A'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Tracking Partner:</Text>
-              <Text style={styles.detailValue}>
-                {inspectionItem?.TrackingPartner ?? 'N/A'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Actions */}
-          <View style={styles.actionsContainer}>
-            {inspectionItem.Status === 'For Inspection' && (
-              <>
-                <TouchableOpacity style={styles.actionButton} onPress={markAsInspected}>
-                  <Icon name="checkmark-circle-outline" size={24} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>Mark as Inspected</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.onHoldButton]}
-                  onPress={markAsOnHold}>
-                  <Icon name="pause-circle-outline" size={24} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>Put On Hold</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.scheduleButton]}
-                  onPress={() => setScheduleModalVisible(true)}>
-                  <Icon name="calendar-outline" size={24} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>Add Schedule</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            {/* You can add actions for 'Inspected' or 'On Hold' items if needed */}
-          </View>
-        </ScrollView>
-
-        {/* Add Schedule Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={scheduleModalVisible}
-          onRequestClose={() => setScheduleModalVisible(!scheduleModalVisible)}>
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <Text style={styles.modalTitle}>Add Inspection Schedule</Text>
-
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Schedule Date (YYYY-MM-DD)"
-                placeholderTextColor="#9CA3AF"
-                value={scheduleDate}
-                onChangeText={setScheduleDate}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Schedule Time (HH:MM)"
-                placeholderTextColor="#9CA3AF"
-                value={scheduleTime}
-                onChangeText={setScheduleTime}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Notes (Optional)"
-                placeholderTextColor="#9CA3AF"
-                value={scheduleNotes}
-                onChangeText={setScheduleNotes}
-                multiline
-              />
-
-              <View style={styles.modalButtonContainer}>
-                <Pressable
-                  style={[styles.modalButton, styles.buttonClose]}
-                  onPress={() => setScheduleModalVisible(!scheduleModalVisible)}>
-                  <Text style={styles.textStyle}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.modalButton, styles.buttonAdd]}
-                  onPress={handleAddSchedule}>
-                  <Text style={styles.textStyle}>Add Schedule</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
+        backgroundColor="#1a508c"
+      />
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
+          <Icon name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Advance Inspection Details</Text>
+        <View style={{width: 24}} />
       </View>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        {renderDeliveryDetails()}
+        {renderPRDetails()}
+        {/* {renderSupplierInformation()} */}
+        {/* {renderPRItems()} */}
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#f4f6f8',
   },
-  bgHeader: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 30,
-    height: 100,
-    backgroundColor: '#1a508c',
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 8,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f6f8',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f6f8',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#dc3545',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   header: {
-    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    backgroundColor: '#1a508c',
+    paddingHorizontal: 15,
+    paddingVertical: Platform.OS === 'ios' ? 15 : 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight + 10,
   },
-  screenTitle: {
-    color: '#FFFFFF',
+  headerTitle: {
+    color: '#fff',
     fontSize: 20,
-    fontWeight: '700',
-    flex: 1,
-    textAlign: 'center',
+    fontWeight: 'bold',
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-    paddingRight: 15,
-    zIndex: 1,
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginLeft: 5,
-    fontWeight: '500',
-  },
-  detailsContent: {
-    padding: 15,
-    paddingTop: 20,
-  },
-  sectionContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#343A40',
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
-    paddingBottom: 10,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  detailLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#495057',
-    width: 130, // Fixed width for labels for alignment
-  },
-  detailValue: {
-    flex: 1,
-    fontSize: 15,
-    color: '#212529',
-  },
-  detailValueWithEdit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  editIcon: {
-    marginLeft: 10,
     padding: 5,
   },
-  editDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+  scrollViewContent: {
+    paddingBottom: 20,
   },
-  dateInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#CED4DA',
+  card: {
+    backgroundColor: '#fff',
     borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    fontSize: 15,
-    color: '#343A40',
-    marginRight: 10,
-  },
-  saveButton: {
-    padding: 5,
-    marginRight: 5,
-  },
-  cancelButton: {
-    padding: 5,
-  },
-  actionsContainer: {
-    marginTop: 10,
-    paddingHorizontal: 10,
-  },
-  actionButton: {
-    backgroundColor: '#28A745', // Green for inspected
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+    marginVertical: 10,
+    marginHorizontal: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  onHoldButton: {
-    backgroundColor: '#FFC107', // Amber for on hold
+  cardTitleContainer: {
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
   },
-  scheduleButton: {
-    backgroundColor: '#17A2B8', // Info blue for schedule
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  cardTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    marginLeft: 10,
-  },
-  loadingIndicator: {
     color: '#1a508c',
+    textAlign: 'left',
   },
-  loadingOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    zIndex: 10,
+  cardBody: {
+    padding: 20,
   },
-  errorText: {
-    textAlign: 'center',
-    color: '#DC3545',
-    fontSize: 16,
-    marginTop: 20,
-  },
-  // Modal Styles
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '90%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#343A40',
-  },
-  modalInput: {
-    width: '100%',
-    height: 50,
-    borderColor: '#CED4DA',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    color: '#343A40',
-  },
-  modalButtonContainer: {
+  detailRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 10,
+    alignItems: 'flex-start',
+    marginBottom: 10,
   },
-  modalButton: {
-    borderRadius: 10,
-    padding: 12,
-    elevation: 2,
+  detailLabel: {
+    fontWeight: '600',
+    color: '#495057',
+    marginRight: 10,
+    width: 100,
+  },
+  detailValue: {
+    color: '#212529',
     flex: 1,
-    marginHorizontal: 5,
-    alignItems: 'center',
+    textAlign: 'left',
   },
-  buttonAdd: {
-    backgroundColor: '#1a508c',
+  iconStyle: {
+    marginRight: 10,
+    marginTop: 2,
   },
-  buttonClose: {
-    backgroundColor: '#6C757D',
+  multiline: {
+    textAlign: 'left',
   },
-  textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
+  showMoreLessButton: {
+    color: '#1a508c',
+    fontWeight: '600',
+    marginTop: 5,
+    alignSelf: 'flex-start',
+  },
+  bold: {
+    fontWeight: '700',
+  },
+  status: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
     textAlign: 'center',
+  },
+  statusPending: {
+    backgroundColor: '#fff3cd',
+    color: '#856404',
+  },
+  itemContainer: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  itemIndex: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#1a508c',
     fontSize: 16,
+  },
+  sectionDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+    marginVertical: 12,
+    paddingBottom: 6,
+  },
+  sectionTitle: {
+    fontWeight: '600',
+    color: '#495057',
+    fontSize: 15,
   },
 });
 

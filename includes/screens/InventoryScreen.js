@@ -235,7 +235,7 @@ const InventoryScreen = ({navigation}) => {
                   setSearchQuery(text);
                   setHasSearched(false); // Reset hasSearched when text changes
                 }}
-                onSubmitEditing={handleSearch} // Trigger search on keyboard submit
+                //onSubmitEditing={handleSearch} // Trigger search on keyboard submit
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
@@ -256,7 +256,7 @@ const InventoryScreen = ({navigation}) => {
             <TouchableOpacity
               onPress={handleSearch}
               style={[styles.filterButton, {marginLeft: 10}]}
-              disabled={invLoading} // optional: disable while loading
+              disabled={hasSearched} 
             >
               {invLoading ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   bgHeaderImageStyle: {
-    opacity: 0.2,
+    opacity: 0.8,
   },
   header: {
     width: '100%',
@@ -485,7 +485,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterButton: {
-    backgroundColor: '#1a508c',
+    //backgroundColor: '#1a508c',
+    backgroundColor: '#007bff',
     borderRadius: 12,
     height: 55,
     paddingHorizontal: 18,

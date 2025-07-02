@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     padding: moderateScale(8),
-    marginBottom: 10,
+    //marginBottom: 10,
     elevation: 2,
     paddingStart: 30,
   },

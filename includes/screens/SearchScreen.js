@@ -960,150 +960,101 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
   );
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+    <SafeAreaView style={styles.safeArea}>
       <ImageBackground
         source={require('../../assets/images/bgasset.jpg')}
-        style={{flex: 1}}
+        style={styles.backgroundImage}
         resizeMode="cover">
-        <View
-          style={{
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: 'rgba(255, 255, 255, 0.5)',
-          }}
-        />
+        <View style={styles.overlay} />
+        
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <>
-            {renderSearch()}
-            {/* {(caoReceiver === '1' || cboReceiver === '1') && renderReceive()} */}
-          </>
-
-          {caoReceiver === '1' && <>{renderReceive()}</>}
-          {/*  {renderEvaluator()}
-          {renderInspection()} */}
-        </ScrollView>
-        <Modal transparent={true} visible={modalVisible} statusBarTranslucent={true} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <FlatList
-                data={years}
-                renderItem={renderYearItem}
-                keyExtractor={item => item}
-              />
+          {/* Main Search Section */}
+          <View style={styles.mainContainer}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Search</Text>
               <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={closeYearModal}>
-                <Text style={styles.modalCloseButtonText}>Close</Text>
+                onPress={handlePresentYearFilterSheet}
+                style={styles.yearFilterButton}>
+                <Text style={styles.yearFilterText}>{selectedYear}</Text>
+                <Icon name="chevron-down" size={20} color="#007AFF" />
               </TouchableOpacity>
             </View>
-          </View>
-        </Modal>
 
-        <Modal
-          visible={searchModalVisible}
-          transparent={false}
-          animationType="fade"
-          onRequestClose={() => setSearchModalVisible(false)}>
-          <View style={styles.safeArea}>
-            <View style={styles.fullScreenModal}>
-              <View style={styles.searchHeader}>
-                <TouchableOpacity
-                  onPress={() => setSearchModalVisible(false)}
-                  style={styles.backButton}>
-                  <Icon name="arrow-back" size={28} color="#333" />
-                </TouchableOpacity>
-                <View style={styles.searchInputOuterContainer}>
-                  <Icon
-                    name="search"
-                    size={22}
-                    color="#888"
-                    style={styles.inputSearchIcon}
-                  />
-                  <TextInput
-                    ref={searchInputRef}
-                    style={styles.searchInput}
-                    placeholder="Search tracking number"
-                    value={searchText}
-                    onChangeText={handleSearchTextChange}
-                    // autoFocus={true} // REMOVE THIS PROP
-                    clearButtonMode={
-                      Platform.OS === 'ios' ? 'while-editing' : 'never'
-                    } // 'never' is default on Android, 'while-editing' is useful on iOS
-                    underlineColorAndroid="transparent" // Only for Android, hides the default underline
-                    placeholderTextColor="#999"
-                    autoCapitalize="characters" // Suggests uppercase keyboard on iOS (doesn't force on Android, so onChangeText is crucial)
-                    // inputMode="search" // Modern alternative to keyboardType='default' for search fields
-                    returnKeyType="search" // Changes the keyboard return key to "Search"
-                  />
-                  {searchText?.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSearchText('')}
-                      style={styles.clearButton}>
-                      <Icon name="close" size={22} color="#888" />
-                    </TouchableOpacity>
-                  )}
-                </View>
+            <View style={styles.searchContainer}>
+              <View style={styles.searchInputContainer}>
+                <Icon
+                  name="search-outline"
+                  size={22}
+                  color="#9CA3AF"
+                  style={styles.searchIcon}
+                />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Enter tracking number"
+                  placeholderTextColor="#9CA3AF"
+                  value={searchText}
+                  autoCapitalize="characters"
+                  onChangeText={setSearchText}
+                  onSubmitEditing={searchTrackingNumber}
+                  returnKeyType="search"
+                />
+                {searchText?.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchText('')}
+                    style={styles.clearButton}>
+                    <Icon name="close-circle" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <TouchableOpacity
-                style={[
-                  styles.searchActionButton,
-                  searchText?.trim().length === 0 &&
-                    styles.searchButtonDisabled,
-                ]}
                 onPress={searchTrackingNumber}
-                disabled={searchText?.trim().length === 0 || searchTrackLoading} // Disable during loading as well
-              >
+                style={styles.searchButton}
+                disabled={searchTrackLoading}>
                 {searchTrackLoading ? (
-                  <ActivityIndicator size="small" color="#ffffff" /> // Or any color that fits your design
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.searchButtonText}>Search</Text>
+                  <Icon name="search" size={24} color="#fff" />
                 )}
               </TouchableOpacity>
+            </View>
 
-              <View style={styles.resultsContainer}>
-                {renderData()}
-                <Text>HATDOG</Text>
-              </View>
+            <TouchableOpacity
+              style={styles.qrButton}
+              onPress={() => setShowScanner(true)}>
+              <Icons name="qrcode-scan" size={24} color="#007AFF" />
+              <Text style={styles.qrButtonText}>Scan QR Code</Text>
+            </TouchableOpacity>
+          </View>
 
-              <View style={styles.contentArea}>
-                {searchHistory.length > 0 && (
-                  <View style={styles.historySection}>
-                    <Text style={styles.historyTitle}>Search History</Text>
-                    {searchHistory.map((item, index) => (
-                      <View key={index} style={styles.historyItem}>
-                        <TouchableOpacity
-                          onPress={() => searchTrackingNumber(item)}
-                          style={styles.historyItemTextContainer}>
-                          <Icon
-                            name="search-outline"
-                            size={20}
-                            color="#555"
-                            style={styles.historyItemIcon}
-                          />
-                          <Text style={styles.historyText} numberOfLines={1}>
-                            {item}
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => removeSearchItem(item)}
-                          style={styles.removeHistoryButton}>
-                          <Icon name="close" size={20} color="#777" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {searchHistory.length === 0 &&
-                  !renderData() && ( // Show if no history and no initial results
-                    <Text style={styles.noHistoryText}>
-                      No recent searches.
-                    </Text>
-                  )}
+          {/* Results Section */}
+          <View style={styles.resultsContainer}>
+            {renderData()}
+          </View>
+
+          {/* Receiver Section (conditionally rendered) */}
+          {caoReceiver === '1' && (
+            <View style={styles.receiverContainer}>
+              <Text style={styles.sectionTitle}>Document Receiver</Text>
+              <View style={styles.receiverButtons}>
+                <TouchableOpacity
+                  style={styles.receiverButton}
+                  onPress={handleQRManual}>
+                  <Icons name="qrcode-scan" size={28} color="#007AFF" />
+                  <Text style={styles.receiverButtonText}>Manual Scan</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.receiverButton}
+                  onPress={handleQRAuto}>
+                  <Icons name="qrcode-scan" size={28} color="#007AFF" />
+                  <Text style={styles.receiverButtonText}>Auto Scan</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
-        </Modal>
+          )}
+        </ScrollView>
 
+        {/* Modals and Bottom Sheets */}
         <BottomSheet
           ref={yearFilterBottomSheetRef}
           index={-1}
@@ -1112,36 +1063,27 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
           backdropComponent={BottomSheetBackdrop}
           handleIndicatorStyle={styles.bottomSheetHandle}>
           <BottomSheetFlatList
-            data={[/* 'All Years', */ ...availableYears]} // 'All Years' will always be first
+            data={[...availableYears]}
             keyExtractor={item => item}
             ListHeaderComponent={() => (
               <View style={styles.bottomSheetHeader}>
-                <Text style={styles.modalTitle}>Filter by Year</Text>
+                <Text style={styles.modalTitle}>Select Year</Text>
               </View>
             )}
             renderItem={({item}) => (
               <TouchableOpacity
                 style={[
                   styles.yearOptionButton,
-                  (selectedYear === item ||
-                    (item === 'All Years' && selectedYear === null)) &&
-                    styles.selectedYearOptionButton,
+                  selectedYear === item && styles.selectedYearOptionButton,
                 ]}
                 onPress={() => {
-                  setSelectedYear(item === 'All Years' ? null : item);
+                  setSelectedYear(item);
                   handleCloseYearFilterSheet();
-                }}
-                accessibilityLabel={
-                  item === 'All Years'
-                    ? 'Show all inventory years'
-                    : `Filter by year ${item}`
-                }>
+                }}>
                 <Text
                   style={[
                     styles.yearOptionText,
-                    (selectedYear === item ||
-                      (item === 'All Years' && selectedYear === null)) &&
-                      styles.selectedYearOptionText,
+                    selectedYear === item && styles.selectedYearOptionText,
                   ]}>
                   {item}
                 </Text>
@@ -1164,47 +1106,258 @@ const SearchScreen = ({caoReceiver, cboReceiver}) => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
   scrollViewContent: {
-    padding: 10,
-    flexGrow: 1,
-    paddingBottom: 50,
+    padding: 16,
+    paddingBottom: 24,
   },
-  searchBarInput: {
-    flex: 1,
-    backgroundColor: 'rgba(245, 244, 244, 0.79)',
+  mainContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  header: {
     flexDirection: 'row',
-    borderRadius: 5,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  modalContainer: {
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#252525',
+  },
+  yearFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  yearFilterText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginRight: 4,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  searchInputContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
+    marginRight: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 52,
+    fontSize: 16,
+    color: '#252525',
+  },
+  clearButton: {
+    padding: 8,
+  },
+  searchButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContent: {
-    width: '80%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
+  qrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#007AFF',
   },
-  modalItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  modalItemText: {
+  qrButtonText: {
     fontSize: 16,
+    fontWeight: '500',
+    color: '#007AFF',
+    marginLeft: 8,
   },
-  modalCloseButton: {
-    marginTop: 20,
-    backgroundColor: 'rgba(13, 85, 199, 1)',
-    paddingVertical: 10,
-    borderRadius: 5,
+  resultsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardTouchable: {
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  indexBadge: {
+    backgroundColor: '#0074FF',
+    paddingHorizontal: 12,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  modalCloseButtonText: {
+  indexText: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  trackingNumberGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  trackingNumberText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cardBody: {
+    padding: 16,
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#252525',
+    marginBottom: 4,
+  },
+  dateModifiedText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  receiverContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#252525',
+    marginBottom: 16,
+  },
+  receiverButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  receiverButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginHorizontal: 8,
+  },
+  receiverButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+    marginTop: 8,
+  },
+  bottomSheetHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#252525',
+  },
+  yearOptionButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginHorizontal: 16,
+    marginVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  selectedYearOptionButton: {
+    backgroundColor: '#007AFF',
+  },
+  yearOptionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  selectedYearOptionText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  yearOptionsFlatListContent: {
+    paddingBottom: 24,
+  },
+  bottomSheetHandle: {
+    backgroundColor: '#E5E7EB',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 8,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '500',
   },
   overlay: {
     position: 'absolute',
@@ -1212,489 +1365,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.01)', // Semi-transparent background
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000, // Ensure it's on top of other components
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#333',
-  },
-  clearIconContainer: {
-    padding: 10,
-  },
-  searchBarContainer: {
-    backgroundColor: 'white',
-
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    marginHorizontal: 20,
-    padding: 12,
-    backgroundColor: '#ffe5e5',
-    borderRadius: 10,
-    //borderWidth: 1,
-    //borderColor: '#ff4d4d',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  errorText: {
-    color: '#cc0000',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  overlay: {
-    marginTop: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noDataContainer: {
-    //marginTop: 20,
-    //paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noDataText: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-  },
-  dropdown: {
-    width: 80,
-    height: 40,
-    paddingHorizontal: 10,
-  },
-  fullScreenModal: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-
-  searchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingHorizontal: 15,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-
-  backButton: {
-    padding: 8,
-    marginRight: 10,
-  },
-
-  backIcon: {
-    fontSize: 22,
-    color: '#252525',
-  },
-
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f1f1',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    height: 40,
-  },
-
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#252525',
-    paddingVertical: 0,
-  },
-
-  clearButton: {
-    marginLeft: 8,
-  },
-
-  clearIcon: {
-    fontSize: 20,
-    color: '#999',
-  },
-
-  searchButton: {
-    marginTop: 20,
-    marginHorizontal: 15,
-    backgroundColor: '#252525',
-    paddingVertical: 14,
-    borderRadius: 30,
-    alignItems: 'center',
-  },
-
-  searchButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-
-  searchButtonDisabled: {
-    opacity: 0.5,
-  },
-  historyContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-  },
-  historyTitle: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 5,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  historyText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  removeIcon: {
-    fontSize: 18,
-    color: '#f00',
-    paddingHorizontal: 10,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF', // Modal background color
-  },
-  fullScreenModal: {
-    flex: 1,
-  },
-  searchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  backButton: {
-    padding: 8, // Increased touch area
-    marginRight: 8,
-  },
-  searchInputOuterContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 25, // More rounded for modern look
-    paddingHorizontal: 15,
-    height: 48, // Standard height
-  },
-  inputSearchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333333',
-    paddingVertical: 10, // Ensure text is centered
-  },
-  clearButton: {
-    padding: 8, // Increased touch area
-    marginLeft: 8,
-  },
-  searchActionButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 10, // Space before history or content
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  searchButtonDisabled: {
-    backgroundColor: '#B0C4DE',
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  searchButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  contentArea: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 10, // Space after search button
-  },
-  historySection: {
-    marginBottom: 20,
-  },
-  historyTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 12,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  historyItemTextContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 10, // Space before the close icon
-  },
-  historyItemIcon: {
-    marginRight: 10,
-  },
-  historyText: {
-    fontSize: 16,
-    color: '#444444',
-    flexShrink: 1, // Allow text to shrink if container is too small
-  },
-  removeHistoryButton: {
-    padding: 8, // Increased touch area
-  },
-  noHistoryText: {
-    textAlign: 'center',
-    color: '#777777',
-    fontSize: 15,
-    marginTop: 40, // Give some space if no history and no initial results
-  },
-  resultsContainer: {
-    height: 500, // If results should take remaining space and be scrollable, ensure renderData() returns a ScrollView/FlatList
-  },
-  card: {
-    backgroundColor: 'white',
-    marginHorizontal: 5, // Add some horizontal margin
-    marginTop: 10,
-    marginBottom: 5, // Reduce bottom margin slightly
-    borderRadius: 8, // Rounded corners for a softer look
-    borderWidth: 1,
-    borderColor: '#E0E0E0', // Lighter border color
-    elevation: 3, // Subtle shadow for depth
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  touchable: {
-    padding: 0, // Remove padding from touchable, will add to inner views
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'stretch', // Stretch items to fill height
-    borderTopLeftRadius: 8, // Apply radius to the top of the header
-    borderTopRightRadius: 8,
-    overflow: 'hidden', // Ensure children respect border radius
-  },
-  indexBadge: {
-    backgroundColor: '#0074FF', // Primary blue for consistency
-    paddingHorizontal: 12, // Adjust padding
-    justifyContent: 'center', // Center text vertically
-    alignItems: 'center', // Center text horizontally
-  },
-  indexText: {
-    fontFamily: 'Oswald-Regular',
-    fontSize: 14, // Slightly larger for prominence
-    color: 'white',
-  },
-  trackingNumberGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 8, // Add vertical padding
-    paddingStart: 10,
-  },
-  trackingNumberText: {
-    fontFamily: 'Oswald-Regular',
-    color: 'white',
-    fontSize: 16, // Consistent with index
-  },
-  yearBadge: {
-    backgroundColor: '#0074FF', // Primary blue for consistency
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  yearText: {
-    fontFamily: 'Oswald-Regular',
-    color: 'white',
-    fontSize: 16, // Consistent with index
-    textAlign: 'center',
-  },
-  detailsContainer: {
-    padding: 15, // Uniform padding for details section
-  },
-  statusText: {
-    fontFamily: 'Oswald-Regular',
-    fontSize: 19, // More prominent status
-    color: '#252525', // Darker text for readability
-    marginBottom: 5, // Space between status and date
-  },
-  dateModifiedText: {
-    fontFamily: 'Oswald-Light',
-    color: 'gray', // Softer gray for less important info
-    fontSize: 13,
-    marginBottom: 10, // More space after date
-  },
-  detailText: {
-    fontFamily: 'Oswald-Light',
-    color: '#4A4A4A', // Slightly darker gray for better contrast
-    fontSize: 14,
-    marginBottom: 3, // Small margin for each detail line
-  },
-  searchFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginHorizontal: 15,
-    marginTop: -40,
-  },
-  searchInputWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginRight: 10,
-    height: 55,
-    paddingLeft: 10,
-  },
-  searchIcon: {
-    marginRight: 5,
-    color: '#6C757D',
-    padding: 5,
-  },
-  searchInput: {
-    flex: 1,
-    height: 55,
-    fontSize: 15,
-    color: '#343A40',
-  },
-  clearSearchButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  filterIconButton: {
-    flexDirection: 'row',
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    padding: 12, // Adjust padding to make the icon visible and clickable
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 55, // Match height of search input
-    width: 70,
-  },
-  searchSection: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: 18,
-  },
-  filterButton: {
-    backgroundColor: '#1a508c',
-    borderRadius: 12,
-    height: 55,
-    paddingHorizontal: 15,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  filterButtonText: {
-    color: 'white',
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  clearYearFilter: {
-    marginLeft: 8,
-    padding: 2,
-  },
-  yearOptionsFlatListContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  bottomSheetHeader: {
-    alignItems: 'flex-start',
-    paddingVertical: 10,
-  },
-  yearOptionButton: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 10,
-    backgroundColor: '#F0F2F5',
-    alignItems: 'center',
-  },
-  selectedYearOptionButton: {
-    backgroundColor: '#1a508c',
-  },
-  yearOptionText: {
-    fontSize: 17,
-    color: '#343A40',
-    fontWeight: '500',
-  },
-  selectedYearOptionText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#343A40',
-    marginBottom: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
 });
 
