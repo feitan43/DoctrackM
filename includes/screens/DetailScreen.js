@@ -1069,7 +1069,7 @@ const DetailScreen = ({route, navigation}) => {
                       <Text style={{color: '#fff', fontSize: 16, fontWeight:'300',textAlign:'center'}}>
                         {genInformationData?.Year}
                         <Text style={{fontSize:20}}>{'  |  '}</Text>
-                        <Text style={{fontWeight: '700', fontSize: 18, textAlign:'center'}}>
+                        <Text style={{fontWeight: '700', fontSize: 20, textAlign:'center'}}>
                           {genInformationData?.TrackingNumber}
                         </Text>
                       </Text>

@@ -647,7 +647,6 @@ const handleUpdate = async updateUrl => {
           component={AdvanceInspectionDetails}
          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
-
         <Stack.Screen name='BossEditScreen' component={BossEditScreen}/>
 
 

@@ -66,6 +66,7 @@
     "react-native-awesome-gallery": "^0.3.9",
     "react-native-blob-util": "^0.19.9",
     "react-native-bootsplash": "^5.5.3",
+    "react-native-calendar-events": "^2.2.0",
     "react-native-calendars": "^1.1307.0",
     "react-native-date-picker": "^5.0.10",
     "react-native-device-info": "^11.1.0",

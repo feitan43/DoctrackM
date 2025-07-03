@@ -20,11 +20,12 @@ import {
   useInventoryDetails,
   useInventoryImages,
   useUploadInventory,
-  useRemoveImageInv, // Import useRemoveImageInv
+  useRemoveImageInv,
 } from '../hooks/useInventory';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
-import {showMessage} from 'react-native-flash-message'; // Make sure this is installed: npm install react-native-flash-message
+import {showMessage} from 'react-native-flash-message';
 import FastImage from 'react-native-fast-image';
+import { insertCommas } from '../utils/insertComma';
 
 const InventoryDetails = ({route, navigation}) => {
   const {Id, Year, TrackingNumber, Office} = route.params;
@@ -41,41 +42,28 @@ const InventoryDetails = ({route, navigation}) => {
     isLoading: imageLoading,
     refetch: refetchImages,
   } = useInventoryImages(
-    // Added refetchImages
     Id,
     Office,
-    TrackingNumber,
-  );
-
-  console;
-
-  console.log(
-    'imageUrls fetched by hook:',
-    imageUrls,
-    'for ID:',
-    Id,
-    'Office:',
-    Office,
-    'TrackingNumber:',
     TrackingNumber,
   );
 
   const inventoryItem = data?.inventory?.[0];
   const poDetailsItem = data?.podetails?.[0];
 
-  const [previewImage, setPreviewImage] = useState([]); // Stores local images selected for upload
-  const [uploadProgress, setUploadProgress] = useState(0); // This isn't currently updated by useUploadInventory
-  const [uploadingImage, setUploadingImage] = useState(false); // To manage local UI state for upload
+  const [previewImage, setPreviewImage] = useState([]);
+  // We'll manage upload status for each image separately
+  const [imageUploadStatus, setImageUploadStatus] = useState({}); // {uri: 'uploading' | 'uploaded' | 'failed'}
 
   const {
     mutate: uploadImages,
     isLoading: isUploading,
     error: uploadError,
+    // If your useUploadInventory hook provides progress for the entire batch:
+    // progress: overallUploadProgress,
   } = useUploadInventory();
 
   const {mutate: removeImage, isLoading: isRemovingImage} = useRemoveImageInv(
     () => {
-      // onSuccess callback for removeImage
       showMessage({
         message: 'Image removed successfully!',
         type: 'success',
@@ -83,11 +71,10 @@ const InventoryDetails = ({route, navigation}) => {
         floating: true,
         duration: 3000,
       });
-      refetchImages(); // Refetch images after successful removal
-      refetch(); // Refetch details in case something changed
+      refetchImages();
+      refetch();
     },
     err => {
-      // onError callback for removeImage
       showMessage({
         message: 'Image removal failed!',
         description:
@@ -113,7 +100,7 @@ const InventoryDetails = ({route, navigation}) => {
             const result = await launchImageLibrary({
               mediaType: 'photo',
               quality: 0.7,
-              selectionLimit: 0, // 0 allows multiple selection
+              selectionLimit: 0,
             });
 
             if (
@@ -126,7 +113,18 @@ const InventoryDetails = ({route, navigation}) => {
                 result.assets.length,
                 'images.',
               );
-              setPreviewImage(prevImages => [...prevImages, ...result.assets]); // Append all selected images
+              setPreviewImage(prevImages => {
+                const newAssets = result.assets.filter(
+                  newAsset => !prevImages.some(p => p.uri === newAsset.uri)
+                );
+                // Initialize status for new images
+                const newStatus = newAssets.reduce((acc, asset) => {
+                  acc[asset.uri] = 'pending';
+                  return acc;
+                }, {});
+                setImageUploadStatus(prevStatus => ({...prevStatus, ...newStatus}));
+                return [...prevImages, ...newAssets];
+              });
             }
           } catch (err) {
             console.log('Image picker error (gallery): ', err);
@@ -153,7 +151,14 @@ const InventoryDetails = ({route, navigation}) => {
               result.assets.length > 0
             ) {
               console.log('Took photo:', result.assets[0].uri);
-              setPreviewImage(prevImages => [...prevImages, result.assets[0]]); // Add single captured photo
+              setPreviewImage(prevImages => {
+                const newAsset = result.assets[0];
+                if (prevImages.some(p => p.uri === newAsset.uri)) {
+                  return prevImages; // Avoid duplicates
+                }
+                setImageUploadStatus(prevStatus => ({...prevStatus, [newAsset.uri]: 'pending'}));
+                return [...prevImages, newAsset];
+              });
             }
           } catch (err) {
             console.log('Camera error: ', err);
@@ -183,6 +188,40 @@ const InventoryDetails = ({route, navigation}) => {
     ]);
   };
 
+  const handleRemovePreviewImage = uriToRemove => {
+    Alert.alert(
+      'Remove Preview Image',
+      'Are you sure you want to remove this image from the preview list?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          onPress: () => {
+            setPreviewImage(currentImages =>
+              currentImages.filter(asset => asset.uri !== uriToRemove),
+            );
+            setImageUploadStatus(prevStatus => {
+                const newStatus = { ...prevStatus };
+                delete newStatus[uriToRemove];
+                return newStatus;
+            });
+            showMessage({
+              message: 'Image removed from preview!',
+              type: 'info',
+              icon: 'info',
+              floating: true,
+              duration: 2000,
+            });
+          },
+          style: 'destructive',
+        },
+      ],
+    );
+  };
+
   const confirmUploadImages = useCallback(async () => {
     if (!inventoryItem) {
       Alert.alert(
@@ -196,8 +235,14 @@ const InventoryDetails = ({route, navigation}) => {
       return;
     }
 
-    setUploadingImage(true); // Set local uploading state
-    setUploadProgress(0); // Reset progress (if you implement actual progress tracking)
+    // Set all preview images to 'uploading' status
+    setImageUploadStatus(prevStatus => {
+        const newStatus = {...prevStatus};
+        previewImage.forEach(img => {
+            newStatus[img.uri] = 'uploading';
+        });
+        return newStatus;
+    });
 
     uploadImages(
       {
@@ -205,7 +250,6 @@ const InventoryDetails = ({route, navigation}) => {
         id: Id,
         office: Office,
         tn: TrackingNumber,
-        // employeeNumber: YOUR_EMPLOYEE_NUMBER_HERE // Pass if needed by backend
       },
       {
         onSuccess: data => {
@@ -217,8 +261,9 @@ const InventoryDetails = ({route, navigation}) => {
             duration: 3000,
           });
 
-          setPreviewImage([]);
-          setUploadingImage(false);
+          setPreviewImage([]); // Clear preview images after successful upload
+          setImageUploadStatus({}); // Clear all upload statuses
+          refetchImages();
         },
         onError: error => {
           console.error('Image upload failed:', error);
@@ -231,11 +276,18 @@ const InventoryDetails = ({route, navigation}) => {
             floating: true,
             duration: 3000,
           });
+          // Set failed status for images
+          setImageUploadStatus(prevStatus => {
+            const newStatus = {...prevStatus};
+            previewImage.forEach(img => {
+                newStatus[img.uri] = 'failed';
+            });
+            return newStatus;
+          });
         },
         onSettled: () => {
           // This runs regardless of success or failure
-          setUploadProgress(0);
-          setUploadingImage(false); // Reset local uploading state
+          // If you decide to keep preview images on failure, adjust here
         },
       },
     );
@@ -243,71 +295,20 @@ const InventoryDetails = ({route, navigation}) => {
     inventoryItem,
     previewImage,
     uploadImages,
-    refetch,
     refetchImages,
     Office,
     TrackingNumber,
     Id,
   ]);
 
-  if (
-    isLoading ||
-    imageLoading ||
-    isUploading ||
-    uploadingImage ||
-    isRemovingImage
-  ) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1a508c" />
-        <Text style={styles.loadingText}>
-          {isUploading || uploadingImage
-            ? 'Uploading image(s)...'
-            : isRemovingImage
-            ? 'Removing image...'
-            : 'Loading details...'}
-        </Text>
-        {isUploading && uploadProgress > 0 && (
-          <Text style={styles.loadingText}>{`Progress: ${Math.round(
-            uploadProgress * 100,
-          )}%`}</Text>
-        )}
-      </SafeAreaView>
-    );
-  }
+  const isOverallLoading = isLoading || imageLoading || isRemovingImage;
+  const isActionDisabled = isUploading || isOverallLoading; // Combine all loading states for action buttons
 
-  if (error || uploadError) {
-    return (
-      <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          Oops! Something went wrong:{' '}
-          {error?.message ||
-            uploadError?.message ||
-            'An unknown error occurred'}
-          .
-        </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={refetch}>
-          <Text style={styles.retryButtonText}>Tap to Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  // Modified logic for allImagesToDisplay
+  const allImagesToDisplay = previewImage.length > 0
+    ? previewImage.map(asset => ({ uri: asset.uri, isLocal: true, status: imageUploadStatus[asset.uri] || 'pending' }))
+    : imageUrls.map(url => ({ uri: url, isLocal: false }));
 
-  if (!inventoryItem && !poDetailsItem) {
-    return (
-      <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>No details found for this item.</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={refetch}>
-          <Text style={styles.retryButtonText}>Tap to Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  const allImagesToDisplay = [
-    ...previewImage.map(asset => ({uri: asset.uri, isLocal: true})),
-    ...imageUrls.map(url => ({uri: url, isLocal: false})),
-  ];
 
   return (
     <GestureHandlerRootView style={styles.safeArea}>
@@ -402,13 +403,13 @@ const InventoryDetails = ({route, navigation}) => {
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Amount:</Text>
                   <Text style={styles.value}>
-                    {getDetail(inventoryItem?.Amount)}
+                    {getDetail(insertCommas(inventoryItem?.Amount))}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Unit Cost:</Text>
                   <Text style={styles.value}>
-                    {getDetail(inventoryItem?.UnitCost)}
+                    {getDetail(insertCommas(inventoryItem?.UnitCost))}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
@@ -484,16 +485,20 @@ const InventoryDetails = ({route, navigation}) => {
                 <Text style={styles.sectionTitle}>Item Images</Text>
               </View>
 
-              {allImagesToDisplay.length > 0 ? (
+              {isOverallLoading ? ( // Show a global loading indicator for all images
+                 <View style={styles.loadingContainer}>
+                   <ActivityIndicator size="large" color="#1a508c" />
+                   <Text style={styles.loadingText}>Loading images...</Text>
+                 </View>
+              ) : allImagesToDisplay.length > 0 ? (
                 allImagesToDisplay.map((image, index) => (
-                  <View key={`image-${index}`} style={styles.imageWrapper}>
+                  <View key={`image-${image.uri}-${index}`} style={styles.imageWrapper}>
                     <FastImage
                       source={{
-                        uri: `${image.uri}?t=${new Date().getTime()}`,
+                        uri: image.uri, // Corrected to remove timestamp
                         priority: FastImage.priority.normal,
                         cache: FastImage.cacheControl.web,
                       }}
-                      //source={{uri: image.uri}}
                       style={styles.itemImage}
                       resizeMode="contain"
                       onError={e =>
@@ -503,11 +508,34 @@ const InventoryDetails = ({route, navigation}) => {
                         )
                       }
                     />
-                    {!image.isLocal && (
+                    {image.isLocal ? ( // Show controls for local preview images
+                      <>
+                        {image.status === 'uploading' && (
+                            <View style={styles.uploadingOverlay}>
+                                <ActivityIndicator size="large" color="#FFFFFF" />
+                                <Text style={styles.uploadingText}>Uploading...</Text>
+                            </View>
+                        )}
+                        {image.status === 'failed' && (
+                            <View style={[styles.uploadingOverlay, styles.failedOverlay]}>
+                                <Icon name="warning-outline" size={30} color="#FFFFFF" />
+                                <Text style={styles.uploadingText}>Failed</Text>
+                            </View>
+                        )}
+                        <TouchableOpacity
+                          style={styles.removeImageButton}
+                          onPress={() => handleRemovePreviewImage(image.uri)}
+                          disabled={isActionDisabled} // Disable removal during upload
+                        >
+                          <Icon name="close-circle" size={24} color="#D32F2F" />
+                        </TouchableOpacity>
+                      </>
+                    ) : ( // Show controls for already uploaded images
                       <TouchableOpacity
                         style={styles.removeImageButton}
                         onPress={() => handleRemoveImage(image.uri)}
-                        disabled={isRemovingImage}>
+                        disabled={isActionDisabled} // Disable removal during any action
+                      >
                         <Icon name="close-circle" size={24} color="#D32F2F" />
                       </TouchableOpacity>
                     )}
@@ -515,26 +543,29 @@ const InventoryDetails = ({route, navigation}) => {
                 ))
               ) : (
                 <View style={styles.noImageContainer}>
-                  {/* <Icon name="image--outline" size={50} color="#777777" /> */}
                   <Text style={styles.noImageText}>No Images Available</Text>
                 </View>
               )}
 
               <View style={styles.imageActionButtons}>
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, isActionDisabled && styles.actionButtonDisabled]}
                   onPress={pickImage}
-                  disabled={isUploading || uploadingImage}>
+                  disabled={isActionDisabled}>
                   <Icon name="image-outline" size={20} color="#FFFFFF" />
                   <Text style={styles.actionButtonText}>Select Images</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.uploadButton]}
+                  style={[
+                    styles.actionButton,
+                    styles.uploadButton,
+                    (previewImage.length === 0 || isActionDisabled) && styles.uploadButtonDisabled,
+                  ]}
                   onPress={confirmUploadImages}
                   disabled={
-                    previewImage.length === 0 || isUploading || uploadingImage
+                    previewImage.length === 0 || isActionDisabled
                   }>
-                  {isUploading || uploadingImage ? (
+                  {isUploading ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Icon
@@ -657,7 +688,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   imageWrapper: {
-    // Added for remove button positioning
     position: 'relative',
     width: '100%',
     height: 200,
@@ -666,23 +696,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     borderColor: '#ddd',
     borderWidth: 1,
-    overflow: 'hidden', // Ensures remove button stays within bounds if not absolute
+    overflow: 'hidden',
   },
   itemImage: {
     width: '100%',
-    height: '100%', // Take full height of wrapper
+    height: '100%',
     borderRadius: 8,
     backgroundColor: '#e0e0e0',
-    // Removed direct border properties as they are now on imageWrapper
   },
   removeImageButton: {
-    // Style for the remove button
     position: 'absolute',
     top: 5,
     right: 5,
     backgroundColor: 'rgba(255,255,255,0.7)',
     borderRadius: 12,
     padding: 2,
+    zIndex: 10, // Ensure it's above the overlay
+  },
+  // New styles for uploading overlay
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    zIndex: 5, // Ensure it's below the remove button but above the image
+  },
+  uploadingText: {
+    color: '#FFFFFF',
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  failedOverlay: {
+    backgroundColor: 'rgba(211, 47, 47, 0.7)', // Redder overlay for failed
   },
   noImageContainer: {
     width: '100%',
@@ -760,8 +811,14 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  actionButtonDisabled: {
+    opacity: 0.6, // Visual cue for disabled buttons
+  },
   uploadButton: {
     backgroundColor: '#28a745',
+  },
+  uploadButtonDisabled: {
+    backgroundColor: '#9e9e9e',
   },
   actionButtonText: {
     color: '#FFFFFF',

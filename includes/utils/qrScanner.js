@@ -131,6 +131,8 @@ const QRScanner = ({onScan, onClose}) => {
 
     const combinedCode = `${year}-${prSegment}${officeCode}-${series}`;
 
+    console.log('Combined Code:', combinedCode);
+
     return combinedCode;
   };
 

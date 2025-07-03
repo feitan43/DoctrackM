@@ -52,7 +52,7 @@ const InventoryScreen = ({navigation}) => {
     error: invError,
     refetch,
   } = useInventory(searchQuery, selectedYear, {
-    enabled: hasSearched && Boolean(officeCode), 
+    enabled: hasSearched && Boolean(officeCode),
   });
 
   const yearFilterSnapPoints = useMemo(() => ['25%', '50%', '75%'], []);
@@ -66,8 +66,8 @@ const InventoryScreen = ({navigation}) => {
   }, []);
 
   const handleSearch = useCallback(() => {
-    setHasSearched(true); 
-    refetch(); 
+    setHasSearched(true);
+    refetch();
   }, [refetch]);
 
   const onRefresh = useCallback(async () => {
@@ -115,7 +115,13 @@ const InventoryScreen = ({navigation}) => {
                 {item?.TrackingNumber ?? 'N/A'}
               </Text>
             </Text>
-            <Text style={styles.itemIdText}>{item?.Id ?? 'Unknown Item'}</Text>
+            {/* <Text style={styles.itemIdText}>{item?.Id ?? 'Unknown Item'}</Text> */}
+            <Text style={styles.itemIdText}>
+              Set:{' '}
+              <Text style={{fontWeight: 'bold', fontSize: 16}}>
+                {item?.Set ?? '0'}
+              </Text>
+            </Text>
           </View>
         </View>
 
@@ -162,10 +168,10 @@ const InventoryScreen = ({navigation}) => {
           <Text style={styles.detailLabel}>Serial No.:</Text>
           <Text style={styles.detailValue}>{item?.SerialNumber ?? 'N/A'}</Text>
         </View>
-        <View style={styles.detailRow}>
+        {/* <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Set:</Text>
           <Text style={styles.detailValue}>{item?.Set ?? 'N/A'}</Text>
-        </View>
+        </View> */}
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Property No.:</Text>
           <Text style={styles.detailValue}>
@@ -256,16 +262,14 @@ const InventoryScreen = ({navigation}) => {
             <TouchableOpacity
               onPress={handleSearch}
               style={[styles.filterButton, {marginLeft: 10}]}
-              disabled={hasSearched} 
-            >
+              disabled={invLoading}
+              activeOpacity={0.7}>
               {invLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color="#fff" /> // Only the indicator
               ) : (
-                <>
-                  <Icon name="search" size={20} color="#fff" />
-                  <Text style={styles.filterButtonText}>Search</Text>
-                </>
+                <Icon name="search" size={20} color="#fff" /> // Only the icon
               )}
+              <Text style={styles.filterButtonText}>Search</Text>
             </TouchableOpacity>
           </View>
 
