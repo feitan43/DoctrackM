@@ -55,6 +55,7 @@ const useUserInfo = () => {
     gsoInspection: userData?.GSOINSPECTION ?? null,
     officeAdmin: userData?.OFFICEADMIN ?? null,
     cboReceiver: userData?.CBORECEIVER ?? null,
+    payroll: userData?.PAYROLL ?? null,
     boss: userData?.BOSS ?? null,
   };
 };

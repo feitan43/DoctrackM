@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  ImageBackground, // Keep if desired, but image source needs to be external or locally bundled
+  ImageBackground,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -20,10 +20,9 @@ import {formatDisplayDateTime} from '../../utils/dateUtils';
 import {officeMap} from '../../utils/officeMap';
 
 const AdvanceInspection = ({navigation}) => {
-  // Keep navigation prop for a real RN app
   const [searchQuery, setSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
-  const [activeTab, setActiveTab] = useState('ForInspection'); // Added state for active tab
+  const [activeTab, setActiveTab] = useState('ForInspection'); 
 
   const {
     data,
@@ -32,8 +31,11 @@ const AdvanceInspection = ({navigation}) => {
     refetch,
   } = useAdvanceInspection();
 
-  const [invLoading, setInvLoading] = useState(false); // Used for search/refresh indication
-  const [invError, setInvError] = useState(false); // Used for search/refresh error
+  const [invLoading, setInvLoading] = useState(false); 
+  const [invError, setInvError] = useState(false); 
+
+  // State to manage collapsed sections
+  const [collapsedSections, setCollapsedSections] = useState(new Set()); 
 
   const handleSearch = useCallback(() => {
     setInvLoading(true);
@@ -42,22 +44,22 @@ const AdvanceInspection = ({navigation}) => {
     refetch();
     setTimeout(() => {
       setInvLoading(false);
-    }, 500); // Shorter timeout for search
+    }, 500); 
   }, []);
 
-  // Filter data based on search query and active tab
-  /*  const filteredData = useMemo(() => {
-    if (!data) return [];
-    let currentFiltered = data;
+  // Function to toggle section collapse/expand
+  const handleToggleSection = useCallback((officeName) => {
+    setCollapsedSections((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(officeName)) {
+        newSet.delete(officeName); // Expand: remove from collapsed
+      } else {
+        newSet.add(officeName); // Collapse: add to collapsed
+      }
+      return newSet;
+    });
+  }, []);
 
-    if (hasSearched && searchQuery) {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      currentFiltered = currentFiltered.filter(item =>
-        Object.values(item).some(value =>
-          String(value).toLowerCase().includes(lowerCaseQuery)
-        )
-      );
-    } */
 
   const parseDeliveryDateString = useCallback(dateString => {
     if (
@@ -65,7 +67,7 @@ const AdvanceInspection = ({navigation}) => {
       dateString.trim() === '' ||
       dateString.toLowerCase() === 'n/a'
     ) {
-      return null; // Return null for invalid or missing dates
+      return null;
     }
 
     const parts = dateString.match(
@@ -73,7 +75,7 @@ const AdvanceInspection = ({navigation}) => {
     );
     if (parts) {
       const year = parseInt(parts[1], 10);
-      const month = parseInt(parts[2], 10) - 1; // Month is 0-indexed
+      const month = parseInt(parts[2], 10) - 1;
       const day = parseInt(parts[3], 10);
       let hour = parseInt(parts[4], 10);
       const minute = parseInt(parts[5], 10);
@@ -82,14 +84,13 @@ const AdvanceInspection = ({navigation}) => {
       if (ampm === 'pm' && hour < 12) {
         hour += 12;
       } else if (ampm === 'am' && hour === 12) {
-        hour = 0; // Midnight (12 AM)
+        hour = 0;
       }
 
       const date = new Date(year, month, day, hour, minute);
       return isNaN(date.getTime()) ? null : date;
     }
 
-    // Fallback for other formats, or if the custom format regex fails
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? null : date;
   }, []);
@@ -97,25 +98,19 @@ const AdvanceInspection = ({navigation}) => {
   const sortedData = useMemo(() => {
     if (!data?.length) return [];
 
-    // Filter data based on active tab
     const filteredByTab = data.filter(item => {
       switch (activeTab) {
         case 'ForInspection':
           return item.Status === 'For Inspection';
         case 'Inspected':
-          // For 'Inspected', check status and if DateInspected exists and is not empty
-          return (
-            /* item.Status === 'Inspected' && */ item.DateInspected &&
-            item.DateInspected.trim() !== ''
-          );
+          return item.DateInspected && item.DateInspected.trim() !== '';
         case 'OnHold':
           return item.Status === 'Inspection On Hold';
         default:
-          return true; // Should not happen if tabs are controlled, but as a fallback
+          return true;
       }
     });
 
-    // Apply search query filter
     const searchedData =
       hasSearched && searchQuery.length > 0
         ? filteredByTab.filter(
@@ -145,7 +140,37 @@ const AdvanceInspection = ({navigation}) => {
     });
   }, [data, activeTab, hasSearched, searchQuery, parseDeliveryDateString]);
 
-  const InspectionItem = ({item, navigation, index}) => {
+  // Grouped data by office for FlashList sections
+  const sectionedData = useMemo(() => {
+    if (!sortedData.length) return [];
+
+    const grouped = sortedData.reduce((acc, item) => {
+      const officeName = officeMap[item?.Office] || 'Unknown Office';
+      if (!acc[officeName]) {
+        acc[officeName] = [];
+      }
+      acc[officeName].push(item);
+      return acc;
+    }, {});
+
+    const sections = [];
+    for (const office in grouped) {
+      sections.push({type: 'header', officeName: office, id: `header-${office}`});
+      grouped[office].forEach((item, itemIndex) => {
+        sections.push({
+          type: 'item',
+          data: item,
+          id: `item-${item?.Id}-${itemIndex}`,
+          itemIndexInGroup: itemIndex,
+          parentOfficeName: office, 
+        });
+      });
+    }
+    return sections;
+  }, [sortedData]);
+
+
+  const InspectionItem = ({item, navigation, indexInGroup}) => {
     return (
       <TouchableOpacity
         style={styles.itemContainer}
@@ -158,7 +183,7 @@ const AdvanceInspection = ({navigation}) => {
           })
         }>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemIndex}>{index + 1} </Text>
+          <Text style={styles.itemIndex}>{indexInGroup + 1} </Text>
           <View style={styles.headerRightContent}>
             <Text style={styles.itemTrackingNumber}>
               {item?.Year} |{' '}
@@ -169,71 +194,36 @@ const AdvanceInspection = ({navigation}) => {
             <Text style={styles.itemIdText}>{item?.Id ?? 'Unknown Item'}</Text>
           </View>
         </View>
-
         <View style={[styles.detailRow, {alignItems: 'center'}]}>
-          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
           <Icon name="calendar-outline" size={25} color="#6C757D" />
           <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 15}]}>
             {formatDisplayDateTime(item?.DeliveryDate ?? 'N/A')}
           </Text>
         </View>
+        {/*  <View style={[styles.detailRow, {alignItems: 'center'}]}>
+          <Icon name="business-outline" size={25} color="#6C757D" />
+          <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
+            {officeMap[item?.Office ?? 'N/A']}
+          </Text>
+        </View> */}
         <View style={[styles.detailRow, {alignItems: 'center'}]}>
-          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
           <Icon name="cube-outline" size={25} color="#6C757D" />
           <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
             {item?.CategoryName ?? 'N/A'}
           </Text>
         </View>
         <View style={[styles.detailRow, {alignItems: 'center'}]}>
-          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
           <Icon name="location-outline" size={25} color="#6C757D" />
           <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
             {item?.Address ?? 'N/A'}
           </Text>
         </View>
         <View style={[styles.detailRow, {alignItems: 'center'}]}>
-          {/* <Text style={styles.detailLabel}>Delivery Date:</Text> */}
           <Icon name="person-outline" size={25} color="#6C757D" />
           <Text style={[styles.detailLabel, {marginStart: 10, fontSize: 13}]}>
             {item?.ContactPerson ?? 'N/A'}
           </Text>
         </View>
-
-        {/*  <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Office:</Text>
-          <Text style={styles.detailValue}>{officeMap[item?.Office ?? 'N/A']}</Text>
-        </View> */}
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}><Icon name='cube-outline' size={30}/></Text>
-          <Text style={styles.detailValue}>{item?.CategoryName ?? 'N/A'}</Text>
-        </View> */}
-
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Inspected By:</Text>
-          <Text style={styles.detailValue}>{item?.Inspector ?? 'N/A'}</Text>
-        </View> */}
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Date Inspected:</Text>
-          <Text style={styles.detailValue}>{item?.DateInspected ?? 'N/A'}</Text>
-        </View> */}
-        {/*  <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Address:</Text>
-          <Text style={styles.detailValue}>{item?.Address ?? 'N/A'}</Text>
-        </View> */}
-        {/* <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Contact Person:</Text>
-          <Text style={styles.detailValue}>{item?.ContactPerson ?? 'N/A'}</Text>
-        </View> */}
-        {/*   <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Contact Number:</Text>
-          <Text style={styles.detailValue}>{item?.ContactNumber ?? 'N/A'}</Text>
-        </View> */}
-        {/*     <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Tracking Partner:</Text>
-          <Text style={styles.detailValue}>
-            {item?.TrackingPartner ?? 'N/A'}
-          </Text>
-        </View> */}
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Status:</Text>
           <Text style={styles.detailValue}>{item?.Status ?? 'N/A'}</Text>
@@ -246,11 +236,10 @@ const AdvanceInspection = ({navigation}) => {
     <GestureHandlerRootView style={styles.safeArea}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
-          {/* Replaced ImageBackground source for general compatibility */}
           <View style={styles.bgHeader}>
             <View style={styles.header}>
               <TouchableOpacity
-                onPress={() => navigation?.goBack()} // Use optional chaining
+                onPress={() => navigation?.goBack()}
                 style={styles.backButton}>
                 <Icon name="chevron-back-outline" size={26} color="#FFFFFF" />
                 <Text style={styles.backButtonText}>Back</Text>
@@ -272,7 +261,6 @@ const AdvanceInspection = ({navigation}) => {
                   setSearchQuery(text);
                   setHasSearched(false);
                 }}
-                //onSubmitEditing={handleSearch}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
@@ -305,7 +293,6 @@ const AdvanceInspection = ({navigation}) => {
             </TouchableOpacity>
           </View>
 
-          {/* Tab Navigation */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
               style={[
@@ -368,19 +355,45 @@ const AdvanceInspection = ({navigation}) => {
             </View>
           ) : (
             <FlashList
-              data={sortedData}
-              renderItem={({item, index}) => (
-                <InspectionItem
-                  item={item}
-                  navigation={navigation}
-                  index={index}
-                />
-              )}
-              keyExtractor={item => item?.Id?.toString()}
+              data={sectionedData}
+              extraData={collapsedSections} // Added this line
+              renderItem={({item}) => {
+                if (item.type === 'header') {
+                  const isCollapsed = collapsedSections.has(item.officeName);
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleToggleSection(item.officeName)}
+                      style={styles.sectionHeader}>
+                      <Text style={styles.sectionHeaderText}>
+                        {item.officeName}
+                      </Text>
+                      <Icon
+                        name={isCollapsed ? 'chevron-down-outline' : 'chevron-up-outline'}
+                        size={25}
+                        color="#343A40"
+                        style={{marginLeft: 'auto'}}
+                      />
+                    </TouchableOpacity>
+                  );
+                } else {
+                  const officeNameForItem = item.parentOfficeName; 
+                  if (!collapsedSections.has(officeNameForItem)) {
+                    return (
+                      <InspectionItem
+                        item={item.data}
+                        navigation={navigation}
+                        indexInGroup={item.itemIndexInGroup}
+                      />
+                    );
+                  }
+                  return null;
+                }
+              }}
+              keyExtractor={item => item.id}
               contentContainerStyle={styles.listContent}
-              estimatedItemSize={250} // Adjust based on your item layout
+              estimatedItemSize={250}
               ListEmptyComponent={
-                hasSearched || activeTab !== 'ForInspection' ? ( // Show empty state based on search or active tab filter
+                hasSearched || activeTab !== 'ForInspection' ? (
                   <View style={styles.emptyStateContainer}>
                     <Icon
                       name="cube-outline"
@@ -419,7 +432,7 @@ const AdvanceInspection = ({navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9FA', // A light background for the whole app
+    backgroundColor: '#F8F9FA',
   },
   container: {
     flex: 1,
@@ -427,20 +440,15 @@ const styles = StyleSheet.create({
   },
   bgHeader: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 0 : 30,
-    height: 130, // Adjusted height
-    backgroundColor: '#1a508c', // Solid color instead of image
+    height: 130,
+    backgroundColor: '#1a508c',
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20, // Rounded bottom corners
-    borderBottomRightRadius: 20,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 8,
   },
-  // bgHeaderImageStyle: { // No longer needed without ImageBackground source
-  //   opacity: 0.8,
-  // },
   header: {
     width: '100%',
     flexDirection: 'row',
@@ -454,7 +462,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
     textAlign: 'center',
-    // Removed negative margin as the dummy View handles spacing now
   },
   backButton: {
     flexDirection: 'row',
@@ -474,7 +481,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     marginHorizontal: 15,
-    marginTop: -40, // Pull search bar up into header area
+    marginTop: -40,
   },
   searchInputWrapper: {
     flex: 1,
@@ -502,7 +509,7 @@ const styles = StyleSheet.create({
     height: 55,
     fontSize: 15,
     color: '#343A40',
-    paddingHorizontal: 5, // Add some padding
+    paddingHorizontal: 5,
   },
   clearSearchButton: {
     paddingHorizontal: 12,
@@ -660,6 +667,23 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: '#FFFFFF',
+  },
+  sectionHeader: {
+    backgroundColor: '#E9ECEF',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    marginBottom: 5,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionHeaderText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#343A40',
+    marginRight:20
   },
 });
 

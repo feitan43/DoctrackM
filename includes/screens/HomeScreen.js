@@ -59,10 +59,10 @@ import {
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import {useEvaluatorSummary} from '../hooks/useEvaluatorSummary';
 import {
+  useAdvanceInspection,
   useInspection,
   useInspectionRecentActivity,
 } from '../hooks/useInspection';
-
 const Drawer = createDrawerNavigator();
 
 const Tab = createBottomTabNavigator();
@@ -161,6 +161,13 @@ const HomeScreen = ({navigation}) => {
     fetchRequests,
   } = useRequestInspection();
 
+  const {
+      data: advanceInspection,
+      loading: dataLoading,
+      error: dataError,
+      refetch,
+    } = useAdvanceInspection();
+
   const {dataLength: OnScheduleLength} = useOnSchedule();
   const {data: onEvalData} = useEvaluationByStatus(
     selectedYear,
@@ -206,7 +213,13 @@ const HomeScreen = ({navigation}) => {
         item => item?.Status?.toLowerCase() === 'inspection on hold',
       ).length
     : 0;
-
+  
+  const advanceForInspection = Array.isArray(advanceInspection)
+  ? advanceInspection.filter(
+        item => item?.Status?.toLowerCase() === 'for inspection',
+      ).length
+    : 0;
+  
   const years = Array.from(
     {length: Math.max(0, currentYear - 2023 + 1)},
     (_, index) => ({
@@ -361,6 +374,7 @@ const HomeScreen = ({navigation}) => {
           setDataPX={setDataPX}
           setPXPercentage={setPXPercentage}
           calculatePXPercentage={calculatePXPercentage}
+          advanceForInspection={advanceForInspection}
           forInspection={forInspection}
           inspected={inspected}
           inspectionOnHold={inspectionOnHold}

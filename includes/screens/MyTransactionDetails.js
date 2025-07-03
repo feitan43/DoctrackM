@@ -17,12 +17,14 @@ import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
-import { officeMap } from '../utils/officeMap';
+import {officeMap} from '../utils/officeMap';
 
 const MyTransactionDetails = ({route, navigation}) => {
   const {selectedItem} = route.params;
   const [showHistory, setShowHistory] = useState(false);
   const {transactionsHistory} = useTransactionHistory(selectedItem);
+
+  const transactionHistoryrev = transactionsHistory.reverse();
 
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['25%', '50%', '80%'], []);
@@ -46,7 +48,7 @@ const MyTransactionDetails = ({route, navigation}) => {
   // --- End New ---
 
   const groupedTimelineData = useMemo(() => {
-    const grouped = transactionsHistory.reduce((acc, item) => {
+    const grouped = transactionHistoryrev.reduce((acc, item) => {
       const date = item.DateModified;
       if (!acc[date]) {
         acc[date] = [];

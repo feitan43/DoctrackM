@@ -40,6 +40,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   const handleNotifications = () => navigation?.navigate('Notifications');
   const handleContactUs = () => navigation?.navigate('ContactUs');
   const handleHelpCenter = () => navigation?.navigate('HelpCenter');
+
   /* const handleFeedback = () => {
     const options = {
       GooglePackageName: 'com.doctrackm',
@@ -158,7 +159,7 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
         {employeeNumber === '391091' && (
           <Button title="Open Stallion" onPress={showModal} />
         )}
-        
+
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Version {version}</Text>
           <Text style={[styles.versionText, {opacity: 0.5}]}>

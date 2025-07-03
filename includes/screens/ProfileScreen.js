@@ -30,6 +30,7 @@ const ProfileScreen = ({navigation}) => {
     caoReceiver,
     caoEvaluator,
     cboReceiver,
+    payroll,
   } = useUserInfo();
 
   const getAccountTypeName = type => {
@@ -74,6 +75,9 @@ const ProfileScreen = ({navigation}) => {
       roles.push('Receiver');
     }
     if (caoEvaluator === '1') {
+      roles.push('Evaluator');
+    }
+    if (payroll === '1') {
       roles.push('Evaluator');
     }
     return roles;

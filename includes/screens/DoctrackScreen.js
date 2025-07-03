@@ -71,6 +71,7 @@ const DoctrackScreen = ({
   othersVouchersData,
   othersOthersData,
   loadingDetails,
+  advanceForInspection,
   forInspection,
   inspected,
   inspectionOnHold,
@@ -683,7 +684,7 @@ const DoctrackScreen = ({
                          {
                           label: 'Advance',
                           screen: 'AdvanceInspection',
-                          length: `${inspectionOnHold ?? 0}`,
+                          length: `${advanceForInspection ?? 0}`,
                         },
                       ].map((item, index, arr) => (
                         <Pressable
