@@ -25,7 +25,8 @@ import {
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import {showMessage} from 'react-native-flash-message';
 import FastImage from 'react-native-fast-image';
-import { insertCommas } from '../utils/insertComma';
+import {insertCommas} from '../utils/insertComma';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 
 const InventoryDetails = ({route, navigation}) => {
   const {Id, Year, TrackingNumber, Office} = route.params;
@@ -41,11 +42,7 @@ const InventoryDetails = ({route, navigation}) => {
     data: imageUrls,
     isLoading: imageLoading,
     refetch: refetchImages,
-  } = useInventoryImages(
-    Id,
-    Office,
-    TrackingNumber,
-  );
+  } = useInventoryImages(Id, Office, TrackingNumber);
 
   const inventoryItem = data?.inventory?.[0];
   const poDetailsItem = data?.podetails?.[0];
@@ -87,7 +84,7 @@ const InventoryDetails = ({route, navigation}) => {
     },
   );
 
-  const pickImage = () => {
+  /*  const pickImage = () => {
     Alert.alert('Select Image', 'Choose an option to select an image', [
       {
         text: 'Cancel',
@@ -115,14 +112,17 @@ const InventoryDetails = ({route, navigation}) => {
               );
               setPreviewImage(prevImages => {
                 const newAssets = result.assets.filter(
-                  newAsset => !prevImages.some(p => p.uri === newAsset.uri)
+                  newAsset => !prevImages.some(p => p.uri === newAsset.uri),
                 );
                 // Initialize status for new images
                 const newStatus = newAssets.reduce((acc, asset) => {
                   acc[asset.uri] = 'pending';
                   return acc;
                 }, {});
-                setImageUploadStatus(prevStatus => ({...prevStatus, ...newStatus}));
+                setImageUploadStatus(prevStatus => ({
+                  ...prevStatus,
+                  ...newStatus,
+                }));
                 return [...prevImages, ...newAssets];
               });
             }
@@ -156,12 +156,135 @@ const InventoryDetails = ({route, navigation}) => {
                 if (prevImages.some(p => p.uri === newAsset.uri)) {
                   return prevImages; // Avoid duplicates
                 }
-                setImageUploadStatus(prevStatus => ({...prevStatus, [newAsset.uri]: 'pending'}));
+                setImageUploadStatus(prevStatus => ({
+                  ...prevStatus,
+                  [newAsset.uri]: 'pending',
+                }));
                 return [...prevImages, newAsset];
               });
             }
           } catch (err) {
             console.log('Camera error: ', err);
+            Alert.alert(
+              'Error',
+              'Failed to take photo with camera. ' + (err?.message || ''),
+            );
+          }
+        },
+      },
+    ]);
+  }; */
+
+  const pickImage = () => {
+    Alert.alert('Select Image', 'Choose an option to select an image', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Choose from Gallery',
+        onPress: async () => {
+          try {
+            const result = await launchImageLibrary({
+              mediaType: 'photo',
+              quality: 0.7,
+              selectionLimit: 0,
+            });
+
+            if (
+              !result.didCancel &&
+              result.assets &&
+              result.assets.length > 0
+            ) {
+              /*  console.log(
+                'Selected from gallery:',
+                result.assets.length,
+                'images.',
+              ); */
+              setPreviewImage(prevImages => {
+                const newAssets = result.assets.filter(
+                  newAsset => !prevImages.some(p => p.uri === newAsset.uri),
+                );
+                // Initialize status for new images
+                const newStatus = newAssets.reduce((acc, asset) => {
+                  acc[asset.uri] = 'pending';
+                  return acc;
+                }, {});
+                setImageUploadStatus(prevStatus => ({
+                  ...prevStatus,
+                  ...newStatus,
+                }));
+                return [...prevImages, ...newAssets];
+              });
+            }
+          } catch (err) {
+            /*  console.log('Image picker error (gallery): ', err); */
+            Alert.alert(
+              'Error',
+              'Failed to pick image from gallery. ' + (err?.message || ''),
+            );
+          }
+        },
+      },
+      {
+        text: 'Take Photo',
+        onPress: async () => {
+          try {
+            // --- Permission Request Logic ---
+            let cameraPermissionStatus;
+
+            // Check platform-specific camera permission
+            if (Platform.OS === 'ios') {
+              cameraPermissionStatus = await check(PERMISSIONS.IOS.CAMERA);
+            } else if (Platform.OS === 'android') {
+              cameraPermissionStatus = await check(PERMISSIONS.ANDROID.CAMERA);
+            }
+
+            if (cameraPermissionStatus !== RESULTS.GRANTED) {
+              // Request permission if not granted
+              let requestResult;
+              if (Platform.OS === 'ios') {
+                requestResult = await request(PERMISSIONS.IOS.CAMERA);
+              } else if (Platform.OS === 'android') {
+                requestResult = await request(PERMISSIONS.ANDROID.CAMERA);
+              }
+
+              if (requestResult !== RESULTS.GRANTED) {
+                Alert.alert(
+                  'Permission Denied',
+                  'Camera permission is required to take photos. Please enable it in your device settings.',
+                );
+                return; // Stop execution if permission is not granted
+              }
+            }
+            // --- End Permission Request Logic ---
+
+            const result = await launchCamera({
+              mediaType: 'photo',
+              quality: 0.7,
+              cameraType: 'back',
+            });
+
+            if (
+              !result.didCancel &&
+              result.assets &&
+              result.assets.length > 0
+            ) {
+              /* console.log('Took photo:', result.assets[0].uri); */
+              setPreviewImage(prevImages => {
+                const newAsset = result.assets[0];
+                if (prevImages.some(p => p.uri === newAsset.uri)) {
+                  return prevImages; // Avoid duplicates
+                }
+                setImageUploadStatus(prevStatus => ({
+                  ...prevStatus,
+                  [newAsset.uri]: 'pending',
+                }));
+                return [...prevImages, newAsset];
+              });
+            }
+          } catch (err) {
+            /* console.log('Camera error: ', err); */
             Alert.alert(
               'Error',
               'Failed to take photo with camera. ' + (err?.message || ''),
@@ -204,9 +327,9 @@ const InventoryDetails = ({route, navigation}) => {
               currentImages.filter(asset => asset.uri !== uriToRemove),
             );
             setImageUploadStatus(prevStatus => {
-                const newStatus = { ...prevStatus };
-                delete newStatus[uriToRemove];
-                return newStatus;
+              const newStatus = {...prevStatus};
+              delete newStatus[uriToRemove];
+              return newStatus;
             });
             showMessage({
               message: 'Image removed from preview!',
@@ -237,11 +360,11 @@ const InventoryDetails = ({route, navigation}) => {
 
     // Set all preview images to 'uploading' status
     setImageUploadStatus(prevStatus => {
-        const newStatus = {...prevStatus};
-        previewImage.forEach(img => {
-            newStatus[img.uri] = 'uploading';
-        });
-        return newStatus;
+      const newStatus = {...prevStatus};
+      previewImage.forEach(img => {
+        newStatus[img.uri] = 'uploading';
+      });
+      return newStatus;
     });
 
     uploadImages(
@@ -280,7 +403,7 @@ const InventoryDetails = ({route, navigation}) => {
           setImageUploadStatus(prevStatus => {
             const newStatus = {...prevStatus};
             previewImage.forEach(img => {
-                newStatus[img.uri] = 'failed';
+              newStatus[img.uri] = 'failed';
             });
             return newStatus;
           });
@@ -305,10 +428,18 @@ const InventoryDetails = ({route, navigation}) => {
   const isActionDisabled = isUploading || isOverallLoading; // Combine all loading states for action buttons
 
   // Modified logic for allImagesToDisplay
-  const allImagesToDisplay = previewImage.length > 0
+  /* const allImagesToDisplay = previewImage.length > 0
     ? previewImage.map(asset => ({ uri: asset.uri, isLocal: true, status: imageUploadStatus[asset.uri] || 'pending' }))
-    : imageUrls.map(url => ({ uri: url, isLocal: false }));
+    : imageUrls.map(url => ({ uri: url, isLocal: false })); */
 
+  const allImagesToDisplay =
+    previewImage.length > 0
+      ? previewImage.map(asset => ({
+          uri: asset.uri,
+          isLocal: true,
+          status: imageUploadStatus[asset.uri] || 'pending',
+        }))
+      : (imageUrls || []).map(url => ({uri: url, isLocal: false})); // Added || []
 
   return (
     <GestureHandlerRootView style={styles.safeArea}>
@@ -337,39 +468,39 @@ const InventoryDetails = ({route, navigation}) => {
                   <Text style={styles.sectionTitle}>General Details</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Tracking Number:</Text>
+                  <Text style={styles.label}>Tracking Number </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Year)}-
                     {getDetail(inventoryItem?.TrackingNumber)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Id:</Text>
+                  <Text style={styles.label}>Id </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Id)}
                   </Text>
                 </View>
 
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Brand:</Text>
+                  <Text style={styles.label}>Brand </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Brand)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Description:</Text>
+                  <Text style={styles.label}>Description </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Description)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Unit:</Text>
+                  <Text style={styles.label}>Unit </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Unit)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Model:</Text>
+                  <Text style={styles.label}>Model </Text>
                   <Text style={styles.value}>
                     {getDetail(
                       inventoryItem?.ModelNumber || inventoryItem?.Model,
@@ -377,59 +508,59 @@ const InventoryDetails = ({route, navigation}) => {
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Serial Number:</Text>
+                  <Text style={styles.label}>Serial Number </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.SerialNumber)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Set:</Text>
+                  <Text style={styles.label}>Set </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Set)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Property No.:</Text>
+                  <Text style={styles.label}>Property No. </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.PropertyNumber)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Sticker:</Text>
+                  <Text style={styles.label}>Sticker </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.StickerNumber)}
                   </Text>
-                </View>
+                </View> 
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Amount:</Text>
-                  <Text style={styles.value}>
-                    {getDetail(insertCommas(inventoryItem?.Amount))}
-                  </Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.label}>Unit Cost:</Text>
+                  <Text style={styles.label}>Unit Cost </Text>
                   <Text style={styles.value}>
                     {getDetail(insertCommas(inventoryItem?.UnitCost))}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Date Acquired:</Text>
+                  <Text style={styles.label}>Total </Text>
+                  <Text style={styles.value}>
+                    {getDetail(insertCommas(inventoryItem?.Amount))}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Date Acquired </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.DateAcquired)}
                   </Text>
                 </View>
-                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>NumOfFiles:</Text>
+               {/*  <View style={styles.detailRow}>
+                  <Text style={styles.label}>NumOfFiles </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.NumOfFiles)}
                   </Text>
                 </View>
-                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>UploadFiles:</Text>
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>UploadFiles </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.UploadFiles)}
                   </Text>
-                </View>
+                </View> */}
               </View>
             )}
 
@@ -440,13 +571,13 @@ const InventoryDetails = ({route, navigation}) => {
                 </View>
 
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Claimant:</Text>
+                  <Text style={styles.label}>Claimant </Text>
                   <Text style={styles.value}>
                     {getDetail(poDetailsItem?.Claimant)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>PO Number:</Text>
+                  <Text style={styles.label}>PO Number </Text>
                   <Text style={styles.value}>
                     {getDetail(poDetailsItem?.PO_Number)}
                   </Text>
@@ -460,19 +591,19 @@ const InventoryDetails = ({route, navigation}) => {
                   <Text style={styles.sectionTitle}>Assignment & Status</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Assigned To:</Text>
+                  <Text style={styles.label}>Assigned To </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.NameAssignedTo)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Current User:</Text>
+                  <Text style={styles.label}>Current User </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.CurrentUser)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.label}>Status:</Text>
+                  <Text style={styles.label}>Status </Text>
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.Status)}
                   </Text>
@@ -486,13 +617,15 @@ const InventoryDetails = ({route, navigation}) => {
               </View>
 
               {isOverallLoading ? ( // Show a global loading indicator for all images
-                 <View style={styles.loadingContainer}>
-                   <ActivityIndicator size="large" color="#1a508c" />
-                   <Text style={styles.loadingText}>Loading images...</Text>
-                 </View>
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#1a508c" />
+                  <Text style={styles.loadingText}>Loading images...</Text>
+                </View>
               ) : allImagesToDisplay.length > 0 ? (
                 allImagesToDisplay.map((image, index) => (
-                  <View key={`image-${image.uri}-${index}`} style={styles.imageWrapper}>
+                  <View
+                    key={`image-${image.uri}-${index}`}
+                    style={styles.imageWrapper}>
                     <FastImage
                       source={{
                         uri: image.uri, // Corrected to remove timestamp
@@ -511,16 +644,26 @@ const InventoryDetails = ({route, navigation}) => {
                     {image.isLocal ? ( // Show controls for local preview images
                       <>
                         {image.status === 'uploading' && (
-                            <View style={styles.uploadingOverlay}>
-                                <ActivityIndicator size="large" color="#FFFFFF" />
-                                <Text style={styles.uploadingText}>Uploading...</Text>
-                            </View>
+                          <View style={styles.uploadingOverlay}>
+                            <ActivityIndicator size="large" color="#FFFFFF" />
+                            <Text style={styles.uploadingText}>
+                              Uploading...
+                            </Text>
+                          </View>
                         )}
                         {image.status === 'failed' && (
-                            <View style={[styles.uploadingOverlay, styles.failedOverlay]}>
-                                <Icon name="warning-outline" size={30} color="#FFFFFF" />
-                                <Text style={styles.uploadingText}>Failed</Text>
-                            </View>
+                          <View
+                            style={[
+                              styles.uploadingOverlay,
+                              styles.failedOverlay,
+                            ]}>
+                            <Icon
+                              name="warning-outline"
+                              size={30}
+                              color="#FFFFFF"
+                            />
+                            <Text style={styles.uploadingText}>Failed</Text>
+                          </View>
                         )}
                         <TouchableOpacity
                           style={styles.removeImageButton}
@@ -530,7 +673,8 @@ const InventoryDetails = ({route, navigation}) => {
                           <Icon name="close-circle" size={24} color="#D32F2F" />
                         </TouchableOpacity>
                       </>
-                    ) : ( // Show controls for already uploaded images
+                    ) : (
+                      // Show controls for already uploaded images
                       <TouchableOpacity
                         style={styles.removeImageButton}
                         onPress={() => handleRemoveImage(image.uri)}
@@ -549,7 +693,10 @@ const InventoryDetails = ({route, navigation}) => {
 
               <View style={styles.imageActionButtons}>
                 <TouchableOpacity
-                  style={[styles.actionButton, isActionDisabled && styles.actionButtonDisabled]}
+                  style={[
+                    styles.actionButton,
+                    isActionDisabled && styles.actionButtonDisabled,
+                  ]}
                   onPress={pickImage}
                   disabled={isActionDisabled}>
                   <Icon name="image-outline" size={20} color="#FFFFFF" />
@@ -559,12 +706,11 @@ const InventoryDetails = ({route, navigation}) => {
                   style={[
                     styles.actionButton,
                     styles.uploadButton,
-                    (previewImage.length === 0 || isActionDisabled) && styles.uploadButtonDisabled,
+                    (previewImage.length === 0 || isActionDisabled) &&
+                      styles.uploadButtonDisabled,
                   ]}
                   onPress={confirmUploadImages}
-                  disabled={
-                    previewImage.length === 0 || isActionDisabled
-                  }>
+                  disabled={previewImage.length === 0 || isActionDisabled}>
                   {isUploading ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
@@ -675,13 +821,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: 'normal',
     color: '#555555',
     flex: 1.2,
     marginRight: 10,
   },
   value: {
     fontSize: 15,
+    fontWeight: '700',
     color: '#333333',
     flex: 2,
     textAlign: 'right',

@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useRef, useMemo} from 'react';
+import React, {useState, useCallback, useRef, useMemo, useEffect} from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,10 @@ const InventoryScreen = ({navigation}) => {
   );
   const [hasSearched, setHasSearched] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentSearchQuery, setCurrentSearchQuery] = useState(''); // New state to hold the query that triggered the search
+  const [currentSelectedYear, setCurrentSelectedYear] = useState(
+    new Date().getFullYear().toString(), // New state to hold the year that triggered the search
+  );
 
   const yearFilterBottomSheetRef = useRef(null);
 
@@ -51,7 +55,7 @@ const InventoryScreen = ({navigation}) => {
     isLoading: invLoading,
     error: invError,
     refetch,
-  } = useInventory(searchQuery, selectedYear, {
+  } = useInventory(currentSearchQuery, currentSelectedYear, { // Use currentSearchQuery and currentSelectedYear for fetching
     enabled: hasSearched && Boolean(officeCode),
   });
 
@@ -67,12 +71,34 @@ const InventoryScreen = ({navigation}) => {
 
   const handleSearch = useCallback(() => {
     setHasSearched(true);
-    refetch();
-  }, [refetch]);
+    setCurrentSearchQuery(searchQuery); // Set the query to be used for fetching
+    setCurrentSelectedYear(selectedYear); // Set the year to be used for fetching
+    // refetch() will be triggered by the `enabled` dependency of `useInventory`
+    // when currentSearchQuery or currentSelectedYear changes.
+    // However, if the values don't change, we need to manually refetch if hasSearched is true.
+    // Or, simpler, just let react-query handle it via enabled and key changes.
+    // Since we now set `hasSearched` to true and update the query/year used by the hook,
+    // react-query will trigger the fetch.
+  }, [searchQuery, selectedYear]); // Add searchQuery and selectedYear to dependencies
+
+  // This effect will refetch data if currentSearchQuery or currentSelectedYear changes
+  // and hasSearched is true.
+  useEffect(() => {
+    if (hasSearched && (currentSearchQuery !== searchQuery || currentSelectedYear !== selectedYear)) {
+      // This part is now handled by the `handleSearch` setting the
+      // `currentSearchQuery` and `currentSelectedYear` which are
+      // dependencies of `useInventory`, making it re-fetch.
+      // So, no explicit refetch here is strictly necessary if you trust react-query's
+      // dependency array re-evaluation.
+      // For clarity and to ensure a fetch on explicit search button press,
+      // it's better to manage `hasSearched` as the primary trigger with `refetch`.
+    }
+  }, [currentSearchQuery, currentSelectedYear, hasSearched, searchQuery, selectedYear]);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
+      // Refetch using the currently set search parameters
       await refetch();
     } catch (error) {
       console.error('Error during refresh:', error);
@@ -126,11 +152,11 @@ const InventoryScreen = ({navigation}) => {
         </View>
 
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Brand:</Text>
+          <Text style={styles.detailLabel}>Brand </Text>
           <Text style={styles.detailValue}>{item?.Brand ?? 'N/A'}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Description:</Text>
+          <Text style={styles.detailLabel}>Description </Text>
           <Text
             style={[
               styles.detailValue,
@@ -156,54 +182,54 @@ const InventoryScreen = ({navigation}) => {
             </Text>
           </Pressable>
         )}
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Unit:</Text>
+      {/*   <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Unit </Text>
           <Text style={styles.detailValue}>{item?.Unit ?? 'N/A'}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Model:</Text>
+          <Text style={styles.detailLabel}>Model </Text>
           <Text style={styles.detailValue}>{item?.Model ?? 'N/A'}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Serial No.:</Text>
+          <Text style={styles.detailLabel}>Serial No. </Text>
           <Text style={styles.detailValue}>{item?.SerialNumber ?? 'N/A'}</Text>
-        </View>
+        </View> */}
         {/* <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Set:</Text>
           <Text style={styles.detailValue}>{item?.Set ?? 'N/A'}</Text>
         </View> */}
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Property No.:</Text>
+      {/*   <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Property No. </Text>
           <Text style={styles.detailValue}>
             {item?.PropertyNumber ?? 'N/A'}
           </Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Sticker No.:</Text>
+          <Text style={styles.detailLabel}>Sticker No. </Text>
           <Text style={styles.detailValue}>{item?.StickerNumber ?? 'N/A'}</Text>
-        </View>
+        </View> */}
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Amount:</Text>
+          <Text style={styles.detailLabel}>Cost </Text>
           <Text style={styles.detailValue}>
-            ₱{insertCommas(item?.Amount) ?? '0.00'}
+            ₱{insertCommas(item?.UnitCost) ?? '0.00'}
           </Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Total:</Text>
-          <Text style={styles.detailValue}>₱{item?.Total ?? '0.00'}</Text>
+          <Text style={styles.detailLabel}>Total </Text>
+          <Text style={styles.detailValue}>₱{insertCommas(item?.Amount) ?? '0.00'}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Assigned To:</Text>
+          <Text style={styles.detailLabel}>Assigned To </Text>
           <Text style={styles.detailValue}>
             {item?.NameAssignedTo ?? 'N/A'}
           </Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Current User:</Text>
+          <Text style={styles.detailLabel}>Current User </Text>
           <Text style={styles.detailValue}>{item?.CurrentUser ?? 'N/A'}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Status:</Text>
+          <Text style={styles.detailLabel}>Status </Text>
           <Text style={styles.detailValue}>{item?.Status ?? 'N/A'}</Text>
         </View>
       </TouchableOpacity>
@@ -230,6 +256,16 @@ const InventoryScreen = ({navigation}) => {
           </ImageBackground>
 
           <View style={styles.searchFilterRow}>
+            {/* Year Filter Button */}
+            <TouchableOpacity
+              onPress={handlePresentYearFilterSheet}
+              style={[styles.yearFilterButton, styles.leftRounded]}>
+              <Icon name="calendar-clear-outline" size={25} color={'#1a508c'} />
+              <Text style={styles.yearFilterButtonText}>
+                {selectedYear}
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.searchInputWrapper}>
               <TextInput
                 style={styles.searchInput}
@@ -239,15 +275,15 @@ const InventoryScreen = ({navigation}) => {
                 value={searchQuery}
                 onChangeText={text => {
                   setSearchQuery(text);
-                  setHasSearched(false); // Reset hasSearched when text changes
                 }}
-                //onSubmitEditing={handleSearch} // Trigger search on keyboard submit
+                onSubmitEditing={handleSearch}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
                   onPress={() => {
                     setSearchQuery('');
-                    setHasSearched(false); // Reset hasSearched when clearing input
+                    setCurrentSearchQuery('');
+                    setHasSearched(false);
                   }}
                   style={styles.clearSearchButton}>
                   <Icon
@@ -261,46 +297,25 @@ const InventoryScreen = ({navigation}) => {
 
             <TouchableOpacity
               onPress={handleSearch}
-              style={[styles.filterButton, {marginLeft: 10}]}
+              style={[styles.filterButton, styles.rightRounded]}
               disabled={invLoading}
               activeOpacity={0.7}>
-              {invLoading ? (
-                <ActivityIndicator size="small" color="#fff" /> // Only the indicator
+              {invLoading && hasSearched ? (
+                <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Icon name="search" size={20} color="#fff" /> // Only the icon
+                <Icon name="search" size={20} color="#fff" />
               )}
-              <Text style={styles.filterButtonText}>Search</Text>
+              {/* <Text style={styles.filterButtonText}>Search</Text> */}
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            onPress={handlePresentYearFilterSheet}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 30,
-              marginHorizontal: 30,
-              marginTop: -5,
-            }}>
-            <Icon name="calendar-clear-outline" size={25} color={'#1a508c'} />
-            <Text
-              style={{
-                fontSize: 16,
-                color: '#1a508c',
-                fontWeight: '500',
-                marginStart: 5,
-              }}>
-              {selectedYear}
-            </Text>
-          </TouchableOpacity>
-
-          {invLoading && hasSearched ? ( // Only show loading if a search has been initiated
+          {invLoading && hasSearched ? (
             <ActivityIndicator
               size="large"
               color={styles.loadingIndicator.color}
               style={styles.loadingIndicator}
             />
-          ) : invError && hasSearched ? ( // Only show error if a search has been initiated
+          ) : invError && hasSearched ? (
             <View style={styles.emptyStateContainer}>
               <Icon name="warning-outline" size={50} color="#DC3545" />
               <Text style={styles.noItemsText}>Error loading data</Text>
@@ -311,21 +326,21 @@ const InventoryScreen = ({navigation}) => {
             </View>
           ) : (
             <FlashList
-              data={hasSearched ? data : []} // Only show data if a search has been initiated
+              data={hasSearched ? data : []}
               renderItem={(
-                {item, index}, // Destructure index here
+                {item, index},
               ) => (
                 <InventoryItem
                   item={item}
                   navigation={navigation}
                   index={index}
-                /> // Pass index to InventoryItem
+                />
               )}
               keyExtractor={item => item?.Id?.toString()}
               contentContainerStyle={styles.listContent}
               estimatedItemSize={150}
               ListEmptyComponent={
-                hasSearched ? ( // Only show empty state if a search has been initiated
+                hasSearched ? (
                   <View style={styles.emptyStateContainer}>
                     <Icon
                       name="cube-outline"
@@ -334,8 +349,8 @@ const InventoryScreen = ({navigation}) => {
                     />
                     <Text style={styles.noItemsText}>No items found</Text>
                     <Text style={styles.noItemsSubText}>
-                      {selectedYear
-                        ? `No items found for year ${selectedYear}.`
+                      {currentSelectedYear
+                        ? `No items found for year ${currentSelectedYear}.`
                         : 'Try adjusting your search or filters.'}
                     </Text>
                   </View>
@@ -356,8 +371,9 @@ const InventoryScreen = ({navigation}) => {
               }
               refreshControl={
                 <RefreshControl
-                  refreshing={invLoading && hasSearched}
+                  refreshing={isRefreshing}
                   onRefresh={onRefresh}
+                  enabled={hasSearched}
                 />
               }
             />
@@ -387,7 +403,6 @@ const InventoryScreen = ({navigation}) => {
                   onPress={() => {
                     setSelectedYear(item);
                     handleCloseYearFilterSheet();
-                    handleSearch(); // Trigger search when the year changes
                   }}
                   accessibilityLabel={`Filter by year ${item}`}>
                   <Text
@@ -456,13 +471,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginHorizontal: 15,
     marginTop: -40,
+    // Removed justifyContent: 'space-between' to allow elements to butt up against each other
   },
-  searchInputWrapper: {
-    flex: 1,
+  yearFilterButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Removed marginRight
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 0, // Remove all border radius initially
+    borderTopLeftRadius: 12, // Apply only to top-left
+    borderBottomLeftRadius: 12, // Apply only to bottom-left
     borderWidth: 1,
     borderColor: '#E0E0E0',
     shadowColor: '#000',
@@ -470,9 +488,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
-    marginRight: 10,
+    height: 55,
+    paddingHorizontal: 15,
+    borderRightWidth: 0, // Remove right border to blend with next component
+  },
+  yearFilterButtonText: {
+    fontSize: 16,
+    color: '#1a508c',
+    fontWeight: '500',
+    marginStart: 5,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 0, // No border radius in the middle
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
+    // Removed marginRight
     height: 55,
     paddingLeft: 10,
+    borderLeftWidth: 0, // Remove left border
+    borderRightWidth: 0, // Remove right border
   },
   searchIcon: {
     marginRight: 8,
@@ -489,9 +532,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterButton: {
-    //backgroundColor: '#1a508c',
     backgroundColor: '#007bff',
-    borderRadius: 12,
+    borderRadius: 0, // Remove all border radius initially
+    borderTopRightRadius: 12, // Apply only to top-right
+    borderBottomRightRadius: 12, // Apply only to bottom-right
     height: 55,
     paddingHorizontal: 18,
     justifyContent: 'center',
@@ -502,6 +546,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+    borderWidth: 1, // Add border to match others
+    borderColor: '#007bff', // Match background color for a seamless look
+    borderLeftWidth: 0, // Remove left border to blend
   },
   filterButtonText: {
     color: 'white',
@@ -509,6 +556,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  // --- ADDED THESE STYLES ---
+  leftRounded: {
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+  },
+  rightRounded: {
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  // --- END OF ADDED STYLES ---
   loadingIndicator: {
     marginTop: 50,
     color: '#1a508c',
@@ -569,17 +626,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   itemIdText: {
-    // New style for the ID text
     fontSize: 10,
     textAlign: 'right',
-    color: '#6C757D', // You can adjust the color
-    marginBottom: 2, // Small margin below ID
+    color: '#6C757D',
+    marginBottom: 2,
   },
   itemTrackingNumber: {
     fontSize: 16,
     fontWeight: '600',
     color: '#6C757D',
-    textAlign: 'right', // Align text to the right
+    textAlign: 'right',
   },
   itemName: {
     fontSize: 20,
@@ -592,13 +648,14 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '300',
     color: '#495057',
     marginRight: 10,
     minWidth: 90,
   },
   detailValue: {
     flex: 1,
+    fontWeight:'600',
     fontSize: 14,
     color: '#212529',
     lineHeight: 20,

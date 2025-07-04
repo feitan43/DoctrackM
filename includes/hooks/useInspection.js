@@ -71,20 +71,12 @@ export const useInspectItems = () => {
       year,
       deliveryId,
       trackingNumber,
+      poTN,
       inspectionStatus,
       invNumber,
       invDate,
       remarks,
     }) => {
-      console.log(
-        year,
-        deliveryId,
-        trackingNumber,
-        inspectionStatus,
-        invNumber,
-        invDate,
-        remarks,
-      );
       if (!trackingNumber || !inspectionStatus || !deliveryId) {
         throw new Error('Tracking number and status are required');
       }
@@ -93,6 +85,7 @@ export const useInspectItems = () => {
         employeeNumber,
         deliveryId,
         trackingNumber,
+        poTN,
         inspectionStatus,
         invNumber,
         invDate,

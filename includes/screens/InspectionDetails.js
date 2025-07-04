@@ -787,6 +787,7 @@ const InspectionDetails = ({route, navigation}) => {
     const deliveryId = deliveryData?.Id;
     const trackingNumber = deliveryData?.TrackingNumber;
     const paymentStatus = paymentData?.Status;
+    const poTN = deliveryData?.POTrackingNumber;
 
     const inspectionStatus = 'Inspected';
 
@@ -816,12 +817,10 @@ const InspectionDetails = ({route, navigation}) => {
       return;
     }
 
-    // --- New Logic for 'Inspection On Hold' ---
     if (paymentStatus?.toLowerCase() === 'inspection on hold') {
-      setShowInvoiceModal(true); // Open the modal
-      return; // Stop further execution here
+      setShowInvoiceModal(true); 
+      return; 
     }
-    // --- End New Logic ---
 
     if (paymentStatus?.toLowerCase() !== 'for inspection') {
       showMessage({
@@ -855,6 +854,7 @@ const InspectionDetails = ({route, navigation}) => {
                 year: deliveryYear,
                 deliveryId: deliveryId,
                 trackingNumber: trackingNumber,
+                poTN: poTN,
                 inspectionStatus: inspectionStatus,
                 selectedPoItemIndexes: itemsToMarkInspected,
               },

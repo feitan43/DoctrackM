@@ -547,7 +547,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
           {/* <View style={{height:10, width:'100%', borderWidth:5}}/> */}
           <View ref={obrInfoRef} style={{marginTop: 20}}>
             <PROBRInformationCard
@@ -557,7 +557,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View ref={prDetailsRef} style={{marginTop: 20}}>
             <PRDetailsCard
@@ -569,7 +569,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View ref={remarksRef} style={{marginTop: 20}}>
             <PRRemarksCard
@@ -578,7 +578,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View style={{marginTop: 20}}>
             <PRPendingNoteCard
@@ -589,7 +589,7 @@ const DetailScreen = ({route, navigation}) => {
 
           {genInformationData.Year == '2025' && procurement === '1' && (
             <>
-              <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+             {/*  <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
               <View style={{marginTop: 20}}>
                 <PRDigitalCopiesCard
@@ -605,7 +605,7 @@ const DetailScreen = ({route, navigation}) => {
               </View>
             </>
           )}
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View ref={transactionHistoryRef} style={{marginTop: 20}}>
             <PRTransactionHistoryCard

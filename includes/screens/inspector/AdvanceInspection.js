@@ -101,7 +101,7 @@ const AdvanceInspection = ({navigation}) => {
     const filteredByTab = data.filter(item => {
       switch (activeTab) {
         case 'ForInspection':
-          return item.Status === 'For Inspection';
+          return item.Status === 'For Inspection' && item.DateInspected === null;
         case 'Inspected':
           return item.DateInspected && item.DateInspected.trim() !== '';
         case 'OnHold':

@@ -33,7 +33,7 @@ export const fetchInspectionItems = async (year, trackingNumber) => {
   }
 };
 
-export const inspectItems = async (year, employeeNumber,deliveryId, trackingNumber, inspectionStatus, invNumber, invDate, remarks, ) => {
+export const inspectItems = async (year, employeeNumber,deliveryId, trackingNumber, poTN, inspectionStatus, invNumber, invDate, remarks, ) => {
   
   if (!trackingNumber || !inspectionStatus) {
     throw new Error('Tracking number and status are required.');
@@ -41,7 +41,7 @@ export const inspectItems = async (year, employeeNumber,deliveryId, trackingNumb
 
   try {
     const { data } = await apiClient.get(
-      `/inspectItems?year=${encodeURIComponent(year)}&employeeNumber=${encodeURIComponent(employeeNumber)}&deliveryId=${encodeURIComponent(deliveryId)}&trackingNumber=${encodeURIComponent(trackingNumber)}&status=${encodeURIComponent(inspectionStatus)}&invNumber=${encodeURIComponent(invNumber)}&invDate=${encodeURIComponent(invDate)}&remarks=${encodeURIComponent(remarks || "")}`,
+      `/inspectItems?year=${encodeURIComponent(year)}&employeeNumber=${encodeURIComponent(employeeNumber)}&deliveryId=${encodeURIComponent(deliveryId)}&trackingNumber=${encodeURIComponent(trackingNumber)}&poTN=${encodeURIComponent(poTN)}&status=${encodeURIComponent(inspectionStatus)}&invNumber=${encodeURIComponent(invNumber)}&invDate=${encodeURIComponent(invDate)}&remarks=${encodeURIComponent(remarks || "")}`,
     );
     return data;
   } catch (error) {

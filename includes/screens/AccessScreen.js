@@ -39,6 +39,8 @@ const AccessScreen = ({navigation}) => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSystemFilterBottomSheet, setShowSystemFilterBottomSheet] =
     useState(false);
+  const [sortBy, setSortBy] = useState('overall'); // Default sort
+  const [sortDirection, setSortDirection] = useState('asc'); // Default direction
 
   const {
     data,
@@ -139,7 +141,7 @@ const AccessScreen = ({navigation}) => {
     if (systems) {
       filterUsers();
     }
-  }, [debouncedSearchQuery, selectedSystems, users, systems]);
+  }, [debouncedSearchQuery, selectedSystems, users, systems, sortBy, sortDirection]);
 
   const filterUsers = useCallback(() => {
     let result = [...users];
@@ -164,8 +166,45 @@ const AccessScreen = ({navigation}) => {
       );
     }
 
+    // Add sorting logic here
+    result.sort((a, b) => {
+      let valA, valB;
+
+      switch (sortBy) {
+        case 'name':
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+          break;
+        case 'employeeNumber':
+          valA = a.employeeNumber.toLowerCase();
+          valB = b.employeeNumber.toLowerCase();
+          break;
+        case 'active':
+          valA = a.isActive ? 1 : 0;
+          valB = b.isActive ? 1 : 0;
+          break;
+        case 'inactive':
+          valA = a.isActive ? 0 : 1; // Invert for inactive
+          valB = b.isActive ? 0 : 1;
+          break;
+        case 'overall':
+        default:
+          valA = a.name.toLowerCase(); // Default to name for overall
+          valB = b.name.toLowerCase();
+          break;
+      }
+
+      if (valA < valB) {
+        return sortDirection === 'asc' ? -1 : 1;
+      }
+      if (valA > valB) {
+        return sortDirection === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+
     setFilteredUsers(result);
-  }, [users, debouncedSearchQuery, selectedSystems]);
+  }, [users, debouncedSearchQuery, selectedSystems, sortBy, sortDirection]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -516,18 +555,72 @@ const AccessScreen = ({navigation}) => {
         </View>
 
         <View style={styles.legendContainer}>
-          <View style={styles.legendItem}>
+          <TouchableOpacity
+            style={styles.legendItem}
+            onPress={() => {
+              setSortBy('active');
+              setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+            }}>
             <View style={styles.activeLegend}></View>
-            <Text style={styles.legendText}>Active: {activeCount}</Text>
-          </View>
-          <View style={styles.legendItem}>
+            <Text
+              style={[
+                styles.legendText,
+                sortBy === 'active' && {fontWeight: 'bold', color: '#1a508c'},
+              ]}>
+              Active: {activeCount}{' '}
+              {sortBy === 'active' && (
+                <Icon
+                  name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'}
+                  size={12}
+                  color="#1a508c"
+                />
+              )}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.legendItem}
+            onPress={() => {
+              setSortBy('inactive');
+              setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+            }}>
             <View style={styles.inactiveLegend}></View>
-            <Text style={styles.legendText}>Deactivated: {inactiveCount}</Text>
-          </View>
-          <View style={styles.legendItem}>
+            <Text
+              style={[
+                styles.legendText,
+                sortBy === 'inactive' && {fontWeight: 'bold', color: '#1a508c'},
+              ]}>
+              Deactivated: {inactiveCount}{' '}
+              {sortBy === 'inactive' && (
+                <Icon
+                  name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'}
+                  size={12}
+                  color="#1a508c"
+                />
+              )}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.legendItem}
+            onPress={() => {
+              setSortBy('overall');
+              setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+            }}>
             <View style={styles.overallLegend}></View>
-            <Text style={styles.legendText}>Overall: {overallCount}</Text>
-          </View>
+            <Text
+              style={[
+                styles.legendText,
+                sortBy === 'overall' && {fontWeight: 'bold', color: '#1a508c'},
+              ]}>
+              Overall: {overallCount}{' '}
+              {sortBy === 'overall' && (
+                <Icon
+                  name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'}
+                  size={12}
+                  color="#1a508c"
+                />
+              )}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {selectedSystems.length > 0 && (
@@ -567,7 +660,6 @@ const AccessScreen = ({navigation}) => {
           ListEmptyComponent={
             !userLoading && !loadingSystems && filteredUsers.length === 0 ? (
               <View style={styles.emptyContainer}>
-                
                 <Image
                   source={require('../../assets/images/noresultsstate.png')}
                   style={{

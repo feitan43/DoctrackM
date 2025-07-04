@@ -54,24 +54,31 @@ export const FONT_SIZES = {
 export const GLOBAL_STYLES = StyleSheet.create({
   // --- Section Container Styles (Renamed from Card Styles to reflect non-card nature) ---
   sectionContainer: {
+    //borderWidth:1,
     // Renamed from cardContainer
-    marginVertical: SPACING.m,
-    marginHorizontal: SPACING.m,
+   // marginVertical: SPACING.m,
+    marginHorizontal: SPACING.s,
+    paddingBottom:10,
+    borderRadius: SPACING.s,
+    elevation:2,
+    shadowColor: COLORS.darkGrey,
     backgroundColor: COLORS.white, // Each section will still have its own white background
     // Removed borderWidth, borderColor, borderRadius for a flatter look
   },
   sectionHeader: {
     // Renamed from cardHeader
     //backgroundColor: COLORS.headerBackground,
-    paddingVertical: SPACING.s,
+    paddingVertical: SPACING.m,
     paddingHorizontal: SPACING.s,
     //borderBottomWidth: 1,
     //borderBottomColor: COLORS.borderColor,
     //alignItems: 'center',
     justifyContent: 'center',
+    borderBottomWidth:1,
+    borderColor:'#E0E0E0'
   },
   headerText: {
-    fontSize: FONT_SIZES.title,
+    fontSize: FONT_SIZES.header,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
 
@@ -80,7 +87,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
 
   // --- List Item Styles (for General Information Card) ---
   listItemContainer: {
-    paddingHorizontal: SPACING.s,
+    paddingHorizontal: SPACING.m,
     paddingVertical: SPACING.s,
   },
   listItemInner: {

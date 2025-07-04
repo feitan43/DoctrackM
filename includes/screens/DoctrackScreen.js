@@ -681,7 +681,7 @@ const DoctrackScreen = ({
                           screen: 'InspectionOnHold',
                           length: `${inspectionOnHold ?? 0}`,
                         },
-                         {
+                        {
                           label: 'Advance',
                           screen: 'AdvanceInspection',
                           length: `${advanceForInspection ?? 0}`,
@@ -1134,6 +1134,113 @@ const DoctrackScreen = ({
           )}
         </View>
 
+         {procurement === '1' && (
+          <View
+            style={{
+              padding: 10,
+              marginTop: 15,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              elevation: 1,
+            }}>
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 10,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#5d5d5d',
+                  fontSize: 18,
+                  marginStart: 10,
+                }}>
+                Inventory
+              </Text>
+              {/*  {
+                  label: 'BACAttachments',
+                  icon: true,
+                  condition: procurement === '1',
+                  screen: 'BACAttachments',
+                }, */}
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                gap: 15,
+              }}>
+              {[
+                {
+                  label: 'Manage',
+                  icon: 'cube-outline',
+                  condition: procurement === '1',
+                  screen: 'InventoryScreen',
+                },
+              ].map((item, index) => {
+                if (!item.condition) return null;
+
+                return (
+                  <Pressable
+                    key={index}
+                    style={({pressed}) => [
+                      {
+                        width: '30%',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        marginBottom: 10,
+                        borderRadius: 5,
+                        elevation: 1,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
+                    onPress={() => {
+                      if (item.screen) {
+                        navigation.navigate(item.screen);
+                      } else {
+                        Alert.alert(
+                          'Under Development',
+                          `${item.label} is currently under development.`,
+                        );
+                      }
+                    }}>
+                    {({pressed}) => (
+                      <>
+                        <View style={{paddingVertical: 5}}>
+                          <Icon
+                            name={item.icon}
+                            size={28}
+                            color={pressed ? 'white' : '#007bff'}
+                          />
+                        </View>
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Uploader */}
         {procurement === '1' && (
           <View
@@ -1160,6 +1267,12 @@ const DoctrackScreen = ({
                 }}>
                 Uploader
               </Text>
+              {/*  {
+                  label: 'BACAttachments',
+                  icon: true,
+                  condition: procurement === '1',
+                  screen: 'BACAttachments',
+                }, */}
             </View>
 
             <View
@@ -1174,26 +1287,18 @@ const DoctrackScreen = ({
               {[
                 {
                   label: 'Attachments',
-                  icon: true,
+                  icon: 'document-attach-outline',
                   condition: procurement === '1',
                   screen: 'Attachments',
                 },
-                /*  {
-                  label: 'BACAttachments',
-                  icon: true,
-                  condition: procurement === '1',
-                  screen: 'BACAttachments',
-                }, */
                 {
                   label: 'Inventory',
-                  icon: true,
+                  icon: 'cube-outline',
                   condition: procurement === '1',
                   screen: 'InventoryScreen',
                 },
               ].map((item, index) => {
-                if (item.condition === false) {
-                  return null;
-                }
+                if (!item.condition) return null;
 
                 return (
                   <Pressable
@@ -1218,37 +1323,21 @@ const DoctrackScreen = ({
                       if (item.screen) {
                         navigation.navigate(item.screen);
                       } else {
-                        console.log(`${item.label} card pressed`);
+                        Alert.alert(
+                          'Under Development',
+                          `${item.label} is currently under development.`,
+                        );
                       }
                     }}>
                     {({pressed}) => (
                       <>
-                        {item.icon ? (
-                          <View style={{paddingVertical: 5}}>
-                            {/*  <Image
-                              source={require('../../assets/images/access.png')}
-                              style={{
-                                width: 30,
-                                height: 30,
-                                tintColor: pressed ? 'white' : '#007bff',
-                              }}
-                            /> */}
-                            <Icon
-                              name="document-attach-outline"
-                              size={28}
-                              color={pressed ? 'white' : '#007bff'}
-                            />
-                          </View>
-                        ) : (
-                          <Text
-                            style={{
-                              color: pressed ? 'white' : '#007bff',
-                              fontFamily: 'Inter_28pt-Bold',
-                              fontSize: 26,
-                            }}>
-                            {item.count || 0}
-                          </Text>
-                        )}
+                        <View style={{paddingVertical: 5}}>
+                          <Icon
+                            name={item.icon}
+                            size={28}
+                            color={pressed ? 'white' : '#007bff'}
+                          />
+                        </View>
                         <Text
                           style={{
                             color: pressed ? 'white' : '#252525',
