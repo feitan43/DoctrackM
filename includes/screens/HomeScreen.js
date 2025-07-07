@@ -216,7 +216,7 @@ const HomeScreen = ({navigation}) => {
   
   const advanceForInspection = Array.isArray(advanceInspection)
   ? advanceInspection.filter(
-        item => item?.Status?.toLowerCase() === 'for inspection',
+        item => item?.Status?.toLowerCase() === 'for inspection' && item?.DateInspected === null,
       ).length
     : 0;
   

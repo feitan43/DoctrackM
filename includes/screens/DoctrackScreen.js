@@ -1178,7 +1178,7 @@ const DoctrackScreen = ({
               }}>
               {[
                 {
-                  label: 'Manage',
+                  label: 'Upload',
                   icon: 'cube-outline',
                   condition: procurement === '1',
                   screen: 'InventoryScreen',
@@ -1291,12 +1291,12 @@ const DoctrackScreen = ({
                   condition: procurement === '1',
                   screen: 'Attachments',
                 },
-                {
+                /* {
                   label: 'Inventory',
                   icon: 'cube-outline',
                   condition: procurement === '1',
                   screen: 'InventoryScreen',
-                },
+                }, */
               ].map((item, index) => {
                 if (!item.condition) return null;
 

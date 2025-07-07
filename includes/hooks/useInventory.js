@@ -26,6 +26,34 @@ export const useInventory = (trackingNumber = '', year) => {
   });
 };
 
+
+export const fetchInventoryCategories = async (
+  officeCode,
+) => {
+  if (!officeCode) throw new Error('Office Code is required');
+  const url = `/getInvCat?OfficeCode=${officeCode}`;
+  const {data} = await apiClient.get(url);
+  return data;
+};
+
+export const useInventoryCat = () => {
+  const {officeCode} = useUserInfo();
+  return useQuery({
+    queryKey: ['getInventory', officeCode],
+    queryFn: () => fetchInventory(officeCode),
+    enabled: Boolean(officeCode),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+};
+
+
+
+
+
+
+
+
 export const fetchInventoryDetails = async (
   id,
   trackingNumber = '',

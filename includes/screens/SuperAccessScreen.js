@@ -259,75 +259,76 @@ const SuperAccessScreen = ({navigation}) => {
     [selectedEmployee, updateUserAccess],
   );
 
- const handleSaveChanges = useCallback(async () => {
-  if (!selectedEmployee) {
-    Alert.alert('Error', 'No employee selected to update.');
-    return;
-  }
+  const handleSaveChanges = useCallback(async () => {
+    if (!selectedEmployee) {
+      Alert.alert('Error', 'No employee selected to update.');
+      return;
+    }
 
-  const normalize = val => (val ?? '').toString().trim();
+    const normalize = val => (val ?? '').toString().trim();
 
-  const currentOffice = selectedEmployee.Office;
-  const currentAccountType = selectedEmployee.AccountType;
-  const currentPermission = selectedEmployee.Permission;
-  const currentPrivilege = selectedEmployee.Privilege;
-  const currentFMS = selectedEmployee.FMS;
+    const currentOffice = selectedEmployee.Office;
+    const currentAccountType = selectedEmployee.AccountType;
+    const currentPermission = selectedEmployee.Permission;
+    const currentPrivilege = selectedEmployee.Privilege;
+    const currentFMS = selectedEmployee.FMS;
 
-  if (
-    selectedOffice === currentOffice &&
-    editingAccountType === currentAccountType &&
-    normalize(editingPermission) === normalize(currentPermission) &&
-    normalize(editingPrivilege) === normalize(currentPrivilege) &&
-    editingFMS === currentFMS
-  ) {
-    Alert.alert('No Changes', 'Employee details are already up to date.');
-    setIsEditingMode(false);
-    return;
-  }
+    if (
+      selectedOffice === currentOffice &&
+      editingAccountType === currentAccountType &&
+      normalize(editingPermission) === normalize(currentPermission) &&
+      normalize(editingPrivilege) === normalize(currentPrivilege) &&
+      normalize(currentFMS) === normalize(currentFMS)
+    ) {
+      Alert.alert('No Changes', 'Employee details are already up to date.');
+      setIsEditingMode(false);
+      return;
+    }
 
-  const employeeNumber = selectedEmployee.EmployeeNumber;
-  const updatePayload = {
-    employeeNumber,
-    Office: selectedOffice,
-    AccountType: editingAccountType,
-    Permission: normalize(editingPermission) === '' ? null : editingPermission,
-    Privilege: normalize(editingPrivilege) === '' ? null : editingPrivilege,
-    FMS: editingFMS,
-  };
-
-  //console.log('pay', updatePayload);
-
-  try {
-    await updateUserInfo(updatePayload);
-    //console.log('pay', updatePayload);
-    setSelectedEmployee(prev => ({
-      ...prev,
+    const employeeNumber = selectedEmployee.EmployeeNumber;
+    const updatePayload = {
+      employeeNumber,
       Office: selectedOffice,
       AccountType: editingAccountType,
-      Permission: editingPermission,
-      Privilege: editingPrivilege,
-      FMS: editingFMS,
-    }));
-    setIsEditingMode(false);
-    Alert.alert('Success', 'Employee details updated successfully!');
-  } catch (error) {
-    console.error('Error updating employee details:', error);
-    Alert.alert(
-      'Update Error',
-      'Failed to update employee details. Please try again.'
-    );
-  }
-}, [
-  selectedEmployee,
-  selectedOffice,
-  editingAccountType,
-  editingPermission,
-  editingPrivilege,
-  editingFMS,
-  updateUserInfo,
-  setIsEditingMode,
-  setSelectedEmployee,
-]);
+      Permission:
+        normalize(editingPermission) === '' ? null : editingPermission,
+      Privilege: normalize(editingPrivilege) === '' ? null : editingPrivilege,
+      FMS: normalize(editingFMS) === '' ? null : editingFMS,
+    };
+
+    //console.log('pay', updatePayload);
+
+    try {
+      await updateUserInfo(updatePayload);
+      //console.log('pay', updatePayload);
+      setSelectedEmployee(prev => ({
+        ...prev,
+        Office: selectedOffice,
+        AccountType: editingAccountType,
+        Permission: editingPermission,
+        Privilege: editingPrivilege,
+        FMS: editingFMS,
+      }));
+      setIsEditingMode(false);
+      Alert.alert('Success', 'Employee details updated successfully!');
+    } catch (error) {
+      console.error('Error updating employee details:', error);
+      Alert.alert(
+        'Update Error',
+        'Failed to update employee details. Please try again.',
+      );
+    }
+  }, [
+    selectedEmployee,
+    selectedOffice,
+    editingAccountType,
+    editingPermission,
+    editingPrivilege,
+    editingFMS,
+    updateUserInfo,
+    setIsEditingMode,
+    setSelectedEmployee,
+  ]);
 
   const filteredOfficeOptions = officeOptions.filter(
     option =>
