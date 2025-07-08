@@ -333,7 +333,7 @@ const TransactionProgress = ({
               loadingTransSum={loadingTransSum}
             />
 
-            <View style={styles.progressRow}>
+           {/*  <View style={styles.progressRow}>
               <Text style={styles.documentLabel}>Vouchers</Text>
               <TouchableOpacity
                 style={styles.progressBarTouchable}
@@ -548,7 +548,7 @@ const TransactionProgress = ({
                     )}
                   </View>
                 ))}
-            </View>
+            </View> */}
           </View>
         </>
       )}

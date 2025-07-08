@@ -23,7 +23,6 @@ const MyTransactionDetails = ({route, navigation}) => {
   const {selectedItem} = route.params;
   const [showHistory, setShowHistory] = useState(false);
   const {transactionsHistory} = useTransactionHistory(selectedItem);
-
   const transactionHistoryrev = transactionsHistory.reverse();
 
   const bottomSheetRef = useRef(null);

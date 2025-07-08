@@ -47,6 +47,73 @@ export const removeHtmlTags = text => {
   return `${year}-${month}-${day} ${formattedTime}`;
 };
 
+export const getIcon = (description = '') => {
+  const desc = description.toLowerCase();
+
+  // If the description is empty, return a default icon immediately
+  if (!desc) {
+    return 'apps-outline';
+  }
+
+  // Use a Map to store categories and their keywords for easier management
+  const categories = new Map([
+    // Home & Office
+    [['furniture', 'cabinet'], 'home-outline'],
+    [['janitorial', 'cleaning'], 'brush-outline'],
+    [['computer', 'it', 'software', 'peripherals'], 'laptop-outline'],
+    [['office', 'forms', 'postage', 'subscription'], 'briefcase-outline'],
+
+    // General Supplies & Equipment
+    [['supplies', 'materials', 'consumables'], 'cube-outline'],
+    [['equipment', 'tools', 'devices', 'mechanical'], 'build-outline'],
+    [['appliances', 'electronic', 'electrical'], 'bulb-outline'],
+
+    // Food & Dining
+    [['groceries', 'food', 'fruits', 'vegetables'], 'basket-outline'],
+    [['kitchen', 'glasswares', 'bedding', 'umbrella'], 'restaurant-outline'],
+
+    // Media & Recreation
+    [['audio-video', 'radio', 'musical'], 'tv-outline'],
+    [['sports', 'camping', 'diving'], 'walk-outline'],
+    [['books', 'references'], 'book-outline'],
+
+    // Clothing & Medical
+    [['tailoring', 'clothing', 'textile', 'attire'], 'cut-outline'],
+    [['medical', 'surgical', 'veterinary', 'dental'], 'medkit-outline'],
+    [['drugs', 'medicines', 'reagents'], 'flask-outline'],
+    [['laboratory', 'analysis', 'measurement'], 'eyedrop-outline'],
+
+    // Safety & Vehicles
+    [['security', 'fire', 'rescue', 'safety', 'guns'], 'shield-outline'],
+    [['vehicles', 'tires', 'auto', 'bicycle'], 'car-outline'],
+
+    // Construction & Maintenance
+    [['construction', 'civil works', 'repair'], 'construct-outline'],
+    [['gardening', 'fertilizers', 'seed'], 'leaf-outline'],
+
+    // Business & Services
+    [['accountable', 'business', 'publication'], 'document-text-outline'],
+    [['training', 'services', 'provider', 'servicing', 'engineering', 'fabrication', 'goldsmith'], 'people-outline'],
+
+    // Chemicals & Fuels
+    [['fuel', 'oil', 'lubricants', 'oxygen', 'chemicals'], 'flame-outline'],
+
+    // Miscellaneous
+    [['token', 'souvenir', 'medals', 'trophies', 'kit'], 'gift-outline'],
+    [['no category', 'non-pr', 'others', 'miscellaneous'], 'help-circle-outline'],
+  ]);
+
+  // Iterate through the categories and check for keyword matches
+  for (const [keywords, icon] of categories) {
+    if (keywords.some(keyword => desc.includes(keyword))) {
+      return icon;
+    }
+  }
+
+  // Default icon if no match found
+  return 'apps-outline';
+};
+
 
 export const categories = [ // ADDED export here
   {

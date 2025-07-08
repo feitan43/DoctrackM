@@ -117,6 +117,7 @@ import BossEditScreen from '../screens/BossEditScreen';
 import InventoryDetails from '../screens/InventoryDetails';
 import AdvanceInspection from '../screens/inspector/AdvanceInspection';
 import AdvanceInspectionDetails from '../screens/inspector/AdvanceInspectionDetails';
+import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -646,6 +647,11 @@ const handleUpdate = async updateUrl => {
           name="AdvanceInspectionDetails"
           component={AdvanceInspectionDetails}
          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+        />
+         <Stack.Screen
+          name="CategoryDetail"
+          component={CategoryDetailScreen}
+          options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
         />
         <Stack.Screen name='BossEditScreen' component={BossEditScreen}/>
 

@@ -27,6 +27,7 @@ import CustomModal from '../components/CustomModal';
 import RecentActivity from './inspector/RecentActivity';
 import TransactionProgress from '../components/TransactionProgress'; // Import the new component
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import PayrollCard from '../components/PayrollCard';
 
 const DoctrackScreen = ({
   myTransactionsLength,
@@ -873,9 +874,10 @@ const DoctrackScreen = ({
               '1031',
               'BAAC',
               'TRAC',
+              'LSBD',
             ].includes(officeCode) && (
               <View>
-                {accountType !== '2' && (
+                {accountType === '1' && (
                   <View
                     style={{
                       padding: 10,
@@ -1129,12 +1131,28 @@ const DoctrackScreen = ({
                   officeName={officeName}
                   loadingDetails={loadingDetails}
                 />
+
+                <PayrollCard
+                 dataPR={dataPR}
+                  dataPO={dataPO}
+                  dataPX={dataPX}
+                  PRPercentage={PRPercentage}
+                  POPercentage={POPercentage}
+                  PXPercentage={PXPercentage}
+                  loadingTransSum={loadingTransSum}
+                  loadingUseOthers={loadingUseOthers}
+                  othersVouchersData={othersVouchersData}
+                  othersOthersData={othersOthersData}
+                  officeName={officeName}
+                  loadingDetails={loadingDetails}
+                  />
+
               </View>
             )
           )}
         </View>
 
-         {procurement === '1' && (
+        {procurement === '1' && (
           <View
             style={{
               padding: 10,

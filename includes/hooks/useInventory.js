@@ -26,12 +26,9 @@ export const useInventory = (trackingNumber = '', year) => {
   });
 };
 
-
-export const fetchInventoryCategories = async (
-  officeCode,
-) => {
+export const fetchInventoryCategories = async officeCode => {
   if (!officeCode) throw new Error('Office Code is required');
-  const url = `/getInvCat?OfficeCode=${officeCode}`;
+  const url = `/getInventoryCategory?OfficeCode=${officeCode}`;
   const {data} = await apiClient.get(url);
   return data;
 };
@@ -40,19 +37,30 @@ export const useInventoryCat = () => {
   const {officeCode} = useUserInfo();
   return useQuery({
     queryKey: ['getInventory', officeCode],
-    queryFn: () => fetchInventory(officeCode),
+    queryFn: () => fetchInventoryCategories(officeCode),
     enabled: Boolean(officeCode),
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 };
 
+export const fetchInventoryCategoryDetails = async (officeCode, category) => {
+  if (!officeCode) throw new Error('Office Code is required');
+  const url = `/getInventoryCategoryDetails?OfficeCode=${officeCode}&Category=${category}`;
+  const {data} = await apiClient.get(url);
+  return data;
+};
 
-
-
-
-
-
+export const useInventoryCatDetails = category => {
+  const {officeCode} = useUserInfo();
+  return useQuery({
+    queryKey: ['getInventory', officeCode],
+    queryFn: () => fetchInventoryCategoryDetails(officeCode, category),
+    enabled: Boolean(officeCode),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+};
 
 export const fetchInventoryDetails = async (
   id,
@@ -151,7 +159,7 @@ export const useUploadInventory = () => {
         variables.office,
         variables.tn,
       ]);
-     /*  console.log('data', data); */
+      /*  console.log('data', data); */
       /*  if (variables.office) {
         queryClient.invalidateQueries([
           'getInventoryDetails',

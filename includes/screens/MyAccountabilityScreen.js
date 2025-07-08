@@ -632,8 +632,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   categoryCardWrapper: {
-    flex: 1 / 3,
-    margin: 6, 
+    flex: 1 / 3, 
     alignItems: 'center',
   },
   categoryCardTouchable: {
