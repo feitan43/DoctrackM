@@ -39,6 +39,7 @@ const DoctrackScreen = ({
   accountType,
   caoReceiver,
   caoEvaluator,
+  payroll,
   boss,
   officeName,
   privilege,
@@ -1131,26 +1132,27 @@ const DoctrackScreen = ({
                   officeName={officeName}
                   loadingDetails={loadingDetails}
                 />
-
-                <PayrollCard
-                 dataPR={dataPR}
-                  dataPO={dataPO}
-                  dataPX={dataPX}
-                  PRPercentage={PRPercentage}
-                  POPercentage={POPercentage}
-                  PXPercentage={PXPercentage}
-                  loadingTransSum={loadingTransSum}
-                  loadingUseOthers={loadingUseOthers}
-                  othersVouchersData={othersVouchersData}
-                  othersOthersData={othersOthersData}
-                  officeName={officeName}
-                  loadingDetails={loadingDetails}
-                  />
-
               </View>
             )
           )}
         </View>
+
+        {payroll != '1' && (
+          <PayrollCard
+            dataPR={dataPR}
+            dataPO={dataPO}
+            dataPX={dataPX}
+            PRPercentage={PRPercentage}
+            POPercentage={POPercentage}
+            PXPercentage={PXPercentage}
+            loadingTransSum={loadingTransSum}
+            loadingUseOthers={loadingUseOthers}
+            othersVouchersData={othersVouchersData}
+            othersOthersData={othersOthersData}
+            officeName={officeName}
+            loadingDetails={loadingDetails}
+          />
+        )}
 
         {procurement === '1' && (
           <View
@@ -1465,6 +1467,140 @@ const DoctrackScreen = ({
                                 : '#007bff'
                             }
                             style={{paddingVertical: 5}}
+                          />
+                        ) : (
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#007bff',
+                              fontFamily: 'Inter_28pt-Bold',
+                              fontSize: 26,
+                            }}>
+                            {item.count || 0}
+                          </Text>
+                        )}
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {boss === '1' && (
+          <View
+            style={{
+              padding: 10,
+              marginTop: 20,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              elevation: 2,
+            }}>
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 10,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#5d5d5d',
+                  fontSize: 18,
+                  marginStart: 10,
+                }}>
+                Supplier Rating
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                gap: 15,
+              }}>
+              {[
+                {
+                  label: 'Write a Review',
+                  icon: true,
+                  iconName: 'pencil-box-outline',
+                  screen: 'WriteReview',
+                },
+                {
+                  label: 'Supplier Reviews',
+                  icon: true,
+                  iconName: 'account-group-outline',
+                  screen: 'SuperAccess',
+                },
+                {
+                  label: 'Reviews Summary',
+                  icon: true,
+                  iconName: 'chart-box-outline',
+                  screen: 'SuperAccess',
+                },
+
+                /* {
+                  label: 'Edit',
+                  icon: true,
+                  iconName: 'pencil-outline',
+                  screen: 'BossEditScreen',
+                }, */
+              ].map((item, index) => {
+                if (item.condition === false) return null;
+
+                return (
+                  <Pressable
+                    key={index}
+                    style={({pressed}) => [
+                      {
+                        width: '30%',
+                        alignItems: 'center',
+                        paddingVertical: 10,
+                        marginBottom: 10,
+                        borderRadius: 5,
+                        elevation: 1,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
+                    onPress={() => {
+                      if (item.screen) {
+                        navigation.navigate(item.screen);
+                      } else {
+                        console.log(`${item.label} card pressed`);
+                      }
+                    }}>
+                    {({pressed}) => (
+                      <>
+                        {item.icon ? (
+
+                          <MaterialCommunityIcons
+                            name={item.iconName}
+                            size={30}
+                            color={
+                              pressed
+                                ? 'white'
+                                : item.iconName === 'crown-outline'
+                                ? '#007bff'
+                                : '#007bff'
+                            }
+                            style={{paddingVertical: 5, backgroundColor:/* '#ebf2ff' */pressed ? '#007bff' : '#ebf2ff', paddingHorizontal:10, borderRadius:20}}
                           />
                         ) : (
                           <Text

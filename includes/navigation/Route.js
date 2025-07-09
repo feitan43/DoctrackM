@@ -118,6 +118,7 @@ import InventoryDetails from '../screens/InventoryDetails';
 import AdvanceInspection from '../screens/inspector/AdvanceInspection';
 import AdvanceInspectionDetails from '../screens/inspector/AdvanceInspectionDetails';
 import CategoryDetailScreen from '../screens/CategoryDetailScreen';
+import WriteAReviewScreen from '../screens/supplierRating/WriteAReview';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -651,6 +652,11 @@ const handleUpdate = async updateUrl => {
          <Stack.Screen
           name="CategoryDetail"
           component={CategoryDetailScreen}
+          options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
+        />
+         <Stack.Screen
+          name="WriteReview"
+          component={WriteAReviewScreen}
           options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
         />
         <Stack.Screen name='BossEditScreen' component={BossEditScreen}/>

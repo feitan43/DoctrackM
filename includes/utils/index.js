@@ -31,7 +31,7 @@ export const removeHtmlTags = text => {
   return newText.replace(htmlRegex, ' ');
 };
 
-  export const formatDateTime = text => {
+export const formatDateTime = text => {
   const date = new Date(text);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -45,6 +45,123 @@ export const removeHtmlTags = text => {
 
   const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
   return `${year}-${month}-${day} ${formattedTime}`;
+};
+
+export const categoryIconMap = {
+  'Audio-Video Equipment - A': 'monitor-speaker',
+  'Audio-Video Equipment - B': 'speaker',
+  'Audio-Video Equipment - C': 'headphones',
+  'Audio-Video Spare Parts and Accessories': 'speaker-wireless',
+  'Audio-Video Supplies and Materials': 'speaker',
+  'Auto Repair Shop': 'car-wrench',
+  'Art and Sign Services': 'palette',
+  'Breeding Animals': 'paw',
+  'Clothing (for Emergency Situations)': 'tshirt-crew',
+  'Computer Equipment and Accessories': 'monitor',
+  'Computer Repair Services': 'laptop-windows',
+  'Computer Software': 'code-tags',
+  'Computer Supplies and Materials': 'harddisk',
+  'Construction Supplies and Materials': 'hammer-wrench',
+  'Construction Tools and Equipment': 'toolbox',
+  'Dental Supplies and Materials': 'tooth-outline',
+  'Drugs and Medicines': 'pill',
+  'Electrical Equipment and Appliances - A': 'blender',
+  'Electrical Equipment and Appliances - B': 'microwave',
+  'Electrical Equipment and Appliances - Repairs': 'current-ac',
+  'Electrical Supplies and Materials': 'plug',
+  'Electrical Tools': 'screwdriver',
+  'Engineering Supplies, Tools & Equipment': 'compass-outline',
+  'Engineering Contractor': 'hard-hat',
+  'Food and Catering Services': 'silverware-fork',
+  'Fertilizers, Fungicide and Insecticide': 'leaf',
+  'Furniture and Fixtures (Ergonomic and Eurotech Type)': 'chair-rolling',
+  'Furniture and Fixtures (Non-Ergonomic)': 'sofa-single',
+  'Furniture and Fixtures (Plastic)': 'chair-plastic',
+  'Heavy Equipment': 'excavator',
+  'Industrial Chemicals': 'beaker-outline',
+  'Janitorial Supplies and Materials': 'broom',
+  'Gardening Supplies and Materials': 'flower',
+  'Gardening Tools and Equipment': 'shovel',
+  'Groceries': 'cart',
+  'IT Provider': 'desktop-mac-dashboard',
+  'Lumber and Plywood': 'timber',
+  'Medical Equipment': 'hospital-box-outline',
+  'Medical Supplies and Materials': 'bandage',
+  'Musical Instruments': 'guitar-acoustic',
+  'Office Equipment - Electronic': 'printer',
+  'Office Equipment - Manual - A': 'calculator-variant',
+  'Office Equipment - Manual - B': 'typewriter',
+  'Office Supplies and Materials': 'clipboard-outline',
+  'Oil and Lubricants': 'oil',
+  'Painting Tools and Materials': 'brush',
+  'Plumbing Supplies and Materials': 'pipe-wrench',
+  'Plumbing Tools and Equipment': 'pump',
+  'Printed Forms and Printing Services': 'file-document-outline',
+  'Publication': 'book-open-variant',
+  'Quarry Materials': 'rock',
+  'Radio Communications Equipment': 'radio',
+  'Road Construction Materials': 'road',
+  'Security Services': 'security',
+  'Seed and Seedlings': 'seed-outline',
+  'Spare Parts for Light & Heavy Equipment': 'engine-outline',
+  'Sports Attire - A': 'shoe-sneaker',
+  'Sports Attire - B': 'basketball',
+  'Sports Equipment and Supplies': 'dumbbell',
+  'Sub-Category Medals & Trophies': 'medal',
+  'Tire, Batteries, and Accessories - 4 Wheels': 'tire',
+  'Tire, Batteries, and Accessories - 2 Wheels': 'motorbike',
+  'Vehicles (2 Wheels) and Accessories': 'bike',
+  'Vehicles (4 Wheels) and Accessories': 'car-sports',
+  'Veterinary Drugs and Medicines': 'medical-bag',
+  'Veterinary Supplies and Materials': 'stethoscope',
+  'BEDDING SUPPLIES': 'bed-outline',
+  'Surgical Supplies': 'knife',
+  'Laboratory Supplies': 'flask-outline',
+  'Laboratory Reagents and Chemicals': 'test-tube',
+  'Computer Peripherals and Accessories': 'mouse',
+  'Glasswares': 'bottle-wine-outline',
+  'Subscription': 'cash-multiple',
+  'FUEL, OIL, LUBRICANTS AND SERVICING': 'fuel',
+  'Electronic Consumables': 'chip',
+  'TAILORING': 'hanger',
+  'Postage and Stamps': 'post-outline',
+  'Fire and Rescue Equipment': 'fire-truck',
+  'Accountable Forms': 'file-document-edit-outline',
+  'Fabrication': 'tools',
+  'No Category': 'help-circle-outline',
+  'OXYGEN AND ACETYLENE': 'cylinder',
+  'OFFICE EQUIPMENT - SPARE PARTS/REPAIR': 'cog-outline',
+  'Security and Safety Supplies and materials': 'shield-check-outline',
+  'EQUIPMENT RENTAL': 'rent',
+  'GUNS AND AMMUNITIONS': 'gun',
+  'SECURITY & SAFETY DEVICES, TOOLS AND EQUIPMENT': 'alarm-light-outline',
+  'Cabinet Eurotec Type': 'cabinet-outline',
+  'GOLDSMITH AND METAL CRAFT SERVICES': 'gold',
+  'Textile Supplies and Materials': 'scissors-cutting',
+  'AGRICULTURAL CHEMICAL': 'chemical-weapon',
+  'AGRICULTURAL SUPPPLIES AND EQUIPMENT': 'tractor-variant',
+  'BUSINESS AND BICYCLE PLATES': 'bike-fast',
+  'CAMPING MATERIALS AND EQUIPMENT': 'tent',
+  'CELLULAR PHONES AND ACCESSORIES': 'cellphone',
+  'CONSTRUCTION REPAIR': 'repair',
+  'Training Supplies and Materials (Cosmetology Equipment)': 'face-woman',
+  'EYE GLASSES': 'eyeglasses',
+  'FIRE AND RESCUE SUPPLIES AND MATERIALS': 'fire-extinguisher',
+  'HAULING SERVICES': 'truck-trailer',
+  'MECHANICAL EQUIPMENT': 'engine',
+  'UMBRELLAS': 'umbrella',
+  'SERVICES': 'handshake-outline',
+  'MECHANICAL TOOLS, INSTRUMENTS, MATERIALS': 'wrench',
+  'Books and References': 'book-multiple-outline',
+  'Kitchenwares': 'chef-hat-outline',
+  'Diving Equipment and Accessories': 'diving-scuba',
+  'Measurement & Analysis Instruments': 'gauge',
+  'Fruits and Vegetables': 'food-apple-outline',
+  'Non-PR Transactions': 'cash-remove',
+  'Infrastructures/Civil Works': 'office-building',
+  'Rescue and Safety Tools/Devices': 'lifebuoy',
+  'Tokens, Souvenirs, and Kit': 'trophy-variant-outline',
+  // Add more mappings as needed
 };
 
 export const getIcon = (description = '') => {
@@ -93,14 +210,28 @@ export const getIcon = (description = '') => {
 
     // Business & Services
     [['accountable', 'business', 'publication'], 'document-text-outline'],
-    [['training', 'services', 'provider', 'servicing', 'engineering', 'fabrication', 'goldsmith'], 'people-outline'],
+    [
+      [
+        'training',
+        'services',
+        'provider',
+        'servicing',
+        'engineering',
+        'fabrication',
+        'goldsmith',
+      ],
+      'people-outline',
+    ],
 
     // Chemicals & Fuels
     [['fuel', 'oil', 'lubricants', 'oxygen', 'chemicals'], 'flame-outline'],
 
     // Miscellaneous
     [['token', 'souvenir', 'medals', 'trophies', 'kit'], 'gift-outline'],
-    [['no category', 'non-pr', 'others', 'miscellaneous'], 'help-circle-outline'],
+    [
+      ['no category', 'non-pr', 'others', 'miscellaneous'],
+      'help-circle-outline',
+    ],
   ]);
 
   // Iterate through the categories and check for keyword matches
@@ -114,8 +245,8 @@ export const getIcon = (description = '') => {
   return 'apps-outline';
 };
 
-
-export const categories = [ // ADDED export here
+export const categories = [
+  // ADDED export here
   {
     name: 'Computer Equipment',
     icon: 'laptop',
