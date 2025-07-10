@@ -28,6 +28,7 @@ import RecentActivity from './inspector/RecentActivity';
 import TransactionProgress from '../components/TransactionProgress'; // Import the new component
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import PayrollCard from '../components/PayrollCard';
+import AnnouncementCard from '../components/AnnouncementCard';
 
 const DoctrackScreen = ({
   myTransactionsLength,
@@ -286,6 +287,27 @@ const DoctrackScreen = ({
 
   const [showAll, setShowAll] = useState(false);
 
+  const announcements = [
+    {
+      id: '1',
+      title: 'Upcoming Holiday Schedule',
+      date: 'July 15, 2025',
+      recipientOffice: 'CITY ADMIN - PROJECT DOCTRACK',
+      senderName: 'Christian Lozano',
+      content:
+        'Please be advised of the upcoming holiday schedule for the month of July. All offices will be closed on July 20th in observance of a national holiday. Normal operations will resume on July 21st. For more details, please check the official HR portal.',
+    },
+   /*  {
+      id: '2',
+      title: 'New Policy on Remote Work',
+      date: 'July 10, 2025',
+      recipientOffice: 'All Offices',
+      senderName: 'Management',
+      content:
+        'A new policy regarding remote work has been implemented, effective immediately. This policy aims to provide more flexibility while ensuring productivity. Employees are encouraged to review the full document available on the company intranet.',
+    }, */
+  ];
+
   const renderUI = useCallback(() => {
     const itemsToShowTrackSum = showAll
       ? trackSumData
@@ -302,6 +324,12 @@ const DoctrackScreen = ({
           justifyContent: 'center',
           paddingHorizontal: 10,
         }}>
+        {boss === '1' && (
+          <View style={{}}>
+            <AnnouncementCard announcements={announcements} />
+          </View>
+        )}
+
         <View>
           {caoReceiver === '1' || caoEvaluator === '1' ? (
             <>
@@ -1137,7 +1165,7 @@ const DoctrackScreen = ({
           )}
         </View>
 
-        {payroll != '1' && (
+        {payroll === '1' && (
           <PayrollCard
             dataPR={dataPR}
             dataPO={dataPO}
@@ -1495,7 +1523,7 @@ const DoctrackScreen = ({
           </View>
         )}
 
-        {boss === '1' && (
+        {/*  {boss === '1' && (
           <View
             style={{
               padding: 10,
@@ -1550,13 +1578,6 @@ const DoctrackScreen = ({
                   iconName: 'chart-box-outline',
                   screen: 'SuperAccess',
                 },
-
-                /* {
-                  label: 'Edit',
-                  icon: true,
-                  iconName: 'pencil-outline',
-                  screen: 'BossEditScreen',
-                }, */
               ].map((item, index) => {
                 if (item.condition === false) return null;
 
@@ -1600,7 +1621,7 @@ const DoctrackScreen = ({
                                 ? '#007bff'
                                 : '#007bff'
                             }
-                            style={{paddingVertical: 5, backgroundColor:/* '#ebf2ff' */pressed ? '#007bff' : '#ebf2ff', paddingHorizontal:10, borderRadius:20}}
+                            style={{paddingVertical: 5, backgroundColor:pressed ? '#007bff' : '#ebf2ff', paddingHorizontal:10, borderRadius:20}}
                           />
                         ) : (
                           <Text
@@ -1627,7 +1648,7 @@ const DoctrackScreen = ({
               })}
             </View>
           </View>
-        )}
+        )} */}
 
         {/*PERSONAL VIEW */}
         <View

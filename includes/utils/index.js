@@ -49,7 +49,7 @@ export const formatDateTime = text => {
 
 export const categoryIconMap = {
   'Audio-Video Equipment - A': 'monitor-speaker',
-  'Audio-Video Equipment - B': 'speaker',
+  'Audio-Video Equipment - B': 'camcorder',
   'Audio-Video Equipment - C': 'headphones',
   'Audio-Video Spare Parts and Accessories': 'speaker-wireless',
   'Audio-Video Supplies and Materials': 'speaker',

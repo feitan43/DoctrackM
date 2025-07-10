@@ -8,23 +8,30 @@ import {
   StatusBar,
   SafeAreaView,
   Platform,
-  Image, // Import Image
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {insertCommas} from '../utils/insertComma';
 import {removeHtmlTags} from '../utils';
-import { useInventoryImages } from '../hooks/useInventory';
+import {useInventoryImages} from '../hooks/useInventory';
 
 const MyAccountabilityDetails = ({route, navigation}) => {
   const {selectedItem, selectedIcon, selectedName} = route.params;
-  const {data} = useInventoryImages();
+
+  const {Id, Office, TrackingNumber} = selectedItem;
+
+  const {
+    data: imageUris,
+    isLoading: imageLoading,
+    isError: imageError,
+  } = useInventoryImages(Id, Office, TrackingNumber);
 
   const renderContent = () => {
     return (
       <View style={styles.detailsCard}>
-        {/* Tracking Number Section - Enhanced prominence */}
         <View style={styles.trackingNumberSection}>
           <Text style={styles.trackingNumberLabel}>Tracking Number</Text>
           <Text style={styles.trackingNumberValue}>
@@ -32,15 +39,8 @@ const MyAccountabilityDetails = ({route, navigation}) => {
           </Text>
         </View>
 
-        {/* General Item Information */}
         <View style={styles.infoGroup}>
           <Text style={styles.groupTitle}>Item Details</Text>
-         {/*  <View style={styles.infoRow}>
-            <View style={styles.infoColumn}>
-              <Text style={styles.itemLabel}>Item</Text>
-              <Text style={styles.itemValue}>{selectedItem.Item}</Text>
-            </View>
-          </View> */}
 
           <View style={styles.infoRow}>
             <View style={styles.infoColumn}>
@@ -84,7 +84,6 @@ const MyAccountabilityDetails = ({route, navigation}) => {
           </View>
         </View>
 
-        {/* Identification Numbers Group */}
         <View style={styles.infoGroup}>
           <Text style={styles.groupTitle}>Identification Numbers</Text>
           <View style={styles.infoRow}>
@@ -118,7 +117,6 @@ const MyAccountabilityDetails = ({route, navigation}) => {
           </View>
         </View>
 
-        {/* Description Section */}
         <View style={styles.infoGroup}>
           <Text style={styles.groupTitle}>Description</Text>
           <Text style={styles.descriptionValue}>
@@ -127,7 +125,6 @@ const MyAccountabilityDetails = ({route, navigation}) => {
           </Text>
         </View>
 
-        {/* Current User Section */}
         <View style={styles.infoGroup}>
           <Text style={styles.groupTitle}>Current User</Text>
           <Text style={styles.currentUserValue}>
@@ -138,21 +135,40 @@ const MyAccountabilityDetails = ({route, navigation}) => {
           </Text>
         </View>
 
-        {/* Image Section - Moved to the bottom */}
-        {selectedItem.ImageUrl ? (
-          <View style={styles.imageContainer}>
-            <Image
-              source={{uri: selectedItem.ImageUrl}}
-              style={styles.itemImage}
-              resizeMode="contain" // Ensures the entire image is visible
-            />
-          </View>
-        ) : (
-          <View style={styles.noImageContainer}>
-            <Icons name="image-off-outline" size={60} color="#b0b0b0" />
-            <Text style={styles.noImageText}>No image available</Text>
-          </View>
-        )}
+        <View style={styles.infoGroup}>
+          <Text style={styles.groupTitle}>Images</Text>
+          {imageLoading ? (
+            <View style={styles.imageLoadingContainer}>
+              <ActivityIndicator size="large" color="#1A508C" />
+              <Text style={styles.imageLoadingText}>Loading images...</Text>
+            </View>
+          ) : imageError ? (
+            <View style={styles.noImageContainer}>
+              <Icons name="alert-circle-outline" size={60} color="#EF4444" />
+              <Text style={styles.noImageText}>Error loading images.</Text>
+            </View>
+          ) : imageUris && imageUris.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalImageScroll}>
+              {imageUris.map((uri, index) => (
+                <View key={index} style={styles.itemImageWrapper}>
+                  <Image
+                    source={{uri: uri}}
+                    style={styles.itemImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.noImageContainer}>
+              <Icons name="image-off-outline" size={60} color="#b0b0b0" />
+              <Text style={styles.noImageText}>No images available</Text>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
@@ -171,7 +187,7 @@ const MyAccountabilityDetails = ({route, navigation}) => {
               pressed && {backgroundColor: 'rgba(255, 255, 255, 0.2)'},
             ]}
             android_ripple={{
-              color: 'rgba(255, 255, 255, 0.3)', // Slightly more visible ripple
+              color: 'rgba(255, 255, 255, 0.3)',
               borderless: true,
               radius: 24,
             }}
@@ -180,7 +196,7 @@ const MyAccountabilityDetails = ({route, navigation}) => {
           </Pressable>
           <View style={styles.headerContent}>
             <Icons
-              name={selectedIcon || 'information'} // Fallback icon
+              name={selectedIcon || 'information'}
               size={40}
               color="white"
               style={styles.headerIcon}
@@ -201,73 +217,75 @@ const MyAccountabilityDetails = ({route, navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9FB', // Consistent background
+    backgroundColor: '#F8F9FB',
   },
   container: {
     flex: 1,
     backgroundColor: '#F8F9FB',
   },
   headerBackground: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0, // Adjusted for Android
-    paddingBottom: 20, // Increased padding
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0,
+    paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    elevation: 8, // More prominent shadow
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
   backButton: {
-    width: 44, // Slightly smaller
-    height: 44, // Slightly smaller
+    width: 44,
+    height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15, // Increased margin
+    marginRight: 15,
   },
   headerContent: {
     flex: 1,
     alignItems: 'flex-start',
-    paddingLeft: 0, // Removed paddingLeft
+    paddingLeft: 0,
   },
   headerIcon: {
-    marginBottom: 8, // Increased margin
+    marginBottom: 8,
   },
   headerTitle: {
-    fontSize: 22, // Larger font
+    fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)', // Subtle text shadow
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
   },
   scrollViewContent: {
-    padding: 20, // Increased padding
-    paddingBottom: 40, // More bottom padding
+    padding: 20,
+    paddingBottom: 40,
   },
   detailsCard: {
     backgroundColor: 'white',
-    borderRadius: 16, // More rounded corners
-    padding: 25, // Increased padding
-    elevation: 6, // More subtle shadow
+    borderRadius: 16,
+    padding: 25,
+    elevation: 6,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    borderWidth: 0, // Removed border
+    borderWidth: 0,
   },
-  // Image container styles
-  imageContainer: {
-    width: '100%',
-    height: 200, // Fixed height for the image area
-    borderRadius: 12,
-    backgroundColor: '#E0E0E0', // Light grey background for empty/loading state
-    marginTop: 25, // Changed to marginTop to push it down
+  horizontalImageScroll: {
+    paddingVertical: 10,
+  },
+  itemImageWrapper: {
+    width: 150,
+    height: 150,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginRight: 10,
+    backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden', // Clip image if it overflows
     borderWidth: 1,
     borderColor: '#D0D0D0',
   },
@@ -275,13 +293,26 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  noImageContainer: {
-    height: 200,
+  imageLoadingContainer: {
+    height: 150,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0', // Slightly darker grey for no image
+    backgroundColor: '#F0F0F0',
     borderRadius: 12,
-    marginTop: 25, // Changed to marginTop to push it down
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  imageLoadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#888',
+  },
+  noImageContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
@@ -291,74 +322,70 @@ const styles = StyleSheet.create({
     color: '#888',
     fontWeight: '500',
   },
-  // Tracking Number section styles (from previous iteration)
   trackingNumberSection: {
-    backgroundColor: '#E6F0FF', // Light blue background
+    backgroundColor: '#E6F0FF',
     borderRadius: 10,
     paddingVertical: 15,
     paddingHorizontal: 20,
-    marginBottom: 25, // More space
-    //alignItems: 'center', // Center align content
+    marginBottom: 25,
   },
   trackingNumberLabel: {
     fontSize: 14,
     fontWeight: '600',
-    //color: '#004AB1', // Blue text
     marginBottom: 5,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   trackingNumberValue: {
-    fontSize: 24, // Larger font for emphasis
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A508C', // Darker blue
+    color: '#1A508C',
   },
-  // New styles for grouping sections (from previous iteration)
   infoGroup: {
-    marginBottom: 25, // More space between groups
-    paddingTop: 15, // Padding within group
-    borderTopWidth: StyleSheet.hairlineWidth, // Thin separator
+    marginBottom: 25,
+    paddingTop: 15,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#E0E0E0',
   },
   groupTitle: {
     fontSize: 16,
-    fontWeight: '700', // Bolder title
+    fontWeight: '700',
     color: '#333',
-    marginBottom: 15, // Space below title
+    marginBottom: 15,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    textAlign: 'left', // Center align group titles
+    textAlign: 'left',
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 18, // Increased spacing between rows
+    marginBottom: 18,
   },
   infoColumn: {
     flex: 1,
     marginRight: 15,
-    paddingHorizontal: 5, // Small horizontal padding
+    paddingHorizontal: 5,
   },
   itemLabel: {
-    fontSize: 12, // Slightly larger
-    fontWeight: '500', // Medium weight
-    color: '#666', // Darker grey
-    marginBottom: 4, // More space below label
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
   itemValue: {
-    fontSize: 16, // Larger value font
-    fontWeight: '600', // Bolder value
-    color: '#222', // Almost black
-    lineHeight: 24, // Improved line height
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222',
+    lineHeight: 24,
   },
   descriptionValue: {
     fontSize: 15,
     fontWeight: '400',
     color: '#333',
     lineHeight: 22,
-    textAlign: 'justify', // Justify text for descriptions
+    textAlign: 'justify',
     paddingHorizontal: 5,
   },
   currentUserValue: {

@@ -308,7 +308,7 @@ const WriteAReviewScreen = ({navigation}) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <LinearGradient
-          colors={['#1A508C', '#004AB1']}
+          colors={['rgb(243, 195, 3)', 'rgb(243, 195, 3)']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={styles.headerBackground}>
@@ -348,6 +348,32 @@ const WriteAReviewScreen = ({navigation}) => {
           </View>
         </LinearGradient>
 
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#f0f0f0',
+            paddingVertical: 8,
+            paddingHorizontal: 20,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 1},
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+            elevation: 2,
+            alignSelf: 'flex-start',
+          }}>
+          <Icon
+            name="information-circle-outline"
+            size={18}
+            color="#444"
+            style={{marginRight: 6}}
+          />
+          <Text style={{fontSize: 14, color: '#444'}}>
+            Rate and provide feedback to your paid suppliers and their products.
+          </Text>
+        </View>
+
         <KeyboardAvoidingView
           style={{flex: 1}}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -369,40 +395,10 @@ const WriteAReviewScreen = ({navigation}) => {
 
               {selectedSupplier && (
                 <View style={styles.reviewSection}>
-                  {/* Step 2: Rate Your Experience */}
-                  <Text style={styles.sectionLabel}>
-                    2. Rate Your Experience with {selectedSupplier.name}
-                  </Text>
-
-                  {/* Rating Section */}
-                  <View style={styles.ratingGroup}>
-                    <StarRating
-                      label="Timeliness"
-                      rating={reviewRatings.timeliness}
-                      onRate={newRating =>
-                        handleRateCriterion('timeliness', newRating)
-                      }
-                    />
-                    <StarRating
-                      label="Product Quality"
-                      rating={reviewRatings.productQuality}
-                      onRate={newRating =>
-                        handleRateCriterion('productQuality', newRating)
-                      }
-                    />
-                    <StarRating
-                      label="Service"
-                      rating={reviewRatings.service}
-                      onRate={newRating =>
-                        handleRateCriterion('service', newRating)
-                      }
-                    />
-                  </View>
-
-                  {/* Step 3: Optional Item Selection for Highlighting */}
+                  {/* Step 2: Highlight Specific Items (Optional) - Swapped position */}
                   <View style={styles.itemsSelectionSection}>
                     <Text style={styles.sectionLabel}>
-                      3. Highlight Specific Items (Optional)
+                      2. Highlight Specific Items (Optional)
                     </Text>
                     {itemsForSelectedSupplier.length > 0 ? (
                       <>
@@ -448,6 +444,36 @@ const WriteAReviewScreen = ({navigation}) => {
                         </Text>
                       </View>
                     )}
+                  </View>
+
+                  {/* Step 3: Rate Your Experience - Swapped position */}
+                  <Text style={styles.sectionLabel}>
+                    3. Rate Your Experience with {selectedSupplier.name}
+                  </Text>
+
+                  {/* Rating Section */}
+                  <View style={styles.ratingGroup}>
+                    <StarRating
+                      label="Timeliness"
+                      rating={reviewRatings.timeliness}
+                      onRate={newRating =>
+                        handleRateCriterion('timeliness', newRating)
+                      }
+                    />
+                    <StarRating
+                      label="Product Quality"
+                      rating={reviewRatings.productQuality}
+                      onRate={newRating =>
+                        handleRateCriterion('productQuality', newRating)
+                      }
+                    />
+                    <StarRating
+                      label="Service"
+                      rating={reviewRatings.service}
+                      onRate={newRating =>
+                        handleRateCriterion('service', newRating)
+                      }
+                    />
                   </View>
 
                   {/* Step 4: Add Photos (Optional) */}
@@ -496,7 +522,10 @@ const WriteAReviewScreen = ({navigation}) => {
               )}
 
               <TouchableOpacity
-                style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
+                style={[
+                  styles.submitButton,
+                  isSubmitDisabled && styles.submitButtonDisabled,
+                ]}
                 onPress={handleSubmitReview}
                 disabled={isSubmitDisabled}>
                 <Text style={styles.submitButtonText}>Submit Review</Text>
@@ -615,7 +644,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgb(224, 181, 8)',
   },
   headerTitle: {
     fontSize: 22,

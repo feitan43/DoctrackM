@@ -161,24 +161,20 @@ export const useUpdateUserSuperAccess = () => {
   return mutation;
 };
 
-export const updateUserInfo = async (payload) => {
-  if (
-    payload.employeeNumber === undefined ||
-    payload.employeeNumber === '' 
-  ) {
+export const updateUserInfo = async payload => {
+  if (payload.employeeNumber === undefined || payload.employeeNumber === '') {
     throw new Error('All fields in the payload are required for update.');
   }
 
   try {
-    const { data } = await apiClient.patch(
-      `/updateUserInfo`,
-      payload
-    );
+    const {data} = await apiClient.patch(`/updateUserInfo`, payload);
 
     if (data.success) {
       return data;
     } else {
-      throw new Error(data.message || 'Unexpected response format or API error');
+      throw new Error(
+        data.message || 'Unexpected response format or API error',
+      );
     }
   } catch (error) {
     if (error.response) {
@@ -197,7 +193,7 @@ export const useUpdateUserInfo = () => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (payload) => {
+    mutationFn: async payload => {
       if (
         payload.employeeNumber === undefined ||
         payload.employeeNumber === null
@@ -207,11 +203,17 @@ export const useUpdateUserInfo = () => {
       return await updateUserInfo(payload);
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['employeeDetails', variables.employeeNumber]);
-      queryClient.invalidateQueries(['employeeList']); 
+      queryClient.invalidateQueries([
+        'employeeDetails',
+        variables.employeeNumber,
+      ]);
+      queryClient.invalidateQueries(['employeeList']);
     },
-    onError: (error) => {
-      console.error('Error updating user info via useUpdateUserInfo hook:', error.message);
+    onError: error => {
+      console.error(
+        'Error updating user info via useUpdateUserInfo hook:',
+        error.message,
+      );
     },
   });
 
@@ -254,15 +256,45 @@ export const fetchSystemsListAO = async () => {
 export const useSystemsListAO = () => {
   return useQuery({
     queryKey: ['systemsListAO'],
-    queryFn: fetchSystemsListAO, 
-    staleTime: 5 * 60 * 1000, 
+    queryFn: fetchSystemsListAO,
+    staleTime: 5 * 60 * 1000,
     cacheTime: 10 * 60 * 1000,
-    retry: 2, 
+    retry: 2,
     onError: error => {
       console.error('useSystemsListAO query error:', error.message);
     },
   });
 };
 
+//
+export const fetchAccountabilityData = async employeeNumber => {
+  if (!employeeNumber) {
+    throw new Error('Employee number is not available.');
+  }
+  try {
+    const {data} = await apiClient.get(
+      `/myAccountability?EmployeeNumber=${employeeNumber}`,
+    );
+    return data;
+  } catch (error) {
+    console.error('Error in fetchAccountabilityData:', error); 
+    throw error; 
+  }
+};
+
+export const useMyAccountability = () => {
+  const {employeeNumber} = useUserInfo();
+
+  return useQuery({
+    queryKey: ['myAccountability', employeeNumber],
+    queryFn: () => fetchAccountabilityData(employeeNumber),
+    enabled: Boolean(employeeNumber), 
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    onError: error => {
+      console.error('useMyAccountability query error:', error.message);
+    },
+  });
+};
 
 // --end

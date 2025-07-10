@@ -11,7 +11,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  ActivityIndicator, // Make sure ActivityIndicator is imported
+  ActivityIndicator,
   TouchableOpacity,
   Pressable,
   ImageBackground,
@@ -19,16 +19,12 @@ import {
   Animated,
   Dimensions,
   Image,
-  StatusBar,
-  Modal,
-  Button,
   SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import {Shimmer} from '../utils/useShimmer';
 import {insertCommas} from '../utils/insertComma';
-import useMyAccountability from '../api/useMyAccountabilty';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import BottomSheet, {
   BottomSheetFlatList,
@@ -36,17 +32,28 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import {InteractionManager} from 'react-native';
 import {width, currentYear, categoryIconMap} from '../utils';
+import {useMyAccountability} from '../hooks/usePersonal';
+import {useInventoryImages} from '../hooks/useInventory';
+import { FlashList } from '@shopify/flash-list'; // Add this import
+
+const SNAP_POINTS = ['25%', '50%', '90%'];
 
 const MyAccountabilityScreen = ({navigation}) => {
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const {accountabilityData, loading, error, fetchMyAccountability} =
-    useMyAccountability();
+  //const [selectedYear, setSelectedYear] = useState(currentYear);
+  const {
+    data: accountabilityData,
+    isPending: loading, // Use isPending for initial loading state (replaces isLoading)
+    isFetching, // true for any ongoing fetch (initial or refetch)
+    isError: error,
+    refetch,
+  } = useMyAccountability();
+
+  const {data: imageUri, isLoading: imageLoading, isError: imageError} = useInventoryImages();
 
   const [refreshing, setRefreshing] = React.useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
 
   useEffect(() => {
     // No animations tied to fixed categories anymore.
@@ -62,7 +69,7 @@ const MyAccountabilityScreen = ({navigation}) => {
   const handlePress = useCallback(item => {
     setSelectedCategory(item);
     InteractionManager.runAfterInteractions(() => {
-      bottomSheetRef.current?.snapToIndex(1); // Open the bottom sheet to the first snap point
+      bottomSheetRef.current?.snapToIndex(1);
     });
   }, []);
 
@@ -70,11 +77,10 @@ const MyAccountabilityScreen = ({navigation}) => {
     if (!accountabilityData || !selectedCategory) {
       return [];
     }
-    // Filter by the CategoryDescription from the selectedCategory item
-    // For 'Uncategorized', filter items where CategoryDescription is null or empty
     if (selectedCategory.name === 'Uncategorized') {
       return accountabilityData.filter(
-        item => item.CategoryDescription === null || item.CategoryDescription === '',
+        item =>
+          item.CategoryDescription === null || item.CategoryDescription === '',
       );
     }
     return accountabilityData.filter(
@@ -85,9 +91,9 @@ const MyAccountabilityScreen = ({navigation}) => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await new Promise(resolve => setTimeout(resolve, 500));
-    await fetchMyAccountability();
+    await refetch();
     setRefreshing(false);
-  }, [fetchMyAccountability]);
+  }, [refetch]);
 
   const onPressItem = useCallback(
     index => {
@@ -97,13 +103,12 @@ const MyAccountabilityScreen = ({navigation}) => {
           selectedIcon: selectedCategory?.icon,
           selectedName: selectedCategory?.name,
         });
-        bottomSheetRef.current?.close(); // Close bottom sheet after navigating
+        bottomSheetRef.current?.close();
       });
     },
     [navigation, filteredData, selectedCategory],
   );
 
-  // Dynamically generate categories from accountabilityData based on CategoryDescription
   const dynamicCategories = useMemo(() => {
     if (!accountabilityData) {
       return [];
@@ -111,7 +116,6 @@ const MyAccountabilityScreen = ({navigation}) => {
 
     const categoriesMap = new Map();
     accountabilityData.forEach(item => {
-      // Use CategoryDescription for grouping, falling back to 'Uncategorized'
       const categoryName = item.CategoryDescription || 'Uncategorized';
       if (!categoriesMap.has(categoryName)) {
         const iconName = categoryIconMap[categoryName] || 'dots-horizontal';
@@ -119,7 +123,7 @@ const MyAccountabilityScreen = ({navigation}) => {
         categoriesMap.set(categoryName, {
           name: categoryName,
           icon: iconName,
-          cat: [categoryName], // Kept for consistency, though 'name' is the primary identifier
+          cat: [categoryName],
         });
       }
     });
@@ -129,7 +133,7 @@ const MyAccountabilityScreen = ({navigation}) => {
   const renderShimmerCategories = () => (
     <FlatList
       data={Array.from({length: 6})}
-      keyExtractor={(item, index) => `shimmer-${index}`}
+      keyExtractor={(_, index) => `shimmer-${index}`}
       numColumns={3}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{paddingVertical: 10, paddingHorizontal: 12}}
@@ -147,12 +151,12 @@ const MyAccountabilityScreen = ({navigation}) => {
   );
 
   const renderContent = () => {
-    if (loading && !accountabilityData) { // Check both loading and if data is null/empty
+    // Show shimmer only when data is pending (initial load, no data yet)
+    if (loading && !accountabilityData) {
       return (
         <View style={{flex: 1, backgroundColor: 'white'}}>
           <View style={styles.dashboardCard}>
             <Text style={styles.dashboardTitle}>Your Accountabilities</Text>
-            {/* Shimmer for dashboard rows */}
             <View style={styles.dashboardRow}>
               <View style={styles.dashboardLabelContainer}>
                 <Shimmer width={20} height={20} style={styles.dashboardIcon} />
@@ -167,14 +171,23 @@ const MyAccountabilityScreen = ({navigation}) => {
               </View>
               <Shimmer width={50} height={22} />
             </View>
+            <View style={styles.dashboardRow}>
+              <View style={styles.dashboardLabelContainer}>
+                <Shimmer width={20} height={20} style={styles.dashboardIcon} />
+                <Shimmer width={120} height={18} />
+              </View>
+              <Shimmer width={50} height={22} />
+            </View>
           </View>
-          <Text style={styles.sectionTitle}>Categories</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Text style={styles.sectionTitle}>Categories</Text>
+          </View>
           {renderShimmerCategories()}
         </View>
       );
     }
 
-    if (error) {
+    if (error && !accountabilityData) {
       return (
         <View style={styles.errorContainer}>
           <Icons name="alert-circle" size={60} color="#EF4444" />
@@ -183,9 +196,7 @@ const MyAccountabilityScreen = ({navigation}) => {
             We couldn’t load your accountabilities. Please check your connection
             and try again.
           </Text>
-          <TouchableOpacity
-            onPress={fetchMyAccountability}
-            style={styles.retryButton}>
+          <TouchableOpacity onPress={refetch} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -221,29 +232,59 @@ const MyAccountabilityScreen = ({navigation}) => {
       <View style={{flex: 1}}>
         <View style={styles.dashboardCard}>
           <Text style={styles.dashboardTitle}>Your Accountabilities</Text>
-          {/* Changed dashboardRow for Total Items */}
           <View style={styles.dashboardRow}>
             <View style={styles.dashboardLabelContainer}>
-                <Icons name="format-list-bulleted" size={20} color="#555" style={styles.dashboardIcon} />
-                <Text style={styles.dashboardLabel}>Total Items:</Text>
+              <Icons
+                name="format-list-bulleted"
+                size={20}
+                color="#555"
+                style={styles.dashboardIcon}
+              />
+              <Text style={styles.dashboardLabel}>Total Items </Text>
             </View>
             <Text style={styles.dashboardValue}>
               {accountabilityData.length}
             </Text>
           </View>
-          {/* Changed dashboardRow for Total Categories */}
           <View style={styles.dashboardRow}>
             <View style={styles.dashboardLabelContainer}>
-                <Icons name="folder-multiple-outline" size={20} color="#555" style={styles.dashboardIcon} />
-                <Text style={styles.dashboardLabel}>Total Categories:</Text>
+              <Icons
+                name="folder-multiple-outline"
+                size={20}
+                color="#555"
+                style={styles.dashboardIcon}
+              />
+              <Text style={styles.dashboardLabel}>Total Categories </Text>
             </View>
             <Text style={styles.dashboardValue}>
               {relevantCategories.length}
             </Text>
           </View>
+          <View style={styles.dashboardRow}>
+            <View style={styles.dashboardLabelContainer}>
+              <Icons
+                name="file-image-outline" // Icon for number of files
+                size={20}
+                color="#555"
+                style={styles.dashboardIcon}
+              />
+              <Text style={styles.dashboardLabel}>Total {/* Uploaded  */}Images </Text>
+            </View>
+            <Text style={styles.dashboardValue}>
+              {
+                accountabilityData.filter(item => (item.NumOfFiles || 0) > 0)
+                  .length
+              }
+              <Text style={{fontSize: 13, color: 'gray'}}>
+                /{accountabilityData.length}
+              </Text>
+            </Text>
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Categories</Text>
+        <View style={styles.sectionTitleContainer}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+        </View>
 
         <FlatList
           data={relevantCategories}
@@ -255,23 +296,21 @@ const MyAccountabilityScreen = ({navigation}) => {
           contentContainerStyle={{paddingVertical: 10, paddingHorizontal: 12}}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={refreshing || isFetching} // Use refreshing OR isFetching for the pull-to-refresh spinner
               onRefresh={onRefresh}
               colors={['#1A508C']}
               tintColor={'#1A508C'}
             />
           }
-          renderItem={({item, index}) => {
+          renderItem={({item}) => {
             let categoryCount;
             if (item.name === 'Uncategorized') {
-              // Count items with null or empty CategoryDescription for 'Uncategorized'
               categoryCount = accountabilityData.filter(
                 dataItem =>
                   dataItem.CategoryDescription === null ||
                   dataItem.CategoryDescription === '',
               ).length;
             } else {
-              // Count items based on CategoryDescription for other categories
               categoryCount = accountabilityData.filter(
                 dataItem => dataItem.CategoryDescription === item.name,
               ).length;
@@ -284,9 +323,9 @@ const MyAccountabilityScreen = ({navigation}) => {
                   onPress={() => handlePress(item)}
                   activeOpacity={0.7}>
                   <LinearGradient
-                    colors={['#1A508C', '#1A508C']}
+                    colors={['#fff', '#fff']}
+                    //colors={['#1A508C', '#1A508C']}
                     style={styles.categoryCardGradient}>
-                    {/* Position the count at the top right */}
                     <View style={styles.categoryCountContainer}>
                       <Text style={styles.categoryCardCountValue}>
                         {categoryCount}
@@ -296,7 +335,8 @@ const MyAccountabilityScreen = ({navigation}) => {
                     <Icons
                       name={item.icon}
                       size={40}
-                      color="#fff"
+                      //color="#fff"
+                      color="#1A508C"
                       style={{marginBottom: 6}}
                     />
                     <Text style={styles.categoryCardName} numberOfLines={2}>
@@ -308,6 +348,13 @@ const MyAccountabilityScreen = ({navigation}) => {
             );
           }}
         />
+
+        {/* Optional: Add a subtle overlay spinner when isFetching is true but not already handled by RefreshControl */}
+        {isFetching && !refreshing && (
+          <View style={styles.overlayLoading}>
+            <ActivityIndicator size="large" color="#1A508C" />
+          </View>
+        )}
       </View>
     );
   };
@@ -325,7 +372,6 @@ const MyAccountabilityScreen = ({navigation}) => {
               onPress={() => navigation.goBack()}>
               <Icon name="arrow-back" size={24} color="#fff" />
             </Pressable>
-            {/* <Text style={styles.headerTitle}>Accountabilities</Text> */}
             <View style={{width: 40}} />
           </View>
         </ImageBackground>
@@ -335,7 +381,7 @@ const MyAccountabilityScreen = ({navigation}) => {
         <BottomSheet
           ref={bottomSheetRef}
           index={-1}
-          snapPoints={snapPoints}
+          snapPoints={SNAP_POINTS}
           enablePanDownToClose
           onClose={handleClose}
           backgroundStyle={styles.bottomSheetBackground}
@@ -398,6 +444,14 @@ const MyAccountabilityScreen = ({navigation}) => {
                     </Text>
                   </View>
                 </View>
+               {/*  <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Id </Text>
+                  <Text style={styles.detailValue}>{item?.Id ?? 'N/A'}</Text>
+                </View> */}
+               {/*  <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Office </Text>
+                  <Text style={styles.detailValue}>{item?.Office ?? 'N/A'}</Text>
+                </View> */}
 
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Brand </Text>
@@ -433,6 +487,28 @@ const MyAccountabilityScreen = ({navigation}) => {
                     {item?.Status ?? 'N/A'}
                   </Text>
                 </View>
+
+                <LinearGradient
+                  colors={
+                    (item?.NumOfFiles || 0) > 0
+                      ? ['#4CAF50', '#66BB6A'] // Green for "There are Images"
+                      : ['#F44336', '#EF5350'] // Red for "No Images added yet"
+                  }
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={styles.imageStatusChip}>
+                  <Icons
+                    name={(item?.NumOfFiles || 0) > 0 ? 'image' : 'image-off'}
+                    size={16}
+                    color="white"
+                    style={styles.imageStatusIcon}
+                  />
+                  <Text style={styles.imageStatusText}>
+                    {(item?.NumOfFiles || 0) > 0
+                      ? 'There are Images'
+                      : 'No Images added yet'}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
             ListEmptyComponent={
@@ -455,7 +531,7 @@ const MyAccountabilityScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FB', // Light background for the overall screen
+    backgroundColor: '#F8F9FB',
   },
   headerBackground: {
     height: 80,
@@ -464,7 +540,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 2, // Softer elevation
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
@@ -497,80 +573,94 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    paddingTop: 5, // Reduced padding top
+    paddingTop: 5,
   },
-  // Refined Dashboard Card Styles
   dashboardCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 15,
-    marginVertical: 15,
-    padding: 20, // Increased padding slightly for more spacious feel
-    borderRadius: 15, // Slightly more rounded
+    marginHorizontal: 10,
+    marginVertical: 10,
+    padding: 20,
+    borderRadius: 15,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2}, // Softer shadow
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 4,
-    borderLeftWidth: 0, // Removed border for cleaner look
-    borderColor: 'transparent', // Ensure no residual border
+    borderLeftWidth: 0,
+    borderColor: 'transparent',
   },
   dashboardTitle: {
-    fontSize: 17, // Slightly smaller
-    fontWeight: '700', // Bolder title
-    color: '#333', // Darker, more professional color
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
     marginBottom: 12,
-    borderBottomWidth: 0, // Removed bottom border
+    borderBottomWidth: 0,
     paddingBottom: 0,
-    textAlign: 'center', // Center align title
+    textAlign: 'center',
   },
   dashboardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 0, // No margin bottom as padding takes over
-    paddingVertical: 12, // More vertical padding for separation and larger touch area
-    borderBottomWidth: StyleSheet.hairlineWidth, // Very thin separator
-    borderBottomColor: '#EFEFEF', // Light separator color
+    marginBottom: 0,
+    paddingVertical: 5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EFEFEF',
   },
-  dashboardLabelContainer: { // New style for icon and label grouping
+  dashboardLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1, // Allows it to take available space
+    flex: 1,
   },
-  dashboardIcon: { // Style for the new icons
+  dashboardIcon: {
     marginRight: 8,
   },
   dashboardLabel: {
-    fontSize: 16, // Slightly larger for better readability
-    color: '#555', // Softer black
+    fontSize: 16,
+    color: '#555',
     fontWeight: '500',
   },
   dashboardValue: {
-    fontSize: 22, // Emphasized larger value for impact
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#1A508C', // Highlight with primary color
-    marginLeft: 10, // Space from label
+    color: '#1A508C',
+    marginLeft: 10,
   },
   sectionTitle: {
-    paddingHorizontal: 20,
-    fontStyle: 'normal', // Removed italic
+    fontStyle: 'normal',
     color: '#718096',
-    fontSize: 14, // Slightly smaller
-    marginBottom: 10, // More space
+    fontSize: 14,
     fontWeight: '600',
-    textTransform: 'uppercase', // Uppercase for a modern feel
-    letterSpacing: 0.5, // Add letter spacing
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    // Removed marginBottom as padding on sectionTitleContainer handles spacing
+  },
+  sectionTitleContainer: {
+    backgroundColor: '#F8F9FB', // Match your screen's background color
+    paddingVertical: 10, // Provides space above and below the text
+    paddingHorizontal: 20,
+    //zIndex: 1, // Ensures the title and its shadow appear above scrolling content
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1, // Creates a shadow below the container, mimicking a border
+    },
+    shadowOpacity: 0.1, // Adjust for desired shadow intensity
+    shadowRadius: 1, // Adjust for desired shadow blur
+    elevation: 1, // Android specific shadow property
   },
   categoryCardWrapper: {
-    flex: 1 / 3 ,
-    //alignItems: 'center',
-    padding: 4, // Increased padding for more spacing around cards
+    flex: 1 / 3,
+    padding: 4,
   },
   categoryCardTouchable: {
     width: '100%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#718096',
   },
   categoryCardGradient: {
     width: '100%',
@@ -580,29 +670,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15, // Softer shadow
+    shadowOpacity: 0.15,
     shadowRadius: 3,
-    //elevation: 5, // Adjusted elevation
-    overflow: 'hidden', // Ensures content stays within rounded corners
-    position: 'relative', // Crucial for absolute positioning of children
+    overflow: 'hidden',
+    position: 'relative',
   },
   categoryCountContainer: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Subtle white background
-    borderRadius: 10, // Rounded background
+    backgroundColor: 'rgb(236, 236, 236)',
+    borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    zIndex: 1, // Ensure it's above other content
+    zIndex: 1,
   },
   categoryCardCountValue: {
-    color: 'white', // White text for visibility on gradient
-    fontSize: 12,
+    color: '#252525',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   categoryCardName: {
-    color: 'white',
+    //color: 'white',
+    color: '#1A508C',
     fontSize: 12,
     textAlign: 'center',
     paddingHorizontal: 5,
@@ -620,7 +710,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   bottomSheetHeader: {
-    paddingVertical: 18, // More vertical padding
+    paddingVertical: 18,
     paddingHorizontal: 20,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
@@ -641,55 +731,54 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   bottomSheetCloseButton: {
-    padding: 8, // Larger touch area
+    padding: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)', // Slightly more opaque
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   bottomSheetListContent: {
     paddingBottom: 50,
-    paddingVertical: 15, // Reduced vertical padding
-    paddingHorizontal: 10, // Reduced horizontal padding
+    paddingVertical: 15,
+    paddingHorizontal: 10,
   },
-  // Refined Item Container (for Bottom Sheet list)
   itemContainer: {
     backgroundColor: '#FFFFFF',
-    padding: 18, // Slightly reduced padding
-    marginVertical: 6, // Reduced vertical margin
-    marginHorizontal: 8, // Reduced horizontal margin
+    padding: 18,
+    marginVertical: 6,
+    marginHorizontal: 8,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2, // Softer shadow
+      height: 2,
     },
     shadowOpacity: 0.08,
     shadowRadius: 3,
-    elevation: 4, // Adjusted elevation
+    elevation: 4,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8, // Reduced margin
-    borderBottomWidth: StyleSheet.hairlineWidth, // Thin separator
-    borderBottomColor: '#F0F0F0', // Light separator
+    marginBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F0F0',
     paddingBottom: 8,
   },
   itemIndex: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#6C757D', // Softer color
+    color: '#6C757D',
     marginRight: 8,
     textAlign: 'right',
   },
   headerRightContent: {
     alignItems: 'flex-end',
-    flex: 1, // Allow it to take available space
+    flex: 1,
   },
   itemIdText: {
     fontSize: 10,
     textAlign: 'right',
-    color: '#A0A0A0', // Lighter grey
+    color: '#A0A0A0',
     marginBottom: 2,
     fontWeight: '500',
   },
@@ -700,29 +789,29 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   itemName: {
-    fontSize: 18, // Slightly smaller for balance
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#343A40',
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: 6, // Reduced spacing
-    alignItems: 'center', // Align items vertically
+    marginBottom: 6,
+    alignItems: 'center',
   },
   detailLabel: {
-    fontSize: 13, // Slightly smaller
-    fontWeight: '400', // Lighter weight
-    color: '#777', // Softer color
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#777',
     marginRight: 10,
-    minWidth: 80, // Consistent label width
+    minWidth: 80,
     textAlign: 'right',
   },
   detailValue: {
     flex: 1,
-    fontWeight: '500', // Medium weight
-    fontSize: 13, // Slightly smaller
+    fontWeight: '500',
+    fontSize: 13,
     color: '#333',
-    lineHeight: 18, // Adjusted line height
+    lineHeight: 18,
   },
   errorContainer: {
     flex: 1,
@@ -749,8 +838,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f8f9fb',
-    marginTop:20
-    // flex: 1,
+    marginTop: 20,
   },
   emptyStateCard: {
     backgroundColor: 'white',
@@ -788,6 +876,40 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  overlayLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    zIndex: 10,
+  },
+  imageStatusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20, // Makes it look like a chip
+    marginTop: 10, // Adds some space from the details above
+    alignSelf: 'flex-start', // Centers the chip if it's the only thing on its line
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  imageStatusIcon: {
+    marginRight: 5,
+  },
+  imageStatusText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

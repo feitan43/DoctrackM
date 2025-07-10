@@ -7,17 +7,19 @@ import {
   TouchableOpacity,
   Pressable,
   StatusBar,
-  //SafeAreaView
+  Platform,
+  SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import useUserInfo from '../api/useUserInfo';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {useSafeAreaInsets} from 'react-native-safe-area-context'; // Import this
-
-const statusBarHeight =
-  Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
+import { useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const ProfileScreen = ({navigation}) => {
+  const insets = useSafeAreaInsets();
+
+  const statusBarHeight =
+    Platform.OS === 'android' ? StatusBar.currentHeight : insets.top;
+
   const {
     employeeNumber,
     fullName,
@@ -63,22 +65,22 @@ const ProfileScreen = ({navigation}) => {
   const getRoleNames = () => {
     const roles = [];
     if (procurement === '1') {
-      roles.push('Procurement');
-    }
-    if (officeAdmin === '1') {
-      roles.push('Office Admin');
-    }
-    if (gsoInspection === '1') {
-      roles.push('Inspector');
-    }
-    if (caoReceiver === '1' || cboReceiver === '1') {
-      roles.push('Receiver');
-    }
-    if (caoEvaluator === '1') {
-      roles.push('Evaluator');
+      roles.push({ name: 'Procurement', icon: 'cart-outline' });
     }
     if (payroll === '1') {
-      roles.push('Evaluator');
+      roles.push({ name: 'Payroll', icon: 'cash-outline' });
+    }
+    if (officeAdmin === '1') {
+      roles.push({ name: 'Office Admin', icon: 'business-outline' });
+    }
+    if (gsoInspection === '1') {
+      roles.push({ name: 'Inspector', icon: 'search-outline' });
+    }
+    if (caoReceiver === '1' || cboReceiver === '1') {
+      roles.push({ name: 'Receiver', icon: 'archive-outline' });
+    }
+    if (caoEvaluator === '1') {
+      roles.push({ name: 'Evaluator', icon: 'clipboard-outline' });
     }
     return roles;
   };
@@ -93,7 +95,7 @@ const ProfileScreen = ({navigation}) => {
         backgroundColor="transparent"
         barStyle={statusBarContentStyle}
       />
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: statusBarHeight + 12}]}>
         <Pressable
           onPress={() => navigation.goBack()}
           style={({pressed}) => [
@@ -113,7 +115,9 @@ const ProfileScreen = ({navigation}) => {
             style={styles.profileImage}
           />
           <Text style={styles.userName}>{fullName}</Text>
-          <Text style={styles.userRole}>{getAccountTypeName(accountType)}</Text>
+          <Text style={styles.userAccountType}>
+            {getAccountTypeName(accountType)}
+          </Text>
         </View>
 
         <View style={styles.detailsContainer}>
@@ -133,9 +137,14 @@ const ProfileScreen = ({navigation}) => {
               <View style={styles.divider} />
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>Roles</Text>
-                <Text style={styles.detailValue}>
-                  {currentRoles.join(', ')}
-                </Text>
+                <View style={styles.rolesDisplayContainer}>
+                  {currentRoles.map((role, index) => (
+                    <View key={index} style={styles.stackedRoleItem}>
+                      <Icon name={role.icon} size={16} color="#616161" style={styles.stackedRoleIcon} />
+                      <Text style={styles.stackedRoleText}>{role.name}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </>
           )}
@@ -148,22 +157,20 @@ const ProfileScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    //backgroundColor: '#F5F8FA',
+    backgroundColor: '#F0F2F5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 12,
     paddingHorizontal: 10,
+    borderBottomWidth: 0,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    //borderBottomWidth: 1,
-    //borderColor: '#ccc',
-    height: 30 + statusBarHeight,
+    shadowRadius: 2,
   },
   backButton: {
     padding: 10,
@@ -175,102 +182,99 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: 'Inter_28pt-Bold',
-    fontSize: 18,
+    fontSize: 19,
     color: '#212121',
     marginLeft: 5,
   },
   container: {
     flex: 1,
     paddingHorizontal: 15,
-    backgroundColor: '#F5F8FA',
+    paddingTop: 20,
   },
   profileImageContainer: {
     alignItems: 'center',
     paddingVertical: 30,
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 15,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 3,
-    marginBottom: 20,
-    marginTop: 10,
+    shadowRadius: 6,
+    elevation: 5,
+    marginBottom: 25,
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 15,
-    borderWidth: 3,
-    borderColor: '#E0E0E0',
-    opacity:0.7,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#42A5F5',
+    opacity: 1,
   },
   userName: {
     fontFamily: 'Inter_28pt-Bold',
-    fontSize: 22,
+    fontSize: 24,
     color: '#212121',
     textTransform: 'capitalize',
     marginBottom: 5,
   },
-  userRole: {
-    fontFamily: 'Inter_28pt-Regular',
-    fontSize: 15,
+  userAccountType: {
+    fontFamily: 'Inter_28pt-Medium',
+    fontSize: 16,
     color: '#616161',
   },
   detailsContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 15,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 5,
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
   detailItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   detailLabel: {
     fontFamily: 'Inter_28pt-Regular',
-    fontSize: 13,
+    fontSize: 14,
     color: '#757575',
-    width: 120,
-    marginRight: 10,
+    flex: 1,
   },
   detailValue: {
     fontFamily: 'Inter_28pt-Medium',
-    fontSize: 15,
+    fontSize: 16,
     color: '#212121',
-    flex: 1,
     textAlign: 'right',
+    maxWidth: '60%',
   },
   divider: {
     height: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#E0E0E0',
     marginVertical: 0,
   },
-  editButton: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignSelf: 'center',
-    width: '90%',
-    marginTop: 30,
-    shadowColor: '#007BFF',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+  rolesDisplayContainer: {
+    flexDirection: 'column', // Stack roles vertically
+    alignItems: 'flex-end', // Align roles to the right
+    flexShrink: 1, // Allows the container to shrink if content is too wide
   },
-  editButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Inter_28pt-Bold',
-    textAlign: 'center',
+  stackedRoleItem: {
+    flexDirection: 'row', // Align icon and text horizontally within each role item
+    alignItems: 'center',
+    justifyContent: 'flex-end', // Align contents of this item to the right
+    paddingVertical: 2, // Small vertical padding for separation
+  },
+  stackedRoleIcon: {
+    marginRight: 4,
+  },
+  stackedRoleText: {
+    fontFamily: 'Inter_28pt-Medium', // Match detailValue font
+    fontSize: 16, // Match detailValue font size
+    color: '#212121', // Match detailValue color
   },
 });
 

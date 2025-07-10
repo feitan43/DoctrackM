@@ -45,10 +45,9 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import useReceiving from '../api/useReceiving';
 import useTrackingSummary from '../api/useTrackingSummary';
 import useRegTrackingSummary from '../api/useRegTrackingSummary';
-import useMyAccountability from '../api/useMyAccountabilty';
+//import useMyAccountability from '../api/useMyAccountabilty';
 import useRequestInspection from '../api/useRequestInspection';
 import useOnSchedule from '../api/useOnSchedule';
-import useRecentActivity from '../api/useRecentActivity';
 import {useEvaluationByStatus} from '../hooks/useEvaluationByStatus';
 import {
   Menu,
@@ -63,8 +62,8 @@ import {
   useInspection,
   useInspectionRecentActivity,
 } from '../hooks/useInspection';
+import { useMyAccountability } from '../hooks/usePersonal';
 const Drawer = createDrawerNavigator();
-
 const Tab = createBottomTabNavigator();
 const currentYear = new Date().getFullYear();
 
@@ -154,7 +153,7 @@ const HomeScreen = ({navigation}) => {
     regTrackSumLoading,
     refetchRegTrackSum,
   } = useRegTrackingSummary(selectedYear);
-  const {accountabilityData, error, fetchMyAccountability} =
+  const {data:accountabilityData, isError: accountabilityError, refetch: fetchMyAccountability} =
     useMyAccountability();
   const {
     requestsLength,
