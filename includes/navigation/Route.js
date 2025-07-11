@@ -3,7 +3,7 @@ import {
   useNavigation,
   DarkTheme,
 } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
@@ -59,13 +59,13 @@ import {
   TransitionPresets,
   TransitionSpecs,
 } from '@react-navigation/stack';
-import { Easing } from 'react-native-reanimated';
+import {Easing} from 'react-native-reanimated';
 import SettingsScreen from '../screens/SettingsScreen';
 import BASE_URL from '../../config';
 
 import CameraComponent from '../utils/CameraComponent';
 import DeviceInfo from 'react-native-device-info';
-import RNBlobUtil  from 'react-native-blob-util';
+import RNBlobUtil from 'react-native-blob-util';
 
 import BootSplash from 'react-native-bootsplash';
 import RNBootSplash from 'react-native-bootsplash';
@@ -119,6 +119,8 @@ import AdvanceInspection from '../screens/inspector/AdvanceInspection';
 import AdvanceInspectionDetails from '../screens/inspector/AdvanceInspectionDetails';
 import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import WriteAReviewScreen from '../screens/supplierRating/WriteAReview';
+import CommunicationsScreen from '../components/CommunicationsScreen';
+import ChatScreen from '../components/CommunicationsScreen/ChatScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -129,10 +131,10 @@ export function Route() {
   const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
   const [updateUrl, setUpdateUrl] = useState('');
 
-  const { delaysRegOfficeData, delaysLoading } = useDelaysPerOffice();
-  const { genInformationData } = useGenInformation();
+  const {delaysRegOfficeData, delaysLoading} = useDelaysPerOffice();
+  const {genInformationData} = useGenInformation();
 
-  const { userData, fullName, officeCode, permission } = useUserInfo();
+  const {userData, fullName, officeCode, permission} = useUserInfo();
 
   const [currentVersion, setCurrentVersion] = useState('');
   const [latestVersion, setLatestVersion] = useState('');
@@ -141,14 +143,14 @@ export function Route() {
   const Stack = createStackNavigator();
 
   useEffect(() => {
-    const init = async () => { };
+    const init = async () => {};
 
     init().finally(async () => {
-      await BootSplash.hide({ fade: true });
+      await BootSplash.hide({fade: true});
     });
   }, []);
 
-/*   useEffect(() => {
+  /*   useEffect(() => {
     const getVersion = async () => {
       const version = DeviceInfo.getVersion();
       setCurrentVersion(version);
@@ -190,7 +192,6 @@ export function Route() {
       console.error('Error fetching the latest version:', error);
     }
   }; */
-
 
   /* const handleUpdate = async updateUrl => {
     const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
@@ -267,97 +268,99 @@ export function Route() {
       });
   }; */
 
-const handleUpdate = async updateUrl => {
-  const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
-  const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
-  const path = `${RNBlobUtil.fs.dirs.DownloadDir}/update.apk`; 
+  const handleUpdate = async updateUrl => {
+    const appStoreUrl = 'https://apps.apple.com/app/[your-app-id]';
+    const url = Platform.OS === 'ios' ? appStoreUrl : updateUrl;
+    const path = `${RNBlobUtil.fs.dirs.DownloadDir}/update.apk`;
 
-  // Create Notifee channel
-  const channelId = await notifee.createChannel({
-    id: 'update',
-    name: 'Update Channel',
-    importance: AndroidImportance.HIGH,
-  });
-
-  // Show initial notification
-  await notifee.displayNotification({
-    id: 'download-progress',
-    title: 'Downloading Update',
-    body: 'Please wait while the update is being downloaded...',
-    android: {
-      channelId,
-      smallIcon: 'ic_launcher_round',
-      progress: {
-        max: 100,
-        current: 0,
-        indeterminate: true,
-      },
-    },
-  });
-
-  RNBlobUtil.config({
-    path,
-    fileCache: true,
-  })
-    .fetch('GET', url)
-    .progress(async (received, total) => {
-      const progress = Math.floor((received / total) * 100);
-
-      // Update progress notification
-      await notifee.displayNotification({
-        id: 'download-progress',
-        title: 'Downloading Update',
-        body: `Downloading... ${progress}%`,
-        android: {
-          channelId,
-          progress: {
-            max: 100,
-            current: progress,
-            indeterminate: false,
-          },
-        },
-      });
-    })
-    .then(async res => {
-      const filePath = res.path();
-
-      await notifee.cancelNotification('download-progress');
-
-      await notifee.displayNotification({
-        title: 'Download Complete',
-        body: 'The update has been downloaded successfully.',
-        android: {
-          channelId,
-          smallIcon: 'ic_launcher_round',
-          importance: AndroidImportance.HIGH,
-        },
-      });
-
-      if (Platform.OS === 'android') {
-        RNBlobUtil.android.actionViewIntent(filePath, 'application/vnd.android.package-archive');
-      } else if (Platform.OS === 'ios') {
-        Linking.openURL(appStoreUrl);
-      }
-    })
-    .catch(async error => {
-      console.error('Download failed:', error);
-
-      // Cancel progress notification
-      await notifee.cancelNotification('download-progress');
-
-      // Show error notification
-      await notifee.displayNotification({
-        title: 'Download Failed',
-        body: 'The update could not be downloaded. Please try again later.',
-        android: {
-          channelId,
-          smallIcon: 'ic_launcher_round',
-          importance: AndroidImportance.HIGH,
-        },
-      });
+    // Create Notifee channel
+    const channelId = await notifee.createChannel({
+      id: 'update',
+      name: 'Update Channel',
+      importance: AndroidImportance.HIGH,
     });
-};
 
+    // Show initial notification
+    await notifee.displayNotification({
+      id: 'download-progress',
+      title: 'Downloading Update',
+      body: 'Please wait while the update is being downloaded...',
+      android: {
+        channelId,
+        smallIcon: 'ic_launcher_round',
+        progress: {
+          max: 100,
+          current: 0,
+          indeterminate: true,
+        },
+      },
+    });
+
+    RNBlobUtil.config({
+      path,
+      fileCache: true,
+    })
+      .fetch('GET', url)
+      .progress(async (received, total) => {
+        const progress = Math.floor((received / total) * 100);
+
+        // Update progress notification
+        await notifee.displayNotification({
+          id: 'download-progress',
+          title: 'Downloading Update',
+          body: `Downloading... ${progress}%`,
+          android: {
+            channelId,
+            progress: {
+              max: 100,
+              current: progress,
+              indeterminate: false,
+            },
+          },
+        });
+      })
+      .then(async res => {
+        const filePath = res.path();
+
+        await notifee.cancelNotification('download-progress');
+
+        await notifee.displayNotification({
+          title: 'Download Complete',
+          body: 'The update has been downloaded successfully.',
+          android: {
+            channelId,
+            smallIcon: 'ic_launcher_round',
+            importance: AndroidImportance.HIGH,
+          },
+        });
+
+        if (Platform.OS === 'android') {
+          RNBlobUtil.android.actionViewIntent(
+            filePath,
+            'application/vnd.android.package-archive',
+          );
+        } else if (Platform.OS === 'ios') {
+          Linking.openURL(appStoreUrl);
+        }
+      })
+      .catch(async error => {
+        console.error('Download failed:', error);
+
+        // Cancel progress notification
+        await notifee.cancelNotification('download-progress');
+
+        // Show error notification
+        await notifee.displayNotification({
+          title: 'Download Failed',
+          body: 'The update could not be downloaded. Please try again later.',
+          android: {
+            channelId,
+            smallIcon: 'ic_launcher_round',
+            importance: AndroidImportance.HIGH,
+          },
+        });
+      });
+  };
 
   useEffect(() => {
     if (Platform.OS === 'android' && Platform.Version > 30) {
@@ -396,7 +399,7 @@ const handleUpdate = async updateUrl => {
 
   useEffect(() => {
     if (officeCode) {
-      return notifee.onForegroundEvent(async ({ type, detail }) => {
+      return notifee.onForegroundEvent(async ({type, detail}) => {
         switch (type) {
           case EventType.DISMISSED:
             // console.log('User dismissed notification', detail.notification);
@@ -528,7 +531,7 @@ const handleUpdate = async updateUrl => {
           gestureEnabled: true,
           gestureDirection: 'vertical',
           ...TransitionPresets.SlideFromRightIOS,
-          cardStyleInterpolator: ({ current }) => ({
+          cardStyleInterpolator: ({current}) => ({
             cardStyle: {
               opacity: current.progress,
             },
@@ -536,7 +539,6 @@ const handleUpdate = async updateUrl => {
           navigationBarColor: 'transparent',
           animationDuration: 2000,
           presentation: 'transparentModal',
-          
         }}>
         <Stack.Screen name="Home">
           {props => (
@@ -576,91 +578,121 @@ const handleUpdate = async updateUrl => {
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ContactUs" component={ContactUsScreen} />
-        <Stack.Screen name="InspectionSearch" component={InspectionSearchScreen} />
-        <Stack.Screen name='Inspection' component={InspectionScreen} />
-        <Stack.Screen name='InspectionDetails' component={InspectionDetails} />
-        <Stack.Screen name='ForInspection' component={ForInspection} />
-        <Stack.Screen name='Inspected' component={Inspected} />
-        <Stack.Screen name='InspectionOnHold' component={InspectionOnHold} />
+        <Stack.Screen
+          name="InspectionSearch"
+          component={InspectionSearchScreen}
+        />
+        <Stack.Screen name="Inspection" component={InspectionScreen} />
+        <Stack.Screen name="InspectionDetails" component={InspectionDetails} />
+        <Stack.Screen name="ForInspection" component={ForInspection} />
+        <Stack.Screen name="Inspected" component={Inspected} />
+        <Stack.Screen name="InspectionOnHold" component={InspectionOnHold} />
 
-        <Stack.Screen name='QRManual' component={QRManual} />
-        <Stack.Screen name='EditAdvScreen' component={EditAdvScreen} />
-        <Stack.Screen name='EditOBRScreen' component={EditOBRScreen} />
-        <Stack.Screen name='QRAuto' component={QRAuto} />
-        <Stack.Screen name='QRRevert' component={QRRevert} />
+        <Stack.Screen name="QRManual" component={QRManual} />
+        <Stack.Screen name="EditAdvScreen" component={EditAdvScreen} />
+        <Stack.Screen name="EditOBRScreen" component={EditOBRScreen} />
+        <Stack.Screen name="QRAuto" component={QRAuto} />
+        <Stack.Screen name="QRRevert" component={QRRevert} />
 
-        <Stack.Screen name='Receiver' component={ReceiverScreen} />
+        <Stack.Screen name="Receiver" component={ReceiverScreen} />
 
-        <Stack.Screen name='Sender' component={SendToReceive} />
+        <Stack.Screen name="Sender" component={SendToReceive} />
 
-        <Stack.Screen name='MyAccountability' component={MyAccountabilityScreen} />
-        <Stack.Screen name='MyAccountabilityDetails' component={MyAccountabilityDetails} />
-        <Stack.Screen name='TrackingSummaryScreen' component={TrackingSummaryScreen} />
-        <Stack.Screen name='RegTrackingSummaryScreen' component={RegTrackingSummaryScreen} />
+        <Stack.Screen
+          name="MyAccountability"
+          component={MyAccountabilityScreen}
+        />
+        <Stack.Screen
+          name="MyAccountabilityDetails"
+          component={MyAccountabilityDetails}
+        />
+        <Stack.Screen
+          name="TrackingSummaryScreen"
+          component={TrackingSummaryScreen}
+        />
+        <Stack.Screen
+          name="RegTrackingSummaryScreen"
+          component={RegTrackingSummaryScreen}
+        />
 
-        <Stack.Screen name='RequestScreen' component={RequestScreen} />
-        <Stack.Screen name='OnScheduleScreen' component={OnScheduleScreen} />
+        <Stack.Screen name="RequestScreen" component={RequestScreen} />
+        <Stack.Screen name="OnScheduleScreen" component={OnScheduleScreen} />
 
-        <Stack.Screen name='Evaluate' component={EvaluateScreen} />
-        <Stack.Screen name='OnEvaluation' component={OnEvaluationScreen} />
-        <Stack.Screen name='Evaluated' component={EvaluatedScreen} />
-        <Stack.Screen name='EvalPending' component={EvalPendingScreen} />
-        <Stack.Screen name='EvalPendingReleased' component={EvalPendingReleasedScreen} />
-        <Stack.Screen name='EvalDaily' component={EvalDaily} />
-        <Stack.Screen name='EvalMonthly' component={EvalMonthly} />
-        <Stack.Screen name='EvalAnnual' component={EvalAnnual} />
+        <Stack.Screen name="Evaluate" component={EvaluateScreen} />
+        <Stack.Screen name="OnEvaluation" component={OnEvaluationScreen} />
+        <Stack.Screen name="Evaluated" component={EvaluatedScreen} />
+        <Stack.Screen name="EvalPending" component={EvalPendingScreen} />
+        <Stack.Screen
+          name="EvalPendingReleased"
+          component={EvalPendingReleasedScreen}
+        />
+        <Stack.Screen name="EvalDaily" component={EvalDaily} />
+        <Stack.Screen name="EvalMonthly" component={EvalMonthly} />
+        <Stack.Screen name="EvalAnnual" component={EvalAnnual} />
 
-        <Stack.Screen name='Attachments' component={AttachmentsScreen}/>
-        <Stack.Screen name='MyAccess' component={AccessScreen}/>
-        <Stack.Screen name='SuperAccess' component={SuperAccessScreen}/>
+        <Stack.Screen name="Attachments" component={AttachmentsScreen} />
+        <Stack.Screen name="MyAccess" component={AccessScreen} />
+        <Stack.Screen name="SuperAccess" component={SuperAccessScreen} />
 
-         <Stack.Screen
+        <Stack.Screen
           name="HelpCenter"
           component={HelpCenterScreen}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
-         <Stack.Screen
+        <Stack.Screen
           name="Feedback"
           component={FeedbackScreen}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
         <Stack.Screen
           name="BACAttachments"
           component={BACAttachmentsScreen}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
-          <Stack.Screen
+        <Stack.Screen
           name="InventoryScreen"
           component={InventoryScreen}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
         <Stack.Screen
           name="InventoryDetails"
           component={InventoryDetails}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
-          <Stack.Screen
+        <Stack.Screen
           name="AdvanceInspection"
           component={AdvanceInspection}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
         <Stack.Screen
           name="AdvanceInspectionDetails"
           component={AdvanceInspectionDetails}
-         // options={{ headerShown: false }} // You can hide the header if you want to use your own title
+          // options={{ headerShown: false }} // You can hide the header if you want to use your own title
         />
-         <Stack.Screen
+        <Stack.Screen
           name="CategoryDetail"
           component={CategoryDetailScreen}
           options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
         />
-         <Stack.Screen
+        <Stack.Screen
           name="WriteReview"
           component={WriteAReviewScreen}
           options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
         />
-        <Stack.Screen name='BossEditScreen' component={BossEditScreen}/>
+        <Stack.Screen
+          name="Communications"
+          component={CommunicationsScreen}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{headerShown: false}}
+        />
 
+
+
+        <Stack.Screen name="BossEditScreen" component={BossEditScreen} />
 
         <Stack.Screen
           name="ProjectCleansing"
@@ -677,40 +709,40 @@ const handleUpdate = async updateUrl => {
         <Stack.Screen name="WebView" component={WebViewScreen} />
         <Stack.Screen name="Camera" component={CameraComponent} />
 
-        <Stack.Screen name="MonthlyReceivedScreen" component={MonthlyReceivedScreen} />
-
+        <Stack.Screen
+          name="MonthlyReceivedScreen"
+          component={MonthlyReceivedScreen}
+        />
       </Stack.Navigator>
-      
+
       <Modal
         animationType="slide"
         transparent={true}
         visible={isUpdateModalVisible}
-        onRequestClose={() => setIsUpdateModalVisible(false)}
-      >
+        onRequestClose={() => setIsUpdateModalVisible(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Update Available</Text>
             <View></View>
             <Image
               source={require('../../assets/images/updateavailable.png')}
-              style={{ height: 180, width: '80%', paddingBottom: 10 }}
+              style={{height: 180, width: '80%', paddingBottom: 10}}
             />
             <Text style={styles.modalText}>
-              A new version of the app is available. Please update to the latest version.
+              A new version of the app is available. Please update to the latest
+              version.
             </Text>
             <TouchableOpacity
               style={styles.updateButton}
               onPress={() => {
                 handleUpdate(updateUrl);
                 setIsUpdateModalVisible(false);
-              }}
-            >
+              }}>
               <Text style={styles.updateButtonText}>Update Now</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setIsUpdateModalVisible(false)}
-            >
+              onPress={() => setIsUpdateModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Not now</Text>
             </TouchableOpacity>
           </View>
@@ -817,7 +849,6 @@ const handleUpdate = async updateUrl => {
 //   </NavigationContainer>
 // );
 
-
 const styles = StyleSheet.create({
   permissionReminder: {
     flex: 1,
@@ -880,7 +911,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 10,
     textAlign: 'center',
-    paddingVertical: 10
+    paddingVertical: 10,
   },
   updateButton: {
     backgroundColor: '#007bff',

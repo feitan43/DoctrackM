@@ -894,7 +894,7 @@ const DoctrackScreen = ({
             </>
           ) : (
             procurement === '1' /* || accountType === '1' */ &&
-            [
+           /*  [
               '1071',
               '1081',
               '1061',
@@ -904,7 +904,7 @@ const DoctrackScreen = ({
               'BAAC',
               'TRAC',
               'LSBD',
-            ].includes(officeCode) && (
+            ].includes(officeCode) && */ (
               <View>
                 {accountType === '1' && (
                   <View

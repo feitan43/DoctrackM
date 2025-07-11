@@ -62,7 +62,7 @@ import {
   useInspection,
   useInspectionRecentActivity,
 } from '../hooks/useInspection';
-import { useMyAccountability } from '../hooks/usePersonal';
+import {useMyAccountability} from '../hooks/usePersonal';
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
 const currentYear = new Date().getFullYear();
@@ -153,8 +153,11 @@ const HomeScreen = ({navigation}) => {
     regTrackSumLoading,
     refetchRegTrackSum,
   } = useRegTrackingSummary(selectedYear);
-  const {data:accountabilityData, isError: accountabilityError, refetch: fetchMyAccountability} =
-    useMyAccountability();
+  const {
+    data: accountabilityData,
+    isError: accountabilityError,
+    refetch: fetchMyAccountability,
+  } = useMyAccountability();
   const {
     requestsLength,
     loading: requestsLoading,
@@ -162,11 +165,11 @@ const HomeScreen = ({navigation}) => {
   } = useRequestInspection();
 
   const {
-      data: advanceInspection,
-      loading: dataLoading,
-      error: dataError,
-      refetch,
-    } = useAdvanceInspection();
+    data: advanceInspection,
+    loading: dataLoading,
+    error: dataError,
+    refetch,
+  } = useAdvanceInspection();
 
   const {dataLength: OnScheduleLength} = useOnSchedule();
   const {data: onEvalData} = useEvaluationByStatus(
@@ -213,13 +216,15 @@ const HomeScreen = ({navigation}) => {
         item => item?.Status?.toLowerCase() === 'inspection on hold',
       ).length
     : 0;
-  
+
   const advanceForInspection = Array.isArray(advanceInspection)
-  ? advanceInspection.filter(
-        item => item?.Status?.toLowerCase() === 'for inspection' && item?.DateInspected === null,
+    ? advanceInspection.filter(
+        item =>
+          item?.Status?.toLowerCase() === 'for inspection' &&
+          item?.DateInspected === null,
       ).length
     : 0;
-  
+
   const years = Array.from(
     {length: Math.max(0, currentYear - 2023 + 1)},
     (_, index) => ({
@@ -272,6 +277,10 @@ const HomeScreen = ({navigation}) => {
   const handleNotification = async () => {
     await notifee.openNotificationSettings();
     setShowReminder(false);
+  };
+
+  const handleComms = async () => {
+    navigation.navigate('Communications');
   };
 
   const checkToken = async () => {
@@ -499,17 +508,38 @@ const HomeScreen = ({navigation}) => {
                       tintColor: '#fff',
                     }}
                   />
+                  {/*   <View style={styles.headerRightButtons}>  */}
+
+                  {/*  </View> */}
 
                   <Menu
                     visible={visible}
                     onDismiss={closeMenu}
                     statusBarHeight={80}
                     anchor={
-                      <Pressable
-                        onPress={openMenu}
-                        style={styles.settingsButton}>
-                        <Icon name="settings-outline" size={24} color="white" />
-                      </Pressable>
+                      <>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'centers'}}>
+                          <Pressable
+                            onPress={handleComms} // This should ideally open a chatbox/notification menu
+                            style={{}}>
+                            <Icon
+                              name="chatbox-ellipses-outline"
+                              size={26}
+                              color="white"
+                            />
+                          </Pressable>
+                          <Pressable
+                            onPress={openMenu}
+                            style={styles.settingsButton}>
+                            <Icon
+                              name="settings-outline"
+                              size={24}
+                              color="white"
+                            />
+                          </Pressable>
+                        </View>
+                      </>
                     }>
                     {/* <View style={styles.pointer} /> */}
                     <Menu.Item
@@ -602,7 +632,7 @@ const HomeScreen = ({navigation}) => {
                     </View>
                   </BottomSheetModal>
                 </ImageBackground>
-                {showReminder /*  || Platform.Version < 30 */ && (
+                {showReminder /* || Platform.Version < 30 */ && (
                   <Banner
                     style={styles.bannerContainer}
                     text="You haven't enabled notifications. Enable them for timely updates."
@@ -657,15 +687,15 @@ const HomeScreen = ({navigation}) => {
                       />
                     </ImageBackground>
                   )}
-                  /*  pager={props => <TransitionPager {...props} />} */
+                  /* pager={props => <TransitionPager {...props} />} */
                 />
-                {loading && (
+                {/* {loading && (
                   <View style={styles.loadingContainer}>
                     <Text style={{color: 'white'}}>
                       Changing year to {selectedYear}...
                     </Text>
                   </View>
-                )}
+                )} */}
               </>
             )}
           </SafeAreaLoader>
@@ -755,9 +785,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a508c',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // Changed from 'space-between' to 'flex-start' or 'flex-end' depending on desired logo position
     paddingHorizontal: 10,
     elevation: 4, // Shadow effect
+  },
+  headerRightButtons: {
+    flexDirection: 'row',
+    // If you want to push them all the way to the right and keep the logo on the left,
+    // you would set `justifyContent: 'flex-end'` on the `header` and remove `justifyContent: 'space-between'`
+    // If you keep 'space-between' on header, then this view will simply group them.
   },
   menuButton: {
     padding: 8,
