@@ -818,7 +818,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+         {/*  <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View ref={obrInfoRef} style={{marginTop: 20}}>
             <PYOBRInformationCard
@@ -828,7 +828,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+         {/*  <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View ref={remarksRef} style={{marginTop: 20}}>
             <PYRemarksCard
@@ -837,7 +837,7 @@ const DetailScreen = ({route, navigation}) => {
               styles={styles}
             />
           </View>
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View style={{marginTop: 20}}>
             <PYPendingNoteCard
@@ -846,7 +846,7 @@ const DetailScreen = ({route, navigation}) => {
             />
           </View>
 
-          {genInformationData?.Year === '2025' && procurement === '1' && (
+          {/* {genInformationData?.Year === '2025' && procurement === '1' && (
             <>
               <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
 
@@ -863,8 +863,8 @@ const DetailScreen = ({route, navigation}) => {
                 />
               </View>
             </>
-          )}
-          <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} />
+          )} */}
+          {/* <Divider style={{height: 10, backgroundColor: '#F1F1F1'}} /> */}
 
           <View ref={transactionHistoryRef} style={{marginTop: 20}}>
             <PYTransactionHistoryCard

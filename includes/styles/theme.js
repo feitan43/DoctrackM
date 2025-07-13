@@ -56,11 +56,11 @@ export const GLOBAL_STYLES = StyleSheet.create({
   sectionContainer: {
     //borderWidth:1,
     // Renamed from cardContainer
-   // marginVertical: SPACING.m,
+    // marginVertical: SPACING.m,
     marginHorizontal: SPACING.s,
-    paddingBottom:10,
+    //paddingBottom: 10,
     borderRadius: SPACING.s,
-    elevation:2,
+    elevation: 2,
     shadowColor: COLORS.darkGrey,
     backgroundColor: COLORS.white, // Each section will still have its own white background
     // Removed borderWidth, borderColor, borderRadius for a flatter look
@@ -74,8 +74,8 @@ export const GLOBAL_STYLES = StyleSheet.create({
     //borderBottomColor: COLORS.borderColor,
     //alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth:1,
-    borderColor:'#E0E0E0'
+    borderBottomWidth: 1,
+    borderColor: '#E0E0E0',
   },
   headerText: {
     fontSize: FONT_SIZES.header,
@@ -106,7 +106,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontSize: FONT_SIZES.large,
     color: COLORS.textPrimary,
     textAlign: 'right',
-    fontWeight:'600',
+    fontWeight: '600',
     flex: 1.5,
   },
   divider: {
@@ -119,13 +119,14 @@ export const GLOBAL_STYLES = StyleSheet.create({
   // --- Table Styles (for OBR and PR Details Sections) ---
   sectionTable: {
     // Renamed from cardTable
-    paddingHorizontal: SPACING.s,
-    paddingVertical: SPACING.s,
+    //paddingHorizontal: SPACING.s,
+    //paddingVertical: SPACING.s,
   },
   tableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: SPACING.s,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.m,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.dividerColor,
     backgroundColor: COLORS.backgroundLight,
@@ -146,6 +147,8 @@ export const GLOBAL_STYLES = StyleSheet.create({
     justifyContent: 'space-between',
     //alignItems: 'center',
     paddingVertical: SPACING.s,
+    paddingHorizontal: SPACING.s,
+
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderColor,
   },
@@ -179,8 +182,9 @@ export const GLOBAL_STYLES = StyleSheet.create({
     paddingVertical: SPACING.s,
     alignItems: 'flex-end',
     backgroundColor: COLORS.backgroundLight,
-    marginHorizontal: -SPACING.m, // This negates padding of parent and extends total bar to full width
+    //marginHorizontal: SPACING.s, // This negates padding of parent and extends total bar to full width
     paddingHorizontal: SPACING.m,
+    paddingBottom:15
   },
   totalAmountText: {
     fontSize: FONT_SIZES.large,
@@ -305,7 +309,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
-   transactionListContainer: {
+  transactionListContainer: {
     // This view wraps the table content, applying consistent horizontal padding
     paddingHorizontal: SPACING.xxs,
   },
@@ -318,7 +322,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
     paddingHorizontal: SPACING.s, // Add horizontal padding for column alignment
   },
   transactionListHeaderText: {
-      fontSize: FONT_SIZES.small,
+    fontSize: FONT_SIZES.small,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
   },
@@ -397,19 +401,21 @@ export const GLOBAL_STYLES = StyleSheet.create({
     marginVertical: SPACING.s,
     marginHorizontal: 0,
   },
-    paymentHistoryColumnValue: { // New style for table column values
+  paymentHistoryColumnValue: {
+    // New style for table column values
     fontSize: FONT_SIZES.small,
     color: COLORS.textPrimary,
     textAlign: 'center',
     paddingHorizontal: SPACING.xs,
   },
-  paymentHistoryColumnHeader: { // New style for table column headers
+  paymentHistoryColumnHeader: {
+    // New style for table column headers
     fontSize: FONT_SIZES.small,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     textAlign: 'center',
   },
-   particularsDescription: {
+  particularsDescription: {
     fontSize: 14,
     fontFamily: 'Oswald-Light', // Assuming Oswald-Light is a valid font
     color: 'silver',

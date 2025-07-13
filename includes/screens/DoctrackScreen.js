@@ -84,6 +84,8 @@ const DoctrackScreen = ({
   trackSumLoading,
   refetchTrackSum,
   regTrackSumData,
+  regTrackSumError,
+  regTrackSumLoading,
   accountabilityData,
   fetchMyAccountability,
   requestsLength,
@@ -297,7 +299,7 @@ const DoctrackScreen = ({
       content:
         'Please be advised of the upcoming holiday schedule for the month of July. All offices will be closed on July 20th in observance of a national holiday. Normal operations will resume on July 21st. For more details, please check the official HR portal.',
     },
-   /*  {
+    /*  {
       id: '2',
       title: 'New Policy on Remote Work',
       date: 'July 10, 2025',
@@ -324,11 +326,11 @@ const DoctrackScreen = ({
           justifyContent: 'center',
           paddingHorizontal: 10,
         }}>
-        {boss === '1' && (
+        {/* {boss === '1' && (
           <View style={{}}>
             <AnnouncementCard announcements={announcements} />
           </View>
-        )}
+        )} */}
 
         <View>
           {caoReceiver === '1' || caoEvaluator === '1' ? (
@@ -893,8 +895,8 @@ const DoctrackScreen = ({
               </View>
             </>
           ) : (
-            procurement === '1' /* || accountType === '1' */ &&
-           /*  [
+            procurement === '1' /* || accountType === '1' */ && (
+              /*  [
               '1071',
               '1081',
               '1061',
@@ -904,8 +906,7 @@ const DoctrackScreen = ({
               'BAAC',
               'TRAC',
               'LSBD',
-            ].includes(officeCode) && */ (
-              <View>
+            ].includes(officeCode) && */ <View>
                 {accountType === '1' && (
                   <View
                     style={{
@@ -1026,6 +1027,139 @@ const DoctrackScreen = ({
                     </View>
                   </View>
                 )}
+
+                {accountType === '2' &&
+                  [
+                    '1071',
+                    '1081',
+                    '1061',
+                    '1091',
+                    '8751',
+                    '1031',
+                    'BAAC',
+                  ].includes(officeCode) && (
+                    <View
+                      style={{
+                        padding: 10,
+                        marginTop: 10,
+                        backgroundColor: 'white',
+                        borderRadius: 5,
+                        shadowColor: '#000',
+                        shadowOffset: {width: 0, height: 2},
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
+                        elevation: 1,
+                        borderBottomWidth: 1,
+                        borderBottomColor: 'silver',
+                        borderRightWidth: 1,
+                        borderRightColor: 'silver',
+                      }}>
+                      <View
+                        style={{
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#eee',
+                          paddingBottom: 5,
+                          marginBottom: 5,
+                        }}>
+                        <Text
+                          style={{
+                            fontFamily: 'Inter_28pt-Bold',
+                            color: '#5d5d5d',
+                            fontSize: 18,
+                            marginStart: 10,
+                          }}>
+                          Tracking Summary
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingTop: 10,
+                          paddingBottom: 10,
+                          marginStart: 5,
+                        }}>
+                        {regTrackSumLoading ? (
+                          <Text style={{textAlign: 'center'}}>Loading...</Text>
+                        ) : trackSumError ? (
+                          <Text style={{textAlign: 'center', color: 'red'}}>
+                            Error loading data
+                          </Text>
+                        ) : itemsToShowTrackSum?.length === 0 ? (
+                          <Text style={{textAlign: 'center'}}>
+                            No results found
+                          </Text>
+                        ) : (
+                          <>
+                            {itemsToShowRegTrackSum?.map((item, index) => (
+                              <Pressable
+                                key={index}
+                                onPress={() =>
+                                  navigation.navigate(
+                                    'RegTrackingSummaryScreen',
+                                    {
+                                      selectedItem: item,
+                                    },
+                                  )
+                                }
+                                style={{}}
+                                android_ripple={{color: 'rgba(0, 0, 0, 0.2)'}}>
+                                <View
+                                  style={{
+                                    flexDirection: 'row',
+                                    //alignItems: 'center',
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: '#eee',
+                                    paddingVertical: 5,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      fontFamily: 'Inter_28pt-Bold',
+                                      fontSize: 15,
+                                      color: item.Status.includes('Pending')
+                                        ? 'rgb(248, 12, 12)'
+                                        : 'rgb(8, 112, 231)',
+                                      width: '20%',
+                                      textAlign: 'right',
+                                      paddingRight: 10,
+                                      //alignSelf: 'center',
+                                      textAlignVertical: 'top',
+                                    }}>
+                                    {item.Count}
+                                  </Text>
+                                  <View style={{width: '80%'}}>
+                                    <Text
+                                      style={{
+                                        fontSize: 14,
+                                        fontFamily: 'Inter_28pt-Regular',
+                                      }}>
+                                      {item.Status}
+                                    </Text>
+                                  </View>
+                                </View>
+                              </Pressable>
+                            ))}
+
+                            {regTrackSumData?.length > 5 && (
+                              <View
+                                style={{alignSelf: 'flex-end', marginTop: 10}}>
+                                <TouchableOpacity
+                                  onPress={() => setShowAll(prev => !prev)}>
+                                  <Text
+                                    style={{
+                                      color: 'rgb(8, 112, 231)',
+                                      fontWeight: 'bold',
+                                    }}>
+                                    {showAll ? 'Show Less' : 'Show More'}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  )}
 
                 <View
                   style={{

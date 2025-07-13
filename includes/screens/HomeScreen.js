@@ -520,7 +520,7 @@ const HomeScreen = ({navigation}) => {
                       <>
                         <View
                           style={{flexDirection: 'row', alignItems: 'centers'}}>
-                          <Pressable
+                          {/* <Pressable
                             onPress={handleComms} // This should ideally open a chatbox/notification menu
                             style={{}}>
                             <Icon
@@ -528,7 +528,7 @@ const HomeScreen = ({navigation}) => {
                               size={26}
                               color="white"
                             />
-                          </Pressable>
+                          </Pressable> */}
                           <Pressable
                             onPress={openMenu}
                             style={styles.settingsButton}>

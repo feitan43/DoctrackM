@@ -171,7 +171,7 @@ export const OBRInformationCard = ({
               <Text
                 style={[
                   styles.tableRowMainText,
-                  {paddingVertical: SPACING.xs},
+                  {},
                 ]}>
                 {insertCommas(item.Amount)}
               </Text>
@@ -184,7 +184,7 @@ export const OBRInformationCard = ({
       {OBRInformation && OBRInformation.length > 0 && (
         <View style={styles.totalContainer}>
           <Text style={styles.totalAmountText}>
-            TOTAL: {insertCommas(totalAmount.toFixed(2))}
+            <Text style={{color:'gray'}}>TOTAL:</Text> {insertCommas(totalAmount.toFixed(2))}
           </Text>
         </View>
       )}
