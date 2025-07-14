@@ -121,6 +121,7 @@ import CategoryDetailScreen from '../screens/CategoryDetailScreen';
 import WriteAReviewScreen from '../screens/supplierRating/WriteAReview';
 import CommunicationsScreen from '../components/CommunicationsScreen';
 import ChatScreen from '../components/CommunicationsScreen/ChatScreen';
+import SupplierReviews from '../screens/supplierRating/SupplierReviews';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -687,6 +688,11 @@ export function Route() {
          <Stack.Screen
           name="Chat"
           component={ChatScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="SupplierReviews"
+          component={SupplierReviews}
           options={{headerShown: false}}
         />
 

@@ -1657,7 +1657,7 @@ const DoctrackScreen = ({
           </View>
         )}
 
-        {/*  {boss === '1' && (
+         {boss === '1' && (
           <View
             style={{
               padding: 10,
@@ -1704,7 +1704,7 @@ const DoctrackScreen = ({
                   label: 'Supplier Reviews',
                   icon: true,
                   iconName: 'account-group-outline',
-                  screen: 'SuperAccess',
+                  screen: 'SupplierReviews',
                 },
                 {
                   label: 'Reviews Summary',
@@ -1782,7 +1782,7 @@ const DoctrackScreen = ({
               })}
             </View>
           </View>
-        )} */}
+        )}
 
         {/*PERSONAL VIEW */}
         <View

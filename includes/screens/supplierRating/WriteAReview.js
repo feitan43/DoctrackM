@@ -13,75 +13,19 @@ import {
   Pressable,
   TextInput,
   KeyboardAvoidingView,
+  ActivityIndicator,
+  Alert,
+  Image, // Import Image for displaying photos
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-
-// Mock Data - Replace with your actual data fetching
-const mockSuppliers = [
-  {id: 's1', name: 'Tech Solutions Inc.'},
-  {id: 's2', name: 'Office Supplies Co.'},
-  {id: 's3', name: 'Furniture World'},
-  {id: 's4', name: 'Software Innovations'},
-];
-
-const mockItemsBySupplier = {
-  s1: [
-    {id: 'i101', name: 'Laptop Pro X', description: 'High-performance laptop'},
-    {
-      id: 'i102',
-      name: 'Wireless Mouse Z',
-      description: 'Ergonomic wireless mouse',
-    },
-    {
-      id: 'i103',
-      name: 'Monitor UltraWide',
-      description: 'Curved ultrawide monitor',
-    },
-  ],
-  s2: [
-    {
-      id: 'i201',
-      name: 'A4 Printer Paper (Box)',
-      description: 'Standard A4 paper, 5 reams',
-    },
-    {
-      id: 'i202',
-      name: 'Gel Pen Set (12 colors)',
-      description: 'Smooth writing gel pens',
-    },
-    {
-      id: 'i203',
-      name: 'Stapler Heavy Duty',
-      description: 'Durable stapler for large documents',
-    },
-  ],
-  s3: [
-    {
-      id: 'i301',
-      name: 'Ergonomic Office Chair',
-      description: 'Adjustable chair with lumbar support',
-    },
-    {
-      id: 'i302',
-      name: 'Standing Desk Converter',
-      description: 'Adjustable height desk attachment',
-    },
-  ],
-  s4: [
-    {
-      id: 'i401',
-      name: 'Project Management Software License',
-      description: 'Annual license for PM tool',
-    },
-    {
-      id: 'i402',
-      name: 'Antivirus Suite (5-user)',
-      description: 'Comprehensive security solution',
-    },
-  ],
-};
+import {
+  useSuppliers,
+  useSupplierItems,
+  useSuppliersInfo,
+} from '../../hooks/useSupplierRating';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker'; // Import image picker
 
 // StarRating component for individual criterion ratings
 const StarRating = ({label, rating, onRate}) => {
@@ -104,17 +48,18 @@ const StarRating = ({label, rating, onRate}) => {
   );
 };
 
-// New SuccessModal Component - Beautified
+// SuccessModal Component
 const SuccessModal = ({isVisible, onClose, supplierName}) => {
   return (
     <Modal
       animationType="fade"
       transparent={true}
       visible={isVisible}
+      statusBarTranslucent={true}
       onRequestClose={onClose}>
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <LinearGradient
-          colors={['#ffffff', '#f0f8ff']} // Light gradient from white to very light blue
+          colors={['#ffffff', '#f0f8ff']}
           start={{x: 0, y: 0}}
           end={{x: 0, y: 1}}
           style={styles.successModalContainer}>
@@ -123,7 +68,7 @@ const SuccessModal = ({isVisible, onClose, supplierName}) => {
           <Text style={styles.successModalMessage}>
             Thank you for your valuable feedback on{'\n'}
             <Text style={{fontWeight: 'bold', color: '#333'}}>
-              {supplierName}!{/* {' \n'}  */}
+              {supplierName}
             </Text>
           </Text>
           <TouchableOpacity style={styles.successModalButton} onPress={onClose}>
@@ -148,10 +93,21 @@ const WriteAReviewScreen = ({navigation}) => {
   const [isSupplierModalVisible, setSupplierModalVisible] = useState(false);
   const [isYearModalVisible, setYearModalVisible] = useState(false);
   const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
-  const [submittedSupplierName, setSubmittedSupplierName] = useState(''); // New state to hold supplier name for modal
+  const [submittedSupplierName, setSubmittedSupplierName] = useState('');
 
   const currentYear = new Date().getFullYear();
   const [selectedReviewYear, setSelectedReviewYear] = useState(currentYear);
+  const {data: suppliers, loading, error} = useSuppliers(selectedReviewYear);
+  const {
+    data: suppliersInfo,
+    loading: loadingInfo,
+    error: errorInfo,
+  } = useSuppliersInfo(selectedSupplier?.Claimant);
+  const {
+    data: supplierItems,
+    loading: loadingItems,
+    error: errorItems,
+  } = useSupplierItems(selectedReviewYear, selectedSupplier?.TrackingNumber);
 
   const availableYears = useMemo(() => {
     const years = [];
@@ -162,10 +118,10 @@ const WriteAReviewScreen = ({navigation}) => {
   }, [currentYear]);
 
   const itemsForSelectedSupplier = useMemo(() => {
-    return selectedSupplier
-      ? mockItemsBySupplier[selectedSupplier.id] || []
-      : [];
-  }, [selectedSupplier]);
+    return supplierItems || [];
+  }, [supplierItems]);
+
+  const displaySuppliers = suppliers;
 
   const handleSelectSupplier = useCallback(supplier => {
     setSelectedSupplier(supplier);
@@ -183,8 +139,13 @@ const WriteAReviewScreen = ({navigation}) => {
 
   const handleToggleItemHighlight = useCallback(item => {
     setSelectedItemsToHighlight(prevSelected => {
-      if (prevSelected.some(selected => selected.id === item.id)) {
-        return prevSelected.filter(selected => selected.id !== item.id);
+      const itemId = item.Item || item.id;
+      if (
+        prevSelected.some(selected => (selected.Item || selected.id) === itemId)
+      ) {
+        return prevSelected.filter(
+          selected => (selected.Item || selected.id) !== itemId,
+        );
       } else {
         return [...prevSelected, item];
       }
@@ -207,12 +168,39 @@ const WriteAReviewScreen = ({navigation}) => {
   }, []);
 
   const handleAddPhoto = useCallback(() => {
-    alert(
-      'Photo upload functionality is not implemented in this mock. Imagine a photo picker here!',
-    );
-    setPhotos(prevPhotos => [
-      ...prevPhotos,
-      `photo_${prevPhotos.length + 1}.jpg`,
+    Alert.alert('Add Photo', 'Choose an option', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Take Photo',
+        onPress: () =>
+          launchCamera({mediaType: 'photo', quality: 0.7}, response => {
+            if (response.didCancel) {
+              console.log('User cancelled camera picker');
+            } else if (response.errorCode) {
+              console.log('Camera Error: ', response.errorCode);
+              Alert.alert('Error', 'Failed to open camera.');
+            } else if (response.assets && response.assets.length > 0) {
+              setPhotos(prevPhotos => [...prevPhotos, response.assets[0].uri]);
+            }
+          }),
+      },
+      {
+        text: 'Choose from Library',
+        onPress: () =>
+          launchImageLibrary({mediaType: 'photo', quality: 0.7}, response => {
+            if (response.didCancel) {
+              console.log('User cancelled image picker');
+            } else if (response.errorCode) {
+              console.log('ImagePicker Error: ', response.errorCode);
+              Alert.alert('Error', 'Failed to open image library.');
+            } else if (response.assets && response.assets.length > 0) {
+              setPhotos(prevPhotos => [...prevPhotos, response.assets[0].uri]);
+            }
+          }),
+      },
     ]);
   }, []);
 
@@ -226,7 +214,10 @@ const WriteAReviewScreen = ({navigation}) => {
 
   const handleSubmitReview = useCallback(() => {
     if (isSubmitDisabled) {
-      alert('Please select a supplier and rate all categories.');
+      Alert.alert(
+        'Missing Information',
+        'Please select a supplier and rate all categories.',
+      );
       return;
     }
 
@@ -239,11 +230,8 @@ const WriteAReviewScreen = ({navigation}) => {
       photos: photos,
     });
 
-    // Store the supplier name before clearing selectedSupplier
-    setSubmittedSupplierName(selectedSupplier?.name || '');
+    setSubmittedSupplierName(selectedSupplier?.Claimant || ''); // Use Claimant for display
     setSuccessModalVisible(true);
-
-    // Form reset logic is moved to handleCloseSuccessModal
   }, [
     isSubmitDisabled,
     selectedReviewYear,
@@ -256,21 +244,23 @@ const WriteAReviewScreen = ({navigation}) => {
 
   const handleCloseSuccessModal = useCallback(() => {
     setSuccessModalVisible(false);
-    // Reset form after the modal is closed
     setSelectedSupplier(null);
     setSelectedItemsToHighlight([]);
     setReviewRatings({timeliness: 0, productQuality: 0, service: 0});
     setFeedbackText('');
     setPhotos([]);
     setSelectedReviewYear(currentYear);
-    setSubmittedSupplierName(''); // Clear the submitted supplier name
+    setSubmittedSupplierName('');
   }, [currentYear]);
 
   const renderSupplierItem = ({item}) => (
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => handleSelectSupplier(item)}>
-      <Text style={styles.modalItemText}>{item.name}</Text>
+      <Text style={styles.modalItemText}>
+        <Text style={{fontWeight: 'bold'}}>{item.TrackingNumber}</Text> -{' '}
+        {item.Claimant}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -282,10 +272,16 @@ const WriteAReviewScreen = ({navigation}) => {
     </TouchableOpacity>
   );
 
-  const renderItemToHighlight = ({item}) => {
+  const renderItemToHighlight = ({item, index}) => {
     const isSelected = selectedItemsToHighlight.some(
-      selected => selected.id === item.id,
+      selected => (selected.Item || selected.id) === (item.Item || item.id),
     );
+
+    // Split the description by newline characters
+    const descriptionLines = (item.Description || item.description || '').split(
+      '\n',
+    );
+
     return (
       <TouchableOpacity
         style={[
@@ -293,13 +289,36 @@ const WriteAReviewScreen = ({navigation}) => {
           isSelected && styles.itemHighlightCardSelected,
         ]}
         onPress={() => handleToggleItemHighlight(item)}>
-        <View>
-          <Text style={styles.itemHighlightName}>{item.name}</Text>
-          <Text style={styles.itemHighlightDescription}>
-            {item.description}
-          </Text>
+        <View style={styles.itemHighlightContent}>
+          {/* Checkbox */}
+          <Icons
+            name={
+              isSelected
+                ? 'checkbox-marked-circle'
+                : 'checkbox-blank-circle-outline'
+            }
+            size={24}
+            color={isSelected ? '#1A508C' : '#999'}
+            style={styles.itemCheckbox}
+          />
+          {/* Item Details */}
+          <View style={styles.itemTextDetails}>
+            <Text style={styles.itemHighlightName}>
+              {item.Item || item.name}
+            </Text>
+            {/* Render each line of the description */}
+            {descriptionLines.map((line, lineIndex) => (
+              <Text key={lineIndex} style={styles.itemHighlightDescription}>
+                {line}
+              </Text>
+            ))}
+          </View>
+          {/* Qty and Amount */}
+          <View style={styles.itemNumericDetails}>
+            <Text style={styles.itemQty}>{item.Qty}</Text>
+            <Text style={styles.itemAmount}>{item.Amount}</Text>
+          </View>
         </View>
-        {isSelected && <Icons name="check-circle" size={24} color="#1A508C" />}
       </TouchableOpacity>
     );
   };
@@ -336,7 +355,6 @@ const WriteAReviewScreen = ({navigation}) => {
                 color="white"
                 style={styles.headerIcon}
               />
-
               <Text style={styles.headerTitle}>Write a Review</Text>
               <View style={styles.selectedYearBadge}>
                 <Text style={styles.selectedYearText}>
@@ -362,6 +380,7 @@ const WriteAReviewScreen = ({navigation}) => {
             shadowRadius: 2,
             elevation: 2,
             alignSelf: 'flex-start',
+            margin: 10,
           }}>
           <Icon
             name="information-circle-outline"
@@ -382,12 +401,13 @@ const WriteAReviewScreen = ({navigation}) => {
             <View style={styles.card}>
               {/* Step 1: Supplier Selection */}
               <Text style={styles.sectionLabel}>1. Select Supplier</Text>
+              {/* Removed claimant filter input */}
               <TouchableOpacity
                 style={styles.dropdownButton}
                 onPress={() => setSupplierModalVisible(true)}>
                 <Text style={styles.dropdownButtonText}>
                   {selectedSupplier
-                    ? selectedSupplier.name
+                    ? selectedSupplier.Claimant
                     : 'Choose a Supplier'}
                 </Text>
                 <Icon name="chevron-down" size={20} color="#333" />
@@ -395,12 +415,123 @@ const WriteAReviewScreen = ({navigation}) => {
 
               {selectedSupplier && (
                 <View style={styles.reviewSection}>
-                  {/* Step 2: Highlight Specific Items (Optional) - Swapped position */}
+                  {suppliersInfo && suppliersInfo.length > 0 && (
+                    <View
+                      style={{
+                        padding: 15,
+                        //backgroundColor: '#f8f8f8',
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: '#e0e0e0',
+                        marginBottom: 10,
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          marginBottom: 10,
+                          color: '#1A508C',
+                        }}>
+                        Supplier Description
+                      </Text>
+                      <View
+                        style={{
+                          borderBottomWidth: 1,
+                          borderBottomColor: '#eee',
+                          marginBottom: 10,
+                        }}
+                      />
+
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 5,
+                        }}>
+                        <Text style={{fontWeight: '600'}}>Supplier </Text>
+                        <Text
+                          style={{
+                            fontWeight: 'bold',
+                            color: '#000',
+                            flexShrink: 1,
+                            textAlign: 'right',
+                          }}>
+                          {suppliersInfo[0].Name}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 5,
+                        }}>
+                        <Text style={{fontWeight: '600'}}>Address </Text>
+                        <Text
+                          style={{
+                            fontWeight: 'bold',
+                            color: '#000',
+                            flexShrink: 1,
+                            textAlign: 'right',
+                          }}>
+                          {suppliersInfo[0].Address}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 5,
+                        }}>
+                        <Text style={{fontWeight: '600'}}>Contact </Text>
+                        <Text
+                          style={{
+                            fontWeight: 'bold',
+                            color: '#000',
+                            flexShrink: 1,
+                            textAlign: 'right',
+                          }}>
+                          {suppliersInfo[0].Contact}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          marginBottom: 5,
+                        }}>
+                        <Text style={{fontWeight: '600'}}>Proprietor </Text>
+                        <Text
+                          style={{
+                            fontWeight: 'bold',
+                            color: '#000',
+                            flexShrink: 1,
+                            textAlign: 'right',
+                          }}>
+                          {suppliersInfo[0].Proprietor}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {/* --- END DISPLAY SELECTED SUPPLIER'S CLAIMANT --- */}
+
+                  {/* Step 2: Highlight Specific Items */}
                   <View style={styles.itemsSelectionSection}>
                     <Text style={styles.sectionLabel}>
                       2. Highlight Specific Items (Optional)
                     </Text>
-                    {itemsForSelectedSupplier.length > 0 ? (
+                    {loadingItems ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#1A508C" />
+                        <Text style={styles.loadingText}>Loading items...</Text>
+                      </View>
+                    ) : errorItems ? (
+                      <View style={styles.errorContainer}>
+                        <Icons name="alert-circle" size={30} color="#D32F2F" />
+                        <Text style={styles.errorText}>
+                          Error loading items
+                        </Text>
+                      </View>
+                    ) : itemsForSelectedSupplier.length > 0 ? (
                       <>
                         <TouchableOpacity
                           style={styles.selectAllButton}
@@ -425,9 +556,20 @@ const WriteAReviewScreen = ({navigation}) => {
                               : 'Select All'}
                           </Text>
                         </TouchableOpacity>
+                        {/* Item List Header */}
+                        <View style={styles.itemHeaderContainer}>
+                          <Text style={styles.itemHeaderItem}>Item</Text>
+                          <Text style={styles.itemHeaderDescription}>
+                            Description
+                          </Text>
+                          <Text style={styles.itemHeaderQty}>Qty</Text>
+                          <Text style={styles.itemHeaderAmount}>Amount</Text>
+                        </View>
                         <FlatList
                           data={itemsForSelectedSupplier}
-                          keyExtractor={item => item.id}
+                          keyExtractor={(item, index) =>
+                            item.Item || item.id || index.toString()
+                          }
                           renderItem={renderItemToHighlight}
                           scrollEnabled={false}
                         />
@@ -446,9 +588,9 @@ const WriteAReviewScreen = ({navigation}) => {
                     )}
                   </View>
 
-                  {/* Step 3: Rate Your Experience - Swapped position */}
+                  {/* Step 3: Rate Your Experience */}
                   <Text style={styles.sectionLabel}>
-                    3. Rate Your Experience with {selectedSupplier.name}
+                    3. Rate Your Experience with {selectedSupplier.Claimant}
                   </Text>
 
                   {/* Rating Section */}
@@ -476,7 +618,7 @@ const WriteAReviewScreen = ({navigation}) => {
                     />
                   </View>
 
-                  {/* Step 4: Add Photos (Optional) */}
+                  {/* Step 4: Add Photos */}
                   <View style={styles.photoSection}>
                     <Text style={styles.sectionLabel}>
                       4. Add Photos (Optional)
@@ -493,17 +635,20 @@ const WriteAReviewScreen = ({navigation}) => {
                     </TouchableOpacity>
                     {photos.length > 0 && (
                       <View style={styles.photoPreviewContainer}>
-                        {photos.map((photo, index) => (
+                        {photos.map((photoUri, index) => (
                           <View key={index} style={styles.photoPreview}>
-                            <Icons name="image" size={40} color="#666" />
-                            <Text style={styles.photoPreviewText}>{photo}</Text>
+                            {/* Display the image using the Image component */}
+                            <Image
+                              source={{uri: photoUri}}
+                              style={styles.photoPreviewImage}
+                            />
                           </View>
                         ))}
                       </View>
                     )}
                   </View>
 
-                  {/* Step 5: Write Feedback (Optional) */}
+                  {/* Step 5: Write Feedback */}
                   <View style={styles.feedbackSection}>
                     <Text style={styles.sectionLabel}>
                       5. Write Feedback (Optional)
@@ -536,8 +681,9 @@ const WriteAReviewScreen = ({navigation}) => {
 
         {/* Supplier Selection Modal */}
         <Modal
-          animationType="slide"
+          animationType="fade"
           transparent={true}
+          statusBarTranslucent={true}
           visible={isSupplierModalVisible}
           onRequestClose={() => setSupplierModalVisible(false)}>
           <Pressable
@@ -551,21 +697,45 @@ const WriteAReviewScreen = ({navigation}) => {
                   <Icon name="close-circle-outline" size={28} color="#666" />
                 </TouchableOpacity>
               </View>
-              <FlatList
-                data={mockSuppliers}
-                keyExtractor={item => item.id}
-                renderItem={renderSupplierItem}
-                contentContainerStyle={styles.modalListContent}
-              />
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#1A508C" />
+                  <Text style={styles.loadingText}>Loading suppliers...</Text>
+                </View>
+              ) : error ? (
+                <View style={styles.errorContainer}>
+                  <Icons name="alert-circle" size={40} color="#D32F2F" />
+                  <Text style={styles.errorText}>Error loading suppliers</Text>
+                  <Text style={styles.errorDetail}>
+                    {error.message || 'Unknown error'}
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={displaySuppliers}
+                  keyExtractor={item => item.TrackingNumber}
+                  renderItem={renderSupplierItem}
+                  contentContainerStyle={styles.modalListContent}
+                  ListEmptyComponent={() => (
+                    <View style={styles.emptyState}>
+                      <Icons name="account-off" size={50} color="#b0b0b0" />
+                      <Text style={styles.emptyStateText}>
+                        No suppliers found for the selected criteria.
+                      </Text>
+                    </View>
+                  )}
+                />
+              )}
             </View>
           </Pressable>
         </Modal>
 
         {/* Review Year Selection Modal */}
         <Modal
-          animationType="slide"
+          animationType="fade"
           transparent={true}
           visible={isYearModalVisible}
+          statusBarTranslucent={true}
           onRequestClose={() => setYearModalVisible(false)}>
           <Pressable
             style={styles.modalOverlay}
@@ -591,7 +761,7 @@ const WriteAReviewScreen = ({navigation}) => {
         <SuccessModal
           isVisible={isSuccessModalVisible}
           onClose={handleCloseSuccessModal}
-          supplierName={submittedSupplierName} // Pass the new state variable
+          supplierName={submittedSupplierName}
         />
       </View>
     </SafeAreaView>
@@ -609,7 +779,7 @@ const styles = StyleSheet.create({
   },
   headerBackground: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0,
-    paddingBottom: 20,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
@@ -647,13 +817,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgb(224, 181, 8)',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
     textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
-    marginRight: 8,
   },
   selectedYearBadge: {
     flexDirection: 'row',
@@ -670,7 +839,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   scrollViewContent: {
-    padding: 20,
+    padding: 10,
     paddingBottom: 40,
   },
   card: {
@@ -690,6 +859,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 15,
   },
+  // Removed claimantFilterInput style
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -706,6 +876,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
+  },
+  selectedSupplierClaimant: {
+    fontSize: 15,
+    color: '#555',
+    marginBottom: 15,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 5,
   },
   reviewSection: {
     marginTop: 20,
@@ -748,9 +925,47 @@ const styles = StyleSheet.create({
   itemsSelectionSection: {
     marginBottom: 25,
   },
-  itemHighlightCard: {
+  itemHeaderContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#E6F0FF',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: '#B3D4FF',
+  },
+  itemHeaderItem: {
+    flex: 2.5,
+    fontWeight: 'bold',
+    color: '#1A508C',
+    fontSize: 13,
+  },
+  itemHeaderDescription: {
+    flex: 3,
+    fontWeight: 'bold',
+    color: '#1A508C',
+    fontSize: 13,
+    textAlign: 'left',
+  },
+  itemHeaderQty: {
+    flex: 1,
+    fontWeight: 'bold',
+    color: '#1A508C',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  itemHeaderAmount: {
+    flex: 1.5,
+    fontWeight: 'bold',
+    color: '#1A508C',
+    fontSize: 13,
+    textAlign: 'right',
+  },
+  itemHighlightCard: {
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8F9FB',
     borderRadius: 12,
@@ -769,8 +984,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6F0FF',
     borderWidth: 2,
   },
+  itemHighlightContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  itemCheckbox: {
+    marginRight: 10,
+  },
+  itemTextDetails: {
+    flex: 5.5,
+  },
   itemHighlightName: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#222',
   },
@@ -778,6 +1004,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  itemNumericDetails: {
+    flex: 2.5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  itemQty: {
+    fontSize: 14,
+    color: '#444',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'center',
+  },
+  itemAmount: {
+    fontSize: 14,
+    color: '#444',
+    fontWeight: '500',
+    flex: 1.5,
+    textAlign: 'right',
   },
   selectAllButton: {
     flexDirection: 'row',
@@ -830,12 +1077,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#D0D0D0',
+    overflow: 'hidden',
   },
-  photoPreviewText: {
-    fontSize: 10,
-    color: '#555',
-    marginTop: 5,
-    textAlign: 'center',
+  photoPreviewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   feedbackSection: {
     marginBottom: 25,
@@ -923,10 +1170,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#444',
   },
+  modalItemClaimant: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 2,
+  },
   modalListContent: {
     paddingBottom: 10,
   },
-  // Updated styles for SuccessModal
   successModalContainer: {
     borderRadius: 20,
     padding: 30,
@@ -937,17 +1188,17 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 8},
     shadowOpacity: 0.4,
     shadowRadius: 12,
-    overflow: 'hidden', // Ensures gradient respects borderRadius
-    borderWidth: 1, // Subtle border
+    overflow: 'hidden',
+    borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
   },
   successModalTitle: {
-    fontSize: 26, // Slightly larger
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#28A745', // Green color for success
-    marginTop: 25, // More space
+    color: '#28A745',
+    marginTop: 25,
     marginBottom: 15,
-    textShadowColor: 'rgba(0,0,0,0.1)', // Subtle text shadow
+    textShadowColor: 'rgba(0,0,0,0.1)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
   },
@@ -955,15 +1206,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
     textAlign: 'center',
-    marginBottom: 35, // More space
+    marginBottom: 35,
     lineHeight: 24,
-    paddingHorizontal: 10, // Add some horizontal padding
+    paddingHorizontal: 10,
   },
   successModalButton: {
-    backgroundColor: '#1A508C', // Primary blue
+    backgroundColor: '#1A508C',
     paddingVertical: 14,
-    paddingHorizontal: 50, // Wider button
-    borderRadius: 10, // Consistent rounding
+    paddingHorizontal: 50,
+    borderRadius: 10,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
@@ -974,8 +1225,36 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
-    textTransform: 'uppercase', // Make button text uppercase
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#555',
+  },
+  errorContainer: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFEBEE',
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#D32F2F',
+    fontWeight: 'bold',
+  },
+  errorDetail: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
   },
 });
 
