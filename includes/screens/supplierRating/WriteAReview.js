@@ -406,6 +406,7 @@ const WriteAReviewScreen = ({navigation}) => {
                 style={styles.dropdownButton}
                 onPress={() => setSupplierModalVisible(true)}>
                 <Text style={styles.dropdownButtonText}>
+
                   {selectedSupplier
                     ? selectedSupplier.Claimant
                     : 'Choose a Supplier'}
