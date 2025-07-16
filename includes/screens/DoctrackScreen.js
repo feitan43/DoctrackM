@@ -1316,112 +1316,129 @@ const DoctrackScreen = ({
           />
         )}
 
-        {procurement === '1' && (
-          <View
-            style={{
-              padding: 10,
-              marginTop: 15,
-              backgroundColor: 'white',
-              borderRadius: 5,
-              elevation: 1,
-            }}>
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: '#eee',
-                paddingBottom: 5,
-                marginBottom: 10,
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter_28pt-Bold',
-                  color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
-                }}>
-                Inventory
-              </Text>
-              {/*  {
-                  label: 'BACAttachments',
-                  icon: true,
-                  condition: procurement === '1',
-                  screen: 'BACAttachments',
-                }, */}
-            </View>
+       {(procurement === '1' || employeeNumber === '391091') && (
+  <View
+    style={{
+      padding: 10,
+      marginTop: 15,
+      backgroundColor: 'white',
+      borderRadius: 5,
+      elevation: 1,
+    }}>
+    <View
+      style={{
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        paddingBottom: 5,
+        marginBottom: 10,
+      }}>
+      <Text
+        style={{
+          fontFamily: 'Inter_28pt-Bold',
+          color: '#5d5d5d',
+          fontSize: 18,
+          marginStart: 10,
+        }}>
+        Inventory
+      </Text>
+    </View>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-start',
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        gap: 15,
+      }}>
+      {[
+        {
+          label: 'Upload',
+          icon: 'upload', // Changed icon for Upload
+          condition: procurement !== '1',
+          screen: 'InventoryScreen',
+        },
+        {
+          label: 'Request',
+          icon: 'note-plus-outline', // Changed icon for Request
+          condition: procurement !== '1',
+          screen: 'InventoryScreen',
+        },
+        {
+          label: 'Stocks',
+          icon: 'package-variant', // Changed icon for Stocks
+          condition: procurement !== '1',
+          screen: 'Stocks',
+        },
+        {
+          label: 'Distribution',
+          icon: 'truck-delivery-outline', // Changed icon for Distribution
+          condition: procurement !== '1',
+          screen: 'Distribution',
+        },
+      ].map((item, index) => {
+        // Corrected condition to check if it SHOULD be rendered
+        // The original logic `if (!item.condition) return null;` meant it would only render
+        // if `procurement === '1'`, which contradicts the `condition: procurement != '1'`
+        // on the items themselves. I'm assuming you want these items to show when
+        // `procurement !== '1'`.
+        if (item.condition === false) return null; // Only render if condition is met
+
+        return (
+          <Pressable
+            key={index}
+            style={({ pressed }) => [
+              {
+                width: '30%',
                 alignItems: 'center',
-                alignSelf: 'flex-start',
-                gap: 15,
-              }}>
-              {[
-                {
-                  label: 'Upload',
-                  icon: 'cube-outline',
-                  condition: procurement === '1',
-                  screen: 'InventoryScreen',
-                },
-              ].map((item, index) => {
-                if (!item.condition) return null;
-
-                return (
-                  <Pressable
-                    key={index}
-                    style={({pressed}) => [
-                      {
-                        width: '30%',
-                        alignItems: 'center',
-                        paddingVertical: 10,
-                        marginBottom: 10,
-                        borderRadius: 5,
-                        elevation: 1,
-                        backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 2,
-                        borderRightColor: 'silver',
-                      },
-                    ]}
-                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
-                    onPress={() => {
-                      if (item.screen) {
-                        navigation.navigate(item.screen);
-                      } else {
-                        Alert.alert(
-                          'Under Development',
-                          `${item.label} is currently under development.`,
-                        );
-                      }
-                    }}>
-                    {({pressed}) => (
-                      <>
-                        <View style={{paddingVertical: 5}}>
-                          <Icon
-                            name={item.icon}
-                            size={28}
-                            color={pressed ? 'white' : '#007bff'}
-                          />
-                        </View>
-                        <Text
-                          style={{
-                            color: pressed ? 'white' : '#252525',
-                            fontFamily: 'Inter_28pt-Regular',
-                            fontSize: 10,
-                          }}>
-                          {item.label}
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
+                paddingVertical: 10,
+                marginBottom: 10,
+                borderRadius: 5,
+                elevation: 1,
+                backgroundColor: pressed ? '#007bff' : '#ffffff',
+                borderBottomWidth: 2,
+                borderBottomColor: 'silver',
+                borderRightWidth: 2,
+                borderRightColor: 'silver',
+              },
+            ]}
+            android_ripple={{ color: 'rgba(200, 200, 200, 0.5)' }}
+            onPress={() => {
+              if (item.screen) {
+                navigation.navigate(item.screen);
+              } else {
+                Alert.alert(
+                  'Under Development',
+                  `${item.label} is currently under development.`,
                 );
-              })}
-            </View>
-          </View>
-        )}
+              }
+            }}>
+            {({ pressed }) => (
+              <>
+                <View style={{ paddingVertical: 5 }}>
+                  <MaterialCommunityIcons
+                    name={item.icon}
+                    size={28}
+                    color={pressed ? 'white' : '#007bff'}
+                  />
+                </View>
+                <Text
+                  style={{
+                    color: pressed ? 'white' : '#252525',
+                    fontFamily: 'Inter_28pt-Regular',
+                    fontSize: 10,
+                  }}>
+                  {item.label}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  </View>
+)}
 
         {/* Uploader */}
         {procurement === '1' && (

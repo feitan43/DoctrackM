@@ -11,11 +11,11 @@ import {
   Modal,
   FlatList,
   Pressable,
-  TextInput,
+  // Removed TextInput as it's not used for displaying feedback
   KeyboardAvoidingView,
   ActivityIndicator,
   Alert,
-  Image, // Import Image for displaying photos
+  // Removed Image as it's not used for displaying photos
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -25,30 +25,29 @@ import {
   useSupplierItems,
   useSuppliersInfo,
 } from '../../hooks/useSupplierRating';
-import {launchImageLibrary, launchCamera} from 'react-native-image-picker'; // Import image picker
+// Removed launchImageLibrary, launchCamera as photo selection is not used
 
-// StarRating component for individual criterion ratings
-const StarRating = ({label, rating, onRate}) => {
+// StarRating component for displaying individual criterion ratings
+const StarRating = ({label, rating}) => {
   return (
     <View style={styles.starRatingContainer}>
       <Text style={styles.starRatingLabel}>{label}</Text>
       <View style={styles.starsContainer}>
         {[1, 2, 3, 4, 5].map(star => (
-          <TouchableOpacity key={star} onPress={() => onRate(star)}>
-            <Icons
-              name={star <= rating ? 'star' : 'star-outline'}
-              size={32}
-              color={star <= rating ? '#FFD700' : '#E0E0E0'}
-              style={styles.starIcon}
-            />
-          </TouchableOpacity>
+          <Icons
+            key={star}
+            name={star <= rating ? 'star' : 'star-outline'}
+            size={32}
+            color={star <= rating ? '#FFD700' : '#E0E0E0'}
+            style={styles.starIcon}
+          />
         ))}
       </View>
     </View>
   );
 };
 
-// SuccessModal Component
+// SuccessModal Component (kept as it's a general confirmation modal, though submission is disabled)
 const SuccessModal = ({isVisible, onClose, supplierName}) => {
   return (
     <Modal
@@ -82,18 +81,25 @@ const SuccessModal = ({isVisible, onClose, supplierName}) => {
 
 const SupplierReviews = ({navigation}) => {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [selectedItemsToHighlight, setSelectedItemsToHighlight] = useState([]);
-  const [reviewRatings, setReviewRatings] = useState({
-    timeliness: 0,
-    productQuality: 0,
-    service: 0,
-  });
-  const [feedbackText, setFeedbackText] = useState('');
-  const [photos, setPhotos] = useState([]);
+  // Removed selectedItemsToHighlight state as item selection is not used for feedback display
+  // Removed reviewRatings state as it's replaced by mockRatings for display
+  // Removed feedbackText state as it's replaced by mockFeedback for display
+  // Removed photos state as photo selection is not used
   const [isSupplierModalVisible, setSupplierModalVisible] = useState(false);
   const [isYearModalVisible, setYearModalVisible] = useState(false);
   const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
   const [submittedSupplierName, setSubmittedSupplierName] = useState('');
+
+  // Mocked state for displaying existing ratings and feedback
+  const [mockRatings, setMockRatings] = useState({
+    timeliness: 5,
+    productQuality: 4,
+    service: 5,
+  });
+  const [mockFeedback, setMockFeedback] = useState(
+    'Excellent service and high-quality products. Timely delivery every time!',
+  );
+  const [mockUserName, setMockUserName] = useState('John Doe');
 
   const currentYear = new Date().getFullYear();
   const [selectedReviewYear, setSelectedReviewYear] = useState(currentYear);
@@ -103,11 +109,7 @@ const SupplierReviews = ({navigation}) => {
     loading: loadingInfo,
     error: errorInfo,
   } = useSuppliersInfo(selectedSupplier?.Claimant);
-  const {
-    data: supplierItems,
-    loading: loadingItems,
-    error: errorItems,
-  } = useSupplierItems(selectedReviewYear, selectedSupplier?.TrackingNumber);
+  // Removed useSupplierItems as supplier items selection is not used for feedback display
 
   const availableYears = useMemo(() => {
     const years = [];
@@ -117,18 +119,14 @@ const SupplierReviews = ({navigation}) => {
     return years;
   }, [currentYear]);
 
-  const itemsForSelectedSupplier = useMemo(() => {
-    return supplierItems || [];
-  }, [supplierItems]);
+  // Removed itemsForSelectedSupplier memo as it's not used
 
   const displaySuppliers = suppliers;
 
   const handleSelectSupplier = useCallback(supplier => {
     setSelectedSupplier(supplier);
-    setSelectedItemsToHighlight([]);
-    setReviewRatings({timeliness: 0, productQuality: 0, service: 0});
-    setFeedbackText('');
-    setPhotos([]);
+    // Removed setSelectedItemsToHighlight([]) as item selection is not used
+    // No need to reset mockRatings/mockFeedback here as they are static for display
     setSupplierModalVisible(false);
   }, []);
 
@@ -137,98 +135,40 @@ const SupplierReviews = ({navigation}) => {
     setYearModalVisible(false);
   }, []);
 
-  const handleToggleItemHighlight = useCallback(item => {
-    setSelectedItemsToHighlight(prevSelected => {
-      const itemId = item.Item || item.id;
-      if (
-        prevSelected.some(selected => (selected.Item || selected.id) === itemId)
-      ) {
-        return prevSelected.filter(
-          selected => (selected.Item || selected.id) !== itemId,
-        );
-      } else {
-        return [...prevSelected, item];
-      }
-    });
-  }, []);
+  // Removed handleToggleItemHighlight and handleSelectAllItems as item selection is not used
 
-  const handleSelectAllItems = useCallback(() => {
-    if (selectedItemsToHighlight.length === itemsForSelectedSupplier.length) {
-      setSelectedItemsToHighlight([]);
-    } else {
-      setSelectedItemsToHighlight([...itemsForSelectedSupplier]);
-    }
-  }, [selectedItemsToHighlight, itemsForSelectedSupplier]);
-
-  const handleRateCriterion = useCallback((criterion, newRating) => {
-    setReviewRatings(prevRatings => ({
-      ...prevRatings,
-      [criterion]: newRating,
-    }));
-  }, []);
+  // Removed handleRateCriterion as interactive rating is not used
 
   // Calculate overall rating based on the average of timeliness, productQuality, and service
   const overallRating = useMemo(() => {
-    const ratingsArray = Object.values(reviewRatings).filter(rating => rating > 0);
+    const ratingsArray = Object.values(mockRatings).filter(rating => rating > 0);
     if (ratingsArray.length === 0) {
       return 0;
     }
     const sum = ratingsArray.reduce((acc, current) => acc + current, 0);
-    return Math.round(sum / ratingsArray.length); // Round to nearest whole star
-  }, [reviewRatings]);
+    // Ensure the average is correctly calculated and potentially rounded for display
+    return Math.round(sum / ratingsArray.length);
+  }, [mockRatings]);
 
-  const isSubmitDisabled = useMemo(() => {
-    if (!selectedSupplier) {
-      return true;
-    }
-    const allRated = Object.values(reviewRatings).every(rating => rating > 0);
-    return !allRated;
-  }, [selectedSupplier, reviewRatings]);
+  // Submit button is now disabled as we are displaying results, not submitting
+  const isSubmitDisabled = true;
 
+  // Removed handleSubmitReview logic as submission is not intended in this display-only view
   const handleSubmitReview = useCallback(() => {
-    if (isSubmitDisabled) {
-      Alert.alert(
-        'Missing Information',
-        'Please select a supplier and rate all required categories (Timeliness, Product Quality, Service).',
-      );
-      return;
-    }
+    // This function will not be called in this version as submit is disabled
+    console.log('Submit button pressed - no action in display mode.');
+  }, []);
 
-    console.log('Submitting Review:', {
-      reviewYear: selectedReviewYear,
-      supplier: selectedSupplier,
-      highlightedItems: selectedItemsToHighlight,
-      ratings: reviewRatings,
-      overallRating: overallRating, // Include overall rating
-      feedback: feedbackText,
-      photos: photos,
-    });
-
-    setSubmittedSupplierName(selectedSupplier?.Claimant || ''); // Use Claimant for display
-    setSuccessModalVisible(true);
-  }, [
-    isSubmitDisabled,
-    selectedReviewYear,
-    selectedSupplier,
-    selectedItemsToHighlight,
-    reviewRatings,
-    overallRating,
-    feedbackText,
-    photos,
-  ]);
 
   const handleCloseSuccessModal = useCallback(() => {
     setSuccessModalVisible(false);
+    // Reset only supplier selection, as other states are not relevant for a display-only view
     setSelectedSupplier(null);
-    setSelectedItemsToHighlight([]);
-    setReviewRatings({timeliness: 0, productQuality: 0, service: 0});
-    setFeedbackText('');
-    setPhotos([]);
     setSelectedReviewYear(currentYear);
     setSubmittedSupplierName('');
   }, [currentYear]);
 
-  const renderSupplierItem = ({item}) => (
+  const renderSupplierItem = useCallback(({item}) => (
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => handleSelectSupplier(item)}>
@@ -237,66 +177,17 @@ const SupplierReviews = ({navigation}) => {
         {item.Claimant}
       </Text>
     </TouchableOpacity>
-  );
+  ), [handleSelectSupplier]);
 
-  const renderYearItem = ({item}) => (
+  const renderYearItem = useCallback(({item}) => (
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => handleSelectYear(item)}>
       <Text style={styles.modalItemText}>{item.name}</Text>
     </TouchableOpacity>
-  );
+  ), [handleSelectYear]);
 
-  const renderItemToHighlight = ({item, index}) => {
-    const isSelected = selectedItemsToHighlight.some(
-      selected => (selected.Item || selected.id) === (item.Item || item.id),
-    );
-
-    // Split the description by newline characters
-    const descriptionLines = (item.Description || item.description || '').split(
-      '\n',
-    );
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.itemHighlightCard,
-          isSelected && styles.itemHighlightCardSelected,
-        ]}
-        onPress={() => handleToggleItemHighlight(item)}>
-        <View style={styles.itemHighlightContent}>
-          {/* Checkbox */}
-          <Icons
-            name={
-              isSelected
-                ? 'checkbox-marked-circle'
-                : 'checkbox-blank-circle-outline'
-            }
-            size={24}
-            color={isSelected ? '#1A508C' : '#999'}
-            style={styles.itemCheckbox}
-          />
-          {/* Item Details */}
-          <View style={styles.itemTextDetails}>
-            <Text style={styles.itemHighlightName}>
-              {item.Item || item.name}
-            </Text>
-            {/* Render each line of the description */}
-            {descriptionLines.map((line, lineIndex) => (
-              <Text key={lineIndex} style={styles.itemHighlightDescription}>
-                {line}
-              </Text>
-            ))}
-          </View>
-          {/* Qty and Amount */}
-          <View style={styles.itemNumericDetails}>
-            <Text style={styles.itemQty}>{item.Qty}</Text>
-            <Text style={styles.itemAmount}>{item.Amount}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  // Removed renderItemToHighlight as item selection is not used
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -347,9 +238,6 @@ const SupplierReviews = ({navigation}) => {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
             <View style={styles.card}>
-              {/* Supplier Info (Displayed only if a supplier is selected) */}
-             
-
               {/* Step 1: Select Supplier */}
               <Text style={styles.sectionLabel}>1. Select Supplier</Text>
               <TouchableOpacity
@@ -380,7 +268,7 @@ const SupplierReviews = ({navigation}) => {
                           marginBottom: 10,
                           color: '#1A508C',
                         }}>
-                        Supplier Description
+                        About
                       </Text>
                       <View
                         style={{
@@ -461,8 +349,61 @@ const SupplierReviews = ({navigation}) => {
                     </View>
                   )}
                 </View>
-              )}      
+              )}
+              {/* Step 2: Display Rating Results */}
+              {selectedSupplier && (
+                <View style={styles.reviewSection}>
+                  <Text style={styles.sectionLabel}>2. Supplier Rating Feedback</Text>
+                  <View style={styles.ratingGroup}>
+                    <StarRating
+                      label="Timeliness"
+                      rating={mockRatings.timeliness}
+                    />
+                    <StarRating
+                      label="Product Quality"
+                      rating={mockRatings.productQuality}
+                    />
+                    <StarRating
+                      label="Service"
+                      rating={mockRatings.service}
+                    />
+                  </View>
+                  <View style={styles.overallRatingContainer}>
+                    <Text style={styles.overallRatingLabel}>Overall Rating</Text>
+                    <View style={styles.starsContainer}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Icons
+                          key={star}
+                          name={star <= overallRating ? 'star' : 'star-outline'}
+                          size={36}
+                          color={star <= overallRating ? '#FFD700' : '#E0E0E0'}
+                          style={styles.starIcon}
+                        />
+                      ))}
+                    </View>
+                  </View>
 
+                  {/* User Feedback */}
+                  <View style={styles.feedbackSection}>
+                    <Text style={styles.sectionLabel}>3. User Feedback</Text>
+                    <View style={styles.feedbackDisplayBox}>
+                        <View style={styles.feedbackHeader}>
+                            <Icons name="account-circle" size={30} color="#1A508C" />
+                            <Text style={styles.feedbackUser}>{mockUserName}</Text>
+                        </View>
+                        <Text style={styles.feedbackDisplayText}>{mockFeedback}</Text>
+                    </View>
+                  </View>
+
+                  {/* Submit Button (disabled as we are displaying results) */}
+                  <TouchableOpacity
+                    style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
+                    onPress={handleSubmitReview}
+                    disabled={isSubmitDisabled}>
+                    <Text style={styles.submitButtonText}>Submit Review</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -657,19 +598,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D0D0D0',
-    //marginBottom: 20,
   },
   dropdownButtonText: {
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
-  },
-  selectedSupplierClaimant: {
-    fontSize: 15,
-    color: '#555',
-    marginBottom: 15,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 5,
   },
   reviewSection: {
     marginTop: 20,
@@ -731,181 +664,39 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  itemsSelectionSection: {
-    marginBottom: 25,
-  },
-  itemHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    backgroundColor: '#E6F0FF',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    marginBottom: 5,
-    borderWidth: 1,
-    borderColor: '#B3D4FF',
-  },
-  itemHeaderItem: {
-    flex: 2.5,
-    fontWeight: 'bold',
-    color: '#1A508C',
-    fontSize: 13,
-  },
-  itemHeaderDescription: {
-    flex: 3,
-    fontWeight: 'bold',
-    color: '#1A508C',
-    fontSize: 13,
-    textAlign: 'left',
-  },
-  itemHeaderQty: {
-    flex: 1,
-    fontWeight: 'bold',
-    color: '#1A508C',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  itemHeaderAmount: {
-    flex: 1.5,
-    fontWeight: 'bold',
-    color: '#1A508C',
-    fontSize: 13,
-    textAlign: 'right',
-  },
-  itemHighlightCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FB',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  itemHighlightCardSelected: {
-    borderColor: '#1A508C',
-    backgroundColor: '#E6F0FF',
-    borderWidth: 2,
-  },
-  itemHighlightContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  itemCheckbox: {
-    marginRight: 10,
-  },
-  itemTextDetails: {
-    flex: 5.5,
-  },
-  itemHighlightName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#222',
-  },
-  itemHighlightDescription: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  itemNumericDetails: {
-    flex: 2.5,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  itemQty: {
-    fontSize: 14,
-    color: '#444',
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'center',
-  },
-  itemAmount: {
-    fontSize: 14,
-    color: '#444',
-    fontWeight: '500',
-    flex: 1.5,
-    textAlign: 'right',
-  },
-  selectAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0F4F8',
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
-    marginBottom: 15,
-  },
-  selectAllButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A508C',
-  },
-  photoSection: {
-    marginBottom: 25,
-  },
-  addPhotoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E6F0FF',
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#B3D4FF',
-  },
-  addPhotoButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A508C',
-  },
-  photoPreviewContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 15,
-    justifyContent: 'center',
-  },
-  photoPreview: {
-    alignItems: 'center',
-    margin: 8,
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
-    overflow: 'hidden',
-  },
-  photoPreviewImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
   feedbackSection: {
     marginBottom: 25,
   },
-  feedbackTextInput: {
-    backgroundColor: '#F0F4F8',
-    borderRadius: 10,
-    padding: 15,
-    minHeight: 100,
-    textAlignVertical: 'top',
+  feedbackDisplayBox: {
+    backgroundColor: '#FFFFFF', // White background for the feedback box
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  feedbackHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F0F0',
+    paddingBottom: 10,
+  },
+  feedbackUser: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A508C',
+    marginLeft: 8,
+  },
+  feedbackDisplayText: {
     fontSize: 15,
     color: '#333',
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
+    lineHeight: 22,
   },
   submitButton: {
     backgroundColor: '#1A508C',
@@ -978,11 +769,6 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: 16,
     color: '#444',
-  },
-  modalItemClaimant: {
-    fontSize: 13,
-    color: '#777',
-    marginTop: 2,
   },
   modalListContent: {
     paddingBottom: 10,

@@ -21,7 +21,7 @@ export const useSuppliers = (year) => {
 
 export const fetchSuppliersInfo = async (name) => {
   if (!name) throw new Error('Name are required');
-  const {data} = await apiClient.get(`/getsrSuppliersInfo?Name=${name}`);
+  const {data} = await apiClient.get(`/ ?Name=${name}`);
   return data;
 };
 
