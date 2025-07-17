@@ -347,3 +347,65 @@ export const useInventoryImages = (id, office, tn) => {
     retry: 2,
   });
 };
+
+export const fetchStocks = async (year, officeCode) => {
+  if (!officeCode) throw new Error('Office Code is required');
+  if (!year) throw new Error('Year is required');
+
+  const url = `/getInvStocks?Year=${year}&Office=${officeCode}`;
+  const { data } = await apiClient.get(url);
+  return data;
+};
+
+export const useStocks = (year) => {
+  const { officeCode } = useUserInfo();
+  return useQuery({
+    queryKey: ['getInventoryStocks', year, officeCode],
+    queryFn: () => fetchStocks(year, officeCode),
+    enabled: Boolean(year && officeCode),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+};
+
+export const fetchRequests = async (year, officeCode) => {
+  if (!officeCode) throw new Error('Office Code is required');
+  if (!year) throw new Error('Year is required');
+
+  const url = `/getInvStocks?Year=${year}&Office=${officeCode}`;
+  const { data } = await apiClient.get(url);
+  return data;
+};
+
+export const useRequests = (year) => {
+  const { officeCode } = useUserInfo();
+  return useQuery({
+    queryKey: ['getInventoryStocks', year, officeCode],
+    queryFn: () => fetchStocks(year, officeCode),
+    enabled: Boolean(year && officeCode),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+};
+
+export const fetchRequestSubmit = async (year, officeCode) => {
+  if (!officeCode) throw new Error('Office Code is required');
+  if (!year) throw new Error('Year is required');
+
+  const url = `/getInvStocks?Year=${year}&Office=${officeCode}`;
+  const { data } = await apiClient.get(url);
+  return data;
+};
+
+export const useSubmitRequests = (year) => {
+  const { officeCode } = useUserInfo();
+  return useQuery({
+    queryKey: ['getInventoryStocks', year, officeCode],
+    queryFn: () => fetchStocks(year, officeCode),
+    enabled: Boolean(year && officeCode),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+};
+
+

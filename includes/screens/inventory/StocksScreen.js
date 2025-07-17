@@ -4,193 +4,34 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  Dimensions,
+  Pressable,
+  FlatList, // Ensure FlatList is imported for the other FlatLists
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import BottomSheet, {BottomSheetBackdrop} from '@gorhom/bottom-sheet';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetFlatList,
+} from '@gorhom/bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
-
-const {width} = Dimensions.get('window');
-
-const inventoryData = [
-  {
-    id: '1',
-    itemNo: '17559',
-    description: 'Hard Disk Drive, 4 TB 5400RPM, 3.5"',
-    qty: '4',
-    unit: 'Unit/s',
-    updated: '2025-05-21 02:20 PM',
-    category: 'CAT 10.1 COMPUTER PERIPHERALS AND ACCESSORIES',
-  },
-  {
-    id: '2',
-    itemNo: '17595',
-    description: 'HUB SWITCH 8 ports',
-    qty: '6',
-    unit: 'Unit/s',
-    updated: '2025-05-15 10:00 AM',
-    category: 'CAT 10.1 COMPUTER PERIPHERALS AND ACCESSORIES',
-  },
-  {
-    id: '3',
-    itemNo: '7596',
-    description: 'KEYBOARD USB TYPE WITH MOUSE PAD',
-    qty: '10',
-    unit: 'Unit/s',
-    updated: '2025-05-15 10:09 AM',
-    category: 'CAT 10.1 COMPUTER PERIPHERALS AND ACCESSORIES',
-  },
-  {
-    id: '4',
-    itemNo: '16723',
-    description:
-      'Uninterruptible Power Supply (UPS) 650 Amperes 650 Watts. 360W/min main input/output voltage: 230V universal outlets: 2x or more',
-    qty: '5',
-    unit: 'Unit/s',
-    updated: '2025-05-21 02:51 PM',
-    category: 'CAT 13 COMPUTER SUPPLIES AND MATERIALS',
-  },
-  {
-    id: '5',
-    itemNo: '2265',
-    description: 'Continuous Form 11 x 14 7lb 1ply',
-    qty: '6',
-    unit: 'Box/es',
-    updated: '2025-02-14 08:07 AM',
-    category: 'CAT 13 COMPUTER SUPPLIES AND MATERIALS',
-  },
-  {
-    id: '6',
-    itemNo: '18000',
-    description: 'Monitor LCD 24-inch',
-    qty: '3',
-    unit: 'Unit/s',
-    updated: '2025-06-01 09:00 AM',
-    category: 'CAT 13 COMPUTER SUPPLIES AND MATERIALS',
-  },
-  {
-    id: '7',
-    itemNo: '19000',
-    description: 'Ethernet Cable Cat6 100ft',
-    qty: '15',
-    unit: 'Roll/s',
-    updated: '2025-06-05 11:30 AM',
-    category: 'CAT 41.1 ELECTRONIC CONSUMABLES',
-  },
-  {
-    id: '8',
-    itemNo: '18001',
-    description: 'Monitor LCD 24-inch',
-    qty: '3',
-    unit: 'Unit/s',
-    updated: '2025-06-01 09:00 AM',
-    category: 'CAT 41.1 ELECTRONIC CONSUMABLES',
-  },
-  {
-    id: '9',
-    itemNo: '19001',
-    description: 'Ethernet Cable Cat6 100ft',
-    qty: '15',
-    unit: 'Roll/s',
-    updated: '2025-06-05 11:30 AM',
-    category: 'CAT 41.1 ELECTRONIC CONSUMABLES',
-  },
-  {
-    id: '10',
-    itemNo: '30001',
-    description: 'Printer Ink Cartridge Black',
-    qty: '8',
-    unit: 'Pcs',
-    updated: '2025-07-01 09:00 AM',
-    category: 'CAT 13 COMPUTER SUPPLIES AND MATERIALS',
-  },
-  {
-    id: '11',
-    itemNo: '30002',
-    description: 'USB Flash Drive 64GB',
-    qty: '20',
-    unit: 'Pcs',
-    updated: '2025-07-10 02:00 PM',
-    category: 'CAT 10.1 COMPUTER PERIPHERALS AND ACCESSORIES',
-  },
-  {
-    id: '12',
-    itemNo: '30003',
-    description: 'Wireless Mouse',
-    qty: '12',
-    unit: 'Unit/s',
-    updated: '2025-07-12 11:00 AM',
-    category: 'CAT 10.1 COMPUTER PERIPHERALS AND ACCESSORIES',
-  },
-  {
-    id: '13',
-    itemNo: '40001',
-    description: 'HDMI Cable 10ft',
-    qty: '25',
-    unit: 'Pcs',
-    updated: '2025-07-14 03:00 PM',
-    category: 'CAT 41.1 ELECTRONIC CONSUMABLES',
-  },
-  {
-    id: '14',
-    itemNo: '50001',
-    description: 'Office Chair Ergonomic',
-    qty: '7',
-    unit: 'Unit/s',
-    updated: '2025-06-20 09:30 AM',
-    category: 'CAT 11 OFFICE FURNITURE AND FIXTURES',
-  },
-  {
-    id: '15',
-    itemNo: '50002',
-    description: 'Filing Cabinet 4-Drawer',
-    qty: '2',
-    unit: 'Unit/s',
-    updated: '2025-06-25 01:00 PM',
-    category: 'CAT 11 OFFICE FURNITURE AND FIXTURES',
-  },
-  {
-    id: '16',
-    itemNo: '60001',
-    description: 'LED Light Bulb 9W',
-    qty: '50',
-    unit: 'Pcs',
-    updated: '2025-07-01 10:00 AM',
-    category: 'CAT 39.1 LIGHTING AND ELECTRICAL SUPPLIES',
-  },
-  {
-    id: '17',
-    itemNo: '60002',
-    description: 'Extension Cord 5-Outlet',
-    qty: '10',
-    unit: 'Pcs',
-    updated: '2025-07-05 04:00 PM',
-    category: 'CAT 39.1 LIGHTING AND ELECTRICAL SUPPLIES',
-  },
-  {
-    id: '18',
-    itemNo: '70001',
-    description: 'First Aid Kit Small',
-    qty: '5',
-    unit: 'Set/s',
-    updated: '2025-07-15 08:00 AM',
-    category: 'CAT 42 HEALTH AND SAFETY SUPPLIES',
-  },
-];
-
-const consistentCardColors = ['#D1F2EB', '#A2D9CE']; // Light green/teal gradient
+import {useStocks} from '../../hooks/useInventory';
+import {width, currentYear, categoryIconMap} from '../../utils';
+import {useNavigation} from '@react-navigation/native';
+import {Shimmer} from '../../utils/useShimmer';
 
 export default function StocksScreen({navigation}) {
   const [selectedItem, setSelectedItem] = useState(null);
+  const navigationHook = useNavigation();
+
+  const {data: inventoryData} = useStocks(currentYear);
 
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = useMemo(() => ['25%', '50%'], []);
+  const snapPoints = useMemo(() => ['40%', '75%'], []);
 
   const handleSheetChanges = useCallback(index => {
-    console.log('handleSheetChanges', index, "from Davao City");
+    console.log('handleSheetChanges', index);
   }, []);
 
   const handlePresentModalPress = useCallback(item => {
@@ -204,77 +45,159 @@ export default function StocksScreen({navigation}) {
   }, []);
 
   const groupedCategoryData = useMemo(() => {
-    const grouped = {};
+    if (!inventoryData) {
+      return [];
+    }
+
+    const categoriesMap = new Map();
     inventoryData.forEach(item => {
-      if (!grouped[item.category]) {
-        grouped[item.category] = {
+      const categoryName = item.Description
+        ? item.Description.trim()
+        : 'Uncategorized';
+
+      if (!categoriesMap.has(categoryName)) {
+        const iconName =
+          categoryIconMap[categoryName] ||
+          categoryIconMap['default'] ||
+          'dots-horizontal';
+
+        categoriesMap.set(categoryName, {
+          id: categoryName,
+          title: categoryName,
           totalQty: 0,
+          icon: iconName,
           items: [],
-        };
+        });
       }
-      grouped[item.category].totalQty += parseInt(item.qty, 10);
-      grouped[item.category].items.push(item);
+
+      const categoryEntry = categoriesMap.get(categoryName);
+      categoryEntry.totalQty += 1;
+      categoryEntry.items.push(item);
     });
 
-    return Object.keys(grouped).map(category => ({
-      id: category,
-      title: category,
-      totalQty: grouped[category].totalQty,
-      items: grouped[category].items,
-      colors: consistentCardColors,
-    }));
+    return Array.from(categoriesMap.values());
+  }, [inventoryData]);
+
+  const totalStocks = useMemo(() => {
+    if (!inventoryData) {
+      return 0;
+    }
+    return inventoryData.length;
+  }, [inventoryData]);
+
+  const dashboardData = useMemo(() => {
+    if (!inventoryData) {
+      return [
+        {label: 'Total Items', value: 0, screen: null},
+        {label: 'Total Categories', value: 0, screen: null},
+        {label: 'Requests', value: 'N/A', screen: 'Requests'}, // Added screen name
+        {label: 'For PickUp', value: 'N/A', screen: 'ForPickUp'}, // Added screen name
+      ];
+    }
+    const totalCategories = new Set(inventoryData.map(item => item.Description))
+      .size;
+    const totalItems = inventoryData.length;
+
+    return [
+      {label: 'Total Items', value: totalItems, screen: null},
+      {label: 'Total Categories', value: totalCategories, screen: null},
+      {label: 'Requests', value: 'N/A', screen: 'Requests'}, // Added screen name
+      {label: 'For PickUp', value: 'N/A', screen: 'ForPickUp'}, // Added screen name
+    ];
   }, [inventoryData]);
 
   const renderFlatListItem = ({item}) => {
     return (
-      <TouchableOpacity style={styles.categoryCard}>
-        <LinearGradient
-          colors={item.colors}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={styles.gradientBackground}>
-          <View style={styles.categoryCardHeader}>
+      <View style={styles.categoryCardWrapper}>
+        <TouchableOpacity
+          style={styles.categoryCardTouchable}
+          onPress={() => handlePresentModalPress(item)}
+          activeOpacity={0.7}>
+          <LinearGradient
+            colors={['#ffffff', '#f0f0f0']}
+            style={styles.categoryCardGradient}>
+            <View style={styles.categoryCountContainer}>
+              <Text style={styles.categoryCardCountValue}>{item.totalQty}</Text>
+            </View>
+
             <MaterialCommunityIcons
-              name="package-variant-closed"
-              size={28}
-              color="#2F4F4F"
-              style={styles.cardIcon}
+              name={item.icon}
+              size={45}
+              color="#1A508C"
+              style={{marginBottom: 8}}
             />
-            <Text style={styles.categoryCardTitle} numberOfLines={2}>
+            <Text style={styles.categoryCardName} numberOfLines={2}>
               {item.title}
             </Text>
-          </View>
-          <Text style={styles.categoryCardQuantityLabel}> {/* New style for "Total Quantity:" */}
-            Total Quantity:{' '}
-            <Text style={styles.categoryCardQuantityValue}> {/* New style for the value */}
-              {item.totalQty}
-            </Text>
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     );
   };
 
+  const renderDashboardItem = ({item}) => (
+    <TouchableOpacity
+      style={styles.dashboardCard}
+      onPress={() => item.screen && navigation.navigate(item.screen)} // Navigate if screen is defined
+      disabled={!item.screen} // Disable if no screen is defined
+      activeOpacity={0.7}>
+      <Text style={styles.dashboardLabel}>{item.label}</Text>
+      <Text style={styles.dashboardValue}>{item.value}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderItemInModal = ({item}) => (
+    <View style={styles.modalItem}>
+      <View style={styles.itemDetailsContainer}>
+        <Text style={styles.modalItemText}>{item.Item}</Text>
+        <Text style={styles.modalItemQuantity}>Qty: {item.Qty}</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.requestItemButton}
+        onPress={() => {
+          handleClosePress(); // Close the bottom sheet
+          navigationHook.navigate('RequestStocks', {item: item}); // Navigate to RequestStocks screen
+        }}>
+        <MaterialCommunityIcons name="send" size={24} color="#1A508C" />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={24}
-            color="#fff"
-            style={styles.backButton}
-          />
-        </TouchableOpacity>
-        <MaterialCommunityIcons
-          style={styles.icon}
-          color="black"
-          name="package-variant"
-          size={28}
+      <LinearGradient
+        colors={['#1A508C', '#004ab1']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
+        style={styles.topHeader}>
+        <Pressable
+          style={styles.backButton}
+          android_ripple={{
+            color: 'rgba(255,255,255,0.2)',
+            borderless: true,
+            radius: 20,
+          }}
+          onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.topHeaderTitle}>Stocks</Text>
+          <Text style={styles.totalStocksCount}>Total {totalStocks} Items</Text>
+        </View>
+        <View style={{width: 40}} />
+      </LinearGradient>
+      <View style={{}}>
+        <FlatList
+          data={dashboardData}
+          renderItem={renderDashboardItem}
+          keyExtractor={item => item.label}
+          numColumns={2}
+          contentContainerStyle={styles.dashboardListContent}
+          //columnWrapperStyle={styles.dashboardRow}
+          scrollEnabled={false}
         />
-        <Text style={styles.topHeaderTitle}>Stocks</Text>
-        <View style={{flex: 1}} />
       </View>
+      <Text style={styles.categoriesHeader}>Categories</Text>
 
       <FlatList
         data={groupedCategoryData}
@@ -283,7 +206,7 @@ export default function StocksScreen({navigation}) {
         numColumns={3}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
-        key="categoryGrid" 
+        key="categoryGrid"
       />
 
       <BottomSheet
@@ -298,50 +221,19 @@ export default function StocksScreen({navigation}) {
         <View style={styles.bottomSheetContent}>
           {selectedItem && (
             <>
-              <Text style={styles.bottomSheetTitle}>Actions for:</Text>
-              <Text style={styles.bottomSheetItemDescription}>
-                {selectedItem.description}
+              <Text style={styles.bottomSheetTitle}>
+                {selectedItem.title} (Total: {selectedItem.totalQty})
+              </Text>
+              <Text style={styles.bottomSheetSubtitle}>
+                Items in this category:
               </Text>
 
-              <TouchableOpacity
-                style={styles.bottomSheetAction}
-                onPress={() => {
-                  alert(`Edit ${selectedItem.description}`);
-                  handleClosePress();
-                }}>
-                <MaterialCommunityIcons
-                  name="pencil"
-                  size={24}
-                  color="#007bff"
-                />
-                <Text style={styles.bottomSheetActionText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.bottomSheetAction}
-                onPress={() => {
-                  alert(`Request ${selectedItem.description}`);
-                  handleClosePress();
-                }}>
-                <MaterialCommunityIcons
-                  name="alert-circle-outline"
-                  size={24}
-                  color="#ffc107"
-                />
-                <Text style={styles.bottomSheetActionText}>Request</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.bottomSheetAction}
-                onPress={() => {
-                  alert(`Delete ${selectedItem.description}`);
-                  handleClosePress();
-                }}>
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={24}
-                  color="#dc3545"
-                />
-                <Text style={styles.bottomSheetActionText}>Delete</Text>
-              </TouchableOpacity>
+              <BottomSheetFlatList
+                data={selectedItem.items}
+                renderItem={renderItemInModal}
+                keyExtractor={(item, index) => item.Id + '-' + index}
+                contentContainerStyle={styles.modalItemsList}
+              />
             </>
           )}
         </View>
@@ -353,124 +245,215 @@ export default function StocksScreen({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
-    paddingVertical: 40,
+    backgroundColor: '#F8F9FB',
   },
   topHeader: {
+    height: 100,
+    paddingTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: 'rgb(157, 183, 12)',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   backButton: {
-    marginRight: 10,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   topHeaderTitle: {
-    flex: 1,
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
+    textAlign: 'center',
   },
-  icon: {
-    marginRight: 5,
+  totalStocksCount: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#fff',
+    marginTop: 4,
+  },
+  dashboardListContent: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  dashboardRow: {
+    justifyContent: 'space-between',
+  },
+  dashboardCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 18,
+    margin: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    minHeight: 90,
+  },
+  dashboardLabel: {
+    fontSize: 14,
+    color: '#718096',
+    marginBottom: 6,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  dashboardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A508C',
+  },
+  categoriesHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    paddingHorizontal: 16,
+    marginTop: 15,
+    marginBottom: 10,
   },
   listContent: {
-    paddingHorizontal: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     paddingBottom: 20,
   },
   row: {
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    justifyContent: 'flex-start',
+  },
+  categoryCardWrapper: {
+    flex: 1 / 3,
+    padding: 6,
+  },
+  categoryCardTouchable: {
+    width: '100%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  categoryCardGradient: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    borderWidth:1,
+    borderColor: '#ddd',
+    //elevation: 5,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  categoryCountContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(236, 236, 236, 0.8)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 1,
+  },
+  categoryCardCountValue: {
+    color: '#252525',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  categoryCardName: {
+    color: '#1A508C',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    fontWeight: '600',
+    lineHeight: 20,
   },
   bottomSheetBackground: {
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 25,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -3,
+      height: -5,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bottomSheetHandle: {
-    backgroundColor: '#ccc',
-    width: 40,
-    height: 5,
-    borderRadius: 5,
+    backgroundColor: '#ddd',
+    width: 50,
+    height: 6,
+    borderRadius: 3,
   },
   bottomSheetContent: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 25,
+    paddingVertical: 15,
   },
   bottomSheetTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  bottomSheetItemDescription: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: '#555',
-  },
-  bottomSheetAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  bottomSheetActionText: {
-    fontSize: 16,
-    marginLeft: 15,
-    color: '#333',
-  },
-  categoryCard: {
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-    width: (width - 40) / 3,
-    marginHorizontal: 5,
-    height: 130,
-    overflow: 'hidden',
-  },
-  gradientBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12,
-  },
-  categoryCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 8,
-  },
-  cardIcon: {
-    marginRight: 5,
-  },
-  categoryCardTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#2F4F4F',
+    color: '#333',
     textAlign: 'center',
-    flexShrink: 1,
   },
-  categoryCardQuantityLabel: { // Style for "Total Quantity:" part
-    fontSize: 14, // Slightly smaller than the value
-    fontWeight: 'normal', // Ensure it's not bold
-    color: '#2F4F4F',
-    marginTop: 5,
+  bottomSheetSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+    textAlign: 'center',
   },
-  categoryCardQuantityValue: { // Style for the actual quantity number
-    fontSize: 16, // Emphasized font size
-    fontWeight: '900', // Emphasized boldness
-    color: '#2F4F4F',
+  modalItemsList: {
+    paddingVertical: 10,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  itemDetailsContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  modalItemQuantity: {
+    fontSize: 15,
+    color: '#555',
+    fontWeight: 'bold',
+  },
+  requestItemButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#e6f0fa',
   },
 });

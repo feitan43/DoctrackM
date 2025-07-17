@@ -1359,12 +1359,12 @@ const DoctrackScreen = ({
           condition: procurement !== '1',
           screen: 'InventoryScreen',
         },
-        {
+      /*   {
           label: 'Request',
           icon: 'note-plus-outline', // Changed icon for Request
           condition: procurement !== '1',
           screen: 'InventoryScreen',
-        },
+        }, */
         {
           label: 'Stocks',
           icon: 'package-variant', // Changed icon for Stocks

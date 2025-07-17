@@ -124,6 +124,9 @@ import ChatScreen from '../components/CommunicationsScreen/ChatScreen';
 import SupplierReviews from '../screens/supplierRating/SupplierReviews';
 import StocksScreen from '../screens/inventory/StocksScreen';
 import DistributionScreen from '../screens/inventory/DistributionScreen';
+import RequestStocks from '../screens/inventory/RequestStocks';
+import Requests from '../screens/inventory/Requests';
+import ForPickUp from '../screens/inventory/ForPickUp';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -707,6 +710,22 @@ export function Route() {
           component={DistributionScreen}
           options={{headerShown: false}}
         />
+        <Stack.Screen
+          name="RequestStocks"
+          component={RequestStocks}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="Requests"
+          component={Requests}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="ForPickUp"
+          component={ForPickUp}
+          options={{headerShown: false}}
+        />
+        
 
 
 
