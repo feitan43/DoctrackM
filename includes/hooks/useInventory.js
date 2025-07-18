@@ -353,12 +353,12 @@ export const fetchStocks = async (year, officeCode) => {
   if (!year) throw new Error('Year is required');
 
   const url = `/getInvStocks?Year=${year}&Office=${officeCode}`;
-  const { data } = await apiClient.get(url);
+  const {data} = await apiClient.get(url);
   return data;
 };
 
-export const useStocks = (year) => {
-  const { officeCode } = useUserInfo();
+export const useStocks = year => {
+  const {officeCode} = useUserInfo();
   return useQuery({
     queryKey: ['getInventoryStocks', year, officeCode],
     queryFn: () => fetchStocks(year, officeCode),
@@ -368,44 +368,109 @@ export const useStocks = (year) => {
   });
 };
 
-export const fetchRequests = async (year, officeCode) => {
+export const fetchRequests = async officeCode => {
   if (!officeCode) throw new Error('Office Code is required');
-  if (!year) throw new Error('Year is required');
 
-  const url = `/getInvStocks?Year=${year}&Office=${officeCode}`;
-  const { data } = await apiClient.get(url);
+  const url = `/getInvRequests?Office=${officeCode}`;
+  const {data} = await apiClient.get(url);
   return data;
 };
 
-export const useRequests = (year) => {
-  const { officeCode } = useUserInfo();
+export const useRequests = () => {
+  const {officeCode} = useUserInfo();
   return useQuery({
-    queryKey: ['getInventoryStocks', year, officeCode],
-    queryFn: () => fetchStocks(year, officeCode),
-    enabled: Boolean(year && officeCode),
+    queryKey: ['getInventoryStocks', officeCode],
+    queryFn: () => fetchRequests(officeCode),
+    enabled: Boolean(officeCode),
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
 };
 
-export const fetchRequestSubmit = async (year, officeCode) => {
+export const fetchDistribution = async officeCode => {
   if (!officeCode) throw new Error('Office Code is required');
-  if (!year) throw new Error('Year is required');
 
-  const url = `/getInvStocks?Year=${year}&Office=${officeCode}`;
-  const { data } = await apiClient.get(url);
+  const url = `/getInvDistribution?Office=${officeCode}`;
+  const {data} = await apiClient.get(url);
   return data;
 };
 
-export const useSubmitRequests = (year) => {
-  const { officeCode } = useUserInfo();
+export const useDistribution = () => {
+  const {officeCode} = useUserInfo();
   return useQuery({
-    queryKey: ['getInventoryStocks', year, officeCode],
-    queryFn: () => fetchStocks(year, officeCode),
-    enabled: Boolean(year && officeCode),
+    queryKey: ['getInventoryDistribution', officeCode],
+    queryFn: () => fetchDistribution(officeCode),
+    enabled: Boolean(officeCode),
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
 };
 
+export const submitInventoryRequest = async ({
+  Year,
+  TrackingNumber,
+  ItemId,
+  Item,
+  requestedQty,
+  units,
+  reason,
+  officeCode,
+  employeeNumber,
+  fullName,
+  status,
+}) => {
+  // if (!officeCode) throw new Error('Office Code is required');
+  // if (!Year) throw new Error('Year is required');
+  // if (!ItemId) throw new Error('Item ID is required');
+  // if (!Item) throw new Error('Item name is required');
+  // if (requestedQty === undefined || requestedQty <= 0)
+  //   throw new Error('Requested quantity must be a positive number');
+ /*  console.log(
+    'submitInventoryRequest:',
+    Year,
+    TrackingNumber,
+    ItemId,
+    Item,
+    requestedQty,
+    units,
+    reason,
+    officeCode,
+  );
+ */
+  console.log("reas",units)
+  const payload = {
+    Year,
+    TrackingNumber,
+    ItemId,
+    Item,
+    Qty: requestedQty,
+    Units: units,
+    Reason: reason,
+    Office: officeCode,
+    EmployeeNumber: employeeNumber,
+    Name: fullName,
+    Status: status,
+  };
 
+  const url = `/invSubmitRequest`;
+  const {data} = await apiClient.post(url, payload);
+  return data;
+};
+
+export const useSubmitInventoryRequest = () => {
+  const queryClient = useQueryClient();
+  const {officeCode, employeeNumber, fullName} = useUserInfo();
+  return useMutation({
+    mutationFn: async requestDetails => {
+      return submitInventoryRequest({...requestDetails, officeCode,employeeNumber, fullName});
+    },
+    onSuccess: (data, variables, context) => {
+      console.log('Request submitted successfully:', data);
+      queryClient.invalidateQueries(['inventoryRequests', officeCode]);
+    },
+    onError: (error, variables, context) => {
+      console.error('Failed to submit request:', error);
+    },
+    // Optional: onMutate, onSettled callbacks can also be added here
+  });
+};

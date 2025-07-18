@@ -1316,7 +1316,7 @@ const DoctrackScreen = ({
           />
         )}
 
-       {(procurement === '1' || employeeNumber === '391091') && (
+       {(procurement === '1' || employeeNumber === '391091' || employeeNumber === '391094') && (
   <View
     style={{
       padding: 10,
@@ -1356,7 +1356,7 @@ const DoctrackScreen = ({
         {
           label: 'Upload',
           icon: 'upload', // Changed icon for Upload
-          condition: procurement !== '1',
+          //condition: procurement !== '1',
           screen: 'InventoryScreen',
         },
       /*   {
@@ -1368,13 +1368,13 @@ const DoctrackScreen = ({
         {
           label: 'Stocks',
           icon: 'package-variant', // Changed icon for Stocks
-          condition: procurement !== '1',
+        //  condition: procurement !== '1',
           screen: 'Stocks',
         },
         {
           label: 'Distribution',
-          icon: 'truck-delivery-outline', // Changed icon for Distribution
-          condition: procurement !== '1',
+          icon: 'transit-transfer',
+          //condition: procurement === '1',
           screen: 'Distribution',
         },
       ].map((item, index) => {

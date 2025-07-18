@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  FlatList, // Ensure FlatList is imported for the other FlatLists
+  FlatList,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -15,7 +15,7 @@ import BottomSheet, {
   BottomSheetFlatList,
 } from '@gorhom/bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
-import {useStocks} from '../../hooks/useInventory';
+import {useRequests, useStocks} from '../../hooks/useInventory';
 import {width, currentYear, categoryIconMap} from '../../utils';
 import {useNavigation} from '@react-navigation/native';
 import {Shimmer} from '../../utils/useShimmer';
@@ -24,14 +24,25 @@ export default function StocksScreen({navigation}) {
   const [selectedItem, setSelectedItem] = useState(null);
   const navigationHook = useNavigation();
 
-  const {data: inventoryData} = useStocks(currentYear);
+  const {data: inventoryData , isLoading: inventoryDataLoading, isError: inventoryDataError} = useStocks(currentYear);
+  const {data: inventoryRequests} = useRequests();
+
+  const totalRequests = inventoryRequests?.length || 0;
+
+  // Assuming each item in inventoryRequests has a 'status' property
+  // and 'For PickUp' is one of its possible values.
+  const totalForPickUp = inventoryRequests?.filter(
+    request => request.status === 'For PickUp'
+  ).length || 0;
+  // IMPORTANT: Adjust 'request.status' to the actual property name
+  // in your request objects that denotes the status (e.g., 'pickupStatus', 'deliveryStatus', etc.).
 
   const bottomSheetRef = useRef(null);
 
   const snapPoints = useMemo(() => ['40%', '75%'], []);
 
   const handleSheetChanges = useCallback(index => {
-    console.log('handleSheetChanges', index);
+   // console.log('handleSheetChanges', index);
   }, []);
 
   const handlePresentModalPress = useCallback(item => {
@@ -90,8 +101,8 @@ export default function StocksScreen({navigation}) {
       return [
         {label: 'Total Items', value: 0, screen: null},
         {label: 'Total Categories', value: 0, screen: null},
-        {label: 'Requests', value: 'N/A', screen: 'Requests'}, // Added screen name
-        {label: 'For PickUp', value: 'N/A', screen: 'ForPickUp'}, // Added screen name
+        {label: 'Requests', value: 'N/A', screen: 'Requests'},
+        {label: 'For Pickup', value: 'N/A', screen: 'ForPickUp'},
       ];
     }
     const totalCategories = new Set(inventoryData.map(item => item.Description))
@@ -101,10 +112,10 @@ export default function StocksScreen({navigation}) {
     return [
       {label: 'Total Items', value: totalItems, screen: null},
       {label: 'Total Categories', value: totalCategories, screen: null},
-      {label: 'Requests', value: 'N/A', screen: 'Requests'}, // Added screen name
-      {label: 'For PickUp', value: 'N/A', screen: 'ForPickUp'}, // Added screen name
+      {label: 'Requests', value: totalRequests, screen: 'Requests'},
+      {label: 'For Pickup', value: totalForPickUp, screen: 'ForPickUp'},
     ];
-  }, [inventoryData]);
+  }, [inventoryData, totalRequests, totalForPickUp]); // Added dependencies
 
   const renderFlatListItem = ({item}) => {
     return (
@@ -138,8 +149,8 @@ export default function StocksScreen({navigation}) {
   const renderDashboardItem = ({item}) => (
     <TouchableOpacity
       style={styles.dashboardCard}
-      onPress={() => item.screen && navigation.navigate(item.screen)} // Navigate if screen is defined
-      disabled={!item.screen} // Disable if no screen is defined
+      onPress={() => item.screen && navigation.navigate(item.screen)}
+      disabled={!item.screen}
       activeOpacity={0.7}>
       <Text style={styles.dashboardLabel}>{item.label}</Text>
       <Text style={styles.dashboardValue}>{item.value}</Text>
@@ -150,13 +161,13 @@ export default function StocksScreen({navigation}) {
     <View style={styles.modalItem}>
       <View style={styles.itemDetailsContainer}>
         <Text style={styles.modalItemText}>{item.Item}</Text>
-        <Text style={styles.modalItemQuantity}>Qty: {item.Qty}</Text>
+        {/* <Text style={styles.modalItemQuantity}>Qty: {item.Qty}</Text> */}
       </View>
       <TouchableOpacity
         style={styles.requestItemButton}
         onPress={() => {
-          handleClosePress(); // Close the bottom sheet
-          navigationHook.navigate('RequestStocks', {item: item}); // Navigate to RequestStocks screen
+          handleClosePress();
+          navigationHook.navigate('RequestStocks', {item: item});
         }}>
         <MaterialCommunityIcons name="send" size={24} color="#1A508C" />
       </TouchableOpacity>
@@ -193,7 +204,6 @@ export default function StocksScreen({navigation}) {
           keyExtractor={item => item.label}
           numColumns={2}
           contentContainerStyle={styles.dashboardListContent}
-          //columnWrapperStyle={styles.dashboardRow}
           scrollEnabled={false}
         />
       </View>

@@ -1,5 +1,4 @@
-// RequestStocks.js (Updated)
-import React, { useState } from 'react';
+import React, {useState, useRef} from 'react';
 import {
   SafeAreaView,
   View,
@@ -18,19 +17,36 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import RequestStatusModal from './RequestStatusModal'; // Import the new modal component
+import {useSubmitInventoryRequest} from '../../hooks/useInventory';
 
-const RequestStocks = ({ navigation, route }) => {
-  const { item } = route.params || {};
+const RequestStocks = ({navigation, route}) => {
+  const {item} = route.params || {};
+
+  const {
+    mutate: submitRequestMutation,
+    isLoading,
+    isError,
+    isSuccess,
+    error,
+  } = useSubmitInventoryRequest();
 
   const [requestedQuantity, setRequestedQuantity] = useState(1);
   const [requestReason, setRequestReason] = useState('');
 
-  // State for the modal
   const [modalVisible, setModalVisible] = useState(false);
   const [modalStatus, setModalStatus] = useState(''); // 'success' or 'error'
   const [modalMessage, setModalMessage] = useState('');
 
-  const updateQuantity = (newQty) => {
+  // State and refs for long press functionality
+  const intervalRef = useRef(null);
+  const [isLongPressingIncrement, setIsLongPressingIncrement] = useState(false);
+  const [isLongPressingDecrement, setIsLongPressingDecrement] = useState(false);
+
+  // Constants for long press behavior
+  const LONG_PRESS_INITIAL_DELAY = 300; // ms before continuous action starts
+  const LONG_PRESS_INTERVAL_SPEED = 100; // ms between each quantity change
+
+  const updateQuantity = newQty => {
     let quantity = parseInt(newQty, 10);
 
     if (isNaN(quantity) || quantity < 1) {
@@ -45,55 +61,138 @@ const RequestStocks = ({ navigation, route }) => {
   };
 
   const incrementQuantity = () => {
-    let newQty = requestedQuantity + 1;
-    if (item && item.Qty !== undefined && newQty > item.Qty) {
-      newQty = item.Qty;
-    }
-    setRequestedQuantity(newQty);
+    setRequestedQuantity(prevQty => {
+      let newQty = prevQty + 1;
+      if (item && item.Qty !== undefined && newQty > item.Qty) {
+        newQty = item.Qty;
+      }
+      return newQty;
+    });
   };
 
   const decrementQuantity = () => {
-    if (requestedQuantity > 1) {
-      setRequestedQuantity(requestedQuantity - 1);
-    }
+    setRequestedQuantity(prevQty => {
+      if (prevQty > 1) {
+        return prevQty - 1;
+      }
+      return 1;
+    });
   };
 
-  // Modified submitRequest to show the modal
+  const handleLongPressIncrement = () => {
+    setIsLongPressingIncrement(true);
+    intervalRef.current = setInterval(
+      incrementQuantity,
+      LONG_PRESS_INTERVAL_SPEED,
+    );
+  };
+
+  const handleLongPressDecrement = () => {
+    setIsLongPressingDecrement(true);
+    intervalRef.current = setInterval(
+      decrementQuantity,
+      LONG_PRESS_INTERVAL_SPEED,
+    );
+  };
+
+  const stopLongPress = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsLongPressingIncrement(false);
+    setIsLongPressingDecrement(false);
+  };
+
+  // const submitRequest = () => {
+
+  //   const requestDetails = {
+  //     Year: item ? item.Year : 'N/A',
+  //     TrackingNumber: item ? item.TrackingNumber : 'N/A',
+  //     itemId: item ? item.ItemId : 'N/A',
+  //     item: item ? item.Item : 'N/A',
+  //     requestedQty: requestedQuantity,
+  //     units: item ? item.Unit : 'N/A',
+  //     reason: requestReason,
+  //   };
+
+  //   console.log('Request Submitted:', requestDetails);
+
+  //   const success = Math.random() > 0.3; // 70% chance of success for demonstration
+
+  //   if (success) {
+  //     setModalStatus('success');
+  //     setModalMessage(
+  //       `Your request for ${requestedQuantity} of ${
+  //         item ? item.Item : 'item'
+  //       } has been sent successfully.`,
+  //     );
+  //   } else {
+  //     setModalStatus('error');
+  //     setModalMessage(
+  //       `Failed to send request for ${
+  //         item ? item.Item : 'item'
+  //       }. Please try again.`,
+  //     );
+  //   }
+  //   setModalVisible(true); // Show the modal
+
+  //   setRequestedQuantity(1);
+  //   setRequestReason('');
+  // };
+
   const submitRequest = () => {
+
+    console.log('Request Submitted:',item)
     const requestDetails = {
-      itemId: item ? item.Id : 'N/A',
-      itemName: item ? item.Item : 'N/A',
+      Year: item ? item.Year : 'N/A',
+      TrackingNumber: item ? item.TrackingNumber : 'N/A',
+      ItemId: item ? item.ItemId : 'N/A',
+      Item: item ? item.Item : 'N/A',
       requestedQty: requestedQuantity,
+      units: item ? item.Unit : 'N/A',
       reason: requestReason,
+      status: 'Pending',
     };
 
-    console.log('Request Submitted:', requestDetails);
-
-    // Simulate API call success/failure
-    const success = Math.random() > 0.3; // 70% chance of success for demonstration
-
-    if (success) {
-      setModalStatus('success');
-      setModalMessage(`Your request for ${requestedQuantity} of ${item ? item.Item : 'item'} has been sent successfully.`);
-    } else {
-      setModalStatus('error');
-      setModalMessage(`Failed to send request for ${item ? item.Item : 'item'}. Please try again.`);
-    }
-    setModalVisible(true); // Show the modal
-
-    setRequestedQuantity(1);
-    setRequestReason('');
+    submitRequestMutation(requestDetails, {
+      onSuccess: () => {
+        setModalStatus('success');
+        setModalMessage(
+          `Your request for ${requestedQuantity} of ${
+            item ? item.Item : 'item'
+          } has been sent successfully.`,
+        );
+        setModalVisible(true);
+        setRequestedQuantity(1);
+        setRequestReason('');
+      },
+      onError: err => {
+        setModalStatus('error');
+        setModalMessage(
+          `Failed to send request for ${item ? item.Item : 'item'}. Error: ${
+            err.message
+          }. Please try again.`,
+        );
+        setModalVisible(true);
+      },
+    });
   };
-
   const handleRequestSubmit = () => {
     if (requestedQuantity <= 0) {
-      Alert.alert('Invalid Quantity', 'Please select a valid positive number for the quantity.');
+      Alert.alert(
+        'Invalid Quantity',
+        'Please select a valid positive number for the quantity.',
+      );
       return;
     }
 
     if (item && item.Qty !== undefined && requestedQuantity > item.Qty) {
-        Alert.alert('Quantity Exceeded', `You cannot request more than the available quantity (${item.Qty}).`);
-        return;
+      Alert.alert(
+        'Quantity Exceeded',
+        `You cannot request more than the available quantity (${item.Qty}).`,
+      );
+      return;
     }
 
     if (!requestReason.trim()) {
@@ -109,7 +208,7 @@ const RequestStocks = ({ navigation, route }) => {
             text: 'Proceed',
             onPress: submitRequest,
           },
-        ]
+        ],
       );
     } else {
       submitRequest();
@@ -125,13 +224,12 @@ const RequestStocks = ({ navigation, route }) => {
     }
   };
 
-
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#2c6ca1', '#0056b3']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
         style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -144,19 +242,22 @@ const RequestStocks = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Request Item</Text>
-        <View style={{ width: 40 }} />
+        <View style={{width: 40}} />
       </LinearGradient>
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.contentInner}>
               <Text style={styles.itemNameLabel}>Requesting:</Text>
-              <Text style={styles.itemName}>{item ? item.Item : 'No Item Selected'}</Text>
-              <Text style={styles.itemCurrentQty}>Available Qty: {item ? item.Qty : 'N/A'}</Text>
+              <Text style={styles.itemName}>
+                {item ? item.Item : 'No Item Selected'}
+              </Text>
+              <Text style={styles.itemCurrentQty}>
+                Available Qty: {item ? item.Qty : 'N/A'}
+              </Text>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Quantity to Request:</Text>
@@ -164,6 +265,8 @@ const RequestStocks = ({ navigation, route }) => {
                   <TouchableOpacity
                     style={styles.qtyButton}
                     onPress={decrementQuantity}
+                    onLongPress={handleLongPressDecrement}
+                    onPressOut={stopLongPress}
                     disabled={requestedQuantity <= 1}>
                     <Text style={styles.qtyButtonText}>-</Text>
                   </TouchableOpacity>
@@ -177,12 +280,20 @@ const RequestStocks = ({ navigation, route }) => {
                   <TouchableOpacity
                     style={styles.qtyButton}
                     onPress={incrementQuantity}
-                    disabled={item && item.Qty !== undefined && requestedQuantity >= item.Qty}>
+                    onLongPress={handleLongPressIncrement}
+                    onPressOut={stopLongPress}
+                    disabled={
+                      item &&
+                      item.Qty !== undefined &&
+                      requestedQuantity >= item.Qty
+                    }>
                     <Text style={styles.qtyButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
                 {item && item.Qty !== undefined && (
-                    <Text style={styles.qtyLimitText}>Max available: {item.Qty}</Text>
+                  <Text style={styles.qtyLimitText}>
+                    Max available: {item.Qty}
+                  </Text>
                 )}
               </View>
 
@@ -198,7 +309,11 @@ const RequestStocks = ({ navigation, route }) => {
                 />
               </View>
 
-              <TouchableOpacity style={styles.submitButton} onPress={handleRequestSubmit}>
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleRequestSubmit}
+                disabled={isLoading} // Disable button while loading
+              >
                 <Text style={styles.submitButtonText}>Submit Request</Text>
               </TouchableOpacity>
             </View>
@@ -231,7 +346,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.25,
     shadowRadius: 6,
   },
@@ -320,10 +435,10 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   qtyLimitText: {
-      fontSize: 14,
-      color: '#8892a0',
-      marginTop: 10,
-      textAlign: 'center',
+    fontSize: 14,
+    color: '#8892a0',
+    marginTop: 10,
+    textAlign: 'center',
   },
   input: {
     backgroundColor: '#fff',
@@ -335,7 +450,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
@@ -351,7 +466,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 40,
     shadowColor: '#007bff',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 10,

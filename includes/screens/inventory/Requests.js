@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -14,69 +14,41 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import IssueStatusModal from './IssueStatusModal'; // Import the new modal component
-
-const initialRequestsData = [
-  {
-    id: 'req1',
-    office: 'Main Office',
-    year: 2024,
-    trackingNumber: 'TRK001',
-    employeeNumber: 'EMP001',
-    requestor: 'Alice Johnson',
-    item: 'Flash Drive Mobile Disk, 32GB',
-    qty: 2,
-    dateRequested: '2024-07-10',
-    reason: 'For new project setup',
-    status: 'Pending',
-  },
-  {
-    id: 'req2',
-    office: 'Branch A',
-    year: 2024,
-    trackingNumber: 'TRK002',
-    employeeNumber: 'EMP002',
-    requestor: 'Bob Williams',
-    item: 'Photo Paper Glossy A4 10s',
-    qty: 1,
-    dateRequested: '2024-07-11',
-    reason: 'Printing important documents',
-    status: 'Pending',
-  },
-  {
-    id: 'req3',
-    office: 'Main Office',
-    year: 2024,
-    trackingNumber: 'TRK003',
-    employeeNumber: 'EMP003',
-    requestor: 'Charlie Brown',
-    item: 'HDMI Cable, 1.5m',
-    qty: 1,
-    dateRequested: '2024-07-12',
-    reason: 'Replacement for damaged cable',
-    status: 'Pending',
-  },
-];
+import { useRequests } from '../../hooks/useInventory'; // Assuming useRequests fetches data
+import { Shimmer } from '../../utils/useShimmer'; // Assuming Shimmer is also available here
 
 export default function Requests({ navigation }) {
-  const [requests, setRequests] = useState(initialRequestsData);
+  // Destructure data, isLoading, and isError from the useRequests hook
+  const { data: requestsData, isLoading: requestsLoading, isError: requestsError } = useRequests();
+
+  // State to hold the requests that will be displayed and filtered
+  const [requests, setRequests] = useState([]);
+
+  // Use useEffect to update the requests state when requestsData from the hook changes
+  useEffect(() => {
+    if (requestsData) {
+      setRequests(requestsData);
+    }
+  }, [requestsData]);
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [issueQty, setIssueQty] = useState(1);
 
-  // New states for the IssueStatusModal
   const [issueStatusModalVisible, setIssueStatusModalVisible] = useState(false);
   const [issueStatus, setIssueStatus] = useState(''); // 'success' or 'error'
   const [issueMessage, setIssueMessage] = useState('');
 
-
   const handleIssueItem = (request) => {
     setSelectedRequest(request);
-    setIssueQty(request.qty);
+    // Use request.Qty (uppercase) as per the new data structure
+    setIssueQty(parseInt(request.Qty, 10)); // Ensure it's a number
     setIsModalVisible(true);
   };
 
   const incrementQty = () => {
-    if (selectedRequest && issueQty < selectedRequest.qty) {
+    // Use selectedRequest.Qty (uppercase)
+    if (selectedRequest && issueQty < parseInt(selectedRequest.Qty, 10)) {
       setIssueQty(prevQty => prevQty + 1);
     }
   };
@@ -87,29 +59,19 @@ export default function Requests({ navigation }) {
     }
   };
 
-  // Function to close the main issue modal
   const closeIssueSelectionModal = () => {
     setIsModalVisible(false);
     setSelectedRequest(null);
     setIssueQty(1);
   };
 
-  // Function to handle closing the success/error modal
   const handleCloseIssueStatusModal = () => {
     setIssueStatusModalVisible(false);
-    // Optionally navigate or refresh data after a successful issue
-    if (issueStatus === 'success') {
-      // Logic for successful issue, e.g., navigate back or refresh list
-      // For now, we'll let the confirmIssue handle the filter and navigation
-    }
   };
 
   const confirmIssue = () => {
-    // Close the quantity selection modal first
     closeIssueSelectionModal();
 
-    // Simulate an API call for issuing the item
-    // In a real app, you'd perform your actual API call here
     const simulatedSuccess = Math.random() > 0.2; // 80% chance of success for demonstration
 
     if (simulatedSuccess) {
@@ -120,63 +82,82 @@ export default function Requests({ navigation }) {
       navigation.navigate('ForPickUp', {
         issuedItem: {
           id: selectedRequest.id,
-          itemName: selectedRequest.item,
+          // Use selectedRequest.Item as per the new data structure
+          itemName: selectedRequest.Item,
           quantity: issueQty,
-          requestor: selectedRequest.requestor,
-          employee: selectedRequest.requestor, // Assuming requestor is also the employee for pickup
-          trackingNumber: selectedRequest.trackingNumber,
-          employeeNumber: selectedRequest.employeeNumber,
+          // Use selectedRequest.Name as per the new data structure
+          requestor: selectedRequest.Name,
+          // Use selectedRequest.Name as per the new data structure
+          employee: selectedRequest.Name,
+          // Use selectedRequest.TrackingNumber as per the new data structure
+          trackingNumber: selectedRequest.TrackingNumber,
+          // Use selectedRequest.EmployeeNumber as per the new data structure
+          employeeNumber: selectedRequest.EmployeeNumber,
         }
       });
 
+      // Use selectedRequest.Item as per the new data structure
+      // Use selectedRequest.Name as per the new data structure
       setIssueStatus('success');
-      setIssueMessage(`"${selectedRequest.item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest.requestor}.`);
+      setIssueMessage(`"${selectedRequest.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest.Name}.`);
     } else {
-      // Handle error scenario
+      // Use selectedRequest.Item as per the new data structure
       setIssueStatus('error');
-      setIssueMessage(`Failed to issue "${selectedRequest.item}". Please try again.`);
+      setIssueMessage(`Failed to issue "${selectedRequest.Item}". Please try again.`);
     }
 
-    setIssueStatusModalVisible(true); // Show the status modal
+    setIssueStatusModalVisible(true);
   };
 
-  const renderRequestItem = ({ item }) => (
+  // Memoized render function for FlatList items to prevent unnecessary re-renders
+  const renderRequestItem = useCallback(({ item }) => (
     <View style={styles.requestCard}>
       <View style={styles.cardHeader}>
-        <Text style={styles.itemName}>{item.item}</Text>
-        <Text style={[styles.statusBadge, item.status === 'Pending' ? styles.statusPending : styles.statusIssued]}>
-          {item.status}
+        {/* Use item.Item as per the new data structure */}
+        <Text style={styles.itemName}>{item.Item}</Text>
+        {/* Use item.Status as per the new data structure */}
+        <Text style={[styles.statusBadge, item.Status === 'Pending' ? styles.statusPending : styles.statusIssued]}>
+          {item.Status}
         </Text>
       </View>
       <View style={styles.requestDetails}>
+     
         <View style={styles.infoRow}>
           <Ionicons name="barcode-outline" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Tracking No: <Text style={styles.infoValue}>{item.trackingNumber}</Text></Text>
+          {/* Use item.TrackingNumber as per the new data structure */}
+          <Text style={styles.requestInfo}>Tracking No: <Text style={styles.infoValue}>{item.TrackingNumber}</Text></Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="person-outline" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Employee No: <Text style={styles.infoValue}>{item.employeeNumber}</Text></Text>
+          {/* Use item.EmployeeNumber as per the new data structure */}
+          <Text style={styles.requestInfo}>Employee No: <Text style={styles.infoValue}>{item.EmployeeNumber}</Text></Text>
         </View>
         <View style={styles.infoRow}>
           <MaterialCommunityIcons name="numeric" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Requested Qty: <Text style={styles.infoValue}>{item.qty}</Text></Text>
+          {/* Use item.Qty as per the new data structure */}
+          <Text style={styles.requestInfo}>Requested Qty: <Text style={styles.infoValue}>{item.Qty}</Text></Text>
+        </View>
+           <View style={styles.infoRow}>
+          <MaterialCommunityIcons name="numeric" size={16} color="#666" style={styles.infoIcon} />
+          {/* Use item.Qty as per the new data structure */}
+          <Text style={styles.requestInfo}>Units: <Text style={styles.infoValue}>{item.Units}</Text></Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="text-outline" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Reason: <Text style={styles.infoValue}>{item.reason}</Text></Text>
+          {/* Use item.Reason as per the new data structure */}
+          <Text style={styles.requestInfo}>Reason: <Text style={styles.infoValue}>{item.Reason}</Text></Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="at-outline" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Requestor: <Text style={styles.infoValue}>{item.requestor}</Text></Text>
+          {/* Use item.Name as per the new data structure */}
+          <Text style={styles.requestInfo}>Requestor: <Text style={styles.infoValue}>{item.Name}</Text></Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="calendar-outline" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Date Requested: <Text style={styles.infoValue}>{item.dateRequested}</Text></Text>
+          {/* Use item.DateRequested as per the new data structure */}
+          <Text style={styles.requestInfo}>Date Requested: <Text style={styles.infoValue}>{item.DateRequested}</Text></Text>
         </View>
-        <View style={styles.infoRow}>
-          <Ionicons name="business-outline" size={16} color="#666" style={styles.infoIcon} />
-          <Text style={styles.requestInfo}>Office: <Text style={styles.infoValue}>{item.office}</Text></Text>
-        </View>
+       
       </View>
       <TouchableOpacity
         style={styles.issueButton}
@@ -185,6 +166,52 @@ export default function Requests({ navigation }) {
         <MaterialCommunityIcons name="send-check-outline" size={20} color="#fff" />
         <Text style={styles.issueButtonText}>Issue</Text>
       </TouchableOpacity>
+    </View>
+  ), []); // Empty dependency array because item properties are directly accessed
+
+  // Shimmer placeholder for the request cards
+  const ShimmerRequestCardPlaceholder = () => (
+    <View style={[styles.requestCard, styles.shimmerCard]}>
+      <Shimmer
+        style={{
+          height: 20,
+          width: '70%',
+          borderRadius: 4,
+          marginBottom: 10,
+        }}
+      />
+      <Shimmer
+        style={{
+          height: 12,
+          width: '30%',
+          borderRadius: 4,
+          alignSelf: 'flex-end',
+          position: 'absolute',
+          top: 20,
+          right: 20,
+        }}
+      />
+      <View style={styles.shimmerInfoRow}>
+        <Shimmer style={{ height: 16, width: 16, borderRadius: 8, marginRight: 8 }} />
+        <Shimmer style={{ height: 14, width: '60%', borderRadius: 4 }} />
+      </View>
+      <View style={styles.shimmerInfoRow}>
+        <Shimmer style={{ height: 16, width: 16, borderRadius: 8, marginRight: 8 }} />
+        <Shimmer style={{ height: 14, width: '50%', borderRadius: 4 }} />
+      </View>
+      <View style={styles.shimmerInfoRow}>
+        <Shimmer style={{ height: 16, width: 16, borderRadius: 8, marginRight: 8 }} />
+        <Shimmer style={{ height: 14, width: '70%', borderRadius: 4 }} />
+      </View>
+      <Shimmer
+        style={{
+          height: 40,
+          width: 100,
+          borderRadius: 10,
+          alignSelf: 'flex-end',
+          marginTop: 15,
+        }}
+      />
     </View>
   );
 
@@ -209,7 +236,20 @@ export default function Requests({ navigation }) {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      {requests.length > 0 ? (
+      {requestsLoading ? (
+        <FlatList
+          data={[1, 2, 3]}
+          renderItem={ShimmerRequestCardPlaceholder}
+          keyExtractor={(item) => item.Id.toString()}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : requestsError ? (
+        <View style={styles.emptyListContainer}>
+          <Ionicons name="warning-outline" size={80} color="#ff6347" />
+          <Text style={styles.emptyListText}>Failed to load requests.</Text>
+          <Text style={styles.emptyListSubText}>Please check your connection and try again.</Text>
+        </View>
+      ) : requests.length > 0 ? (
         <FlatList
           data={requests}
           renderItem={renderRequestItem}
@@ -224,7 +264,6 @@ export default function Requests({ navigation }) {
         </View>
       )}
 
-      {/* Original Issue Quantity Selection Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -235,7 +274,7 @@ export default function Requests({ navigation }) {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Issue Item</Text>
             <Text style={styles.modalItemDetail}>
-              Issuing: <Text style={styles.modalHighlightText}>"{selectedRequest?.item}"</Text>
+              Issuing: <Text style={styles.modalHighlightText}>"{selectedRequest?.Item}"</Text> 
             </Text>
 
             <View style={styles.qtyControlsContainer}>
@@ -251,11 +290,11 @@ export default function Requests({ navigation }) {
                 <TouchableOpacity
                   style={styles.qtyButton}
                   onPress={incrementQty}
-                  disabled={issueQty >= selectedRequest?.qty}>
+                  disabled={issueQty >= parseInt(selectedRequest?.Qty, 10)}> 
                   <Text style={styles.qtyButtonText}>+</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.qtyMaxText}>Requested: {selectedRequest?.qty}</Text>
+              <Text style={styles.qtyMaxText}>Requested: {selectedRequest?.Qty}</Text>
             </View>
 
             <View style={styles.modalButtonContainer}>
@@ -400,7 +439,7 @@ const styles = StyleSheet.create({
   },
   emptyListContainer: {
     flex: 1,
-    justifyContent: 'center',
+    //justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
@@ -528,5 +567,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     fontSize: 16,
+  },
+  // Shimmer specific styles for Requests screen
+  shimmerCard: {
+    height: 250, // Approximate height of a request card
+    justifyContent: 'flex-start',
+    padding: 18,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
+  shimmerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
 });
