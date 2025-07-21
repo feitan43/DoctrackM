@@ -68,7 +68,7 @@ export const categoryIconMap = {
   'Electrical Equipment and Appliances - A': 'blender',
   'Electrical Equipment and Appliances - B': 'microwave',
   'Electrical Equipment and Appliances - Repairs': 'current-ac',
-  'Electrical Supplies and Materials': 'plug',
+  'Electrical Supplies and Materials': 'power-plug',
   'Electrical Tools': 'screwdriver',
   'Engineering Supplies, Tools & Equipment': 'compass-outline',
   'Engineering Contractor': 'hard-hat',

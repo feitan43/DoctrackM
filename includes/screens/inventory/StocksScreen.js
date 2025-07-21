@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback, useMemo} from 'react';
+import React, {useState, useRef, useCallback, useMemo, useEffect} from 'react';
 import {
   SafeAreaView,
   View,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Pressable,
   FlatList,
+  TextInput,
+  RefreshControl, // Import RefreshControl
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -19,41 +21,72 @@ import {useRequests, useStocks} from '../../hooks/useInventory';
 import {width, currentYear, categoryIconMap} from '../../utils';
 import {useNavigation} from '@react-navigation/native';
 import {Shimmer} from '../../utils/useShimmer';
+import {useQueryClient} from '@tanstack/react-query'; // Import useQueryClient
 
 export default function StocksScreen({navigation}) {
   const [selectedItem, setSelectedItem] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [refreshing, setRefreshing] = useState(false); // New state for refreshing
   const navigationHook = useNavigation();
+  const queryClient = useQueryClient(); // Initialize useQueryClient
 
-  const {data: inventoryData , isLoading: inventoryDataLoading, isError: inventoryDataError} = useStocks(currentYear);
+  const {data: inventoryData, isLoading: inventoryDataLoading, isError: inventoryDataError} = useStocks(currentYear);
   const {data: inventoryRequests} = useRequests();
 
   const totalRequests = inventoryRequests?.length || 0;
-
-  // Assuming each item in inventoryRequests has a 'status' property
-  // and 'For PickUp' is one of its possible values.
   const totalForPickUp = inventoryRequests?.filter(
     request => request.status === 'For PickUp'
   ).length || 0;
-  // IMPORTANT: Adjust 'request.status' to the actual property name
-  // in your request objects that denotes the status (e.g., 'pickupStatus', 'deliveryStatus', etc.).
 
   const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['40%', '80%'], []);
 
-  const snapPoints = useMemo(() => ['40%', '75%'], []);
+  useEffect(() => {
+    if (selectedItem) {
+      if (searchQuery.trim() === '') {
+        setFilteredItems(selectedItem.items);
+      } else {
+        const filtered = selectedItem.items.filter(item =>
+          item.Item.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setFilteredItems(filtered);
+      }
+    }
+  }, [searchQuery, selectedItem]);
 
   const handleSheetChanges = useCallback(index => {
-   // console.log('handleSheetChanges', index);
+    if (index === -1) {
+      setSearchQuery('');
+    }
   }, []);
 
   const handlePresentModalPress = useCallback(item => {
     setSelectedItem(item);
+    setSearchQuery('');
+    setFilteredItems(item.items);
     bottomSheetRef.current?.expand();
   }, []);
 
   const handleClosePress = useCallback(() => {
     bottomSheetRef.current?.close();
     setSelectedItem(null);
+    setSearchQuery('');
   }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Invalidate queries to refetch data
+      await queryClient.invalidateQueries(['stocks', currentYear]);
+      await queryClient.invalidateQueries(['requests']);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient]);
+
 
   const groupedCategoryData = useMemo(() => {
     if (!inventoryData) {
@@ -115,9 +148,30 @@ export default function StocksScreen({navigation}) {
       {label: 'Requests', value: totalRequests, screen: 'Requests'},
       {label: 'For Pickup', value: totalForPickUp, screen: 'ForPickUp'},
     ];
-  }, [inventoryData, totalRequests, totalForPickUp]); // Added dependencies
+  }, [inventoryData, totalRequests, totalForPickUp]);
+
+  const renderShimmerDashboardItem = () => (
+    <View style={[styles.dashboardCard, {overflow: 'hidden'}]}>
+      <Shimmer width={60} height={20} style={{marginBottom: 10}} />
+      <Shimmer width={40} height={30} />
+    </View>
+  );
+
+  const renderShimmerCategoryItem = () => (
+    <View style={styles.categoryCardWrapper}>
+      <View style={[styles.categoryCardGradient, {overflow: 'hidden'}]}>
+        <Shimmer width={40} height={20} style={styles.categoryCountContainer} />
+        <Shimmer width={60} height={60} style={{marginBottom: 8}} />
+        <Shimmer width={80} height={20} />
+      </View>
+    </View>
+  );
 
   const renderFlatListItem = ({item}) => {
+    if (inventoryDataLoading) {
+      return renderShimmerCategoryItem();
+    }
+    
     return (
       <View style={styles.categoryCardWrapper}>
         <TouchableOpacity
@@ -146,22 +200,27 @@ export default function StocksScreen({navigation}) {
     );
   };
 
-  const renderDashboardItem = ({item}) => (
-    <TouchableOpacity
-      style={styles.dashboardCard}
-      onPress={() => item.screen && navigation.navigate(item.screen)}
-      disabled={!item.screen}
-      activeOpacity={0.7}>
-      <Text style={styles.dashboardLabel}>{item.label}</Text>
-      <Text style={styles.dashboardValue}>{item.value}</Text>
-    </TouchableOpacity>
-  );
+  const renderDashboardItem = ({item}) => {
+    if (inventoryDataLoading) {
+      return renderShimmerDashboardItem();
+    }
+    
+    return (
+      <TouchableOpacity
+        style={styles.dashboardCard}
+        onPress={() => item.screen && navigation.navigate(item.screen)}
+        disabled={!item.screen}
+        activeOpacity={0.7}>
+        <Text style={styles.dashboardLabel}>{item.label}</Text>
+        <Text style={styles.dashboardValue}>{item.value}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderItemInModal = ({item}) => (
     <View style={styles.modalItem}>
       <View style={styles.itemDetailsContainer}>
         <Text style={styles.modalItemText}>{item.Item}</Text>
-        {/* <Text style={styles.modalItemQuantity}>Qty: {item.Qty}</Text> */}
       </View>
       <TouchableOpacity
         style={styles.requestItemButton}
@@ -193,30 +252,48 @@ export default function StocksScreen({navigation}) {
         </Pressable>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.topHeaderTitle}>Stocks</Text>
-          <Text style={styles.totalStocksCount}>Total {totalStocks} Items</Text>
+          {inventoryDataLoading ? (
+            <Shimmer width={120} height={20} style={{marginTop: 4}} />
+          ) : (
+            <Text style={styles.totalStocksCount}>Total {totalStocks} Items</Text>
+          )}
         </View>
         <View style={{width: 40}} />
       </LinearGradient>
-      <View style={{}}>
+      
+      <View>
         <FlatList
-          data={dashboardData}
+          data={inventoryDataLoading ? Array(4).fill({}) : dashboardData}
           renderItem={renderDashboardItem}
-          keyExtractor={item => item.label}
+          keyExtractor={(item, index) => index.toString()}
           numColumns={2}
           contentContainerStyle={styles.dashboardListContent}
           scrollEnabled={false}
         />
       </View>
-      <Text style={styles.categoriesHeader}>Categories</Text>
+      
+      {inventoryDataLoading ? (
+        <Shimmer width={100} height={20} style={styles.categoriesHeader} />
+      ) : (
+        <Text style={styles.categoriesHeader}>Categories</Text>
+      )}
 
       <FlatList
-        data={groupedCategoryData}
+        data={inventoryDataLoading ? Array(6).fill({}) : groupedCategoryData}
         renderItem={renderFlatListItem}
-        keyExtractor={item => item.id}
+        keyExtractor={(item, index) => inventoryDataLoading ? index.toString() : item.id}
         numColumns={3}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         key="categoryGrid"
+        refreshControl={ // Add RefreshControl to the main FlatList
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A508C']} // Customize indicator color
+            tintColor={'#1A508C'} // For iOS
+          />
+        }
       />
 
       <BottomSheet
@@ -237,12 +314,39 @@ export default function StocksScreen({navigation}) {
               <Text style={styles.bottomSheetSubtitle}>
                 Items in this category:
               </Text>
+              
+              <View style={styles.searchContainer}>
+                <MaterialCommunityIcons 
+                  name="magnify" 
+                  size={20} 
+                  color="#666" 
+                  style={styles.searchIcon} 
+                />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search items..."
+                  placeholderTextColor="#999"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
 
               <BottomSheetFlatList
-                data={selectedItem.items}
+                data={filteredItems.length > 0 || searchQuery ? filteredItems : selectedItem.items}
                 renderItem={renderItemInModal}
                 keyExtractor={(item, index) => item.Id + '-' + index}
                 contentContainerStyle={styles.modalItemsList}
+                ListEmptyComponent={
+                  <Text style={styles.noResultsText}>No items found</Text>
+                }
+                refreshControl={ // Add RefreshControl to the BottomSheetFlatList
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={['#1A508C']}
+                    tintColor={'#1A508C'}
+                  />
+                }
               />
             </>
           )}
@@ -364,9 +468,8 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 3},
     shadowOpacity: 0.15,
     shadowRadius: 5,
-    borderWidth:1,
+    borderWidth: 1,
     borderColor: '#ddd',
-    //elevation: 5,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -465,5 +568,29 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     backgroundColor: '#e6f0fa',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginBottom: 15,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 5,
+  },
+  noResultsText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
+    fontSize: 16,
   },
 });

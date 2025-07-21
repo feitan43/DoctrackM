@@ -409,6 +409,7 @@ export const useDistribution = () => {
 export const submitInventoryRequest = async ({
   Year,
   TrackingNumber,
+  InvId,
   ItemId,
   Item,
   requestedQty,
@@ -425,7 +426,7 @@ export const submitInventoryRequest = async ({
   // if (!Item) throw new Error('Item name is required');
   // if (requestedQty === undefined || requestedQty <= 0)
   //   throw new Error('Requested quantity must be a positive number');
- /*  console.log(
+  /*  console.log(
     'submitInventoryRequest:',
     Year,
     TrackingNumber,
@@ -437,10 +438,11 @@ export const submitInventoryRequest = async ({
     officeCode,
   );
  */
-  console.log("reas",units)
+  //console.log('reas', InvId);
   const payload = {
     Year,
     TrackingNumber,
+    InvId,
     ItemId,
     Item,
     Qty: requestedQty,
@@ -462,7 +464,95 @@ export const useSubmitInventoryRequest = () => {
   const {officeCode, employeeNumber, fullName} = useUserInfo();
   return useMutation({
     mutationFn: async requestDetails => {
-      return submitInventoryRequest({...requestDetails, officeCode,employeeNumber, fullName});
+      return submitInventoryRequest({
+        ...requestDetails,
+        officeCode,
+        employeeNumber,
+        fullName,
+      });
+    },
+    onSuccess: (data, variables, context) => {
+      console.log('Request submitted successfully:', data);
+      queryClient.invalidateQueries(['inventoryRequests', officeCode]);
+    },
+    onError: (error, variables, context) => {
+      console.error('Failed to submit request:', error);
+    },
+    // Optional: onMutate, onSettled callbacks can also be added here
+  });
+};
+
+export const submitApproveRequest = async ({
+  officeCode,
+  requestId,
+  requestQty,
+  invId,
+  employeeNumber,
+  issueQty,
+}) => {
+  // if (!officeCode) throw new Error('Office Code is required');
+  // if (!Year) throw new Error('Year is required');
+  // if (!ItemId) throw new Error('Item ID is required');
+  // if (!Item) throw new Error('Item name is required');
+  // if (requestedQty === undefined || requestedQty <= 0)
+  //   throw new Error('Requested quantity must be a positive number');
+
+  const payload = {
+    Office: officeCode,
+    RequestId: requestId,
+    RequestsQty: requestQty,
+    InvId: invId,
+    ApproveBy: employeeNumber,
+  };
+
+  console.log("pay",payload)
+  console.log("qty",issueQty);
+
+  // const url = `/invApproveRequest`;
+  // const {data} = await apiClient.post(url, payload);
+  // return data;
+};
+
+export const useSubmitApproveRequest = () => {
+  const queryClient = useQueryClient();
+  const {employeeNumber, officeCode} = useUserInfo();
+  return useMutation({
+    mutationFn: async requestDetails => {
+      return submitApproveRequest({
+        ...requestDetails,
+        employeeNumber,
+        officeCode,
+      });
+    },
+    onSuccess: (data, variables, context) => {
+      console.log('Request submitted successfully:', data);
+      queryClient.invalidateQueries(['inventoryRequests', officeCode]);
+    },
+    onError: (error, variables, context) => {
+      console.error('Failed to submit request:', error);
+    },
+    // Optional: onMutate, onSettled callbacks can also be added here
+  });
+};
+
+export const submitCompleteRequest = async ({requestId, approveBy}) => {
+
+  const payload = {
+    RequestId: requestId,
+    ApproveBy: approveBy,
+  };
+
+  const url = `/invCompleteRequest`;
+  const {data} = await apiClient.post(url, payload);
+  return data;
+};
+
+export const useSubmitCompleteRequest = () => {
+  const queryClient = useQueryClient();
+  const {employeeNumber} = useUserInfo();
+  return useMutation({
+    mutationFn: async requestDetails => {
+      return submitCompleteRequest({...requestDetails, employeeNumber});
     },
     onSuccess: (data, variables, context) => {
       console.log('Request submitted successfully:', data);

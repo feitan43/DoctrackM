@@ -46,23 +46,27 @@ const RequestStocks = ({navigation, route}) => {
   const LONG_PRESS_INITIAL_DELAY = 300; // ms before continuous action starts
   const LONG_PRESS_INTERVAL_SPEED = 100; // ms between each quantity change
 
-  const updateQuantity = newQty => {
-    let quantity = parseInt(newQty, 10);
+  // This function is now more focused on direct input, quantity controls handle validation
+  const updateQuantity = newQtyString => {
+    let quantity = parseInt(newQtyString, 10);
 
-    if (isNaN(quantity) || quantity < 1) {
-      quantity = 1;
+    if (isNaN(quantity)) {
+      setRequestedQuantity(''); // Allow empty string for user to type
+    } else {
+      // Basic capping for direct input, more robust validation happens on blur
+      if (item && item.Qty !== undefined && quantity > item.Qty) {
+        quantity = item.Qty;
+      } else if (quantity < 1 && newQtyString !== '') {
+        quantity = 1;
+      }
+      setRequestedQuantity(quantity);
     }
-
-    if (item && item.Qty !== undefined && quantity > item.Qty) {
-      quantity = item.Qty;
-    }
-
-    setRequestedQuantity(quantity);
   };
 
   const incrementQuantity = () => {
     setRequestedQuantity(prevQty => {
-      let newQty = prevQty + 1;
+      const currentQty = typeof prevQty === 'number' ? prevQty : 1; // Treat empty/invalid as 1 for increment
+      let newQty = currentQty + 1;
       if (item && item.Qty !== undefined && newQty > item.Qty) {
         newQty = item.Qty;
       }
@@ -72,8 +76,9 @@ const RequestStocks = ({navigation, route}) => {
 
   const decrementQuantity = () => {
     setRequestedQuantity(prevQty => {
-      if (prevQty > 1) {
-        return prevQty - 1;
+      const currentQty = typeof prevQty === 'number' ? prevQty : 1; // Treat empty/invalid as 1 for decrement
+      if (currentQty > 1) {
+        return currentQty - 1;
       }
       return 1;
     });
@@ -81,6 +86,7 @@ const RequestStocks = ({navigation, route}) => {
 
   const handleLongPressIncrement = () => {
     setIsLongPressingIncrement(true);
+    incrementQuantity(); // Call once immediately
     intervalRef.current = setInterval(
       incrementQuantity,
       LONG_PRESS_INTERVAL_SPEED,
@@ -89,6 +95,7 @@ const RequestStocks = ({navigation, route}) => {
 
   const handleLongPressDecrement = () => {
     setIsLongPressingDecrement(true);
+    decrementQuantity(); // Call once immediately
     intervalRef.current = setInterval(
       decrementQuantity,
       LONG_PRESS_INTERVAL_SPEED,
@@ -104,53 +111,15 @@ const RequestStocks = ({navigation, route}) => {
     setIsLongPressingDecrement(false);
   };
 
-  // const submitRequest = () => {
-
-  //   const requestDetails = {
-  //     Year: item ? item.Year : 'N/A',
-  //     TrackingNumber: item ? item.TrackingNumber : 'N/A',
-  //     itemId: item ? item.ItemId : 'N/A',
-  //     item: item ? item.Item : 'N/A',
-  //     requestedQty: requestedQuantity,
-  //     units: item ? item.Unit : 'N/A',
-  //     reason: requestReason,
-  //   };
-
-  //   console.log('Request Submitted:', requestDetails);
-
-  //   const success = Math.random() > 0.3; // 70% chance of success for demonstration
-
-  //   if (success) {
-  //     setModalStatus('success');
-  //     setModalMessage(
-  //       `Your request for ${requestedQuantity} of ${
-  //         item ? item.Item : 'item'
-  //       } has been sent successfully.`,
-  //     );
-  //   } else {
-  //     setModalStatus('error');
-  //     setModalMessage(
-  //       `Failed to send request for ${
-  //         item ? item.Item : 'item'
-  //       }. Please try again.`,
-  //     );
-  //   }
-  //   setModalVisible(true); // Show the modal
-
-  //   setRequestedQuantity(1);
-  //   setRequestReason('');
-  // };
-
   const submitRequest = () => {
-
-    console.log('Request Submitted:',item)
     const requestDetails = {
       Year: item ? item.Year : 'N/A',
       TrackingNumber: item ? item.TrackingNumber : 'N/A',
+      InvId: item ? item.Id : 'N/A',
       ItemId: item ? item.ItemId : 'N/A',
       Item: item ? item.Item : 'N/A',
       requestedQty: requestedQuantity,
-      units: item ? item.Unit : 'N/A',
+      units: item ? item.Unit : 'N/A', // Using item.Unit
       reason: requestReason,
       status: 'Pending',
     };
@@ -159,7 +128,9 @@ const RequestStocks = ({navigation, route}) => {
       onSuccess: () => {
         setModalStatus('success');
         setModalMessage(
-          `Your request for ${requestedQuantity} of ${
+          `Your request for ${requestedQuantity} ${
+            item && item.Unit ? item.Unit : ''
+          } of ${
             item ? item.Item : 'item'
           } has been sent successfully.`,
         );
@@ -178,16 +149,16 @@ const RequestStocks = ({navigation, route}) => {
       },
     });
   };
+
   const handleRequestSubmit = () => {
-    if (requestedQuantity <= 0) {
-      Alert.alert(
-        'Invalid Quantity',
-        'Please select a valid positive number for the quantity.',
-      );
-      return;
+    // Ensure quantity is a valid number before submission
+    let finalRequestedQuantity = parseInt(requestedQuantity, 10);
+    if (isNaN(finalRequestedQuantity) || finalRequestedQuantity < 1) {
+      finalRequestedQuantity = 1; // Default to 1 if invalid
+      setRequestedQuantity(1); // Update state to reflect this
     }
 
-    if (item && item.Qty !== undefined && requestedQuantity > item.Qty) {
+    if (item && item.Qty !== undefined && finalRequestedQuantity > item.Qty) {
       Alert.alert(
         'Quantity Exceeded',
         `You cannot request more than the available quantity (${item.Qty}).`,
@@ -224,6 +195,38 @@ const RequestStocks = ({navigation, route}) => {
     }
   };
 
+  // New state to manage if the user has started typing
+  const [hasTyped, setHasTyped] = useState(false);
+
+  // Custom onChangeText handler for the TextInput
+  const handleQuantityTextChange = (text) => {
+    if (!hasTyped && text === '') { // If user deletes the initial '1'
+      setRequestedQuantity(''); // Set to empty string for initial typing
+    } else {
+      const parsedQty = parseInt(text, 10);
+      if (isNaN(parsedQty)) {
+        setRequestedQuantity(''); // Allow empty string if user deletes all
+      } else {
+        let newQty = parsedQty;
+        if (item && item.Qty !== undefined && newQty > item.Qty) {
+          newQty = item.Qty;
+        } else if (newQty < 1 && text !== '') { // Prevent setting to 0 unless completely empty
+          newQty = 1;
+        }
+        setRequestedQuantity(newQty);
+      }
+    }
+    setHasTyped(true); // User has initiated typing
+  };
+
+  // Custom onEndEditing handler to set quantity to 1 if empty or invalid
+  const handleEndEditingQuantity = () => {
+    if (String(requestedQuantity).trim() === '' || isNaN(requestedQuantity)) {
+      setRequestedQuantity(1);
+    }
+    setHasTyped(false); // Reset for next focus
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
@@ -256,29 +259,43 @@ const RequestStocks = ({navigation, route}) => {
                 {item ? item.Item : 'No Item Selected'}
               </Text>
               <Text style={styles.itemCurrentQty}>
-                Available Qty: {item ? item.Qty : 'N/A'}
+                Available Qty: {item ? `${item.Qty} ${item.Unit || ''}` : 'N/A'}
               </Text>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Quantity to Request:</Text>
                 <View style={styles.qtyControlsContainer}>
                   <TouchableOpacity
-                    style={styles.qtyButton}
+                    style={[
+                      styles.qtyButton,
+                      requestedQuantity <= 1 && styles.qtyButtonDisabled,
+                    ]}
                     onPress={decrementQuantity}
                     onLongPress={handleLongPressDecrement}
                     onPressOut={stopLongPress}
                     disabled={requestedQuantity <= 1}>
-                    <Text style={styles.qtyButtonText}>-</Text>
+                    <Text style={[
+                      styles.qtyButtonText,
+                      requestedQuantity <= 1 && styles.qtyButtonTextDisabled,
+                    ]}>-</Text>
                   </TouchableOpacity>
                   <TextInput
                     style={styles.qtyTextInput}
                     keyboardType="numeric"
                     value={String(requestedQuantity)}
-                    onChangeText={updateQuantity}
-                    onEndEditing={() => updateQuantity(requestedQuantity)}
+                    onChangeText={handleQuantityTextChange} // Use custom handler
+                    onEndEditing={handleEndEditingQuantity} // Use custom handler
+                    onFocus={() => {
+                        if (requestedQuantity === 1 && !hasTyped) {
+                            setRequestedQuantity(''); // Clear if it's the initial '1' and user hasn't typed
+                        }
+                    }}
                   />
                   <TouchableOpacity
-                    style={styles.qtyButton}
+                    style={[
+                      styles.qtyButton,
+                      item && item.Qty !== undefined && requestedQuantity >= item.Qty && styles.qtyButtonDisabled,
+                    ]}
                     onPress={incrementQuantity}
                     onLongPress={handleLongPressIncrement}
                     onPressOut={stopLongPress}
@@ -287,12 +304,15 @@ const RequestStocks = ({navigation, route}) => {
                       item.Qty !== undefined &&
                       requestedQuantity >= item.Qty
                     }>
-                    <Text style={styles.qtyButtonText}>+</Text>
+                    <Text style={[
+                      styles.qtyButtonText,
+                      item && item.Qty !== undefined && requestedQuantity >= item.Qty && styles.qtyButtonTextDisabled,
+                    ]}>+</Text>
                   </TouchableOpacity>
                 </View>
                 {item && item.Qty !== undefined && (
                   <Text style={styles.qtyLimitText}>
-                    Max available: {item.Qty}
+                    Max available: {item.Qty} {item.Unit || ''}
                   </Text>
                 )}
               </View>
@@ -419,10 +439,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  qtyButtonDisabled: {
+    backgroundColor: '#f8f9fa', // Lighter background for disabled
+  },
   qtyButtonText: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#555',
+  },
+  qtyButtonTextDisabled: {
+    color: '#ced4da', // Lighter color for disabled text
   },
   qtyTextInput: {
     flex: 1,
