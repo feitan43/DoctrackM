@@ -91,10 +91,10 @@ export default function DistributionScreen({navigation}) {
               <Text style={styles.detailLabel}>Receiver </Text>
               <Text style={styles.detailValue}>{item.Name}</Text>
             </View>
-            <View style={styles.detailRow}>
+            {/* <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Office </Text>
               <Text style={styles.detailValue}>{item.Office}</Text>
-            </View>
+            </View> */}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Date </Text>
               <Text style={styles.detailValue}>{formattedDate}</Text>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   SafeAreaView,
   View,
@@ -12,12 +12,12 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { FlashList } from '@shopify/flash-list';
+import {FlashList} from '@shopify/flash-list';
 import IssueStatusModal from './IssueStatusModal';
-import { useRequests, useSubmitApproveRequest } from '../../hooks/useInventory'; // Import useSubmitApproveRequest
-import { Shimmer } from '../../utils/useShimmer';
+import {useRequests, useSubmitApproveRequest} from '../../hooks/useInventory'; // Import useSubmitApproveRequest
+import {Shimmer} from '../../utils/useShimmer';
 
-export default function Requests({ navigation }) {
+export default function Requests({navigation}) {
   const {
     data: requestsData,
     isLoading: requestsLoading,
@@ -31,8 +31,8 @@ export default function Requests({ navigation }) {
     isSuccess: isApproveSuccess,
     isError: isApproveError,
     error: approveError,
-    reset: resetApproveStatus, 
-  } = useSubmitApproveRequest(); 
+    reset: resetApproveStatus,
+  } = useSubmitApproveRequest();
 
   const [requests, setRequests] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -44,48 +44,51 @@ export default function Requests({ navigation }) {
 
   useEffect(() => {
     if (requestsData) {
-      setRequests(requestsData);
+      const filteredItems = requestsData.filter(
+        request => request.Status.toLowerCase() === 'pending',
+      );
+      setRequests(filteredItems);
     }
   }, [requestsData]);
 
-  // Handle the outcome of the submitApproveRequest mutation
-  // useEffect(() => {
-  //   if (isApproveSuccess) {
-  //     // Filter out the approved request from the local state
-  //     setRequests((prevRequests) =>
-  //       prevRequests.filter((req) => req.Id !== selectedRequest.Id) // Use .Id as per your data structure
-  //     );
+   useEffect(() => {
+    // This effect runs when the approval status changes
+    if (isApproveSuccess) {
+      // Filter out the approved request from the local state
+      setRequests((prevRequests) =>
+        prevRequests.filter((req) => req.Id !== selectedRequest?.Id) // Safely access Id
+      );
 
-  //     // Navigate to ForPickUp screen
-  //     navigation.navigate('ForPickUp', {
-  //       issuedItem: {
-  //         id: selectedRequest.Id, // Use .Id
-  //         itemName: selectedRequest.Item,
-  //         quantity: issueQty,
-  //         requestor: selectedRequest.Name,
-  //         employee: selectedRequest.Name, // Assuming requestor is also the employee for pickup
-  //         trackingNumber: selectedRequest.TrackingNumber,
-  //         employeeNumber: selectedRequest.EmployeeNumber,
-  //       },
-  //     });
+      // Navigate to ForPickUp screen
+      navigation.navigate('ForPickUp', {
+        issuedItem: {
+          id: selectedRequest?.Id, // Safely access Id
+          itemName: selectedRequest?.Item,
+          quantity: issueQty, // Assuming issueQty is the approved quantity
+          requestor: selectedRequest?.Name,
+          employee: selectedRequest?.Name, // Assuming requestor is also the employee for pickup
+          trackingNumber: selectedRequest?.TrackingNumber,
+          employeeNumber: selectedRequest?.EmployeeNumber,
+        },
+      });
 
-  //     setIssueStatus('success'); //
-  //     setIssueMessage(
-  //       `"${selectedRequest.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest.Name}.`
-  //     );
-  //     setIssueStatusModalVisible(true);
-  //     resetApproveStatus(); // Reset the mutation status after showing message
-  //   } else if (isApproveError) {
-  //     setIssueStatus('error'); //
-  //     setIssueMessage(
-  //       `Failed to issue "${selectedRequest.Item}". Error: ${approveError?.message || 'Unknown error'}. Please try again.`
-  //     );
-  //     setIssueStatusModalVisible(true);
-  //     resetApproveStatus(); // Reset the mutation status after showing message
-  //   }
-  // }, [isApproveSuccess, isApproveError, approveError, selectedRequest, issueQty, navigation, resetApproveStatus]);
+      setIssueStatus('success');
+      setIssueMessage(
+        `"${selectedRequest?.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest?.Name}.`
+      );
+      setIssueStatusModalVisible(true);
+      resetApproveStatus(); // Reset the mutation status after showing message
+    } else if (isApproveError) {
+      setIssueStatus('error');
+      setIssueMessage(
+        `Failed to issue "${selectedRequest?.Item}". Error: ${approveError?.message || 'Unknown error'}. Please try again.`
+      );
+      setIssueStatusModalVisible(true);
+      resetApproveStatus(); // Reset the mutation status after showing message
+    }
+  }, [isApproveSuccess, isApproveError, approveError, selectedRequest, issueQty, navigation, resetApproveStatus]);
 
-  const handleIssueItem = (request) => {
+  const handleIssueItem = request => {
     setSelectedRequest(request);
     setIssueQty(parseInt(request.Qty, 10));
     setIsModalVisible(true);
@@ -93,46 +96,52 @@ export default function Requests({ navigation }) {
 
   const incrementQty = () => {
     if (selectedRequest && issueQty < parseInt(selectedRequest.Qty, 10)) {
-      setIssueQty((prevQty) => prevQty + 1);
+      setIssueQty(prevQty => prevQty + 1);
     }
   };
 
   const decrementQty = () => {
     if (issueQty > 1) {
-      setIssueQty((prevQty) => prevQty - 1);
+      setIssueQty(prevQty => prevQty - 1);
     }
   };
 
   const closeIssueSelectionModal = () => {
     setIsModalVisible(false);
-    setSelectedRequest(null);
+    // Do NOT set selectedRequest to null here.
+    // It needs to be available for the useEffect that listens to `isApproveSuccess`/`isApproveError`.
     setIssueQty(1);
   };
 
   const handleCloseIssueStatusModal = () => {
     setIssueStatusModalVisible(false);
+    // Now that the status modal is closed, it's safe to clear selectedRequest
+    setSelectedRequest(null);
   };
 
   const confirmIssue = () => {
-    closeIssueSelectionModal(); // Close the selection modal first
+    closeIssueSelectionModal(); // This only closes the selection modal now.
 
     if (selectedRequest) {
-      // Call the approveRequest mutation
       console.log('Issuing request:', selectedRequest);
       submitApproveRequest({
-        requestId: selectedRequest.Id, // Assuming 'Id' is the unique ID for the request
-        itemId: selectedRequest.ItemId, // Make sure your request object has an ItemId
+        requestorName: selectedRequest.Name,
+        requestor: selectedRequest.EmployeeNumber,
+        year: selectedRequest.Year,
+        tn: selectedRequest.TrackingNumber,
+        requestId: selectedRequest.Id,
+        itemId: selectedRequest.ItemId,
+        item: selectedRequest.Item,
+        unit: selectedRequest.Units,
         invId: selectedRequest.InvId,
-        approvedQty: issueQty,
-
-        // You might need to pass other details required by your backend for approval
-        // e.g., trackingNumber: selectedRequest.TrackingNumber, employeeNumber: selectedRequest.EmployeeNumber
+        approvedQty: selectedRequest.Qty,
+        remarks: selectedRequest.Reason,
       });
     }
   };
 
   const renderRequestItem = useCallback(
-    ({ item }) => (
+    ({item}) => (
       <View style={styles.requestCard}>
         <View style={styles.cardHeader}>
           <Text style={styles.itemName} numberOfLines={1} ellipsizeMode="tail">
@@ -141,40 +150,68 @@ export default function Requests({ navigation }) {
           <Text
             style={[
               styles.statusBadge,
-              item.Status === 'Pending' ? styles.statusPending : styles.statusIssued,
+              item.Status === 'Pending'
+                ? styles.statusPending
+                : styles.statusIssued,
             ]}>
             {item.Status}
           </Text>
         </View>
 
         <View style={styles.requestDetails}>
-           <View style={styles.infoRow}>
-            <Ionicons name="person-circle-outline" size={18} style={styles.infoIcon} />
+          <View style={styles.infoRow}>
+            <Ionicons
+              name="person-circle-outline"
+              size={18}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoLabel}>Requestor:</Text>
             <Text style={styles.infoValue}>{item.Name}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="finger-print-outline" size={18} style={styles.infoIcon} />
+            <Ionicons
+              name="finger-print-outline"
+              size={18}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoLabel}>Employee No:</Text>
             <Text style={styles.infoValue}>{item.EmployeeNumber}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="barcode-outline" size={18} style={styles.infoIcon} />
+            <Ionicons
+              name="barcode-outline"
+              size={18}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoLabel}>Tracking No:</Text>
             <Text style={styles.infoValue}>{item.TrackingNumber}</Text>
           </View>
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="counter" size={18} style={styles.infoIcon} />
+            <MaterialCommunityIcons
+              name="counter"
+              size={18}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoLabel}>Requested Qty:</Text>
-            <Text style={styles.infoValue}>{item.Qty} {item.Units}</Text>
+            <Text style={styles.infoValue}>
+              {item.Qty} {item.Units}
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={18} style={styles.infoIcon} />
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoLabel}>Date:</Text>
             <Text style={styles.infoValue}>{item.DateRequested}</Text>
           </View>
-           <View style={styles.infoRow}>
-            <Ionicons name="chatbox-ellipses-outline" size={18} style={styles.infoIcon} />
+          <View style={styles.infoRow}>
+            <Ionicons
+              name="chatbox-ellipses-outline"
+              size={18}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoLabel}>Reason:</Text>
             <Text style={styles.infoValue}>{item.Reason}</Text>
           </View>
@@ -185,9 +222,15 @@ export default function Requests({ navigation }) {
           onPress={() => handleIssueItem(item)}
           disabled={isApproving && selectedRequest?.Id === item.Id} // Disable only the current item being processed
         >
-          <MaterialCommunityIcons name="send-check-outline" size={18} color="#fff" />
+          <MaterialCommunityIcons
+            name="send-check-outline"
+            size={18}
+            color="#fff"
+          />
           <Text style={styles.issueButtonText}>
-            {isApproving && selectedRequest?.Id === item.Id ? 'Issuing...' : 'Issue Item'}
+            {isApproving && selectedRequest?.Id === item.Id
+              ? 'Issuing...'
+              : 'Issue Request'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -213,8 +256,8 @@ export default function Requests({ navigation }) {
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#1A508C', '#0D3B66']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
         style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -226,8 +269,8 @@ export default function Requests({ navigation }) {
           onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Inventory Requests</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Requests</Text>
+        <View style={{width: 40}} />
       </LinearGradient>
 
       {requestsLoading ? (
@@ -250,7 +293,7 @@ export default function Requests({ navigation }) {
         <FlashList
           data={requests}
           renderItem={renderRequestItem}
-          keyExtractor={(item) => item.Id.toString()}
+          keyExtractor={item => item.Id.toString()}
           contentContainerStyle={styles.listContent}
           estimatedItemSize={260}
         />
@@ -277,8 +320,19 @@ export default function Requests({ navigation }) {
                 "{selectedRequest?.Item}"
               </Text>
             </Text>
-
-            <View style={styles.qtyControlsContainer}>
+            <Text style={styles.modalItemDetail}>
+              To:{' '}
+              <Text style={styles.modalHighlightText}>
+                "{selectedRequest?.Name}"
+              </Text>
+            </Text>
+            <Text style={styles.modalItemDetail}>
+              Qty:{' '}
+              <Text style={styles.modalHighlightText}>
+                "{selectedRequest?.Qty}{' '}{selectedRequest?.Units}"
+              </Text>
+            </Text>
+            {/* <View style={styles.qtyControlsContainer}>
               <Text style={styles.qtyLabel}>Quantity to Issue</Text>
               <View style={styles.qtyInputContainer}>
                 <TouchableOpacity
@@ -296,7 +350,7 @@ export default function Requests({ navigation }) {
                 </TouchableOpacity>
               </View>
               <Text style={styles.qtyMaxText}>Max: {selectedRequest?.Qty} {selectedRequest?.Units || ''}</Text>
-            </View>
+            </View> */}
 
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
@@ -341,7 +395,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
@@ -354,10 +408,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
+    //textAlign: 'center',
     flex: 1,
     letterSpacing: 0.5,
   },
@@ -372,7 +426,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
     shadowColor: '#1A508C',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 5,
@@ -429,7 +483,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
     color: '#1A508C',
   },
-  infoLabel: { // New style for the label part
+  infoLabel: {
+    // New style for the label part
     fontSize: 15,
     color: '#555',
     lineHeight: 22,
@@ -453,7 +508,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginTop: 15,
     shadowColor: '#1A508C',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
@@ -497,7 +552,7 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 10,
@@ -583,7 +638,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },

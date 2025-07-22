@@ -483,12 +483,19 @@ export const useSubmitInventoryRequest = () => {
 };
 
 export const submitApproveRequest = async ({
-  officeCode,
+  requestorName,
+  requestor,
+  year,
+  tn,
   requestId,
-  requestQty,
+  item,
+  unit,
+  itemId,
   invId,
+  approvedQty,
+  remarks,
   employeeNumber,
-  issueQty,
+  officeCode,
 }) => {
   // if (!officeCode) throw new Error('Office Code is required');
   // if (!Year) throw new Error('Year is required');
@@ -499,18 +506,23 @@ export const submitApproveRequest = async ({
 
   const payload = {
     Office: officeCode,
+    Year: year,
+    TrackingNumber: tn,
+    EmployeeNumber: requestor,
+    Name: requestorName,
+    ItemId: itemId,
+    Item: item,
+    Unit: unit,
     RequestId: requestId,
-    RequestsQty: requestQty,
+    RequestQty: approvedQty,
+    Remarks: remarks,
     InvId: invId,
     ApproveBy: employeeNumber,
   };
 
-  console.log("pay",payload)
-  console.log("qty",issueQty);
-
-  // const url = `/invApproveRequest`;
-  // const {data} = await apiClient.post(url, payload);
-  // return data;
+  const url = `/invApproveRequest`;
+  const {data} = await apiClient.post(url, payload);
+  return data;
 };
 
 export const useSubmitApproveRequest = () => {
@@ -536,12 +548,12 @@ export const useSubmitApproveRequest = () => {
 };
 
 export const submitCompleteRequest = async ({requestId, approveBy}) => {
-
   const payload = {
     RequestId: requestId,
     ApproveBy: approveBy,
   };
 
+  console.log("pay",payload);
   const url = `/invCompleteRequest`;
   const {data} = await apiClient.post(url, payload);
   return data;
@@ -549,7 +561,7 @@ export const submitCompleteRequest = async ({requestId, approveBy}) => {
 
 export const useSubmitCompleteRequest = () => {
   const queryClient = useQueryClient();
-  const {employeeNumber} = useUserInfo();
+  const {employeeNumber, officeCode} = useUserInfo();
   return useMutation({
     mutationFn: async requestDetails => {
       return submitCompleteRequest({...requestDetails, employeeNumber});

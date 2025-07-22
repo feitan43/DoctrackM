@@ -31,13 +31,22 @@ export default function StocksScreen({navigation}) {
   const navigationHook = useNavigation();
   const queryClient = useQueryClient(); // Initialize useQueryClient
 
-  const {data: inventoryData, isLoading: inventoryDataLoading, isError: inventoryDataError} = useStocks(currentYear);
+  const {
+    data: inventoryData,
+    isLoading: inventoryDataLoading,
+    isError: inventoryDataError,
+  } = useStocks(currentYear);
   const {data: inventoryRequests} = useRequests();
 
-  const totalRequests = inventoryRequests?.length || 0;
-  const totalForPickUp = inventoryRequests?.filter(
-    request => request.status === 'For PickUp'
-  ).length || 0;
+  const totalRequests =
+    inventoryRequests?.filter(
+      request => request.Status.toLowerCase() === 'pending',
+    ).length || 0;
+
+  const totalForPickUp =
+    inventoryRequests?.filter(
+      request => request.Status.toLowerCase() === 'forpickup',
+    ).length || 0;
 
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['40%', '80%'], []);
@@ -48,7 +57,7 @@ export default function StocksScreen({navigation}) {
         setFilteredItems(selectedItem.items);
       } else {
         const filtered = selectedItem.items.filter(item =>
-          item.Item.toLowerCase().includes(searchQuery.toLowerCase())
+          item.Item.toLowerCase().includes(searchQuery.toLowerCase()),
         );
         setFilteredItems(filtered);
       }
@@ -86,7 +95,6 @@ export default function StocksScreen({navigation}) {
       setRefreshing(false);
     }
   }, [queryClient]);
-
 
   const groupedCategoryData = useMemo(() => {
     if (!inventoryData) {
@@ -132,10 +140,20 @@ export default function StocksScreen({navigation}) {
   const dashboardData = useMemo(() => {
     if (!inventoryData) {
       return [
-        {label: 'Total Items', value: 0, screen: null},
-        {label: 'Total Categories', value: 0, screen: null},
-        {label: 'Requests', value: 'N/A', screen: 'Requests'},
-        {label: 'For Pickup', value: 'N/A', screen: 'ForPickUp'},
+        {
+          label: 'Requests',
+          value: 'N/A',
+          screen: 'Requests',
+          icon: 'file-plus',
+          type: 'card' // Added type for easier distinction
+        },
+        {
+          label: 'For Pickup',
+          value: 'N/A',
+          screen: 'ForPickUp',
+          icon: 'truck-fast',
+          type: 'card' // Added type for easier distinction
+        },
       ];
     }
     const totalCategories = new Set(inventoryData.map(item => item.Description))
@@ -143,19 +161,50 @@ export default function StocksScreen({navigation}) {
     const totalItems = inventoryData.length;
 
     return [
-      {label: 'Total Items', value: totalItems, screen: null},
-      {label: 'Total Categories', value: totalCategories, screen: null},
-      {label: 'Requests', value: totalRequests, screen: 'Requests'},
-      {label: 'For Pickup', value: totalForPickUp, screen: 'ForPickUp'},
+      {
+        label: 'Requests',
+        value: totalRequests,
+        screen: 'Requests',
+        icon: 'file-plus',
+        type: 'card'
+      },
+      {
+        label: 'For Pickup',
+        value: totalForPickUp,
+        screen: 'ForPickUp',
+        icon: 'truck-fast',
+        type: 'card'
+      },
     ];
   }, [inventoryData, totalRequests, totalForPickUp]);
 
-  const renderShimmerDashboardItem = () => (
-    <View style={[styles.dashboardCard, {overflow: 'hidden'}]}>
-      <Shimmer width={60} height={20} style={{marginBottom: 10}} />
-      <Shimmer width={40} height={30} />
-    </View>
-  );
+  // New memoized value for inventory summary details
+  const inventorySummaryDetails = useMemo(() => {
+    if (!inventoryData) {
+      return {
+        totalItems: 0,
+        totalCategories: 0,
+      };
+    }
+    const totalCategories = new Set(inventoryData.map(item => item.Description)).size;
+    const totalItems = inventoryData.length;
+    return {totalItems, totalCategories};
+  }, [inventoryData]);
+
+  const renderShimmerDashboardItem = item => {
+    // Shimmer for the cards (Requests, For Pickup)
+    return (
+      <View style={styles.dashboardCard}>
+        <Shimmer
+          width={30}
+          height={30}
+          style={{marginBottom: 8, borderRadius: 15}}
+        />
+        <Shimmer width={70} height={24} style={{marginBottom: 6}} />
+        <Shimmer width={80} height={16} />
+      </View>
+    );
+  };
 
   const renderShimmerCategoryItem = () => (
     <View style={styles.categoryCardWrapper}>
@@ -171,7 +220,7 @@ export default function StocksScreen({navigation}) {
     if (inventoryDataLoading) {
       return renderShimmerCategoryItem();
     }
-    
+
     return (
       <View style={styles.categoryCardWrapper}>
         <TouchableOpacity
@@ -200,19 +249,27 @@ export default function StocksScreen({navigation}) {
     );
   };
 
-  const renderDashboardItem = ({item}) => {
+  const renderDashboardCard = ({item}) => {
     if (inventoryDataLoading) {
-      return renderShimmerDashboardItem();
+      return renderShimmerDashboardItem(item);
     }
-    
+
     return (
       <TouchableOpacity
         style={styles.dashboardCard}
         onPress={() => item.screen && navigation.navigate(item.screen)}
         disabled={!item.screen}
         activeOpacity={0.7}>
-        <Text style={styles.dashboardLabel}>{item.label}</Text>
+        {item.icon != null && (
+          <MaterialCommunityIcons
+            name={item.icon}
+            size={28}
+            color="#1A508C"
+            style={{marginBottom: 8}}
+          />
+        )}
         <Text style={styles.dashboardValue}>{item.value}</Text>
+        <Text style={styles.dashboardLabel}>{item.label}</Text>
       </TouchableOpacity>
     );
   };
@@ -252,26 +309,51 @@ export default function StocksScreen({navigation}) {
         </Pressable>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.topHeaderTitle}>Stocks</Text>
-          {inventoryDataLoading ? (
-            <Shimmer width={120} height={20} style={{marginTop: 4}} />
-          ) : (
-            <Text style={styles.totalStocksCount}>Total {totalStocks} Items</Text>
-          )}
         </View>
         <View style={{width: 40}} />
       </LinearGradient>
-      
-      <View>
+
+      <View style={styles.dashboardContainer}>
+        {inventoryDataLoading ? (
+          <View style={styles.inventorySummaryLoading}>
+            <Shimmer width={32} height={32} style={{marginBottom: 8, borderRadius: 16}} />
+            <Shimmer width={100} height={28} style={{marginBottom: 4}} />
+            <Shimmer width={150} height={18} />
+          </View>
+        ) : (
+          <View style={styles.inventorySummary}>
+            <MaterialCommunityIcons
+              name="package-variant"
+              size={32}
+              color="#1A508C"
+              style={{marginBottom: 8}}
+            />
+            <Text style={styles.inventorySummaryValue}>
+              {inventorySummaryDetails.totalItems}
+            </Text>
+            <Text style={styles.inventorySummaryLabel}>
+              Total Items ({inventorySummaryDetails.totalCategories} Categories)
+            </Text>
+          </View>
+        )}
+
         <FlatList
-          data={inventoryDataLoading ? Array(4).fill({}) : dashboardData}
-          renderItem={renderDashboardItem}
-          keyExtractor={(item, index) => index.toString()}
+          data={
+            inventoryDataLoading
+              ? Array(2).fill({type: 'shimmer'}) // Only 2 shimmer items for cards
+              : dashboardData
+          }
+          renderItem={renderDashboardCard} // Changed to renderDashboardCard
+          keyExtractor={(item, index) =>
+            inventoryDataLoading ? 'shimmer-card-' + index : item.label
+          }
           numColumns={2}
           contentContainerStyle={styles.dashboardListContent}
+          columnWrapperStyle={styles.dashboardRow}
           scrollEnabled={false}
         />
       </View>
-      
+
       {inventoryDataLoading ? (
         <Shimmer width={100} height={20} style={styles.categoriesHeader} />
       ) : (
@@ -281,17 +363,19 @@ export default function StocksScreen({navigation}) {
       <FlatList
         data={inventoryDataLoading ? Array(6).fill({}) : groupedCategoryData}
         renderItem={renderFlatListItem}
-        keyExtractor={(item, index) => inventoryDataLoading ? index.toString() : item.id}
+        keyExtractor={(item, index) =>
+          inventoryDataLoading ? index.toString() : item.id
+        }
         numColumns={3}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         key="categoryGrid"
-        refreshControl={ // Add RefreshControl to the main FlatList
+        refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#1A508C']} // Customize indicator color
-            tintColor={'#1A508C'} // For iOS
+            colors={['#1A508C']}
+            tintColor={'#1A508C'}
           />
         }
       />
@@ -311,16 +395,13 @@ export default function StocksScreen({navigation}) {
               <Text style={styles.bottomSheetTitle}>
                 {selectedItem.title} (Total: {selectedItem.totalQty})
               </Text>
-              <Text style={styles.bottomSheetSubtitle}>
-                Items in this category:
-              </Text>
-              
+
               <View style={styles.searchContainer}>
-                <MaterialCommunityIcons 
-                  name="magnify" 
-                  size={20} 
-                  color="#666" 
-                  style={styles.searchIcon} 
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={20}
+                  color="#666"
+                  style={styles.searchIcon}
                 />
                 <TextInput
                   style={styles.searchInput}
@@ -330,16 +411,23 @@ export default function StocksScreen({navigation}) {
                   onChangeText={setSearchQuery}
                 />
               </View>
+              <Text style={styles.bottomSheetSubtitle}>
+                Items in this category:
+              </Text>
 
               <BottomSheetFlatList
-                data={filteredItems.length > 0 || searchQuery ? filteredItems : selectedItem.items}
+                data={
+                  filteredItems.length > 0 || searchQuery
+                    ? filteredItems
+                    : selectedItem.items
+                }
                 renderItem={renderItemInModal}
                 keyExtractor={(item, index) => item.Id + '-' + index}
                 contentContainerStyle={styles.modalItemsList}
                 ListEmptyComponent={
                   <Text style={styles.noResultsText}>No items found</Text>
                 }
-                refreshControl={ // Add RefreshControl to the BottomSheetFlatList
+                refreshControl={
                   <RefreshControl
                     refreshing={refreshing}
                     onRefresh={onRefresh}
@@ -383,53 +471,108 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     flex: 1,
-    alignItems: 'center',
   },
   topHeaderTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#fff',
-    textAlign: 'center',
   },
-  totalStocksCount: {
-    fontSize: 14,
+  dashboardContainer: {
+    backgroundColor: '#F8F9FB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  inventorySummary: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 18,
+    marginHorizontal: 4,
+    marginVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 6,
+    minHeight: 110,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    marginBottom: 10, // Add some space below the summary
+  },
+  inventorySummaryLoading: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 18,
+    marginHorizontal: 4,
+    marginVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 6,
+    minHeight: 110,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
+    marginBottom: 10,
+  },
+  inventorySummaryValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1A508C',
+  },
+  inventorySummaryLabel: {
+    fontSize: 13,
+    color: '#718096',
     fontWeight: '500',
-    color: '#fff',
+    textAlign: 'center',
     marginTop: 4,
   },
   dashboardListContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    // No specific padding here, handled by dashboardContainer
   },
   dashboardRow: {
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
   dashboardCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 15,
     padding: 18,
-    margin: 5,
+    marginHorizontal: 4,
+    marginVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-    minHeight: 90,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 6,
+    minHeight: 110,
+    borderWidth: 0.5,
+    borderColor: '#e0e0e0',
   },
   dashboardLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#718096',
-    marginBottom: 6,
     fontWeight: '500',
     textAlign: 'center',
+    marginTop: 4,
   },
   dashboardValue: {
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: 'bold',
     color: '#1A508C',
+  },
+  subHeaderLabel: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: 2,
   },
   categoriesHeader: {
     fontSize: 18,
@@ -449,7 +592,7 @@ const styles = StyleSheet.create({
   },
   categoryCardWrapper: {
     flex: 1 / 3,
-    padding: 6,
+    padding: 3,
   },
   categoryCardTouchable: {
     width: '100%',
@@ -476,7 +619,7 @@ const styles = StyleSheet.create({
   categoryCountContainer: {
     position: 'absolute',
     top: 10,
-    right: 10,
+    right: 5,
     backgroundColor: 'rgba(236, 236, 236, 0.8)',
     borderRadius: 12,
     paddingHorizontal: 10,
@@ -530,7 +673,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 10,
-    textAlign: 'center',
   },
   modalItemsList: {
     paddingVertical: 10,
