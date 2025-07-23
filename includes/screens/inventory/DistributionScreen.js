@@ -178,19 +178,20 @@ export default function DistributionScreen({navigation}) {
       {distributionDataLoading ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading distributed data...</Text>
+          <Shimmer width={320} height={120} style={{borderRadius: 10}} />
           <Shimmer
-            width={300}
-            height={100}
+            width={320}
+            height={120}
             style={{borderRadius: 10, marginVertical: 8}}
           />
           <Shimmer
-            width={300}
-            height={100}
+            width={320}
+            height={120}
             style={{borderRadius: 10, marginVertical: 8}}
           />
           <Shimmer
-            width={300}
-            height={100}
+            width={320}
+            height={120}
             style={{borderRadius: 10, marginVertical: 8}}
           />
         </View>
@@ -399,10 +400,11 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   loadingContainer: {
-    flex: 1,
+    //flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 50,
+    //marginTop: 50,
+    gap: 20,
   },
   loadingText: {
     fontSize: 16,

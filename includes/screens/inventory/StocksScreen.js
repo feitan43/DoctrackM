@@ -9,6 +9,7 @@ import {
   FlatList,
   TextInput,
   RefreshControl, // Import RefreshControl
+  Dimensions,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -21,7 +22,7 @@ import {useRequests, useStocks} from '../../hooks/useInventory';
 import {width, currentYear, categoryIconMap} from '../../utils';
 import {useNavigation} from '@react-navigation/native';
 import {Shimmer} from '../../utils/useShimmer';
-import {useQueryClient} from '@tanstack/react-query'; // Import useQueryClient
+import {useQueryClient} from '@tanstack/react-query';
 
 export default function StocksScreen({navigation}) {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -33,7 +34,7 @@ export default function StocksScreen({navigation}) {
 
   const {
     data: inventoryData,
-    isLoading: inventoryDataLoading,
+    isPending: inventoryDataLoading,
     isError: inventoryDataError,
   } = useStocks(currentYear);
   const {data: inventoryRequests} = useRequests();
@@ -145,38 +146,52 @@ export default function StocksScreen({navigation}) {
           value: 'N/A',
           screen: 'Requests',
           icon: 'file-plus',
-          type: 'card' // Added type for easier distinction
+          type: 'card', // Added type for easier distinction
         },
         {
           label: 'For Pickup',
           value: 'N/A',
           screen: 'ForPickUp',
           icon: 'truck-fast',
-          type: 'card' // Added type for easier distinction
+          type: 'card', // Added type for easier distinction
+        },
+        {
+          label: 'Dissapproved',
+          value: 'N/A',
+          screen: 'DisapprovedRequests',
+          icon: 'thumb-down',
+          type: 'card',
         },
       ];
     }
-    const totalCategories = new Set(inventoryData.map(item => item.Description))
-      .size;
-    const totalItems = inventoryData.length;
 
     return [
       {
         label: 'Requests',
         value: totalRequests,
         screen: 'Requests',
-        icon: 'file-plus',
-        type: 'card'
+        icon: 'cart',
+        type: 'card',
       },
       {
         label: 'For Pickup',
         value: totalForPickUp,
         screen: 'ForPickUp',
         icon: 'truck-fast',
-        type: 'card'
+        type: 'card',
+      },
+      {
+        label: 'Dissapproved',
+        value:
+          inventoryRequests?.filter(
+            request => request.Status.toLowerCase() === 'disapproved',
+          ).length || 0,
+        screen: 'DisapprovedRequests',
+        icon: 'thumb-down',
+        type: 'card',
       },
     ];
-  }, [inventoryData, totalRequests, totalForPickUp]);
+  }, [inventoryData, totalRequests, totalForPickUp, inventoryRequests]);
 
   // New memoized value for inventory summary details
   const inventorySummaryDetails = useMemo(() => {
@@ -186,15 +201,15 @@ export default function StocksScreen({navigation}) {
         totalCategories: 0,
       };
     }
-    const totalCategories = new Set(inventoryData.map(item => item.Description)).size;
+    const totalCategories = new Set(inventoryData.map(item => item.Description))
+      .size;
     const totalItems = inventoryData.length;
     return {totalItems, totalCategories};
   }, [inventoryData]);
 
   const renderShimmerDashboardItem = item => {
-    // Shimmer for the cards (Requests, For Pickup)
     return (
-      <View style={styles.dashboardCard}>
+      <View style={styles.dashboardItemInSingleCard}>
         <Shimmer
           width={30}
           height={30}
@@ -249,46 +264,42 @@ export default function StocksScreen({navigation}) {
     );
   };
 
-  const renderDashboardCard = ({item}) => {
-    if (inventoryDataLoading) {
-      return renderShimmerDashboardItem(item);
-    }
+  const renderItemInModal = ({item, index}) => {
+    const isOutOfStock = item.Qty <= 0;
 
     return (
       <TouchableOpacity
-        style={styles.dashboardCard}
-        onPress={() => item.screen && navigation.navigate(item.screen)}
-        disabled={!item.screen}
-        activeOpacity={0.7}>
-        {item.icon != null && (
-          <MaterialCommunityIcons
-            name={item.icon}
-            size={28}
-            color="#1A508C"
-            style={{marginBottom: 8}}
-          />
-        )}
-        <Text style={styles.dashboardValue}>{item.value}</Text>
-        <Text style={styles.dashboardLabel}>{item.label}</Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderItemInModal = ({item}) => (
-    <View style={styles.modalItem}>
-      <View style={styles.itemDetailsContainer}>
-        <Text style={styles.modalItemText}>{item.Item}</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.requestItemButton}
+        style={[
+          styles.requestItemButton,
+          isOutOfStock && styles.requestItemButtonDisabled,
+        ]}
         onPress={() => {
           handleClosePress();
           navigationHook.navigate('RequestStocks', {item: item});
-        }}>
-        <MaterialCommunityIcons name="send" size={24} color="#1A508C" />
+        }}
+        disabled={isOutOfStock}
+      >
+        <View style={styles.modalItem}>
+          <View style={styles.itemDetailsContainer}>
+            <Text style={styles.modalItemIndex}>{index + 1}</Text>
+            <Text style={styles.modalItemText}>{item.Item}</Text>
+          </View>
+          <Text
+            style={[
+              styles.modalItemQuantity,
+              isOutOfStock && styles.outOfStockText,
+            ]}>
+            {isOutOfStock ? 'No Stock' : item.Qty}{' '}
+            {!isOutOfStock && (
+              <Text style={{fontWeight: '400', fontSize: 10}}>
+                {item.Unit}
+              </Text>
+            )}
+          </Text>
+        </View>
       </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -314,44 +325,44 @@ export default function StocksScreen({navigation}) {
       </LinearGradient>
 
       <View style={styles.dashboardContainer}>
-        {inventoryDataLoading ? (
-          <View style={styles.inventorySummaryLoading}>
-            <Shimmer width={32} height={32} style={{marginBottom: 8, borderRadius: 16}} />
-            <Shimmer width={100} height={28} style={{marginBottom: 4}} />
-            <Shimmer width={150} height={18} />
-          </View>
-        ) : (
-          <View style={styles.inventorySummary}>
-            <MaterialCommunityIcons
-              name="package-variant"
-              size={32}
-              color="#1A508C"
-              style={{marginBottom: 8}}
-            />
-            <Text style={styles.inventorySummaryValue}>
-              {inventorySummaryDetails.totalItems}
-            </Text>
-            <Text style={styles.inventorySummaryLabel}>
-              Total Items ({inventorySummaryDetails.totalCategories} Categories)
-            </Text>
-          </View>
-        )}
-
-        <FlatList
-          data={
-            inventoryDataLoading
-              ? Array(2).fill({type: 'shimmer'}) // Only 2 shimmer items for cards
-              : dashboardData
-          }
-          renderItem={renderDashboardCard} // Changed to renderDashboardCard
-          keyExtractor={(item, index) =>
-            inventoryDataLoading ? 'shimmer-card-' + index : item.label
-          }
-          numColumns={2}
-          contentContainerStyle={styles.dashboardListContent}
-          columnWrapperStyle={styles.dashboardRow}
-          scrollEnabled={false}
-        />
+        <View style={styles.singleDashboardCard}>
+          {inventoryDataLoading
+            ? Array(3)
+                .fill({type: 'shimmer'})
+                .map((item, index) => (
+                  <React.Fragment key={'shimmer-item-' + index}>
+                    {renderShimmerDashboardItem(item)}
+                    {index < 2 && (
+                      <View style={styles.dashboardCardSeparator} />
+                    )}
+                  </React.Fragment>
+                ))
+            : dashboardData.map((item, index) => (
+                <React.Fragment key={item.label}>
+                  <TouchableOpacity
+                    style={styles.dashboardItemInSingleCard}
+                    onPress={() =>
+                      item.screen && navigation.navigate(item.screen)
+                    }
+                    disabled={!item.screen}
+                    activeOpacity={0.7}>
+                    {item.icon != null && (
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={28}
+                        color="#1A508C"
+                        style={{marginBottom: 8}}
+                      />
+                    )}
+                    <Text style={styles.dashboardValue}>{item.value}</Text>
+                    <Text style={styles.dashboardLabel}>{item.label}</Text>
+                  </TouchableOpacity>
+                  {index < dashboardData.length - 1 && (
+                    <View style={styles.dashboardCardSeparator} />
+                  )}
+                </React.Fragment>
+              ))}
+        </View>
       </View>
 
       {inventoryDataLoading ? (
@@ -392,9 +403,17 @@ export default function StocksScreen({navigation}) {
         <View style={styles.bottomSheetContent}>
           {selectedItem && (
             <>
-              <Text style={styles.bottomSheetTitle}>
-                {selectedItem.title} (Total: {selectedItem.totalQty})
-              </Text>
+              <View style={styles.bottomSheetTitleContainer}>
+                <MaterialCommunityIcons
+                  name={selectedItem.icon} // Use selectedItem.icon here
+                  size={45} // Increased size for prominence
+                  color="#1A508C"
+                  style={styles.bottomSheetTitleIcon}
+                />
+                <Text style={styles.bottomSheetTitle}>
+                  {selectedItem.title} ({selectedItem.totalQty})
+                </Text>
+              </View>
 
               <View style={styles.searchContainer}>
                 <MaterialCommunityIcons
@@ -482,78 +501,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  inventorySummary: {
+  singleDashboardCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-around', // Distribute items evenly
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
-    padding: 18,
-    marginHorizontal: 4,
-    marginVertical: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 10, // Adjust padding for the whole card
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 6,
-    minHeight: 110,
     borderWidth: 0.5,
     borderColor: '#e0e0e0',
-    marginBottom: 10, // Add some space below the summary
   },
-  inventorySummaryLoading: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    padding: 18,
-    marginHorizontal: 4,
-    marginVertical: 4,
+  dashboardItemInSingleCard: {
+    flex: 1, // Make each item take equal width
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 6,
-    minHeight: 110,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
-    marginBottom: 10,
+    paddingVertical: 8, // Adjust vertical padding for items
+    minHeight: 80, // Ensure consistent height for each item
   },
-  inventorySummaryValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A508C',
-  },
-  inventorySummaryLabel: {
-    fontSize: 13,
-    color: '#718096',
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  dashboardListContent: {
-    // No specific padding here, handled by dashboardContainer
-  },
-  dashboardRow: {
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  dashboardCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    padding: 18,
-    marginHorizontal: 4,
-    marginVertical: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 6,
-    minHeight: 110,
-    borderWidth: 0.5,
-    borderColor: '#e0e0e0',
+  dashboardCardSeparator: {
+    width: 1, // Vertical line for division
+    backgroundColor: '#e0e0e0', // Light grey color for the division
+    height: '80%', // Make separator span most of the item height
+    alignSelf: 'center', // Center the separator vertically
+    marginHorizontal: 0, // No horizontal margin, as it's directly between items
   },
   dashboardLabel: {
     fontSize: 13,
@@ -561,6 +536,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 4,
+    flexShrink: 1, // Still important for text wrapping
   },
   dashboardValue: {
     fontSize: 25,
@@ -662,12 +638,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingVertical: 15,
   },
+  bottomSheetTitleContainer: {
+    //flexDirection: 'row',
+    //alignItems: 'center',
+    justifyContent: 'center', // Center the icon and text
+    marginBottom: 8,
+  },
+  bottomSheetTitleIcon: {
+    marginRight: 10, // Space between icon and text
+  },
   bottomSheetTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
     color: '#333',
-    textAlign: 'center',
+    // Removed textAlign: 'center' from here as the container will handle centering
   },
   bottomSheetSubtitle: {
     fontSize: 16,
@@ -680,7 +664,7 @@ const styles = StyleSheet.create({
   modalItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    //alignItems: 'center', // Align items vertically in the center
     paddingVertical: 12,
     paddingHorizontal: 10,
     backgroundColor: '#f9f9f9',
@@ -690,26 +674,39 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1,
   },
   itemDetailsContainer: {
     flex: 1,
     marginRight: 10,
+    flexDirection: 'row', // Add this to align index and item text horizontally
+    //alignItems: 'center', // Align them vertically
+  },
+  modalItemIndex: {
+    fontSize: 14,
+    color: '#888',
+    marginRight: 8,
+    fontWeight: 'bold',
+    minWidth: 20, // Give it a minimum width to keep alignment consistent
   },
   modalItemText: {
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
+    flexShrink: 1, // Allow text to shrink if it's too long
   },
   modalItemQuantity: {
     fontSize: 15,
     color: '#555',
     fontWeight: 'bold',
+    minWidth: 60, // Give it a minimum width to ensure quantity and unit fit
+    textAlign: 'right', // Align quantity to the right
   },
   requestItemButton: {
-    padding: 8,
     borderRadius: 20,
     backgroundColor: '#e6f0fa',
+  },
+  requestItemButtonDisabled: {
+    backgroundColor: '#e0e0e0', // A lighter background for disabled items
   },
   searchContainer: {
     flexDirection: 'row',
@@ -734,5 +731,9 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 20,
     fontSize: 16,
+  },
+  outOfStockText: {
+    color: 'red', // Style for "No Stock" text
+    fontWeight: 'bold',
   },
 });

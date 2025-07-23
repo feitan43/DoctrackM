@@ -14,17 +14,25 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import LinearGradient from 'react-native-linear-gradient';
 import {FlashList} from '@shopify/flash-list';
 import IssueStatusModal from './IssueStatusModal';
-import {useRequests, useSubmitApproveRequest} from '../../hooks/useInventory'; // Import useSubmitApproveRequest
+// Assuming you have a separate hook for disapproval, or if useSubmitApproveRequest can handle both
+import {useRequests, useSubmitApproveRequest} from '../../hooks/useInventory';
 import {Shimmer} from '../../utils/useShimmer';
+import useUserInfo from '../../api/useUserInfo';
+
+// Placeholder for a disapproval hook.
+// You might need to create this in your useInventory.js
+// Or modify useSubmitApproveRequest to handle 'disapprove' status.
+// For now, let's assume a new hook.
 
 export default function Requests({navigation}) {
+  const {officeAdmin} = useUserInfo();
   const {
     data: requestsData,
     isLoading: requestsLoading,
     isError: requestsError,
+    refetch: refetchRequests, // Added refetch to update list after actions
   } = useRequests();
 
-  // Initialize the useSubmitApproveRequest hook
   const {
     mutate: submitApproveRequest,
     isLoading: isApproving,
@@ -34,13 +42,25 @@ export default function Requests({navigation}) {
     reset: resetApproveStatus,
   } = useSubmitApproveRequest();
 
+  // New hook for disapproving requests
+  const {
+    mutate: submitDisapproveRequest,
+    isLoading: isDisapproving,
+    isSuccess: isDisapproveSuccess,
+    isError: isDisapproveError,
+    error: disapproveError,
+    reset: resetDisapproveStatus,
+  } = useSubmitApproveRequest();
+
   const [requests, setRequests] = useState([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false); // For Issue
+  const [isDisapproveModalVisible, setIsDisapproveModalVisible] = useState(false); // For Disapprove
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [issueQty, setIssueQty] = useState(1);
   const [issueStatusModalVisible, setIssueStatusModalVisible] = useState(false);
   const [issueStatus, setIssueStatus] = useState('');
   const [issueMessage, setIssueMessage] = useState('');
+  const [disapproveReason, setDisapproveReason] = useState(''); // State for disapproval reason
 
   useEffect(() => {
     if (requestsData) {
@@ -51,47 +71,97 @@ export default function Requests({navigation}) {
     }
   }, [requestsData]);
 
-   useEffect(() => {
+  useEffect(() => {
     // This effect runs when the approval status changes
     if (isApproveSuccess) {
-      // Filter out the approved request from the local state
-      setRequests((prevRequests) =>
-        prevRequests.filter((req) => req.Id !== selectedRequest?.Id) // Safely access Id
+      setRequests(
+        prevRequests => prevRequests.filter(req => req.Id !== selectedRequest?.Id),
       );
-
-      // Navigate to ForPickUp screen
       navigation.navigate('ForPickUp', {
         issuedItem: {
-          id: selectedRequest?.Id, // Safely access Id
+          id: selectedRequest?.Id,
           itemName: selectedRequest?.Item,
-          quantity: issueQty, // Assuming issueQty is the approved quantity
+          quantity: issueQty,
           requestor: selectedRequest?.Name,
-          employee: selectedRequest?.Name, // Assuming requestor is also the employee for pickup
+          employee: selectedRequest?.Name,
           trackingNumber: selectedRequest?.TrackingNumber,
           employeeNumber: selectedRequest?.EmployeeNumber,
         },
       });
-
       setIssueStatus('success');
       setIssueMessage(
-        `"${selectedRequest?.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest?.Name}.`
+        `"${selectedRequest?.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest?.Name}.`,
       );
       setIssueStatusModalVisible(true);
-      resetApproveStatus(); // Reset the mutation status after showing message
+      resetApproveStatus();
+      setSelectedRequest(null); // Clear selectedRequest after successful action
+      refetchRequests(); // Refetch requests to ensure the list is up-to-date
     } else if (isApproveError) {
       setIssueStatus('error');
       setIssueMessage(
-        `Failed to issue "${selectedRequest?.Item}". Error: ${approveError?.message || 'Unknown error'}. Please try again.`
+        `Failed to issue "${selectedRequest?.Item}". Error: ${
+          approveError?.message || 'Unknown error'
+        }. Please try again.`,
       );
       setIssueStatusModalVisible(true);
-      resetApproveStatus(); // Reset the mutation status after showing message
+      resetApproveStatus();
+      setSelectedRequest(null); // Clear selectedRequest even on error
     }
-  }, [isApproveSuccess, isApproveError, approveError, selectedRequest, issueQty, navigation, resetApproveStatus]);
+  }, [
+    isApproveSuccess,
+    isApproveError,
+    approveError,
+    selectedRequest,
+    issueQty,
+    navigation,
+    resetApproveStatus,
+    refetchRequests, // Add refetchRequests to dependencies
+  ]);
+
+  useEffect(() => {
+    // New effect for disapproval status
+    if (isDisapproveSuccess) {
+      setRequests(
+        prevRequests => prevRequests.filter(req => req.Id !== selectedRequest?.Id),
+      );
+      setIssueStatus('success'); // Reusing issueStatus for general action feedback
+      setIssueMessage(
+        `Request for "${selectedRequest?.Item}" by ${selectedRequest?.Name} has been successfully disapproved.`,
+      );
+      setIssueStatusModalVisible(true);
+      resetDisapproveStatus();
+      setSelectedRequest(null); // Clear selectedRequest after successful action
+      refetchRequests(); // Refetch requests
+    } else if (isDisapproveError) {
+      setIssueStatus('error');
+      setIssueMessage(
+        `Failed to disapprove "${selectedRequest?.Item}". Error: ${
+          disapproveError?.message || 'Unknown error'
+        }. Please try again.`,
+      );
+      setIssueStatusModalVisible(true);
+      resetDisapproveStatus();
+      setSelectedRequest(null); // Clear selectedRequest even on error
+    }
+  }, [
+    isDisapproveSuccess,
+    isDisapproveError,
+    disapproveError,
+    selectedRequest,
+    resetDisapproveStatus,
+    refetchRequests,
+  ]);
 
   const handleIssueItem = request => {
     setSelectedRequest(request);
     setIssueQty(parseInt(request.Qty, 10));
     setIsModalVisible(true);
+  };
+
+  const handleDisapproveItem = request => {
+    setSelectedRequest(request);
+    setDisapproveReason(''); // Clear previous reason
+    setIsDisapproveModalVisible(true);
   };
 
   const incrementQty = () => {
@@ -108,19 +178,25 @@ export default function Requests({navigation}) {
 
   const closeIssueSelectionModal = () => {
     setIsModalVisible(false);
+    setIssueQty(1);
     // Do NOT set selectedRequest to null here.
     // It needs to be available for the useEffect that listens to `isApproveSuccess`/`isApproveError`.
-    setIssueQty(1);
+  };
+
+  const closeDisapproveModal = () => {
+    setIsDisapproveModalVisible(false);
+    setDisapproveReason('');
+    // Do NOT set selectedRequest to null here.
+    // It needs to be available for the useEffect that listens to `isDisapproveSuccess`/`isDisapproveError`.
   };
 
   const handleCloseIssueStatusModal = () => {
     setIssueStatusModalVisible(false);
-    // Now that the status modal is closed, it's safe to clear selectedRequest
-    setSelectedRequest(null);
+    setSelectedRequest(null); // Now that the status modal is closed, it's safe to clear selectedRequest
   };
 
   const confirmIssue = () => {
-    closeIssueSelectionModal(); // This only closes the selection modal now.
+    closeIssueSelectionModal();
 
     if (selectedRequest) {
       console.log('Issuing request:', selectedRequest);
@@ -134,8 +210,22 @@ export default function Requests({navigation}) {
         item: selectedRequest.Item,
         unit: selectedRequest.Units,
         invId: selectedRequest.InvId,
-        approvedQty: selectedRequest.Qty,
+        approvedQty: selectedRequest.Qty, // Assuming full quantity is approved for now
         remarks: selectedRequest.Reason,
+      });
+    }
+  };
+
+  const confirmDisapprove = () => {
+    closeDisapproveModal();
+
+    if (selectedRequest) {
+      console.log('Disapproving request:', selectedRequest);
+      submitDisapproveRequest({
+        requestId: selectedRequest.Id,
+        trackingNumber: selectedRequest.TrackingNumber,
+        reason: disapproveReason, // Pass the reason for disapproval
+        // Add any other necessary fields for your disapproval API
       });
     }
   };
@@ -217,25 +307,52 @@ export default function Requests({navigation}) {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.issueButton}
-          onPress={() => handleIssueItem(item)}
-          disabled={isApproving && selectedRequest?.Id === item.Id} // Disable only the current item being processed
-        >
-          <MaterialCommunityIcons
-            name="send-check-outline"
-            size={18}
-            color="#fff"
-          />
-          <Text style={styles.issueButtonText}>
-            {isApproving && selectedRequest?.Id === item.Id
-              ? 'Issuing...'
-              : 'Issue Request'}
-          </Text>
-        </TouchableOpacity>
+        {officeAdmin === '1' && (
+          <View style={styles.buttonGroup}> 
+            <TouchableOpacity
+              style={[
+                styles.actionButton, // Use a generic style for both buttons
+                styles.approveButton,
+                (isApproving && selectedRequest?.Id === item.Id) && styles.actionButtonDisabled,
+              ]}
+              onPress={() => handleIssueItem(item)}
+              disabled={isApproving && selectedRequest?.Id === item.Id}>
+              <MaterialCommunityIcons
+                name="thumb-up"
+                size={18}
+                color="#fff"
+              />
+              <Text style={styles.actionButtonText}>
+                {isApproving && selectedRequest?.Id === item.Id
+                  ? 'Issuing...'
+                  : 'Issue Request'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.actionButton, // Use generic style
+                styles.disapproveButton, // Specific style for disapprove
+                (isDisapproving && selectedRequest?.Id === item.Id) && styles.actionButtonDisabled,
+              ]}
+              onPress={() => handleDisapproveItem(item)}
+              disabled={isDisapproving && selectedRequest?.Id === item.Id}>
+              <MaterialCommunityIcons
+                name="thumb-down-outline" // Changed icon for disapprove
+                size={18}
+                color="#fff"
+              />
+              <Text style={styles.actionButtonText}>
+                {isDisapproving && selectedRequest?.Id === item.Id
+                  ? 'Disapproving...'
+                  : 'Disapprove Request'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     ),
-    [isApproving, selectedRequest, handleIssueItem], // Add isApproving and selectedRequest to useCallback dependencies
+    [isApproving, isDisapproving, selectedRequest, handleIssueItem, handleDisapproveItem],
   );
 
   const ShimmerRequestCardPlaceholder = () => (
@@ -305,6 +422,7 @@ export default function Requests({navigation}) {
         </View>
       )}
 
+      {/* Modal for Issuing Item */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -329,7 +447,7 @@ export default function Requests({navigation}) {
             <Text style={styles.modalItemDetail}>
               Qty:{' '}
               <Text style={styles.modalHighlightText}>
-                "{selectedRequest?.Qty}{' '}{selectedRequest?.Units}"
+                "{selectedRequest?.Qty} {selectedRequest?.Units}"
               </Text>
             </Text>
             {/* <View style={styles.qtyControlsContainer}>
@@ -361,10 +479,59 @@ export default function Requests({navigation}) {
               <TouchableOpacity
                 style={[styles.modalButton, styles.buttonConfirm]}
                 onPress={confirmIssue}
-                disabled={isApproving} // Disable confirm button while approving
-              >
+                disabled={isApproving}>
                 <Text style={styles.textStyle}>
                   {isApproving ? 'Confirming...' : 'Confirm'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal for Disapproving Item */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isDisapproveModalVisible}
+        statusBarTranslucent={true}
+        onRequestClose={closeDisapproveModal}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Disapprove Request</Text>
+            <Text style={styles.modalItemDetail}>
+              Are you sure you want to disapprove the request for:{' '}
+              <Text style={styles.modalHighlightText}>
+                "{selectedRequest?.Item}"
+              </Text>
+              {' from '}
+              <Text style={styles.modalHighlightText}>
+                "{selectedRequest?.Name}"
+              </Text>
+              ?
+            </Text>
+            {/* You can add a TextInput here for a reason if needed */}
+            {/*
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="Reason for disapproval (Optional)"
+              value={disapproveReason}
+              onChangeText={setDisapproveReason}
+              multiline
+            />
+            */}
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.buttonCancel]}
+                onPress={closeDisapproveModal}>
+                <Text style={styles.textStyle}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.buttonDisapproveConfirm]} // New style for disapprove confirm
+                onPress={confirmDisapprove}
+                disabled={isDisapproving}>
+                <Text style={styles.textStyle}>
+                  {isDisapproving ? 'Disapproving...' : 'Disapprove'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -411,7 +578,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#fff',
-    //textAlign: 'center',
     flex: 1,
     letterSpacing: 0.5,
   },
@@ -476,7 +642,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-    // Add justifyContent to push label left and value right
     justifyContent: 'space-between',
   },
   infoIcon: {
@@ -484,36 +649,46 @@ const styles = StyleSheet.create({
     color: '#1A508C',
   },
   infoLabel: {
-    // New style for the label part
     fontSize: 15,
     color: '#555',
     lineHeight: 22,
-    // No flex: 1 here, let it take its natural width
   },
   infoValue: {
     fontWeight: '600',
     color: '#222',
-    // Removed marginLeft as justifyContent handles spacing
-    flex: 1, // Take up remaining space
-    textAlign: 'right', // Align text to the right
+    flex: 1,
+    textAlign: 'right',
   },
-  issueButton: {
-    backgroundColor: '#1A508C',
+  buttonGroup: { // New style to group buttons
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Distribute buttons horizontally
+    marginTop: 15,
+  },
+  actionButton: { // Generic style for both action buttons
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 15, // Slightly less horizontal padding
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'flex-end',
-    marginTop: 15,
-    shadowColor: '#1A508C',
+    shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    flex: 1, // Make buttons take equal space
+    marginHorizontal: 5, // Add some space between them
   },
-  issueButtonText: {
+  approveButton: {
+    backgroundColor: '#1A508C',
+  },
+  disapproveButton: {
+    backgroundColor: '#dc3545', // Red color for disapprove
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
+  },
+  actionButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
@@ -643,16 +818,29 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   buttonCancel: {
-    backgroundColor: '#dc3545',
+    backgroundColor: '#6c757d', // A more neutral grey for cancel
   },
   buttonConfirm: {
     backgroundColor: '#28a745',
+  },
+  buttonDisapproveConfirm: { // New style for disapprove confirm button
+    backgroundColor: '#dc3545',
   },
   textStyle: {
     color: 'white',
     fontWeight: 'bold',
     textAlign: 'center',
     fontSize: 16,
+  },
+  reasonInput: { // Style for optional disapproval reason input
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    width: '100%',
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
   },
   // Shimmer styles (unchanged)
   shimmerCard: {

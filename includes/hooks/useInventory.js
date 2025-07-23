@@ -547,10 +547,10 @@ export const useSubmitApproveRequest = () => {
   });
 };
 
-export const submitCompleteRequest = async ({requestId, approveBy}) => {
+export const submitCompleteRequest = async ({requestId, employeeNumber}) => {
   const payload = {
     RequestId: requestId,
-    ApproveBy: approveBy,
+    ApproveBy: employeeNumber,
   };
 
   console.log("pay",payload);

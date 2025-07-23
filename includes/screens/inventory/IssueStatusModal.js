@@ -17,6 +17,7 @@ const IssueStatusModal = ({ visible, status, message, onClose }) => {
       transparent={true}
       animationType="fade"
       visible={visible}
+      statusBarTranslucent={true}
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
