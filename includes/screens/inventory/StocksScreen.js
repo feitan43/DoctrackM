@@ -277,8 +277,7 @@ export default function StocksScreen({navigation}) {
           handleClosePress();
           navigationHook.navigate('RequestStocks', {item: item});
         }}
-        disabled={isOutOfStock}
-      >
+        disabled={isOutOfStock}>
         <View style={styles.modalItem}>
           <View style={styles.itemDetailsContainer}>
             <Text style={styles.modalItemIndex}>{index + 1}</Text>
@@ -291,9 +290,7 @@ export default function StocksScreen({navigation}) {
             ]}>
             {isOutOfStock ? 'No Stock' : item.Qty}{' '}
             {!isOutOfStock && (
-              <Text style={{fontWeight: '400', fontSize: 10}}>
-                {item.Unit}
-              </Text>
+              <Text style={{fontWeight: '400', fontSize: 10}}>{item.Unit}</Text>
             )}
           </Text>
         </View>
@@ -346,6 +343,21 @@ export default function StocksScreen({navigation}) {
                     }
                     disabled={!item.screen}
                     activeOpacity={0.7}>
+                      {item.value != '0' && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 5,
+                        backgroundColor: 'rgba(236, 236, 236, 0.8)',
+                        borderRadius: 12,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        zIndex: 1,
+                      }}>
+                      <Text style={styles.dashboardValue}>{item.value}</Text>
+                    </View>
+                    )}
                     {item.icon != null && (
                       <MaterialCommunityIcons
                         name={item.icon}
@@ -354,7 +366,6 @@ export default function StocksScreen({navigation}) {
                         style={{marginBottom: 8}}
                       />
                     )}
-                    <Text style={styles.dashboardValue}>{item.value}</Text>
                     <Text style={styles.dashboardLabel}>{item.label}</Text>
                   </TouchableOpacity>
                   {index < dashboardData.length - 1 && (
@@ -364,6 +375,19 @@ export default function StocksScreen({navigation}) {
               ))}
         </View>
       </View>
+
+      <TouchableOpacity
+        style={{flexDirection: 'row', alignSelf: 'flex-end', paddingEnd: 20}}
+        onPress={() => navigation.navigate('Distribution')}>
+        <Text style={{fontSize: 14, fontWeight: 500, color: '#1A508C'}}>
+          See Distribution
+        </Text>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={20}
+          color="#1A508C"
+        />
+      </TouchableOpacity>
 
       {inventoryDataLoading ? (
         <Shimmer width={100} height={20} style={styles.categoriesHeader} />
@@ -520,7 +544,7 @@ const styles = StyleSheet.create({
     flex: 1, // Make each item take equal width
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8, // Adjust vertical padding for items
+    //paddingVertical: 2, // Adjust vertical padding for items
     minHeight: 80, // Ensure consistent height for each item
   },
   dashboardCardSeparator: {
@@ -533,13 +557,13 @@ const styles = StyleSheet.create({
   dashboardLabel: {
     fontSize: 13,
     color: '#718096',
-    fontWeight: '500',
+    fontWeight: '400',
     textAlign: 'center',
     marginTop: 4,
     flexShrink: 1, // Still important for text wrapping
   },
   dashboardValue: {
-    fontSize: 25,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1A508C',
   },

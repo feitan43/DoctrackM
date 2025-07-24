@@ -127,6 +127,9 @@ import DistributionScreen from '../screens/inventory/DistributionScreen';
 import RequestStocks from '../screens/inventory/RequestStocks';
 import Requests from '../screens/inventory/Requests';
 import ForPickUp from '../screens/inventory/ForPickUp';
+import SupplierRanking from '../screens/supplierRating/SupplierRanking';
+import SuppliesSummary from '../screens/inventory/SuppliesSummary';
+import SuppliersInfo from '../screens/supplierRating/SuppliersInfo';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -690,7 +693,7 @@ export function Route() {
           component={CommunicationsScreen}
           options={{headerShown: false}}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="Chat"
           component={ChatScreen}
           options={{headerShown: false}}
@@ -700,7 +703,7 @@ export function Route() {
           component={SupplierReviews}
           options={{headerShown: false}}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="Stocks"
           component={StocksScreen}
           options={{headerShown: false}}
@@ -708,7 +711,10 @@ export function Route() {
         <Stack.Screen
           name="Distribution"
           component={DistributionScreen}
-          options={{headerShown: false}}
+          options={{
+            headerShown: false,
+            gestureEnabled: false, // Disable swipe back for this screen
+          }}
         />
         <Stack.Screen
           name="RequestStocks"
@@ -725,9 +731,21 @@ export function Route() {
           component={ForPickUp}
           options={{headerShown: false}}
         />
-        
-
-
+        <Stack.Screen
+          name="SupplierRanking"
+          component={SupplierRanking}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="SuppliesSummary"
+          component={SuppliesSummary}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="SuppliersInfo"
+          component={SuppliersInfo}
+          options={{headerShown: false}}
+        />
 
         <Stack.Screen name="BossEditScreen" component={BossEditScreen} />
 
