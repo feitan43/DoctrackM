@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -11,189 +11,193 @@ import {
   Modal,
   FlatList,
   Pressable,
-  // Removed TextInput as it's not used for displaying feedback
   KeyboardAvoidingView,
   ActivityIndicator,
-  Alert,
-  // Removed Image as it's not used for displaying photos
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Icons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  useSuppliers,
-  useSupplierItems,
-  useSuppliersInfo,
-} from '../../hooks/useSupplierRating';
-// Removed launchImageLibrary, launchCamera as photo selection is not used
 
-// StarRating component for displaying individual criterion ratings
-const StarRating = ({label, rating}) => {
+// --- Import the actual useRatedSuppliers hook ---
+// Adjust the path according to your project structure
+// Assuming it returns { data, isLoading, isError, error }
+import {useRatedSuppliers, useSupplierReviews, useSuppliersInfo} from '../../hooks/useSupplierRating'; // Make sure this path is correct
+
+// --- StarRatingDisplay Component ---
+// Displays a horizontal progress bar representation of a rating
+const StarRatingDisplay = ({label, rating, totalStars = 5}) => {
+  const percentage = (rating / totalStars) * 100;
+
   return (
-    <View style={styles.starRatingContainer}>
-      <Text style={styles.starRatingLabel}>{label}</Text>
-      <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map(star => (
-          <Icons
-            key={star}
-            name={star <= rating ? 'star' : 'star-outline'}
-            size={32}
-            color={star <= rating ? '#FFD700' : '#E0E0E0'}
-            style={styles.starIcon}
-          />
-        ))}
+    <View style={styles.horizontalStarRatingContainer}>
+      <Text style={styles.horizontalStarRatingLabel}>{label}</Text>
+      <View style={styles.horizontalProgressBarContainer}>
+        <View style={[styles.horizontalProgressBar, {width: `${percentage}%`}]} />
       </View>
+      <Text style={styles.horizontalStarRatingValue}>({rating.toFixed(1)})</Text>
     </View>
   );
 };
 
-// SuccessModal Component (kept as it's a general confirmation modal, though submission is disabled)
-const SuccessModal = ({isVisible, onClose, supplierName}) => {
+// --- OverallStarRatingDisplay Component ---
+// Displays the prominent overall average rating with stars
+const OverallStarRatingDisplay = ({overallAverage, numReviews}) => {
+  const roundedRating = Math.round(overallAverage * 2) / 2;
+  const stars = [];
+
+  for (let i = 1; i <= 5; i++) {
+    let iconName = 'star-outline';
+    if (i <= roundedRating) {
+      iconName = 'star';
+    } else if (i - 0.5 === roundedRating) {
+      iconName = 'star-half';
+    }
+
+    stars.push(
+      <Icons
+        key={i}
+        name={iconName}
+        size={25}
+        color="#FFD700"
+        style={styles.overallStarIcon}
+      />,
+    );
+  }
+
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={isVisible}
-      statusBarTranslucent={true}
-      onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <LinearGradient
-          colors={['#ffffff', '#f0f8ff']}
-          start={{x: 0, y: 0}}
-          end={{x: 0, y: 1}}
-          style={styles.successModalContainer}>
-          <Icons name="star-check-outline" size={100} color="#4CAF50" />
-          <Text style={styles.successModalTitle}>Review Submitted!</Text>
-          <Text style={styles.successModalMessage}>
-            Thank you for your valuable feedback on{'\n'}
-            <Text style={{fontWeight: 'bold', color: '#333'}}>
-              {supplierName}
-            </Text>
-          </Text>
-          <TouchableOpacity style={styles.successModalButton} onPress={onClose}>
-            <Text style={styles.successModalButtonText}>Done</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </Pressable>
-    </Modal>
+    <View style={styles.overallRatingBox}>
+      <Text style={styles.overallRatingTitle}>Overall ({numReviews} Reviews)</Text>
+      <Text style={styles.overallRatingValue}>{overallAverage.toFixed(1)}</Text>
+      <Text style={styles.overallRatingOutOf}>out of 5</Text>
+      <View style={styles.overallStarsContainer}>{stars}</View>
+    </View>
   );
 };
 
-const SupplierReviews = ({navigation}) => {
+// --- SupplierReviews Main Component ---
+export default function SupplierReviews({navigation}) {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  // Removed selectedItemsToHighlight state as item selection is not used for feedback display
-  // Removed reviewRatings state as it's replaced by mockRatings for display
-  // Removed feedbackText state as it's replaced by mockFeedback for display
-  // Removed photos state as photo selection is not used
   const [isSupplierModalVisible, setSupplierModalVisible] = useState(false);
-  const [isYearModalVisible, setYearModalVisible] = useState(false);
-  const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
-  const [submittedSupplierName, setSubmittedSupplierName] = useState('');
 
-  // Mocked state for displaying existing ratings and feedback
-  const [mockRatings, setMockRatings] = useState({
-    timeliness: 5,
-    productQuality: 4,
-    service: 5,
-  });
-  const [mockFeedback, setMockFeedback] = useState(
-    'Excellent service and high-quality products. Timely delivery every time!',
-  );
-  const [mockUserName, setMockUserName] = useState('John Doe');
-
+  // --- Year Selection States ---
   const currentYear = new Date().getFullYear();
-  const [selectedReviewYear, setSelectedReviewYear] = useState(currentYear);
-  const {data: suppliers, loading, error} = useSuppliers(selectedReviewYear);
-  const {
-    data: suppliersInfo,
-    loading: loadingInfo,
-    error: errorInfo,
-  } = useSuppliersInfo(selectedSupplier?.Claimant);
-  // Removed useSupplierItems as supplier items selection is not used for feedback display
-
-  const availableYears = useMemo(() => {
-    const years = [];
-    for (let year = 2023; year <= currentYear; year++) {
-      years.push({id: String(year), name: String(year)});
+  const years = useMemo(() => {
+    const yearsArray = [];
+    for (let i = 2024; i <= currentYear; i++) {
+      yearsArray.push(i);
     }
-    return years;
+    return yearsArray.sort((a, b) => b - a); // Sort descending (current year first)
   }, [currentYear]);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [showYearPicker, setShowYearPicker] = useState(false);
 
-  // Removed itemsForSelectedSupplier memo as it's not used
+  // **** NEW useEffect to reset supplier on year change ****
+  useEffect(() => {
+    // This effect runs whenever selectedYear changes
+    // It resets selectedSupplier to null, forcing re-selection for the new year
+    setSelectedSupplier(null);
+  }, [selectedYear]); // Dependency array: run when selectedYear changes
 
-  const displaySuppliers = suppliers;
+
+  // Use the actual useRatedSuppliers hook to fetch data
+  const {
+    data: suppliersData,
+    isLoading: loadingSuppliers,
+    isError: suppliersError,
+  } = useRatedSuppliers(selectedYear); 
+
+  const { data: suppliersInfo } = useSuppliersInfo(selectedSupplier?.supplier_name); 
+
+  const {
+    data: supplierReviewData, // Renamed to avoid conflict with `useSupplierReviews` in the initial code
+    isLoading: loadingReviews,
+    isError: reviewsError,
+  } = useSupplierReviews(selectedYear, selectedSupplier?.SuppIdentifier);
+
+  const suppliers = useMemo(() => {
+    return Array.isArray(suppliersData) ? suppliersData : [];
+  }, [suppliersData]);
+
+  // Effect to set the first supplier as selected by default once data loads
+  // REMOVED THE AUTOMATIC SELECTION:
+  // useEffect(() => {
+  //   if (!loadingSuppliers && suppliers.length > 0 && !selectedSupplier) {
+  //     setSelectedSupplier(suppliers[0]);
+  //   }
+  // }, [loadingSuppliers, suppliers, selectedSupplier]);
+
+  // Transform the selectedSupplier data to match the UI's expected 'supplierInfo' structure
+  const supplierInfo = useMemo(() => {
+    if (!selectedSupplier) return null;
+
+    // Find the relevant rating and feedback for the selected supplier and year
+    const currentRating = Array.isArray(supplierReviewData?.ratings)
+      ? supplierReviewData.ratings.find(
+            rating =>
+              rating.supplier_id === selectedSupplier.SuppIdentifier 
+          )
+        : null;
+
+    const currentFeedback = Array.isArray(supplierReviewData?.feedback)
+      ? supplierReviewData.feedback.find(
+            feedback =>
+              feedback.trackingnumber === selectedSupplier.trackingnumber &&
+              feedback.Year === String(selectedYear), // Ensure year comparison is correct
+          )
+        : null;
+
+    return {
+      Address: suppliersInfo?.[0]?.Address || 'N/A', 
+      Classification: suppliersInfo?.[0]?.Name || 'N/A', // Assuming 'Name' maps to 'Classification'
+      Contact: suppliersInfo?.[0]?.Contact || 'N/A', 
+      Proprietor: suppliersInfo?.[0]?.Proprietor || 'N/A', 
+      ratings: {
+        timeliness: parseFloat(currentRating?.avg_timeliness || 0),
+        productQuality: parseFloat(currentRating?.avg_quality || 0),
+        service: parseFloat(currentRating?.avg_service || 0),
+      },
+      overallAverage: parseFloat(currentRating?.overall_avg_rating || 0),
+      numReviews: parseInt(currentRating?.total_reviews || 0, 10),
+      feedback: {
+        text: currentFeedback?.feedback || 'No detailed feedback available for this supplier for the selected year.',
+        date: currentFeedback?.dateReviewed ? new Date(currentFeedback.dateReviewed).toLocaleDateString() : '',
+        timeliness: parseInt(currentFeedback?.timeliness || 0, 10),
+        productQuality: parseInt(currentFeedback?.quality || 0, 10),
+        service: parseInt(currentFeedback?.service || 0, 10),
+        by: currentFeedback?.FullName || 'N/A',
+        for: currentFeedback?.Office || 'N/A',
+        category: currentFeedback?.CategoryDescription || 'N/A',
+        tn: currentFeedback?.trackingnumber || 'N/A',
+      },
+      // Include the available fields from selectedSupplier directly
+      reviewerOffice: selectedSupplier.reviewerOffice,
+      trackingnumber: selectedSupplier.trackingnumber,
+      supplier_name: selectedSupplier.supplier_name,
+      SuppIdentifier: selectedSupplier.SuppIdentifier,
+    };
+  }, [selectedSupplier, supplierReviewData, selectedYear, suppliersInfo]); 
 
   const handleSelectSupplier = useCallback(supplier => {
     setSelectedSupplier(supplier);
-    // Removed setSelectedItemsToHighlight([]) as item selection is not used
-    // No need to reset mockRatings/mockFeedback here as they are static for display
     setSupplierModalVisible(false);
   }, []);
-
-  const handleSelectYear = useCallback(year => {
-    setSelectedReviewYear(year.name);
-    setYearModalVisible(false);
-  }, []);
-
-  // Removed handleToggleItemHighlight and handleSelectAllItems as item selection is not used
-
-  // Removed handleRateCriterion as interactive rating is not used
-
-  // Calculate overall rating based on the average of timeliness, productQuality, and service
-  const overallRating = useMemo(() => {
-    const ratingsArray = Object.values(mockRatings).filter(rating => rating > 0);
-    if (ratingsArray.length === 0) {
-      return 0;
-    }
-    const sum = ratingsArray.reduce((acc, current) => acc + current, 0);
-    // Ensure the average is correctly calculated and potentially rounded for display
-    return Math.round(sum / ratingsArray.length);
-  }, [mockRatings]);
-
-  // Submit button is now disabled as we are displaying results, not submitting
-  const isSubmitDisabled = true;
-
-  // Removed handleSubmitReview logic as submission is not intended in this display-only view
-  const handleSubmitReview = useCallback(() => {
-    // This function will not be called in this version as submit is disabled
-    console.log('Submit button pressed - no action in display mode.');
-  }, []);
-
-
-  const handleCloseSuccessModal = useCallback(() => {
-    setSuccessModalVisible(false);
-    // Reset only supplier selection, as other states are not relevant for a display-only view
-    setSelectedSupplier(null);
-    setSelectedReviewYear(currentYear);
-    setSubmittedSupplierName('');
-  }, [currentYear]);
 
   const renderSupplierItem = useCallback(({item}) => (
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => handleSelectSupplier(item)}>
       <Text style={styles.modalItemText}>
-        <Text style={{fontWeight: 'bold'}}>{item.TrackingNumber}</Text> -{' '}
-        {item.Claimant}
+        <Text style={{fontWeight: 'bold'}}>{item.trackingnumber || item.SuppIdentifier}</Text> -{' '}
+        {item.supplier_name}
       </Text>
     </TouchableOpacity>
   ), [handleSelectSupplier]);
-
-  const renderYearItem = useCallback(({item}) => (
-    <TouchableOpacity
-      style={styles.modalItem}
-      onPress={() => handleSelectYear(item)}>
-      <Text style={styles.modalItemText}>{item.name}</Text>
-    </TouchableOpacity>
-  ), [handleSelectYear]);
-
-  // Removed renderItemToHighlight as item selection is not used
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <LinearGradient
-          colors={['rgb(243, 195, 3)', 'rgb(243, 195, 3)']}
+          colors={['#1A508C', '#0D3B66']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={styles.headerBackground}>
@@ -211,25 +215,19 @@ const SupplierReviews = ({navigation}) => {
             <Icon name="arrow-back" size={24} color="white" />
           </Pressable>
           <View style={styles.headerContent}>
-            <TouchableOpacity
-              onPress={() => setYearModalVisible(true)}
-              style={styles.headerTitleContainer}
-              activeOpacity={0.8}>
-              <Icons
-                name="comment-text"
-                size={40}
-                color="white"
-                style={styles.headerIcon}
-              />
-              <Text style={styles.headerTitle}>Supplier Reviews</Text>
-              <View style={styles.selectedYearBadge}>
-                <Text style={styles.selectedYearText}>
-                  {selectedReviewYear}
-                </Text>
-                <Icon name="chevron-down" size={16} color="white" />
-              </View>
-            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Supplier Reviews</Text>
           </View>
+          {/* Year Dropdown Trigger */}
+          <TouchableOpacity
+            style={styles.yearDropdownTrigger}
+            onPress={() => setShowYearPicker(!showYearPicker)}>
+            <Text style={styles.yearDropdownText}>{selectedYear}</Text>
+            <Icons
+              name={showYearPicker ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#fff"
+            />
+          </TouchableOpacity>
         </LinearGradient>
 
         <KeyboardAvoidingView
@@ -245,163 +243,187 @@ const SupplierReviews = ({navigation}) => {
                 onPress={() => setSupplierModalVisible(true)}>
                 <Text style={styles.dropdownButtonText}>
                   {selectedSupplier
-                    ? selectedSupplier.Claimant
+                    ? selectedSupplier.supplier_name
                     : 'Choose a Supplier'}
                 </Text>
                 <Icon name="chevron-down" size={20} color="#333" />
               </TouchableOpacity>
-               {selectedSupplier && (
-                <View style={styles.reviewSection}>
-                  {suppliersInfo && suppliersInfo.length > 0 && (
-                    <View
-                      style={{
-                        padding: 15,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#e0e0e0',
-                        marginBottom: 10,
-                      }}>
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 'bold',
-                          marginBottom: 10,
-                          color: '#1A508C',
-                        }}>
-                        About
-                      </Text>
-                      <View
-                        style={{
-                          borderBottomWidth: 1,
-                          borderBottomColor: '#eee',
-                          marginBottom: 10,
-                        }}
-                      />
 
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          marginBottom: 5,
-                        }}>
-                        <Text style={{fontWeight: '600'}}>Supplier </Text>
-                        <Text
-                          style={{
-                            fontWeight: 'bold',
-                            color: '#000',
-                            flexShrink: 1,
-                            textAlign: 'right',
-                          }}>
-                          {suppliersInfo[0].Name}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          marginBottom: 5,
-                        }}>
-                        <Text style={{fontWeight: '600'}}>Address </Text>
-                        <Text
-                          style={{
-                            fontWeight: 'bold',
-                            color: '#000',
-                            flexShrink: 1,
-                            textAlign: 'right',
-                          }}>
-                          {suppliersInfo[0].Address}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          marginBottom: 5,
-                        }}>
-                        <Text style={{fontWeight: '600'}}>Contact </Text>
-                        <Text
-                          style={{
-                            fontWeight: 'bold',
-                            color: '#000',
-                            flexShrink: 1,
-                            textAlign: 'right',
-                          }}>
-                          {suppliersInfo[0].Contact}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          marginBottom: 5,
-                        }}>
-                        <Text style={{fontWeight: '600'}}>Proprietor </Text>
-                        <Text
-                          style={{
-                            fontWeight: 'bold',
-                            color: '#000',
-                            flexShrink: 1,
-                            textAlign: 'right',
-                          }}>
-                          {suppliersInfo[0].Proprietor}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              )}
-              {/* Step 2: Display Rating Results */}
-              {selectedSupplier && (
-                <View style={styles.reviewSection}>
-                  <Text style={styles.sectionLabel}>2. Supplier Rating Feedback</Text>
-                  <View style={styles.ratingGroup}>
-                    <StarRating
-                      label="Timeliness"
-                      rating={mockRatings.timeliness}
-                    />
-                    <StarRating
-                      label="Product Quality"
-                      rating={mockRatings.productQuality}
-                    />
-                    <StarRating
-                      label="Service"
-                      rating={mockRatings.service}
-                    />
+              {/* Conditionally render supplier info and feedback if a supplier is selected */}
+              {selectedSupplier ? (
+                loadingReviews ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#1A508C" />
+                    <Text style={styles.loadingText}>Loading supplier reviews for {selectedYear}...</Text>
                   </View>
-                  <View style={styles.overallRatingContainer}>
-                    <Text style={styles.overallRatingLabel}>Overall Rating</Text>
-                    <View style={styles.starsContainer}>
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <Icons
-                          key={star}
-                          name={star <= overallRating ? 'star' : 'star-outline'}
-                          size={36}
-                          color={star <= overallRating ? '#FFD700' : '#E0E0E0'}
-                          style={styles.starIcon}
-                        />
-                      ))}
-                    </View>
+                ) : reviewsError ? (
+                  <View style={styles.emptyState}>
+                    <Icons name="alert-circle-outline" size={50} color="#ff6347" />
+                    <Text style={styles.emptyStateText}>
+                      Error loading reviews: {reviewsError.message || 'Unknown error'}.
+                    </Text>
+                    <Text style={styles.emptyStateText}>
+                      Please try selecting another year or supplier.
+                    </Text>
                   </View>
-
-                  {/* User Feedback */}
-                  <View style={styles.feedbackSection}>
-                    <Text style={styles.sectionLabel}>3. User Feedback</Text>
-                    <View style={styles.feedbackDisplayBox}>
-                        <View style={styles.feedbackHeader}>
-                            <Icons name="account-circle" size={30} color="#1A508C" />
-                            <Text style={styles.feedbackUser}>{mockUserName}</Text>
+                ) : (
+                  supplierInfo && (
+                    <>
+                      {/* About Section */}
+                      <View style={styles.aboutSection}>
+                        <Text style={styles.aboutTitle}>About</Text>
+                       {/* <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Supplier Name:</Text>
+                          <Text style={styles.aboutValue}>{supplierInfo.supplier_name}</Text>
                         </View>
-                        <Text style={styles.feedbackDisplayText}>{mockFeedback}</Text>
-                    </View>
-                  </View>
+                        <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Tracking No.:</Text>
+                          <Text style={styles.aboutValue}>{supplierInfo.trackingnumber}</Text>
+                        </View>
+                          <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Reviewer Office:</Text>
+                          <Text style={styles.aboutValue}>{supplierInfo.reviewerOffice}</Text>
+                        </View>
+                          <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Supplier ID:</Text>
+                          <Text style={styles.aboutValue}>{supplierInfo.SuppIdentifier}</Text>
+                        </View> */}
+                        <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Address:</Text>
+                          <Text style={styles.aboutValue}>{supplierInfo.Address}</Text>
+                        </View>
+                        <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Classification:</Text>
+                          <Text style={styles.aboutValue}>
+                            {supplierInfo.Classification}
+                          </Text>
+                        </View>
+                        <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Contact Number:</Text>
+                          <Text style={styles.aboutValue}>
+                            {supplierInfo.Contact}
+                          </Text>
+                        </View>
+                        <View style={styles.aboutRow}>
+                          <Text style={styles.aboutLabel}>Proprietor:</Text>
+                          <Text style={styles.aboutValue}>
+                            {supplierInfo.Proprietor}
+                          </Text>
+                        </View>
+                      </View>
 
-                  {/* Submit Button (disabled as we are displaying results) */}
-                  <TouchableOpacity
-                    style={[styles.submitButton, isSubmitDisabled && styles.submitButtonDisabled]}
-                    onPress={handleSubmitReview}
-                    disabled={isSubmitDisabled}>
-                    <Text style={styles.submitButtonText}>Submit Review</Text>
-                  </TouchableOpacity>
+                      {/* Rating and Overall Summary Section */}
+                      <View style={styles.ratingSummarySection}>
+                        <View style={styles.ratingDetailsColumn}>
+                          <StarRatingDisplay
+                            label="Timeliness"
+                            rating={supplierInfo.ratings.timeliness}
+                          />
+                          <StarRatingDisplay
+                            label="Product Quality"
+                            rating={supplierInfo.ratings.productQuality}
+                          />
+                          <StarRatingDisplay
+                            label="Service"
+                            rating={supplierInfo.ratings.service}
+                          />
+                        </View>
+                        <OverallStarRatingDisplay
+                          overallAverage={supplierInfo.overallAverage}
+                          numReviews={supplierInfo.numReviews}
+                        />
+                      </View>
+
+                      {/* User Feedback Section */}
+                      <View style={styles.userFeedbackSection}>
+                        <Text style={styles.userFeedbackTitle}>USER FEEDBACK</Text>
+                        <View style={styles.feedbackContentBox}>
+                          <Text style={styles.feedbackTextMain}>
+                            {supplierInfo.feedback.text}{' '}
+                            <Text style={styles.feedbackDate}>
+                              {supplierInfo.feedback.date}
+                            </Text>
+                          </Text>
+                          <View style={styles.feedbackCriterionRating}>
+                            <Text style={styles.feedbackCriterionLabel}>Timeliness</Text>
+                            <View style={styles.feedbackStarsContainer}>
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Icons
+                                  key={`timeliness-${star}`}
+                                  name={
+                                    star <= supplierInfo.feedback.timeliness
+                                      ? 'star'
+                                      : 'star-outline'
+                                  }
+                                  size={16}
+                                  color="#FFD700"
+                                />
+                              ))}
+                            </View>
+                          </View>
+                          <View style={styles.feedbackCriterionRating}>
+                            <Text style={styles.feedbackCriterionLabel}>Product Quality</Text>
+                            <View style={styles.feedbackStarsContainer}>
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Icons
+                                  key={`product-quality-${star}`}
+                                  name={
+                                    star <= supplierInfo.feedback.productQuality
+                                      ? 'star'
+                                      : 'star-outline'
+                                  }
+                                  size={16}
+                                  color="#FFD700"
+                                />
+                              ))}
+                            </View>
+                          </View>
+                          <View style={styles.feedbackCriterionRating}>
+                            <Text style={styles.feedbackCriterionLabel}>Service</Text>
+                            <View style={styles.feedbackStarsContainer}>
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Icons
+                                  key={`service-${star}`}
+                                  name={
+                                    star <= supplierInfo.feedback.service
+                                      ? 'star'
+                                      : 'star-outline'
+                                  }
+                                  size={16}
+                                  color="#FFD700"
+                                />
+                              ))}
+                            </View>
+                          </View>
+                          <View style={styles.feedbackDetails}>
+                            <Text style={styles.feedbackDetailRow}>
+                              <Text style={styles.feedbackDetailLabel}>Rating by:</Text>{' '}
+                              {supplierInfo.feedback.by}
+                            </Text>
+                            <Text style={styles.feedbackDetailRow}>
+                              <Text style={styles.feedbackDetailLabel}>For:</Text>{' '}
+                              {supplierInfo.feedback.for}
+                            </Text>
+                            <Text style={styles.feedbackDetailRow}>
+                              <Text style={styles.feedbackDetailLabel}>Category:</Text>{' '}
+                              {supplierInfo.feedback.category}
+                            </Text>
+                            <Text style={styles.feedbackDetailRow}>
+                              <Text style={styles.feedbackDetailLabel}>TN:</Text>{' '}
+                              {supplierInfo.feedback.tn}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </>
+                  )
+                )
+              ) : (
+                <View style={styles.emptyState}>
+                  <Icons name="information-outline" size={50} color="#b0b0b0" />
+                  <Text style={styles.emptyStateText}>
+                    Please select a supplier to view their reviews and ratings.
+                  </Text>
                 </View>
               )}
             </View>
@@ -426,30 +448,32 @@ const SupplierReviews = ({navigation}) => {
                   <Icon name="close-circle-outline" size={28} color="#666" />
                 </TouchableOpacity>
               </View>
-              {loading ? (
+              {loadingSuppliers ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#1A508C" />
                   <Text style={styles.loadingText}>Loading suppliers...</Text>
                 </View>
-              ) : error ? (
-                <View style={styles.errorContainer}>
-                  <Icons name="alert-circle" size={40} color="#D32F2F" />
-                  <Text style={styles.errorText}>Error loading suppliers</Text>
-                  <Text style={styles.errorDetail}>
-                    {error.message || 'Unknown error'}
+              ) : suppliersError ? (
+                <View style={styles.emptyState}>
+                  <Icons name="alert-circle-outline" size={50} color="#ff6347" />
+                  <Text style={styles.emptyStateText}>
+                    Error loading suppliers: {suppliersError.message || 'Unknown error'}.
+                  </Text>
+                  <Text style={styles.emptyStateText}>
+                    Please try again later.
                   </Text>
                 </View>
               ) : (
                 <FlatList
-                  data={displaySuppliers}
-                  keyExtractor={item => item.TrackingNumber}
+                  data={suppliers}
+                  keyExtractor={item => item.SuppIdentifier || item.trackingnumber || item.supplier_name}
                   renderItem={renderSupplierItem}
                   contentContainerStyle={styles.modalListContent}
                   ListEmptyComponent={() => (
                     <View style={styles.emptyState}>
                       <Icons name="account-off" size={50} color="#b0b0b0" />
                       <Text style={styles.emptyStateText}>
-                        No suppliers found for the selected criteria.
+                        No suppliers found.
                       </Text>
                     </View>
                   )}
@@ -459,128 +483,154 @@ const SupplierReviews = ({navigation}) => {
           </Pressable>
         </Modal>
 
-        {/* Review Year Selection Modal */}
+        {/* Year Dropdown Options (as a Modal for better overlay) */}
         <Modal
-          animationType="fade"
+          visible={showYearPicker}
           transparent={true}
-          visible={isYearModalVisible}
-          statusBarTranslucent={true}
-          onRequestClose={() => setYearModalVisible(false)}>
-          <Pressable
+          animationType="fade"
+          onRequestClose={() => setShowYearPicker(false)}>
+          <TouchableOpacity
             style={styles.modalOverlay}
-            onPress={() => setYearModalVisible(false)}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Review Year</Text>
-                <TouchableOpacity onPress={() => setYearModalVisible(false)}>
-                  <Icon name="close-circle-outline" size={28} color="#666" />
-                </TouchableOpacity>
-              </View>
+            activeOpacity={1}
+            onPress={() => setShowYearPicker(false)}>
+            <View style={styles.yearPickerContainer}>
               <FlatList
-                data={availableYears}
-                keyExtractor={item => item.id}
-                renderItem={renderYearItem}
-                contentContainerStyle={styles.modalListContent}
+                data={years}
+                keyExtractor={item => item.toString()}
+                renderItem={({item}) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.yearOption,
+                      selectedYear === item && styles.selectedYearOption,
+                    ]}
+                    onPress={() => {
+                      setSelectedYear(item);
+                      setShowYearPicker(false);
+                    }}>
+                    <Text
+                      style={[
+                        styles.yearOptionText,
+                        selectedYear === item && styles.selectedYearOptionText,
+                      ]}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                showsVerticalScrollIndicator={false}
               />
             </View>
-          </Pressable>
+          </TouchableOpacity>
         </Modal>
-
-        {/* Success Modal */}
-        <SuccessModal
-          isVisible={isSuccessModalVisible}
-          onClose={handleCloseSuccessModal}
-          supplierName={submittedSupplierName}
-        />
       </View>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9FB',
+    backgroundColor: '#F0F2F5',
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FB',
+    backgroundColor: '#F0F2F5',
   },
   headerBackground: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0,
-    paddingBottom: 10,
+    paddingBottom: 15,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 10,
   },
   headerContent: {
     flex: 1,
     alignItems: 'flex-start',
-    paddingLeft: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    marginBottom: 8,
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgb(224, 181, 8)',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 2,
+    letterSpacing: 0.5,
   },
-  selectedYearBadge: {
+  yearDropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginLeft: 10,
   },
-  selectedYearText: {
+  yearDropdownText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
-    marginRight: 4,
+    marginRight: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 60 : 60,
+    paddingRight: 10,
+  },
+  yearPickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    maxHeight: 200,
+    width: 120,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  yearOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  selectedYearOption: {
+    backgroundColor: '#E6EEF7',
+  },
+  yearOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  selectedYearOptionText: {
+    fontWeight: 'bold',
+    color: '#1A508C',
   },
   scrollViewContent: {
-    padding: 10,
-    paddingBottom: 40,
+    padding: 15,
+    paddingBottom: 30,
   },
   card: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 25,
-    elevation: 6,
+    borderRadius: 8,
+    padding: 20,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    borderWidth: 0,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   sectionLabel: {
     fontSize: 16,
@@ -598,143 +648,184 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#D0D0D0',
+    marginBottom: 20,
   },
   dropdownButtonText: {
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
   },
-  reviewSection: {
-    marginTop: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E0E0E0',
-    paddingTop: 20,
+  aboutSection: {
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  ratingGroup: {
-    marginBottom: 25,
-  },
-  starRatingContainer: {
-    alignItems: 'center',
-    marginBottom: 15,
-    backgroundColor: '#F8F9FB',
-    borderRadius: 10,
-    paddingVertical: 15,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  starRatingLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  starIcon: {
-    marginHorizontal: 5,
-  },
-  overallRatingContainer: {
-    alignItems: 'center',
-    marginTop: 15,
-    backgroundColor: '#E6F0FF',
-    borderRadius: 10,
-    paddingVertical: 15,
-    borderWidth: 1,
-    borderColor: '#B3D4FF',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  overallRatingLabel: {
+  aboutTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A508C',
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  feedbackSection: {
-    marginBottom: 25,
+  aboutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  feedbackDisplayBox: {
-    backgroundColor: '#FFFFFF', // White background for the feedback box
-    borderRadius: 12,
-    padding: 20,
+  aboutLabel: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '600',
+    flex: 1,
+  },
+  aboutValue: {
+    fontSize: 14,
+    color: '#333',
+    flex: 2,
+    textAlign: 'right',
+  },
+  ratingSummarySection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  ratingDetailsColumn: {
+    flex: 1,
+    marginRight: 15,
+  },
+  horizontalStarRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  horizontalStarRatingLabel: {
+    fontSize: 14,
+    color: '#555',
+    width: 90,
+    marginRight: 10,
+  },
+  horizontalProgressBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  horizontalProgressBar: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 4,
+  },
+  horizontalStarRatingValue: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 10,
+    fontWeight: '600',
+  },
+  overallRatingBox: {
+    width: 130,
+    height: 130,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  feedbackHeader: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
-    paddingBottom: 10,
+    padding: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 0.5},
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
-  feedbackUser: {
+  overallRatingTitle: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 2,
+  },
+  overallRatingValue: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  overallRatingOutOf: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  overallStarsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  overallStarIcon: {
+    marginHorizontal: 0,
+  },
+  userFeedbackSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  userFeedbackTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1A508C',
-    marginLeft: 8,
-  },
-  feedbackDisplayText: {
-    fontSize: 15,
     color: '#333',
-    lineHeight: 22,
+    marginBottom: 10,
   },
-  submitButton: {
-    backgroundColor: '#1A508C',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 30,
+  feedbackContentBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: 15,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: {width: 0, height: 0.5},
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
-  submitButtonDisabled: {
-    backgroundColor: '#A0A0A0',
-    opacity: 0.7,
+  feedbackTextMain: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
   },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+  feedbackDate: {
+    fontSize: 12,
+    color: '#777',
+    fontStyle: 'italic',
   },
-  emptyState: {
+  feedbackCriterionRating: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 30,
+    marginBottom: 4,
   },
-  emptyStateText: {
+  feedbackCriterionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#555',
+    width: 90,
+  },
+  feedbackStarsContainer: {
+    flexDirection: 'row',
+  },
+  feedbackDetails: {
     marginTop: 10,
-    fontSize: 15,
-    color: '#888',
-    textAlign: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  feedbackDetailRow: {
+    fontSize: 13,
+    color: '#333',
+    marginBottom: 4,
+  },
+  feedbackDetailLabel: {
+    fontWeight: '600',
+    color: '#555',
   },
   modalContainer: {
     backgroundColor: 'white',
@@ -746,6 +837,8 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 5},
     shadowOpacity: 0.3,
     shadowRadius: 10,
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -773,56 +866,6 @@ const styles = StyleSheet.create({
   modalListContent: {
     paddingBottom: 10,
   },
-  successModalContainer: {
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    width: '80%',
-    elevation: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  successModalTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#28A745',
-    marginTop: 25,
-    marginBottom: 15,
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 2,
-  },
-  successModalMessage: {
-    fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
-    marginBottom: 35,
-    lineHeight: 24,
-    paddingHorizontal: 10,
-  },
-  successModalButton: {
-    backgroundColor: '#1A508C',
-    paddingVertical: 14,
-    paddingHorizontal: 50,
-    borderRadius: 10,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  successModalButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
   loadingContainer: {
     padding: 40,
     alignItems: 'center',
@@ -833,24 +876,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-  errorContainer: {
-    padding: 30,
+  emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFEBEE',
+    paddingVertical: 30,
   },
-  errorText: {
-    marginTop: 16,
-    fontSize: 18,
-    color: '#D32F2F',
-    fontWeight: 'bold',
-  },
-  errorDetail: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#555',
+  emptyStateText: {
+    marginTop: 10,
+    fontSize: 15,
+    color: '#888',
     textAlign: 'center',
   },
 });
-
-export default SupplierReviews;

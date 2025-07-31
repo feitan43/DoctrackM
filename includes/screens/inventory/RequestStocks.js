@@ -430,14 +430,16 @@ const styles = StyleSheet.create({
     borderColor: '#e5e9ed',
     overflow: 'hidden',
     paddingVertical: 5,
+    paddingHorizontal: 10,
   },
   qtyButton: {
     backgroundColor: '#e9ecef',
     paddingVertical: 15,
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
     minWidth: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 8,
   },
   qtyButtonDisabled: {
     backgroundColor: '#f8f9fa', // Lighter background for disabled

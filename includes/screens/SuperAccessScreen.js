@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useMemo, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,11 @@ import {
   ImageBackground,
   StatusBar,
   Platform,
-  Modal, // Import Modal
-  TouchableWithoutFeedback, // For dismissing modal on outside tap
   SafeAreaView,
   KeyboardAvoidingView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {Checkbox} from 'react-native-paper';
-//import {SafeAreaView} from 'react-native-safe-area-context';
 import {
   useUserSuperAccess,
   useUpdateUserSuperAccess,
@@ -27,6 +24,10 @@ import {
   useUpdateUserInfo,
 } from '../hooks/usePersonal';
 import {officeMap} from '../utils/officeMap';
+
+// Import BottomSheet and its components
+import BottomSheet from '@gorhom/bottom-sheet';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 // Transform officeMap into an array suitable for selection
 const officeOptions = Object.keys(officeMap).map(key => ({
@@ -114,9 +115,12 @@ const SuperAccessScreen = ({navigation}) => {
 
   const [selectedOffice, setSelectedOffice] = useState(''); // Holds the office CODE (e.g., "1081")
 
-  // States for BottomSheet
-  const [showOfficeSelectionSheet, setShowOfficeSelectionSheet] =
-    useState(false);
+  // BottomSheet State and Ref
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['25%', '50%', '75%'], []); // Define snap points for the bottom sheet
+  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false); // New state to control visibility
+
+  // State for office search within BottomSheet
   const [officeSearchText, setOfficeSearchText] = useState('');
 
   // Hooks for data fetching and mutation
@@ -135,6 +139,28 @@ const SuperAccessScreen = ({navigation}) => {
     isLoading: loadingSystems,
     error: systemsError,
   } = useSystemsList();
+
+  // Open Bottom Sheet handler
+  const handleOpenBottomSheet = useCallback(() => {
+    Keyboard.dismiss(); // Dismiss keyboard when opening bottom sheet
+    setIsBottomSheetVisible(true);
+    bottomSheetRef.current?.expand(); // Expands to the largest snap point
+  }, []);
+
+  // Close Bottom Sheet handler
+  const handleCloseBottomSheet = useCallback(() => {
+    setIsBottomSheetVisible(false);
+    bottomSheetRef.current?.close();
+    setOfficeSearchText(''); // Clear search text when closing
+  }, []);
+
+  // Handle sheet changes (e.g., when swiped down)
+  const handleSheetChanges = useCallback(index => {
+    if (index === -1) {
+      setIsBottomSheetVisible(false);
+      setOfficeSearchText('');
+    }
+  }, []);
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim();
@@ -296,11 +322,8 @@ const SuperAccessScreen = ({navigation}) => {
       FMS: normalize(editingFMS) === '' ? null : editingFMS,
     };
 
-    //console.log('pay', updatePayload);
-
     try {
       await updateUserInfo(updatePayload);
-      //console.log('pay', updatePayload);
       setSelectedEmployee(prev => ({
         ...prev,
         Office: selectedOffice,
@@ -337,336 +360,341 @@ const SuperAccessScreen = ({navigation}) => {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={{flex: 1, backgroundColor: '#f0f2f5'}}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0} // Adjust if needed
-    >
-      <SafeAreaView style={{flex: 1, backgroundColor: '#f0f2f5'}}>
-        <ImageBackground
-          source={require('../../assets/images/CirclesBG.png')}
-          style={styles.bgHeader}
-          imageStyle={styles.bgHeaderImageStyle}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}>
-              <Icon name="chevron-back-outline" size={26} color="#FFFFFF" />
-              <Text style={{color: '#fff', fontSize: 16, fontWeight: 'normal'}}>
-                Boss Level
-              </Text>
-            </TouchableOpacity>
-            <View style={{width: 60}} />
-          </View>
-        </ImageBackground>
-
-        <View style={styles.searchFilterRow}>
-          <View style={styles.searchInputWrapper}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search EmployeeNumber or Name..."
-              placeholderTextColor="#9CA3AF"
-              value={searchText}
-              autoCapitalize="words"
-              onChangeText={setSearchText}
-              accessibilityHint="Type to search for employee by ID or name."
-              onSubmitEditing={handleSearch}
-              editable={!isSearching}
-            />
-            {searchText.length > 0 && (
+    <GestureHandlerRootView style={{flex: 1}}>
+      <KeyboardAvoidingView
+        style={{flex: 1, backgroundColor: '#f0f2f5'}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
+        <SafeAreaView style={{flex: 1, backgroundColor: '#f0f2f5'}}>
+          <ImageBackground
+            source={require('../../assets/images/CirclesBG.png')}
+            style={styles.bgHeader}
+            imageStyle={styles.bgHeaderImageStyle}>
+            <View style={styles.header}>
               <TouchableOpacity
-                onPress={() => setSearchText('')}
-                style={styles.clearSearchButton}
-                accessibilityLabel="Clear search query">
-                <Icon
-                  name="close-circle"
-                  size={20}
-                  color={styles.searchIcon.color}
-                />
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}>
+                <Icon name="chevron-back-outline" size={26} color="#FFFFFF" />
+                <Text
+                  style={{color: '#fff', fontSize: 16, fontWeight: 'normal'}}>
+                  Boss Level
+                </Text>
               </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            onPress={handleSearch}
-            style={styles.filterIconButton}
-            disabled={isSearching}>
-            {isSearching ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Icon name="search" size={24} color="#fff" />
-            )}
-          </TouchableOpacity>
-        </View>
+              <View style={{width: 60}} />
+            </View>
+          </ImageBackground>
 
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={{paddingBottom: 30}}
-          keyboardShouldPersistTaps="handled">
-          {selectedEmployee && (
-            <View style={styles.resultsSection}>
-              {selectedEmployee.RegistrationState !== 1 && (
-                <View
-                  style={[
-                    styles.resultHeader,
-                    selectedEmployee.RegistrationState === 1
-                      ? styles.grantedHeader
-                      : styles.deniedHeader,
-                  ]}>
-                  <Icon
-                    name={
-                      selectedEmployee.RegistrationState === 1
-                        ? 'shield-checkmark-outline'
-                        : 'close-circle-outline'
-                    }
-                    size={24}
-                    color={
-                      selectedEmployee.RegistrationState === 1
-                        ? '#28a745'
-                        : '#dc3545'
-                    }
-                  />
-                  <Text style={styles.resultHeaderText}>
-                    {selectedEmployee.RegistrationState === 1
-                      ? 'User Active'
-                      : 'User Inactive'}
-                  </Text>
-                </View>
-              )}
-
-              <EmployeeCard employee={selectedEmployee} officeMap={officeMap} />
-
-              <View style={styles.employeeDetailsContainer}>
+          <View style={styles.searchFilterRow}>
+            <View style={styles.searchInputWrapper}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search EmployeeNumber or Name..."
+                placeholderTextColor="#9CA3AF"
+                value={searchText}
+                autoCapitalize="words"
+                onChangeText={setSearchText}
+                accessibilityHint="Type to search for employee by ID or name."
+                onSubmitEditing={handleSearch}
+                editable={!isSearching}
+              />
+              {searchText.length > 0 && (
                 <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => setIsEditingMode(prev => !prev)}>
+                  onPress={() => setSearchText('')}
+                  style={styles.clearSearchButton}
+                  accessibilityLabel="Clear search query">
+                  <Icon
+                    name="close-circle"
+                    size={20}
+                    color={styles.searchIcon.color}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={handleSearch}
+              style={styles.filterIconButton}
+              disabled={isSearching}>
+              {isSearching ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Icon name="search" size={24} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={{paddingBottom: 30}}
+            keyboardShouldPersistTaps="handled">
+            {selectedEmployee && (
+              <View style={styles.resultsSection}>
+                {selectedEmployee.RegistrationState !== 1 && (
+                  <View
+                    style={[
+                      styles.resultHeader,
+                      selectedEmployee.RegistrationState === 1
+                        ? styles.grantedHeader
+                        : styles.deniedHeader,
+                    ]}>
+                    <Icon
+                      name={
+                        selectedEmployee.RegistrationState === 1
+                          ? 'shield-checkmark-outline'
+                          : 'close-circle-outline'
+                      }
+                      size={24}
+                      color={
+                        selectedEmployee.RegistrationState === 1
+                          ? '#28a745'
+                          : '#dc3545'
+                      }
+                    />
+                    <Text style={styles.resultHeaderText}>
+                      {selectedEmployee.RegistrationState === 1
+                        ? 'User Active'
+                        : 'User Inactive'}
+                    </Text>
+                  </View>
+                )}
+
+                <EmployeeCard
+                  employee={selectedEmployee}
+                  officeMap={officeMap}
+                />
+
+                <View style={styles.employeeDetailsContainer}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => setIsEditingMode(prev => !prev)}>
+                    {isEditingMode ? (
+                      <Text style={styles.editButtonText}>Cancel Edit</Text>
+                    ) : (
+                      <>
+                        <View style={{flexDirection: 'row'}}>
+                          <Icon name="pencil" size={20} color="#fff" />
+                          <Text style={{color: '#fff', marginLeft: 5}}>
+                            Edit
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
                   {isEditingMode ? (
-                    <Text style={styles.editButtonText}>Cancel Edit</Text>
+                    <>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Office</Text>
+                        <TouchableOpacity
+                          style={styles.selectableInput}
+                          onPress={handleOpenBottomSheet}>
+                          <Text style={styles.selectableInputText}>
+                            {officeMap[selectedOffice] || 'Select Office'}
+                          </Text>
+                          <Icon name="chevron-down" size={20} color="#666" />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Account Type </Text>
+                        <TextInput
+                          style={styles.editableInput}
+                          value={editingAccountType}
+                          onChangeText={setEditingAccountType}
+                          autoCapitalize="words"
+                          inputMode="numeric"
+                        />
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Privilege </Text>
+                        <TextInput
+                          style={styles.editableInput}
+                          value={editingPrivilege}
+                          onChangeText={setEditingPrivilege}
+                          autoCapitalize="words"
+                          inputMode="numeric"
+                        />
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Permission </Text>
+                        <TextInput
+                          style={styles.editableInput}
+                          value={editingPermission}
+                          onChangeText={setEditingPermission}
+                          autoCapitalize="words"
+                          inputMode="numeric"
+                        />
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>FMS </Text>
+                        <TextInput
+                          style={styles.editableInput}
+                          value={editingFMS.toString()}
+                          onChangeText={setEditingFMS}
+                          autoCapitalize="words"
+                          inputMode="numeric"
+                        />
+                      </View>
+                      <TouchableOpacity
+                        style={styles.saveChangesButton}
+                        onPress={handleSaveChanges}
+                        disabled={isUpdatingDetails}>
+                        {isUpdatingUserInfo ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Text style={styles.saveChangesButtonText}>
+                            Save Changes
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </>
                   ) : (
                     <>
-                      <View style={{flexDirection: 'row'}}>
-                        <Icon name="pencil" size={20} color="#fff" />
-                        <Text style={{color: '#fff', marginLeft: 5}}>Edit</Text>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Office </Text>
+                        <Text style={styles.detailValue}>
+                          {officeMap[selectedEmployee.Office] || '—'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Account Type </Text>
+                        <Text style={styles.detailValue}>
+                          {selectedEmployee.AccountType || '—'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Privilege </Text>
+                        <Text style={styles.detailValue}>
+                          {selectedEmployee.Privilege || '—'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Permission </Text>
+                        <Text style={styles.detailValue}>
+                          {selectedEmployee.Permission || '—'}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>FMS </Text>
+                        <Text style={styles.detailValue}>
+                          {selectedEmployee.FMS || '—'}
+                        </Text>
                       </View>
                     </>
                   )}
-                </TouchableOpacity>
+                </View>
 
-                {isEditingMode ? (
-                  <>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Office</Text>
-                      <TouchableOpacity
-                        style={styles.selectableInput}
-                        onPress={() => setShowOfficeSelectionSheet(true)}>
-                        <Text style={styles.selectableInputText}>
-                          {officeMap[selectedOffice] || 'Select Office'}
-                        </Text>
-                        <Icon name="chevron-down" size={20} color="#666" />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Account Type </Text>
-                      <TextInput
-                        style={styles.editableInput}
-                        value={editingAccountType}
-                        onChangeText={setEditingAccountType}
-                        autoCapitalize="words"
-                        inputMode="numeric"
-                      />
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Privilege </Text>
-                      <TextInput
-                        style={styles.editableInput}
-                        value={editingPrivilege}
-                        onChangeText={setEditingPrivilege}
-                        autoCapitalize="words"
-                        inputMode="numeric"
-                      />
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Permission </Text>
-                      <TextInput
-                        style={styles.editableInput}
-                        value={editingPermission}
-                        onChangeText={setEditingPermission}
-                        autoCapitalize="words"
-                        inputMode="numeric"
-                      />
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>FMS </Text>
-                      <TextInput
-                        style={styles.editableInput}
-                        value={editingFMS.toString()}
-                        onChangeText={setEditingFMS}
-                        autoCapitalize="words"
-                        inputMode="numeric"
-                      />
-                    </View>
-                    <TouchableOpacity
-                      style={styles.saveChangesButton}
-                      onPress={handleSaveChanges}
-                      disabled={isUpdatingDetails}>
-                      {isUpdatingUserInfo ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.saveChangesButtonText}>
-                          Save Changes
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Office </Text>
-                      <Text style={styles.detailValue}>
-                        {officeMap[selectedEmployee.Office] || '—'}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Account Type </Text>
-                      <Text style={styles.detailValue}>
-                        {selectedEmployee.AccountType || '—'}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Privilege </Text>
-                      <Text style={styles.detailValue}>
-                        {selectedEmployee.Privilege || '—'}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Permission </Text>
-                      <Text style={styles.detailValue}>
-                        {selectedEmployee.Permission || '—'}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>FMS </Text>
-                      <Text style={styles.detailValue}>
-                        {selectedEmployee.FMS || '—'}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </View>
-
-              <View style={styles.systemsListContainer}>
-                <Text style={styles.systemsNote}>
-                  Toggle access for individual systems below. Changes are saved
-                  automatically.
-                </Text>
-                {loadingSystems ? (
-                  <ActivityIndicator size="large" color="#007bff" />
-                ) : systemsError ? (
-                  <Text style={styles.errorText}>
-                    Error loading systems: {systemsError.message}
+                <View style={styles.systemsListContainer}>
+                  <Text style={styles.systemsNote}>
+                    Toggle access for individual systems below. Changes are
+                    saved automatically.
                   </Text>
-                ) : (
-                  dynamicSystemsList.map(item => (
-                    <SystemAccessToggle
-                      key={item.key}
-                      system={item}
-                      employeeAccess={selectedEmployee?.[item.key]}
-                      onToggle={toggleAccess}
-                      currentlyUpdatingSystemKey={currentlyUpdatingSystemKey}
-                    />
-                  ))
-                )}
+                  {loadingSystems ? (
+                    <ActivityIndicator size="large" color="#007bff" />
+                  ) : systemsError ? (
+                    <Text style={styles.errorText}>
+                      Error loading systems: {systemsError.message}
+                    </Text>
+                  ) : (
+                    dynamicSystemsList.map(item => (
+                      <SystemAccessToggle
+                        key={item.key}
+                        system={item}
+                        employeeAccess={selectedEmployee?.[item.key]}
+                        onToggle={toggleAccess}
+                        currentlyUpdatingSystemKey={currentlyUpdatingSystemKey}
+                      />
+                    ))
+                  )}
+                </View>
               </View>
-            </View>
-          )}
+            )}
 
-          {searchAttempted && !selectedEmployee && !isSearching && (
-            <View style={styles.deniedContent}>
-              <Icon name="warning-outline" size={40} color="#dc3545" />
-              <Text style={styles.deniedText}>Employee not found</Text>
-              <Text style={styles.deniedSubtext}>
-                No employee matching "{searchText}" was found in the system.
-                Please check the ID or name and try again.
-              </Text>
-              <TouchableOpacity
-                style={styles.tryAgainButton}
-                onPress={() => {
-                  setSearchText('');
-                  setSearchAttempted(false);
-                }}
-                accessibilityLabel="Clear search and try again">
-                <Text style={styles.tryAgainText}>Clear Search</Text>
+            {searchAttempted && !selectedEmployee && !isSearching && (
+              <View style={styles.deniedContent}>
+                <Icon name="warning-outline" size={40} color="#dc3545" />
+                <Text style={styles.deniedText}>Employee not found</Text>
+                <Text style={styles.deniedSubtext}>
+                  No employee matching "{searchText}" was found in the system.
+                  Please check the ID or name and try again.
+                </Text>
+                <TouchableOpacity
+                  style={styles.tryAgainButton}
+                  onPress={() => {
+                    setSearchText('');
+                    setSearchAttempted(false);
+                  }}
+                  accessibilityLabel="Clear search and try again">
+                  <Text style={styles.tryAgainText}>Clear Search</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+
+      {/* Gorhom BottomSheet for Office Selection */}
+      {isBottomSheetVisible && (
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={1} // Start at the second snap point (50%)
+          snapPoints={snapPoints}
+          onChange={handleSheetChanges}
+          enablePanDownToClose={true} // Allow swiping down to close
+          backdropComponent={({style}) => (
+            <TouchableOpacity
+              activeOpacity={1}
+              style={[style, {backgroundColor: 'rgba(0, 0, 0, 0.5)'}]} // Overlay background
+              onPress={handleCloseBottomSheet} // Dismiss on backdrop press
+            />
+          )}
+          // Optional: Add container style if needed for specific spacing
+          // containerStyle={{ paddingHorizontal: 10 }}
+        >
+          <View style={styles.bottomSheetContent}>
+            <View style={styles.bottomSheetHeader}>
+              <Text style={styles.bottomSheetTitle}>Select Office</Text>
+              <TouchableOpacity onPress={handleCloseBottomSheet}>
+                <Icon name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-          )}
-        </ScrollView>
-
-        {/* Office Selection Bottom Sheet Modal */}
-
-        <Modal
-          animationType="none"
-          statusBarTranslucent={true}
-          transparent={true}
-          visible={showOfficeSelectionSheet}
-          onRequestClose={() => setShowOfficeSelectionSheet(false)}>
-          <TouchableWithoutFeedback
-            onPress={() => setShowOfficeSelectionSheet(false)}>
-            <View style={styles.bottomSheetOverlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.bottomSheetContainer}>
-                  <View style={styles.bottomSheetHeader}>
-                    <Text style={styles.bottomSheetTitle}>Select Office</Text>
-                    <TouchableOpacity
-                      onPress={() => setShowOfficeSelectionSheet(false)}>
-                      <Icon name="close" size={24} color="#666" />
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                    style={styles.bottomSheetSearchInput}
-                    placeholder="Search office by name or code..."
-                    placeholderTextColor="#9CA3AF"
-                    value={officeSearchText}
-                    onChangeText={setOfficeSearchText}
-                    autoCapitalize="characters"
-                  />
-                  <ScrollView
-                    style={styles.bottomSheetScrollView}
-                    contentContainerStyle={{
-                      flexGrow: 1,
-                      justifyContent:
-                        filteredOfficeOptions.length === 0
-                          ? 'center'
-                          : 'flex-start',
-                      paddingBottom: 20,
-                    }}
-                    keyboardShouldPersistTaps="handled">
-                    {filteredOfficeOptions.length > 0 ? (
-                      filteredOfficeOptions.map((item, index) => (
-                        <TouchableOpacity
-                          key={item.value}
-                          style={styles.bottomSheetItem}
-                          onPress={() => {
-                            setSelectedOffice(item.value);
-                            setShowOfficeSelectionSheet(false);
-                            setOfficeSearchText('');
-                          }}>
-                          <Text style={styles.bottomSheetItemText}>
-                            {item.label} ({item.value})
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    ) : (
-                      <Text style={styles.noResultsText}>
-                        No offices found.
-                      </Text>
-                    )}
-                  </ScrollView>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+            <TextInput
+              style={styles.bottomSheetSearchInput}
+              placeholder="Search office by name or code..."
+              placeholderTextColor="#9CA3AF"
+              value={officeSearchText}
+              onChangeText={setOfficeSearchText}
+              autoCapitalize="words"
+            />
+            <ScrollView
+              style={styles.bottomSheetScrollView}
+              contentContainerStyle={{
+                flexGrow: 1,
+                justifyContent:
+                  filteredOfficeOptions.length === 0 ? 'center' : 'flex-start',
+                paddingBottom: 20,
+              }}
+              keyboardShouldPersistTaps="handled">
+              {filteredOfficeOptions.length > 0 ? (
+                filteredOfficeOptions.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={styles.bottomSheetItem}
+                    onPress={() => {
+                      setSelectedOffice(item.value);
+                      handleCloseBottomSheet();
+                    }}>
+                    <Text style={styles.bottomSheetItemText}>
+                      {item.label} ({item.value})
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.noResultsText}>No offices found.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </BottomSheet>
+      )}
+    </GestureHandlerRootView>
   );
 };
 
@@ -1096,21 +1124,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Bottom Sheet Styles
-  bottomSheetOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  bottomSheetContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  // Gorhom Bottom Sheet Styles
+  bottomSheetContent: {
+    flex: 1, // Ensures content takes up available space
     paddingHorizontal: 20,
     paddingTop: 15,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
-    maxHeight: '80%', // Adjust height as needed
-    width: '100%',
   },
   bottomSheetHeader: {
     flexDirection: 'row',
@@ -1122,36 +1140,37 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   bottomSheetTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
   bottomSheetSearchInput: {
-    height: 45,
+    height: 48,
     borderColor: '#ddd',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
     color: '#333',
+    backgroundColor: '#f9f9f9',
   },
   bottomSheetScrollView: {
     flexGrow: 1,
   },
   bottomSheetItem: {
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   bottomSheetItemText: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#333',
   },
   noResultsText: {
     textAlign: 'center',
     paddingVertical: 20,
     color: '#666',
-    fontSize: 15,
+    fontSize: 16,
   },
 });

@@ -1,446 +1,365 @@
-import React, {useEffect, useState} from 'react';
+import React, { useState, useCallback } from 'react'; // Import useState and useCallback
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  Dimensions,
+  Pressable,
   SafeAreaView,
-  ActivityIndicator,
-  Alert,
+  FlatList,
+  RefreshControl, // Import RefreshControl
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSupplierRanking } from '../../hooks/useSuppliers';
 
-const {width} = Dimensions.get('window');
+// --- StarRating Component ---
+const StarRating = ({ rating }) => {
+  const stars = [];
+  const roundedRating = Math.round(rating * 2) / 2;
 
-const SupplierRanking = ({navigation}) => {
-  const [supplierData, setSupplierData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  for (let i = 1; i <= 5; i++) {
+    let iconName = 'star-outline';
+    if (i <= roundedRating) {
+      iconName = 'star';
+    } else if (i - 0.5 === roundedRating) {
+      iconName = 'star-half';
+    }
 
-  useEffect(() => {
-    const fetchSupplierData = async () => {
-      try {
-        const response = await fetch(
-          'https://davaocityportal.com/gord/ajax/dataprocessor.php?supplierRanking=1&year=2025',
-          {
-            // Add headers here if needed
-          },
-        );
+    stars.push(
+      <MaterialCommunityIcons
+        key={i}
+        name={iconName}
+        size={18}
+        color="#FFD700"
+        style={styles.star}
+      />,
+    );
+  }
+  return <View style={styles.starContainer}>{stars}</View>;
+};
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `HTTP error! status: ${response.status}, response: ${errorText}`,
-          );
-        }
+// Main SupplierRanking component
+const SupplierRanking = ({ navigation }) => {
+  const [refreshing, setRefreshing] = useState(false); // State for RefreshControl
 
-        const rawData = await response.json();
+  // Use the useSupplierRanking hook to fetch actual data, and get the refetch function
+  const { data: suppliers, isLoading, isError, refetch } = useSupplierRanking(new Date().getFullYear());
 
-        if (!Array.isArray(rawData) || rawData.length === 0) {
-          setSupplierData([]);
-          setLoading(false);
-          return;
-        }
+  // Function to get distinct styles for top ranks
+  const getRankStyle = (rank) => {
+    if (rank === 1) {
+      return {
+        cardHeaderBorder: styles.rank1CardHeaderBorder,
+      };
+    } else if (rank === 2) {
+      return {
+        cardHeaderBorder: styles.rank2CardHeaderBorder,
+      };
+    } else if (rank === 3) {
+      return {
+        cardHeaderBorder: styles.rank3CardHeaderBorder,
+      };
+    }
+    return {};
+  };
 
-        // Directly set the rawData without any sorting
-        setSupplierData(rawData);
-      } catch (e) {
-        console.error('Failed to fetch supplier data:', e);
-        setError(e.message || 'An unexpected error occurred.');
-        Alert.alert(
-          'Error',
-          'Failed to load supplier data. Please try again later.',
-        );
-      } finally {
-        setLoading(false);
-      }
+  // useCallback to memoize the onRefresh function
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch(); // Call the refetch function from the hook
+    setRefreshing(false);
+  }, [refetch]);
+
+  const renderSupplierItem = ({ item, index }) => {
+    const rank = index + 1;
+    const { cardHeaderBorder } = getRankStyle(rank);
+
+    const handlePress = () => {
+      navigation.navigate('SupplierDetails', { supplierId: item.SupplierId });
     };
 
-    fetchSupplierData();
-  }, []);
-
-  const getPlatformShadow = () => {
-    return Platform.select({
-      ios: styles.iosShadow,
-      android: styles.androidElevation,
-    });
-  };
-
-  const getRankColor = rank => {
-    switch (rank) {
-      case 1:
-        return '#FFD700'; // Gold
-      case 2:
-        return '#C0C0C0'; // Silver
-      case 3:
-        return '#CD7F32'; // Bronze
-      default:
-        return '#d1cece'; // Gray for others
-    }
-  };
-
-  // Removed getRankIcon function as it's no longer needed
-
-  const renderStarRating = rating => {
-    const totalStars = 5;
-    const stars = [];
-    const numericRating = typeof rating === 'number' ? rating : 0;
-    const fullStars = Math.round(numericRating); // Round to nearest whole star
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <MaterialCommunityIcons
-          key={`star-full-${i}`}
-          name="star"
-          size={18}
-          color="#FFD700"
-        />,
-      );
-    }
-    for (let i = fullStars; i < totalStars; i++) {
-      stars.push(
-        <MaterialCommunityIcons
-          key={`star-empty-${i}`}
-          name="star-outline"
-          size={18}
-          color="#FFD700"
-        />,
-      );
-    }
-    return <View style={styles.starRatingRow}>{stars}</View>;
-  };
-
-  if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4299E1" />
-        <Text style={styles.loadingText}>Loading supplier rankings...</Text>
-      </SafeAreaView>
-    );
-  }
+      <Pressable
+        onPress={handlePress}
+        style={({ pressed }) => [
+          styles.supplierCard,
+          pressed && styles.supplierCardPressed,
+        ]}
+        android_ripple={{ color: 'rgba(0, 0, 0, 0.08)', borderless: false }}
+      >
+        <View style={styles.indexColumn}>
+          <Text style={styles.indexText}>{rank}</Text>
+        </View>
 
-  if (error) {
-    return (
-      <SafeAreaView style={styles.errorContainer}>
-        <MaterialCommunityIcons
-          name="alert-circle-outline"
-          size={50}
-          color="#EF4444"
-        />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => {
-            setLoading(true);
-            setError(null);
-            fetchSupplierData();
-          }}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+        <View style={styles.cardContent}>
+          <View style={[styles.cardHeader, cardHeaderBorder]}>
+            <Text style={styles.supplierName}>{item.SupplierName}</Text>
+            <View style={styles.overallRatingContainer}>
+              <Text style={styles.overallAverageText}>
+                {parseFloat(item.OverallRating).toFixed(1)}
+              </Text>
+              <StarRating rating={parseFloat(item.OverallRating)} />
+            </View>
+          </View>
 
-  if (supplierData.length === 0) {
-    return (
-      <SafeAreaView style={styles.noDataContainer}>
-        <MaterialCommunityIcons
-          name="information-outline"
-          size={50}
-          color="#718096"
-        />
-        <Text style={styles.noDataText}>
-          No supplier data available for 2025 yet.
-        </Text>
-        <TouchableOpacity
-          style={styles.backButtonBottom}
-          onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonTextBottom}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+          <View style={styles.supplierDetails}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Timeliness</Text>
+              <Text style={styles.infoValue}>{parseFloat(item.AvgTimeliness).toFixed(1)}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Quality</Text>
+              <Text style={styles.infoValue}>{parseFloat(item.AvgQuality).toFixed(1)}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Service</Text>
+              <Text style={styles.infoValue}>{parseFloat(item.AvgService).toFixed(1)}</Text>
+            </View>
+            <View style={styles.totalReviewsContainer}>
+              <Text style={styles.totalReviews}>{item.TotalReviews} Reviews</Text>
+            </View>
+          </View>
+        </View>
+      </Pressable>
     );
-  }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.headerContainer, getPlatformShadow()]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#374151" />
-        </TouchableOpacity>
+      <LinearGradient
+        colors={['#1A508C', '#0D3B66']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}>
+        <Pressable
+          style={styles.backButton}
+          android_ripple={{
+            color: 'rgba(255,255,255,0.2)',
+            borderless: true,
+            radius: 20,
+          }}
+          onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </Pressable>
         <Text style={styles.headerTitle}>Supplier Rankings</Text>
-        <View style={{width: 24}} />
-      </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
-      <ScrollView
-        style={styles.listContainer}
-        contentContainerStyle={styles.listContentContainer}>
-        {supplierData.map((item, index) => {
-          const rank = index + 1; // Calculate rank for display purposes
-          return (
-            <TouchableOpacity
-              key={item.SupplierName || index}
-              style={[
-                styles.cardItem,
-                getPlatformShadow(),
-                {borderLeftColor: getRankColor(rank)}, // Apply rank-based border color
-              ]}
-              onPress={() => {}}
-              activeOpacity={0.7}>
-              {/* Left Column: Rank Display Area - Always show rank number */}
-              <View style={styles.rankBadgeContainer}>
-                <Text
-                  style={[
-                    styles.rankNumberOnly,
-                    /* {color: getRankColor(rank)}, */ // Color the rank number
-                  ]}>
-                  {rank}
-                </Text>
-              </View>
-
-              {/* Middle Column: Name and Details */}
-              <View style={styles.nameAndDetailsColumn}>
-                <Text style={styles.supplierName}>
-                  {item.SupplierName || 'Unknown Supplier'}
-                </Text>
-                <View style={styles.detailsRow}>
-                  <View style={{marginRight: 10}}>
-                    <Text style={styles.boldValue}>
-                      {parseFloat(item.AvgTimeliness || '0.0').toFixed(1)}
-                      <Text style={styles.boldLabel}>  Timeliness</Text>
-                    </Text>
-                  </View>
-
-                  <View style={{marginRight: 10}}>
-                    <Text style={styles.boldLabel}>
-                      <Text style={styles.boldValue}>
-                        {parseFloat(item.AvgQuality || '0.0').toFixed(1)}
-                      </Text>{' '}  Quality
-                    </Text>
-                  </View>
-
-                  <View style={{marginRight: 10}}>
-                    <Text style={styles.boldLabel}>
-                      <Text style={styles.boldValue}>
-                        {parseFloat(item.AvgService || '0.0').toFixed(1)}
-                      </Text>  Service
-                    </Text>
-                  </View>
-                  {/* <Text style={styles.detailText}>
-                    <Text style={styles.boldLabel}>Reviews:</Text>{' '}
-                    <Text style={styles.boldValue}>
-                      {parseInt(item.TotalReviews || '0', 10)}
-                    </Text>
-                  </Text> */}
-                </View>
-              </View>
-
-              {/* Right Column: Overall Average and Stars */}
-              <View style={styles.overallRatingColumn}>
-                <Text style={styles.overallLabel}>
-                  Overall ({parseInt(item.TotalReviews || '0', 10)}) Reviews
-                </Text>
-                <Text style={styles.averageValue}>
-                  {parseFloat(item.OverallRating || '0.0').toFixed(1)}
-                </Text>
-                {/* <Text style={styles.outOfFive}>out of 5</Text> */}
-                {renderStarRating(parseFloat(item.OverallRating || '0.0'))}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {isLoading && !refreshing ? (
+        <View style={styles.contentPlaceholder}>
+          <Text style={styles.placeholderText}>Loading supplier data...</Text>
+        </View>
+      ) : isError ? (
+        <View style={styles.contentPlaceholder}>
+          <Text style={styles.placeholderText}>Failed to load supplier data. Please try again.</Text>
+        </View>
+      ) : suppliers && suppliers.length > 0 ? (
+        <FlatList
+          data={suppliers}
+          renderItem={renderSupplierItem}
+          keyExtractor={(item) => item.SupplierId.toString()}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#1A508C"
+              colors={['#1A508C']}
+            />
+          }
+        />
+      ) : (
+        <View style={styles.emptyListContainer}>
+          <MaterialCommunityIcons
+            name="podium-gold"
+            size={80}
+            color="#bbb"
+          />
+          <Text style={styles.emptyListText}>No rankings available</Text>
+          <Text style={styles.emptyListSubText}>
+            It looks like there are no supplier rankings yet for this year.
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
 
+// StyleSheet for the component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FB',
+    backgroundColor: '#F8FAFC',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FB',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#4A5568',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FB',
-    padding: 20,
-  },
-  errorText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 20,
-    backgroundColor: '#4299E1',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FB',
-    padding: 20,
-  },
-  backButtonBottom: {
-    marginTop: 20,
-    backgroundColor: '#6B7280',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  backButtonTextBottom: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  noDataText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#718096',
-    textAlign: 'center',
-  },
-  iosShadow: {
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  androidElevation: {
-    elevation: 1,
-  },
-  headerContainer: {
+  header: {
     height: 100,
     paddingTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    //justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   backButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2D3748',
-  },
-  listContainer: {
+    color: '#fff',
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    letterSpacing: 0.5,
   },
-  listContentContainer: {
-    paddingBottom: 20,
-  },
-  cardItem: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-    borderLeftWidth: 5,
-    borderLeftColor: '#E2E8F0', // Default border color, overridden by getRankColor
-    overflow: 'hidden',
-  },
-  rankBadgeContainer: {
-    width: 40,
+  contentPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
-    //justifyContent: 'center', // Center rank number vertically
+    padding: 20,
   },
-  rankNumberOnly: {
+  placeholderText: {
+    fontSize: 18,
+    color: '#718096',
+    textAlign: 'center',
+  },
+  listContent: {
+    padding: 16,
+  },
+  supplierCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#1A508C',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
+    flexDirection: 'row',
+  },
+  supplierCardPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
+  },
+  indexColumn: {
+    width: 38,
+    backgroundColor: '#E6EEF7',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  indexText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#1A508C',
   },
-  nameAndDetailsColumn: {
+  cardContent: {
     flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    marginRight: 10,
+    padding: 20,
   },
-  supplierName: {
+  cardHeader: {
+    flexDirection: 'row',
+    // Remove alignItems: 'center' from here
+    //backgroundColor: '#F8FAFC',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  supplierName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A508C',
+    letterSpacing: 0.2,
+    flex: 1, // Keep flex: 1 here to allow the name to take available space
+    marginRight: 10,
+  },
+  overallRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+},
+  overallAverageText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#2D3748',
+    fontWeight: '700',
+    color: '#333',
+    marginRight: 5,
+  },
+  starContainer: {
+    flexDirection: 'row',
+  },
+  star: {
+    marginHorizontal: 0.5,
+  },
+  supplierDetails: {},
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  detailsRow: {
-    flexDirection: 'column', // Changed to column for stacking
-    alignItems: 'flex-start', // Align items to the start of the column
+  infoLabel: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 22,
+    flex: 1,
   },
-  detailText: {
+  infoValue: {
+    fontWeight: '600',
+    color: '#222',
+    textAlign: 'right',
+    flex: 1,
+  },
+  totalReviewsContainer: {
+    marginTop: 10,
+    alignItems: 'flex-end',
+  },
+  totalReviews: {
     fontSize: 12,
-    color: '#4A5568',
-    marginBottom: 4, // Space between detail lines
-  },
-  boldLabel: {
-    fontWeight: '300',
-    color: '#2D3748',
-  },
-  boldValue: {
-    fontWeight: '400',
-    color: '#2D3748',
-  },
-  overallRatingColumn: {
-    width: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingLeft: 5,
-    borderLeftWidth: 1,
-    borderLeftColor: '#E2E8F0',
-  },
-  overallLabel: {
-    fontSize: 10,
-    color: '#4299E1',
-    textAlign: 'center',
-  },
-  averageValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    marginTop: 2,
-  },
-  outOfFive: {
-    fontSize: 10,
     color: '#718096',
-    marginBottom: 4,
-    textAlign: 'center',
   },
-  starRatingRow: {
-    flexDirection: 'row',
+  // New styles for the cardHeader border
+  rank1CardHeaderBorder: {
+    borderBottomColor: '#FFD700',
+    borderBottomWidth: 2,
+  },
+  rank2CardHeaderBorder: {
+    borderBottomColor: '#C0C0C0',
+    borderBottomWidth: 2,
+  },
+  rank3CardHeaderBorder: {
+    borderBottomColor: '#CD7F32',
+    borderBottomWidth: 2,
+  },
+  emptyListContainer: {
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyListText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#555',
+    marginTop: 15,
+  },
+  emptyListSubText: {
+    fontSize: 15,
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 22,
   },
 });
 

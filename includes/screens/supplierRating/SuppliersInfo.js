@@ -1,686 +1,747 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'; // Added useMemo
+import React, {useState, useEffect, useRef, useMemo, useCallback} from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
-  TouchableOpacity,
-  Image,
-  Modal,
-  ScrollView,
-  Linking,
-  Platform,
-  ActivityIndicator,
-  Alert,
+  StyleSheet,
+  Pressable,
+  TextInput,
   SafeAreaView,
   StatusBar,
-  TextInput, // Added TextInput for the search bar
+  Platform,
+  LayoutAnimation,
+  UIManager,
+  Dimensions,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import {useSuppliers, useSuppliersGroup} from '../../hooks/useSuppliers';
+import {categoryIconMap} from '../../utils';
 
-// Main SuppliersInfo Component
-const SuppliersInfo = () => {
-  const [suppliersData, setSuppliersData] = useState([]);
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [fullscreenDetailsVisible, setFullscreenDetailsVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(''); // New state for search query
+// Gorhom Bottom Sheet Imports
+import BottomSheet, {
+  BottomSheetFlatList,
+  BottomSheetBackdrop,
+} from '@gorhom/bottom-sheet';
 
-  // Function to fetch supplier data from the API
-  const fetchSuppliers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('https://davaocityportal.com/gord/ajax/dataprocessor.php?getSuppliers=1');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      const transformedData = data.map(item => ({
-        id: item.Id,
-        name: item.Name,
-        category: item.Classification,
-        contactPerson: item.ContactPerson && item.ContactPerson.trim() !== '' ? item.ContactPerson : 'N/A',
-        email: item.Email && item.Email.trim() !== '' ? item.Email : 'N/A',
-        phone: item.Contact && item.Contact.trim() !== '' ? item.Contact : 'N/A',
-        address: item.Address && item.Address.trim() !== '' ? item.Address : 'N/A',
-        logo: item.Name ? `https://placehold.co/100x100/4CAF50/ffffff?text=${item.Name.charAt(0).toUpperCase()}` : 'https://placehold.co/100x100/CCCCCC/666666?text=SUP',
-        description: `This supplier specializes in ${item.Classification ? item.Classification.toLowerCase() : 'various'} services and products.`,
-        website: 'N/A',
-        rating: 4.0,
-        tin: item.TIN && item.TIN.trim() !== '' ? item.TIN : 'N/A',
-        type: item.Type && item.Type.trim() !== '' ? item.Type : 'N/A',
-        code: item.Code && item.Code.trim() !== '' ? item.Code : 'N/A',
-        alias: item.Alias && item.Alias.trim() !== '' ? item.Alias : 'N/A',
-        proprietor: item.Proprietor && item.Proprietor.trim() !== '' ? item.Proprietor.replace(/\n/g, '').trim() : 'N/A',
-        zipCode: item.ZipCode && item.ZipCode.trim() !== '' ? item.ZipCode : 'N/A',
-        businessId: item.BusinessId && item.BusinessId.trim() !== '' ? item.BusinessId : 'N/A',
-        disqualified: item.Disqualified,
-        businessContact: item.BusinessContact && item.BusinessContact.trim() !== '' ? item.BusinessContact : 'N/A',
-        eligible: item.Eligible,
-        supplierImageCount: item.SupplierImageCount,
-        dateEncoded: item.DateEncoded && item.DateEncoded.trim() !== '' ? item.DateEncoded : 'N/A',
-      }));
-      setSuppliersData(transformedData);
-    } catch (e) {
-      console.error('Failed to fetch suppliers:', e);
-      setError('Failed to load suppliers. Please try again later.');
-      Alert.alert('Error', 'Failed to load suppliers. Please check your internet connection and try again.');
-    } finally {
-      setLoading(false);
+// Enable LayoutAnimation for Android
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const {width} = Dimensions.get('window');
+const SPACING = 10;
+const CARD_WIDTH = (width - SPACING * 4) / 3;
+
+const SupplierGroupCard = ({group, onPress}) => {
+  const iconName = categoryIconMap[group.Description] || 'help-circle-outline';
+
+  return (
+    <Pressable
+      style={({pressed}) => [
+        groupCardStyles.card,
+        Platform.OS === 'ios' && pressed && groupCardStyles.cardPressed, // Apply pressed style for iOS
+      ]}
+      onPress={() => onPress(group)}
+      android_ripple={{
+        color: 'rgba(0, 0, 0, 0.1)', // Subtle ripple color for Android
+        borderless: false, // Ripple effect will be contained within the card's bounds
+      }}>
+      <View style={groupCardStyles.iconContainer}>
+     
+        <MaterialCommunityIcons name={iconName} size={30} color="#1A508C" />
+      </View>
+         <Text style={groupCardStyles.supplierCount}>
+        {group.CategoryCode}
+      </Text>
+      <Text
+        style={groupCardStyles.description}
+        numberOfLines={2}
+        ellipsizeMode="tail">
+        {group.Description}
+      </Text>
+      
+      <Text style={groupCardStyles.supplierCount}>
+        {group.SupplierCount} Suppliers
+      </Text>
+        
+    </Pressable>
+  );
+};
+
+const groupCardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: SPACING,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: CARD_WIDTH,
+    marginHorizontal: SPACING / 2,
+    marginVertical: SPACING / 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    minHeight: CARD_WIDTH * 1.2,
+  },
+  iconContainer: {
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  supplierCount: {
+    fontSize: 10,
+    color: '#777',
+  },
+});
+
+const SupplierCard = ({supplier, index, onPress}) => {
+  // Added onPress prop
+  return (
+    <Pressable style={cardStyles.card} onPress={() => onPress(supplier)}>
+      <View style={cardStyles.indexColumn}>
+        <Text style={cardStyles.indexText}>{index + 1}</Text>
+      </View>
+
+      <View style={cardStyles.cardContent}>
+        <View style={cardStyles.header}>
+          <MaterialCommunityIcons
+            name="storefront-outline"
+            size={24}
+            color="#1A508C"
+          />
+          <Text style={cardStyles.name}>
+            {supplier.Name || supplier.SupplierName}
+          </Text>
+        </View>
+        {/* The rest of the SupplierCard content as before, uncomment if your supplier data has these fields */}
+        {supplier.Address && (
+          <View style={cardStyles.detailRow}>
+            <Ionicons
+              name="location-outline"
+              size={16}
+              color="#666"
+              style={cardStyles.detailIcon}
+            />
+            <Text style={cardStyles.detailText}>{supplier.Address}</Text>
+          </View>
+        )}
+        {supplier.Contact && (
+          <View style={cardStyles.detailRow}>
+            <Ionicons
+              name="call-outline"
+              size={16}
+              color="#666"
+              style={cardStyles.detailIcon}
+            />
+            <Text style={cardStyles.detailText}>{supplier.Contact}</Text>
+          </View>
+        )}
+        {supplier.Email && (
+          <View style={cardStyles.detailRow}>
+            <MaterialCommunityIcons
+              name="email-outline"
+              size={16}
+              color="#666"
+              style={cardStyles.detailIcon}
+            />
+            <Text style={cardStyles.detailText}>Email: {supplier.Email}</Text>
+          </View>
+        )}
+        {supplier.Classification && (
+          <View style={cardStyles.detailRow}>
+            <MaterialCommunityIcons
+              name="shape-outline"
+              size={16}
+              color="#666"
+              style={cardStyles.detailIcon}
+            />
+            <Text style={cardStyles.detailText}>{supplier.Classification}</Text>
+          </View>
+        )}
+        {supplier.Type && (
+          <View style={cardStyles.detailRow}>
+            <MaterialCommunityIcons
+              name="format-list-bulleted-type"
+              size={16}
+              color="#666"
+              style={cardStyles.detailIcon}
+            />
+            <Text style={cardStyles.detailText}>{supplier.Type}</Text>
+          </View>
+        )}
+        <View style={cardStyles.footer}>
+          <Text style={cardStyles.classification}>
+            {supplier.Classification && supplier.Type
+              ? `${supplier.Classification} - `
+              : ''}
+            {supplier.Type || ''}
+          </Text>
+          {supplier.Eligible !== undefined && // Check if eligible exists
+            (supplier.Eligible === '1' ? (
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={20}
+                color="green"
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={20}
+                color="red"
+              />
+            ))}
+        </View>
+      </View>
+    </Pressable>
+  );
+};
+
+const cardStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  indexColumn: {
+    width: 30,
+    backgroundColor: '#E6EEF5',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderRightWidth: 1,
+    borderRightColor: '#D3DCE6',
+  },
+  indexText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1A508C',
+    textAlign: 'right',
+  },
+  cardContent: {
+    flex: 1,
+    padding: 15,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 8,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginLeft: 10,
+    flexShrink: 1,
+  },
+  alias: {
+    fontSize: 14,
+    color: '#777',
+    fontStyle: 'italic',
+    marginBottom: 5,
+    marginLeft: 34,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  detailIcon: {
+    width: 20,
+    marginRight: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#555',
+    flexShrink: 1,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  classification: {
+    fontSize: 13,
+    color: '#888',
+    fontWeight: '600',
+  },
+});
+
+const SuppliersInfo = ({navigation}) => {
+  const [searchText, setSearchText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [showGroupedSuppliers, setShowGroupedSuppliers] = useState(true);
+
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ['50%', '75%'], []);
+  const [selectedCategorySuppliers, setSelectedCategorySuppliers] = useState(
+    [],
+  );
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false); // New state to control rendering
+
+  const {data: suppliersData} = useSuppliers(searchQuery);
+  const {data: suppliersGroupData} = useSuppliersGroup();
+
+  const handleSearch = () => {
+    setSearchQuery(searchText);
+    setShowGroupedSuppliers(false);
+  };
+
+  const toggleSearchBar = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowSearchBar(!showSearchBar);
+    if (showSearchBar) {
+      setSearchText('');
+      setSearchQuery('');
+      setShowGroupedSuppliers(true);
+    }
+  };
+
+  const handleCategoryPress = group => {
+    setSelectedCategorySuppliers(group.Suppliers || []);
+    setSelectedCategoryName(group.Description);
+    setIsBottomSheetOpen(true); // Open the bottom sheet
+    bottomSheetRef.current?.expand();
+  };
+
+  // New handler for navigating to SupplierDetails from search results
+  const handleSupplierCardPress = useCallback(
+    supplier => {
+      navigation.navigate('SupplierDetails', {supplierId: supplier.Id});
+    },
+    [navigation],
+  );
+
+  // New handler for navigating to SupplierDetails from bottom sheet list
+  const handleBottomSheetSupplierPress = useCallback(
+    supplier => {
+      bottomSheetRef.current?.close(); // Close bottom sheet before navigating
+      // Added a slight delay to allow bottom sheet to close visually before navigation
+      setTimeout(() => {
+        setIsBottomSheetOpen(false); // Close the bottom sheet completely after animation
+        navigation.navigate('SupplierDetails', {
+          supplierId: supplier.SupplierId,
+        });
+      }, 100);
+    },
+    [navigation],
+  );
+
+  const handleSheetChanges = useCallback(index => {
+    if (index === -1) {
+      setSelectedCategorySuppliers([]);
+      setSelectedCategoryName('');
+      setIsBottomSheetOpen(false); // Set state to false when fully closed
     }
   }, []);
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, [fetchSuppliers]);
-
-  // Memoize filtered suppliers to prevent unnecessary re-renders
-  const filteredSuppliers = useMemo(() => {
-    if (!searchQuery) {
-      return suppliersData;
-    }
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    return suppliersData.filter(supplier =>
-      supplier.name.toLowerCase().includes(lowerCaseQuery) ||
-      supplier.category.toLowerCase().includes(lowerCaseQuery) ||
-      (supplier.contactPerson && supplier.contactPerson.toLowerCase().includes(lowerCaseQuery))
-      // Add more fields to search if necessary
-    );
-  }, [suppliersData, searchQuery]);
-
-
-  // Function to open full-screen supplier details
-  const openSupplierDetailsFullscreen = (supplier) => {
-    setSelectedSupplier(supplier);
-    setFullscreenDetailsVisible(true);
-  };
-
-  // Function to close full-screen supplier details
-  const closeSupplierDetailsFullscreen = () => {
-    setFullscreenDetailsVisible(false);
-    setSelectedSupplier(null);
-  };
-
-  // Function to handle phone call
-  const handleCall = (phoneNumber) => {
-    if (phoneNumber && phoneNumber !== 'N/A') {
-      Linking.openURL(`tel:${phoneNumber}`).catch(err => console.error('Failed to open phone dialer:', err));
-    } else {
-      Alert.alert('Info', 'Phone number not available for this supplier.');
-    }
-  };
-
-  // Function to handle email
-  const handleEmail = (emailAddress) => {
-    if (emailAddress && emailAddress !== 'N/A') {
-      Linking.openURL(`mailto:${emailAddress}`).catch(err => console.error('Failed to open email client:', err));
-    } else {
-      Alert.alert('Info', 'Email address not available for this supplier.');
-    }
-  };
-
-  // Function to handle website link
-  const handleWebsite = (url) => {
-    if (url && url !== 'N/A') {
-      Linking.openURL(url).catch(err => console.error('Failed to open website:', err));
-    } else {
-      Alert.alert('Info', 'Website not available for this supplier.');
-    }
-  };
-
-  // Render item for FlatList (Supplier Card)
-  const renderSupplierCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.supplierCard}
-      onPress={() => openSupplierDetailsFullscreen(item)}
-      activeOpacity={0.8}
-    >
-      <LinearGradient
-        colors={['#007bff', '#0056b3']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.cardAccentBar}
+  const renderBackdrop = useCallback(
+    props => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
       />
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Image
-            source={{ uri: item.logo }}
-            style={styles.supplierLogo}
-            onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
-          />
-          <View style={styles.supplierInfo}>
-            <Text style={styles.supplierName}>{item.name}</Text>
-            <Text style={styles.supplierCategory}>{item.category}</Text>
-          </View>
-        </View>
-        <View style={styles.cardBody}>
-          <Text style={styles.contactText}>
-            <Text style={styles.label}>Contact Person:</Text> {item.contactPerson}
-          </Text>
-          <Text style={styles.contactText}>
-            <Text style={styles.label}>Phone:</Text> {item.phone}
-          </Text>
-          <Text style={styles.contactText}>
-            <Text style={styles.label}>Address:</Text> {item.address}
-          </Text>
-        </View>
-        <View style={styles.cardFooter}>
-          <TouchableOpacity style={styles.detailsButton} onPress={() => openSupplierDetailsFullscreen(item)}>
-            <Text style={styles.detailsButtonText}>See Details</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
+    ),
+    [],
   );
 
+  const renderBottomSheetSupplierItem = useCallback(
+    ({item, index}) => (
+      <Pressable
+        style={bottomSheetStyles.bottomSheetSupplierItem}
+        onPress={() => handleBottomSheetSupplierPress(item)} // Make item pressable
+        android_ripple={{
+          color: 'rgba(0, 0, 0, 0.1)', // Subtle ripple color for Android
+          borderless: false, // Ripple effect will be contained within the card's bounds
+        }}>
+        <Text style={bottomSheetStyles.bottomSheetSupplierIndex}>
+          {index + 1}.
+        </Text>
+        <Text style={bottomSheetStyles.bottomSheetSupplierName}>
+          {item.SupplierName}
+        </Text>
+      </Pressable>
+    ),
+    [handleBottomSheetSupplierPress],
+  );
+
+  const headerHeight =
+    Platform.OS === 'android'
+      ? StatusBar.currentHeight + (showSearchBar ? 120 : 70)
+      : showSearchBar
+      ? 140
+      : 100;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Sticky Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Suppliers</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <LinearGradient
+        colors={['#1A508C', '#0D3B66']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 0}}
+        style={[styles.header, {height: headerHeight}]}>
+        <View style={styles.topHeaderRow}>
+          <Pressable
+            style={styles.backButton}
+            android_ripple={{
+              color: 'rgba(255,255,255,0.2)',
+              borderless: true,
+              radius: 20,
+            }}
+            onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+
+          <Text style={styles.headerTitle}>Suppliers Info</Text>
+          <Pressable
+            style={styles.searchToggleButton}
+            android_ripple={{
+              color: 'rgba(255,255,255,0.2)',
+              borderless: true,
+              radius: 20,
+            }}
+            onPress={toggleSearchBar}>
+            <Ionicons name="search" size={24} color="#fff" />
+          </Pressable>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={22} color="#888" style={styles.searchIcon} />
+        <View
+          style={[
+            styles.searchContainer,
+            {
+              height: showSearchBar ? 48 : 0,
+              paddingVertical: showSearchBar ? 0 : 0,
+              marginBottom: showSearchBar ? 10 : 0,
+              opacity: showSearchBar ? 1 : 0,
+            },
+          ]}>
+          <Ionicons
+            name="search"
+            size={20}
+            color="#fff"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search suppliers by name or category..."
-            placeholderTextColor="#888"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            returnKeyType="search"
+            placeholder="Search Supplier Name"
+            placeholderTextColor="#fff"
+            value={searchText}
+            onChangeText={setSearchText}
+            onSubmitEditing={handleSearch}
+            editable={showSearchBar}
+            pointerEvents={showSearchBar ? 'auto' : 'none'}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
-              <Icon name="close-circle" size={20} color="#888" />
-            </TouchableOpacity>
-          )}
+          <Pressable
+            style={styles.searchButton}
+            android_ripple={{
+              color: 'rgba(255,255,255,0.3)',
+              borderless: false,
+              radius: 25,
+            }}
+            onPress={handleSearch}
+            disabled={!showSearchBar}>
+            <Text style={styles.searchButtonText}>Search</Text>
+          </Pressable>
         </View>
+      </LinearGradient>
 
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#007bff" />
-            <Text style={styles.loadingText}>Loading suppliers...</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchSuppliers}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredSuppliers} // Use filtered data here
-            renderItem={renderSupplierCard}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContentContainer}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={() => (
-                <View style={styles.emptyListContainer}>
-                    <Text style={styles.emptyListText}>No suppliers found matching your search.</Text>
-                </View>
-            )}
+      {showGroupedSuppliers &&
+      suppliersGroupData &&
+      suppliersGroupData.length > 0 ? (
+        <FlatList
+          key="groupedSuppliersList"
+          data={suppliersGroupData}
+          keyExtractor={item => item.CategoryCode}
+          renderItem={({item}) => (
+            <SupplierGroupCard group={item} onPress={handleCategoryPress} />
+          )}
+          numColumns={3}
+          contentContainerStyle={styles.groupedListContent}
+        />
+      ) : showGroupedSuppliers &&
+        (!suppliersGroupData || suppliersGroupData.length === 0) ? (
+        <View style={styles.noDataContainer}>
+          <MaterialCommunityIcons
+            name="cloud-off-outline"
+            size={60}
+            color="#ccc"
           />
-        )}
+          <Text style={styles.noDataText}>No supplier categories found.</Text>
+          <Text style={styles.noDataSubText}>
+            Check your connection or try again later.
+          </Text>
+        </View>
+      ) : suppliersData && suppliersData.length > 0 ? (
+        <FlatList
+          key="searchSuppliersList"
+          data={suppliersData}
+          keyExtractor={item => item.Id.toString()}
+          renderItem={({item, index}) => (
+            <SupplierCard
+              supplier={item}
+              index={index}
+              onPress={handleSupplierCardPress}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <View style={styles.noDataContainer}>
+          <MaterialCommunityIcons
+            name="cloud-off-outline"
+            size={60}
+            color="#ccc"
+          />
+          <Text style={styles.noDataText}>No suppliers found.</Text>
+          <Text style={styles.noDataSubText}>
+            Try adjusting your search or check your connection.
+          </Text>
+        </View>
+      )}
 
-        {/* Fullscreen Supplier Details View (using Modal) */}
-        <Modal
-          animationType="slide"
-          transparent={false}
-          visible={fullscreenDetailsVisible}
-          statusBarTranslucent={true}
-          onRequestClose={closeSupplierDetailsFullscreen}
-        >
-          <SafeAreaView style={styles.fullScreenModalSafeArea}>
-            <StatusBar barStyle="light-content" backgroundColor="#007bff" />
-            <View style={styles.fullScreenModalHeader}>
-              <TouchableOpacity onPress={closeSupplierDetailsFullscreen} style={styles.backButton}>
-                <Icon name="arrow-back" size={28} color="#ffffff" />
-              </TouchableOpacity>
-              <Text style={styles.fullScreenModalTitle}>Supplier Details</Text>
-              <View style={{ width: 40 }} />
+      {/* Conditionally render Gorhom Bottom Sheet */}
+      {isBottomSheetOpen && ( // Only render when isBottomSheetOpen is true
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={0} // Start at an open index when rendered
+          snapPoints={snapPoints}
+          enablePanDownToClose={true}
+          onChange={handleSheetChanges}
+          backdropComponent={renderBackdrop}>
+          <View style={bottomSheetStyles.contentContainer}>
+            <View style={bottomSheetStyles.bottomSheetHeader}>
+              <Text style={bottomSheetStyles.bottomSheetTitle}>
+                {selectedCategoryName} Suppliers
+              </Text>
+              <Pressable
+                onPress={() => bottomSheetRef.current?.close()}
+                style={bottomSheetStyles.closeButton}>
+                <Ionicons name="close-circle-outline" size={30} color="#666" />
+              </Pressable>
             </View>
 
-            {selectedSupplier && (
-              <ScrollView contentContainerStyle={styles.fullScreenModalContent}>
-                <Image
-                  source={{ uri: selectedSupplier.logo }}
-                  style={styles.modalSupplierLogo}
-                  onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
-                />
-                <Text style={styles.modalSupplierName}>{selectedSupplier.name}</Text>
-                <Text style={styles.modalSupplierCategory}>{selectedSupplier.category}</Text>
-                <Text style={styles.modalDescription}>{selectedSupplier.description}</Text>
-
-                {/* Contact Information Section */}
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Contact Information</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Contact Person:</Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.contactPerson}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Email:</Text>
-                    <TouchableOpacity onPress={() => handleEmail(selectedSupplier.email)} disabled={selectedSupplier.email === 'N/A'}>
-                      <Text style={[styles.detailValue, selectedSupplier.email !== 'N/A' && styles.linkText]}>{selectedSupplier.email}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Phone:</Text>
-                    <TouchableOpacity onPress={() => handleCall(selectedSupplier.phone)} disabled={selectedSupplier.phone === 'N/A'}>
-                      <Text style={[styles.detailValue, selectedSupplier.phone !== 'N/A' && styles.linkText]}>{selectedSupplier.phone}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Address:</Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.address}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Website:</Text>
-                    <TouchableOpacity onPress={() => handleWebsite(selectedSupplier.website)} disabled={selectedSupplier.website === 'N/A'}>
-                      <Text style={[styles.detailValue, selectedSupplier.website !== 'N/A' && styles.linkText]}>{selectedSupplier.website}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Additional Details Section */}
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>Additional Details</Text>
-              
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Code </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.code}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Type </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.type}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>TIN </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.tin}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Alias </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.alias}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Proprietor </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.proprietor}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Zip Code </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.zipCode}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Business ID </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.businessId}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Disqualified </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.disqualified === "1" ? "Yes" : "No"}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Business Contact </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.businessContact}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Eligible </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.eligible === "1" ? "Yes" : "No"}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Supplier Image Count </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.supplierImageCount || '0'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Date Encoded </Text>
-                    <Text style={styles.detailValue}>{selectedSupplier.dateEncoded}</Text>
-                  </View>
-                </View>
-              </ScrollView>
+            {selectedCategorySuppliers.length > 0 ? (
+              <BottomSheetFlatList
+                data={selectedCategorySuppliers}
+                keyExtractor={item => item.SupplierId.toString()}
+                renderItem={renderBottomSheetSupplierItem}
+                contentContainerStyle={bottomSheetStyles.bottomSheetListContent}
+              />
+            ) : (
+              <View style={bottomSheetStyles.bottomSheetNoData}>
+                <Text style={bottomSheetStyles.bottomSheetNoDataText}>
+                  No suppliers in this category.
+                </Text>
+              </View>
             )}
-          </SafeAreaView>
-        </Modal>
-      </View>
+          </View>
+        </BottomSheet>
+      )}
     </SafeAreaView>
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f0f2f5',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#F0F2F5',
   },
   header: {
-    paddingTop: Platform.OS === 'android' ? 40 : 20, // Adjust for iOS notch
-    paddingVertical: 20,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 30,
     paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
-    //borderBottomLeftRadius: 20,
-    //borderBottomRightRadius: 20,
-    marginBottom: 0, // Removed bottom margin here, search bar will add spacing
+    justifyContent: 'flex-start',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 8,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    //justifyContent: 'center',
+    marginBottom: 15,
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    marginRight: 10,
+    zIndex: 1, // Ensure the back button is above the gradient
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#2c3e50',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
+    color: '#fff',
+    flex: 1,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginRight: 50,
+    marginLeft: -40,
+  },
+  searchToggleButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 30, // More rounded for modern look
-    marginHorizontal: 20,
-    marginTop: 20, // Space below header
-    marginBottom: 20, // Space above list
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 25,
+    width: '100%',
     paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 5,
-    height: 50, // Fixed height for consistency
+    overflow: 'hidden',
+    alignSelf: 'center',
   },
   searchIcon: {
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
+    color: '#fff',
     fontSize: 16,
-    color: '#333',
-    paddingVertical: Platform.OS === 'ios' ? 10 : 0, // Adjust padding for Android text input height
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'Roboto',
+    height: '100%',
+    paddingVertical: 0,
   },
-  clearSearchButton: {
-    marginLeft: 10,
-    padding: 5, // Make touchable area larger
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#555',
-  },
-  emptyListContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 50,
-    paddingHorizontal: 20,
-  },
-  emptyListText: {
-    fontSize: 18,
-    color: '#777',
-    textAlign: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#dc3545',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  retryButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  listContentContainer: {
+  searchButton: {
+    backgroundColor: '#0D3B66',
+    borderRadius: 20,
+    paddingVertical: 8,
     paddingHorizontal: 15,
-    paddingBottom: 20,
-  },
-  supplierCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 15,
-    marginBottom: 15,
+    marginLeft: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 1,
-    overflow: 'hidden',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  cardAccentBar: {
-    height: 8,
-    width: '100%',
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
-  cardContent: {
+  listContent: {
+    paddingVertical: 10,
+  },
+  groupedListContent: {
+    paddingHorizontal: SPACING / 2,
+    paddingVertical: SPACING,
+    justifyContent: 'flex-start',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
-  cardHeader: {
+  noDataText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#888',
+    marginTop: 10,
+  },
+  noDataSubText: {
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+});
+
+const bottomSheetStyles = StyleSheet.create({
+  contentContainer: {
+    flex: 1,
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    marginRight: 10,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  bottomSheetListContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  bottomSheetSupplierItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingBottom: 15,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
   },
-  supplierLogo: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginRight: 18,
-    borderWidth: 3,
-    borderColor: '#e8f0fe',
-    backgroundColor: '#f8f9fa',
-  },
-  supplierInfo: {
-    flex: 1,
-  },
-  supplierName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#34495e',
-    marginBottom: 5,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
-  },
-  supplierCategory: {
-    fontSize: 15,
-    color: '#7f8c8d',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
-  },
-  cardBody: {
-    marginBottom: 15,
-  },
-  contactText: {
-    fontSize: 15,
-    color: '#555',
-    marginBottom: 6,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'Roboto',
-  },
-  label: {
+  bottomSheetSupplierIndex: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
-  },
-  ratingContainer: {
-    backgroundColor: '#fffbe0',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: '#ffd700',
-  },
-  ratingText: {
-    fontSize: 16,
-    color: '#f39c12',
-    fontWeight: '700',
-  },
-  detailsButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    shadowColor: '#007bff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  detailsButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
-  },
-
-  // Fullscreen Modal Styles
-  fullScreenModalSafeArea: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  fullScreenModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    height: Platform.OS === 'ios' ? 50 : 60,
-    backgroundColor: '#007bff',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#0056b3',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  backButton: {
-    padding: 5,
-  },
-  fullScreenModalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
-  },
-  fullScreenModalContent: {
-    flexGrow: 1,
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  modalSupplierLogo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-    borderWidth: 5,
-    borderColor: '#007bff',
-  },
-  modalSupplierName: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#2c3e50',
-    marginBottom: 10,
-    textAlign: 'center',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
-  },
-  modalSupplierCategory: {
-    fontSize: 18,
-    color: '#7f8c8d',
-    marginBottom: 30,
-    textAlign: 'center',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
-  },
-  modalDescription: {
-    fontSize: 16,
     color: '#555',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'Roboto',
-    paddingHorizontal: 15,
+    marginRight: 10,
   },
-  modalSection: {
-    width: '100%',
-    marginBottom: 25,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    padding: 18,
-    backgroundColor: '#fefefe',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  modalSectionTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: '#34495e',
-    marginBottom: 12,
-    textAlign: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d0d0d0',
-    paddingBottom: 10,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 10,
-    paddingVertical: 2,
-  },
-  detailLabel: {
+  bottomSheetSupplierName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#444',
-    flex: 1,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'Roboto',
+    color: '#333',
+    flexShrink: 1,
   },
-  detailValue: {
+  bottomSheetNoData: {
+    paddingVertical: 30,
+    alignItems: 'center',
+  },
+  bottomSheetNoDataText: {
     fontSize: 16,
-    color: '#666',
-    flex: 2,
-    textAlign: 'right',
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'Roboto',
-  },
-  linkText: {
-    color: '#007bff',
-    textDecorationLine: 'underline',
+    color: '#888',
   },
 });
 

@@ -914,15 +914,15 @@ const DoctrackScreen = ({
                       marginTop: 10,
                       backgroundColor: 'white',
                       borderRadius: 5,
-                      shadowColor: '#000',
-                      shadowOffset: {width: 0, height: 2},
-                      shadowOpacity: 0.25,
-                      shadowRadius: 3.84,
+                      // shadowColor: '#000',
+                      // shadowOffset: {width: 0, height: 2},
+                      // shadowOpacity: 0.25,
+                      // shadowRadius: 3.84,
                       elevation: 1,
-                      borderBottomWidth: 1,
-                      borderBottomColor: 'silver',
-                      borderRightWidth: 1,
-                      borderRightColor: 'silver',
+                      // borderBottomWidth: 1,
+                      // borderBottomColor: 'silver',
+                      // borderRightWidth: 1,
+                      // borderRightColor: 'silver',
                     }}>
                     <View
                       style={{
@@ -944,7 +944,7 @@ const DoctrackScreen = ({
 
                     <View
                       style={{
-                        paddingHorizontal: 10,
+                        //paddingHorizontal: 10,
                         paddingTop: 10,
                         paddingBottom: 10,
                         marginStart: 5,
@@ -1009,7 +1009,16 @@ const DoctrackScreen = ({
 
                           {trackSumData?.length > 5 && (
                             <View
-                              style={{alignSelf: 'flex-end', marginTop: 10}}>
+                              style={{
+                                alignSelf: 'flex-end',
+                                marginTop: 10,
+                                paddingHorizontal: 10,
+                                borderRightWidth: 1,
+                                borderBottomWidth: 1,
+                                borderColor: '#ccc',
+                                borderRadius: 5,
+                                padding: 3,
+                              }}>
                               <TouchableOpacity
                                 onPress={() => setShowAll(prev => !prev)}>
                                 <Text
@@ -1044,15 +1053,15 @@ const DoctrackScreen = ({
                         marginTop: 10,
                         backgroundColor: 'white',
                         borderRadius: 5,
-                        shadowColor: '#000',
-                        shadowOffset: {width: 0, height: 2},
-                        shadowOpacity: 0.25,
-                        shadowRadius: 3.84,
+                        // shadowColor: '#000',
+                        // shadowOffset: {width: 0, height: 2},
+                        // shadowOpacity: 0.25,
+                        // shadowRadius: 3.84,
                         elevation: 1,
-                        borderBottomWidth: 1,
-                        borderBottomColor: 'silver',
-                        borderRightWidth: 1,
-                        borderRightColor: 'silver',
+                        // borderBottomWidth: 1,
+                        // borderBottomColor: 'silver',
+                        // borderRightWidth: 1,
+                        // borderRightColor: 'silver',
                       }}>
                       <View
                         style={{
@@ -1142,7 +1151,16 @@ const DoctrackScreen = ({
 
                             {regTrackSumData?.length > 5 && (
                               <View
-                                style={{alignSelf: 'flex-end', marginTop: 10}}>
+                                style={{
+                                  alignSelf: 'flex-end',
+                                  marginTop: 10,
+                                  paddingHorizontal: 10,
+                                  borderRightWidth: 1,
+                                  borderBottomWidth: 1,
+                                  borderColor: '#ccc',
+                                  borderRadius: 5,
+                                  padding: 3,
+                                }}>
                                 <TouchableOpacity
                                   onPress={() => setShowAll(prev => !prev)}>
                                   <Text
@@ -1488,7 +1506,7 @@ const DoctrackScreen = ({
               {[
                 {
                   label: 'Attachments',
-                  icon: 'attachment',
+                  icon: 'file-download-outline',
                   condition: procurement === '1',
                   screen: 'Attachments',
                 },
@@ -1605,6 +1623,18 @@ const DoctrackScreen = ({
                   iconName: 'crown-outline',
                   screen: 'SuperAccess',
                 },
+                /* {
+                  label: 'WebView',
+                  icon: true,
+                  iconName: 'crown-outline',
+                  screen: 'WebView',
+                }, */
+                //  {
+                //   label: 'Mayor\'s Portal',
+                //   icon: true,
+                //   iconName: 'crown-outline',
+                //   screen: 'MayorsPortal',
+                // },`
                 /* {
                   label: 'Edit',
                   icon: true,
@@ -1728,14 +1758,14 @@ const DoctrackScreen = ({
                 {
                   label: 'Supplier Reviews',
                   icon: true,
-                  iconName: 'account-group-outline',
+                  iconName: 'account-star-outline',
                   screen: 'SupplierReviews',
                 },
                 {
                   label: 'Reviews Summary',
                   icon: true,
                   iconName: 'chart-box-outline',
-                  screen: 'SuperAccess',
+                  screen: 'ReviewsSummary',
                 },
                 {
                   label: 'Supplier Ranking',
@@ -1759,7 +1789,7 @@ const DoctrackScreen = ({
                       {
                         width: '30%',
                         alignItems: 'center',
-                        //paddingVertical: 10,
+                        paddingVertical: 8,
                         marginBottom: 10,
                         borderRadius: 5,
                         //elevation: 2,
@@ -1823,8 +1853,8 @@ const DoctrackScreen = ({
             </View>
           </View>
         )}
-
-        {boss === '1' && (
+        {/* COMMUNICATIONS */}
+        {/* {boss === '1' && (
           <View
             style={{
               padding: 10,
@@ -1923,7 +1953,7 @@ const DoctrackScreen = ({
                             }
                             style={{
                               paddingVertical: 5,
-                              /* backgroundColor:pressed ? '#007bff' : '#ebf2ff', */ paddingHorizontal: 10,
+                              paddingHorizontal: 10,
                               borderRadius: 20,
                             }}
                           />
@@ -1952,8 +1982,9 @@ const DoctrackScreen = ({
               })}
             </View>
           </View>
-        )}
+        )} */}
 
+        {/*FINANCIAL */}
         {boss === '1' && (
           <View
             style={{
@@ -2001,13 +2032,13 @@ const DoctrackScreen = ({
                   label: 'Appropriation',
                   icon: true,
                   iconName: 'cash-multiple', // Indicates funding or allocation
-                  screen: 'SupplierReviews',
+                  screen: 'AppropriationScreen',
                 },
                 {
                   label: 'Transactions',
                   icon: true,
-                  iconName: 'swap-horizontal-bold', // Represents transactions or exchanges
-                  screen: 'Forum',
+                  iconName: 'swap-horizontal', // Represents transactions or exchanges
+                  screen: 'TransactionsScreen',
                 },
                 {
                   label: 'Status',
@@ -2065,7 +2096,7 @@ const DoctrackScreen = ({
                             }
                             style={{
                               paddingVertical: 5,
-                              /* backgroundColor:pressed ? '#007bff' : '#ebf2ff', */ paddingHorizontal: 10,
+                              paddingHorizontal: 10,
                               borderRadius: 20,
                             }}
                           />
@@ -2240,9 +2271,9 @@ const DoctrackScreen = ({
           <Image
             source={require('../../assets/images/logodavao.png')}
             style={{
-              width: 38,
-              height: 38,
-              opacity: 0.8,
+              width: 50,
+              height: 50,
+              //opacity: 0.8,
               marginRight: 10,
             }}
           />

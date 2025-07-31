@@ -135,6 +135,11 @@ import SurveysScreen from '../screens/SurveysScreen';
 import SurveyDetailScreen from '../screens/SurveyDetailScreen';
 import CreateSurveyScreen from '../screens/CreateSurveyScreen';
 import PPMPScreen from '../screens/financial/PPMPScreen';
+import ReviewsSummary from '../screens/supplierRating/ReviewsSummary';
+import MayorScreen from '../screens/MayorScreen';
+import AppropriationScreen from '../screens/financial/AppropriationScreen';
+import TransactionsScreen from '../screens/financial/TransactionsScreen';
+import SupplierDetails from '../screens/supplierRating/SupplierDetails';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -694,6 +699,11 @@ export function Route() {
           options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
         />
         <Stack.Screen
+          name="ReviewsSummary"
+          component={ReviewsSummary}
+          options={{headerShown: false}} // Hide header as CategoryDetailScreen has its own back button
+        />
+        <Stack.Screen
           name="Communications"
           component={CommunicationsScreen}
           options={{headerShown: false}}
@@ -774,6 +784,26 @@ export function Route() {
          <Stack.Screen
           name="PPMPScreen"
           component={PPMPScreen}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="AppropriationScreen"
+          component={AppropriationScreen}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="TransactionsScreen"
+          component={TransactionsScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="MayorsPortal"
+          component={MayorScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="SupplierDetails"
+          component={SupplierDetails}
           options={{headerShown: false}}
         />
 

@@ -6,8 +6,6 @@ const buildGradlePath = path.join(__dirname, '../../android/app/build.gradle');
 try {
   let buildGradleContent = fs.readFileSync(buildGradlePath, 'utf8');
 
-  // Regex to find the versionCode line. It looks for 'versionCode' followed by spaces
-  // and then captures the number.
   const versionCodeRegex = /(versionCode\s+)(\d+)/;
   const match = buildGradleContent.match(versionCodeRegex);
 
