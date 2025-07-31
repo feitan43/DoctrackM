@@ -15,7 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {FlashList} from '@shopify/flash-list';
 import IssueStatusModal from './IssueStatusModal';
 // Assuming you have a separate hook for disapproval, or if useSubmitApproveRequest can handle both
-import {useRequests, useSubmitApproveRequest} from '../../hooks/useInventory';
+import {useRequests, useSubmitApproveRequest, useSubmitDisapproveRequest} from '../../hooks/useInventory';
 import {Shimmer} from '../../utils/useShimmer';
 import useUserInfo from '../../api/useUserInfo';
 
@@ -50,7 +50,7 @@ export default function Requests({navigation}) {
     isError: isDisapproveError,
     error: disapproveError,
     reset: resetDisapproveStatus,
-  } = useSubmitApproveRequest();
+  } = useSubmitDisapproveRequest();
 
   const [requests, setRequests] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false); // For Issue

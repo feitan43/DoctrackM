@@ -397,14 +397,14 @@ const DoctrackScreen = ({
                             style={({pressed}) => ({
                               width: '30%',
                               alignItems: 'center',
-                              paddingVertical: 10,
+                              paddingVertical: 5,
                               marginBottom: 10,
                               borderRadius: 5,
-                              elevation: 1,
+                              //elevation: 2,
                               backgroundColor: pressed ? '#007bff' : '#ffffff',
-                              borderBottomWidth: 2,
+                              // borderBottomWidth: 2,
                               borderBottomColor: 'silver',
-                              borderRightWidth: 2,
+                              // borderRightWidth: 2,
                               borderRightColor: 'silver',
                             })}>
                             {({pressed}) => (
@@ -1240,16 +1240,16 @@ const DoctrackScreen = ({
                           }
                           style={({pressed}) => [
                             {
-                              width: arr.length === 3 ? '32%' : '32%',
+                              width: '30%',
                               alignItems: 'center',
-                              paddingVertical: 10,
+                              paddingVertical: 5,
                               marginBottom: 10,
                               borderRadius: 5,
-                              elevation: 1,
+                              //elevation: 2,
                               backgroundColor: pressed ? '#007bff' : '#ffffff',
-                              borderBottomWidth: 2,
+                              // borderBottomWidth: 2,
                               borderBottomColor: 'silver',
-                              borderRightWidth: 2,
+                              // borderRightWidth: 2,
                               borderRightColor: 'silver',
                             },
                           ]}
@@ -1356,11 +1356,11 @@ const DoctrackScreen = ({
               }}>
               {[
                 /*   {
-          label: 'Request',
-          icon: 'note-plus-outline', // Changed icon for Request
-          condition: procurement !== '1',
-          screen: 'InventoryScreen',
-        }, */
+                label: 'Request',
+                icon: 'note-plus-outline', // Changed icon for Request
+                condition: procurement !== '1',
+                screen: 'InventoryScreen',
+              }, */
                 {
                   label: 'Stocks',
                   icon: 'package-variant', // Changed icon for Stocks
@@ -1394,14 +1394,14 @@ const DoctrackScreen = ({
                       {
                         width: '30%',
                         alignItems: 'center',
-                        paddingVertical: 10,
+                        paddingVertical: 5,
                         marginBottom: 10,
                         borderRadius: 5,
-                        elevation: 1,
+                        //elevation: 2,
                         backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
+                        // borderBottomWidth: 2,
                         borderBottomColor: 'silver',
-                        borderRightWidth: 2,
+                        // borderRightWidth: 2,
                         borderRightColor: 'silver',
                       },
                     ]}
@@ -1514,14 +1514,14 @@ const DoctrackScreen = ({
                       {
                         width: '30%',
                         alignItems: 'center',
-                        paddingVertical: 10,
+                        paddingVertical: 5,
                         marginBottom: 10,
                         borderRadius: 5,
-                        elevation: 1,
+                        //elevation: 2,
                         backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
+                        // borderBottomWidth: 2,
                         borderBottomColor: 'silver',
-                        borderRightWidth: 2,
+                        // borderRightWidth: 2,
                         borderRightColor: 'silver',
                       },
                     ]}
@@ -1621,14 +1621,14 @@ const DoctrackScreen = ({
                       {
                         width: '30%',
                         alignItems: 'center',
-                        paddingVertical: 10,
+                        paddingVertical: 5,
                         marginBottom: 10,
                         borderRadius: 5,
-                        elevation: 1,
+                        //elevation: 2,
                         backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
+                        // borderBottomWidth: 2,
                         borderBottomColor: 'silver',
-                        borderRightWidth: 2,
+                        // borderRightWidth: 2,
                         borderRightColor: 'silver',
                       },
                     ]}
@@ -1746,7 +1746,7 @@ const DoctrackScreen = ({
                 {
                   label: 'Supplier Info',
                   icon: true,
-                  iconName: 'store-outline', 
+                  iconName: 'store-outline',
                   screen: 'SuppliersInfo',
                 },
               ].map((item, index) => {
@@ -1759,14 +1759,286 @@ const DoctrackScreen = ({
                       {
                         width: '30%',
                         alignItems: 'center',
-                        paddingVertical: 10,
+                        //paddingVertical: 10,
                         marginBottom: 10,
                         borderRadius: 5,
-                        elevation: 1,
+                        //elevation: 2,
                         backgroundColor: pressed ? '#007bff' : '#ffffff',
-                        borderBottomWidth: 2,
+                        // borderBottomWidth: 2,
                         borderBottomColor: 'silver',
-                        borderRightWidth: 2,
+                        // borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
+                    onPress={() => {
+                      if (item.screen) {
+                        navigation.navigate(item.screen);
+                      } else {
+                        console.log(`${item.label} card pressed`);
+                      }
+                    }}>
+                    {({pressed}) => (
+                      <>
+                        {item.icon ? (
+                          <MaterialCommunityIcons
+                            name={item.iconName}
+                            size={30}
+                            color={
+                              pressed
+                                ? 'white'
+                                : item.iconName === 'crown-outline'
+                                ? '#007bff'
+                                : '#007bff'
+                            }
+                            style={{
+                              paddingVertical: 5,
+                              /* backgroundColor:pressed ? '#007bff' : '#ebf2ff', */ paddingHorizontal: 10,
+                              borderRadius: 20,
+                            }}
+                          />
+                        ) : (
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#007bff',
+                              fontFamily: 'Inter_28pt-Bold',
+                              fontSize: 26,
+                            }}>
+                            {item.count || 0}
+                          </Text>
+                        )}
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {boss === '1' && (
+          <View
+            style={{
+              padding: 10,
+              marginTop: 20,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              elevation: 2,
+            }}>
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 10,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#5d5d5d',
+                  fontSize: 18,
+                  marginStart: 10,
+                }}>
+                Communications
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                gap: 15,
+              }}>
+              {[
+                {
+                  label: 'Surveys',
+                  icon: true,
+                  iconName: 'comment-question-outline',
+                  screen: 'Surveys',
+                },
+                {
+                  label: 'Announcements',
+                  icon: true,
+                  iconName: 'bullhorn-outline',
+                  screen: 'SupplierReviews',
+                },
+                {
+                  label: 'Forums',
+                  icon: true,
+                  iconName: 'forum-outline',
+                  screen: 'Forum',
+                },
+              ].map((item, index) => {
+                if (item.condition === false) return null;
+
+                return (
+                  <Pressable
+                    key={index}
+                    style={({pressed}) => [
+                      {
+                        width: '30%',
+                        alignItems: 'center',
+                        //paddingVertical: 10,
+                        marginBottom: 10,
+                        borderRadius: 5,
+                        //elevation: 2,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        // borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        // borderRightWidth: 2,
+                        borderRightColor: 'silver',
+                      },
+                    ]}
+                    android_ripple={{color: 'rgba(200, 200, 200, 0.5)'}}
+                    onPress={() => {
+                      if (item.screen) {
+                        navigation.navigate(item.screen);
+                      } else {
+                        console.log(`${item.label} card pressed`);
+                      }
+                    }}>
+                    {({pressed}) => (
+                      <>
+                        {item.icon ? (
+                          <MaterialCommunityIcons
+                            name={item.iconName}
+                            size={30}
+                            color={
+                              pressed
+                                ? 'white'
+                                : item.iconName === 'crown-outline'
+                                ? '#007bff'
+                                : '#007bff'
+                            }
+                            style={{
+                              paddingVertical: 5,
+                              /* backgroundColor:pressed ? '#007bff' : '#ebf2ff', */ paddingHorizontal: 10,
+                              borderRadius: 20,
+                            }}
+                          />
+                        ) : (
+                          <Text
+                            style={{
+                              color: pressed ? 'white' : '#007bff',
+                              fontFamily: 'Inter_28pt-Bold',
+                              fontSize: 26,
+                            }}>
+                            {item.count || 0}
+                          </Text>
+                        )}
+                        <Text
+                          style={{
+                            color: pressed ? 'white' : '#252525',
+                            fontFamily: 'Inter_28pt-Regular',
+                            fontSize: 10,
+                          }}>
+                          {item.label}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {boss === '1' && (
+          <View
+            style={{
+              padding: 10,
+              marginTop: 20,
+              backgroundColor: 'white',
+              borderRadius: 5,
+              elevation: 2,
+            }}>
+            <View
+              style={{
+                borderBottomWidth: 1,
+                borderBottomColor: '#eee',
+                paddingBottom: 5,
+                marginBottom: 10,
+              }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_28pt-Bold',
+                  color: '#5d5d5d',
+                  fontSize: 18,
+                  marginStart: 10,
+                }}>
+                Financial
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                gap: 15,
+              }}>
+              {[
+                {
+                  label: 'PPMP',
+                  icon: true,
+                  iconName: 'file-document-outline', // More suitable for documents/forms
+                  screen: 'PPMPScreen',
+                },
+                {
+                  label: 'Appropriation',
+                  icon: true,
+                  iconName: 'cash-multiple', // Indicates funding or allocation
+                  screen: 'SupplierReviews',
+                },
+                {
+                  label: 'Transactions',
+                  icon: true,
+                  iconName: 'swap-horizontal-bold', // Represents transactions or exchanges
+                  screen: 'Forum',
+                },
+                {
+                  label: 'Status',
+                  icon: true,
+                  iconName: 'checkbox-marked-circle-outline', // Represents a status/checked state
+                  screen: 'Forum',
+                },
+                {
+                  label: 'Analytics',
+                  icon: true,
+                  iconName: 'chart-bar', // Represents analytics or reports
+                  screen: 'Forum',
+                },
+              ].map((item, index) => {
+                if (item.condition === false) return null;
+
+                return (
+                  <Pressable
+                    key={index}
+                    style={({pressed}) => [
+                      {
+                        width: '30%',
+                        alignItems: 'center',
+                        //paddingVertical: 10,
+                        marginBottom: 10,
+                        borderRadius: 5,
+                        //elevation: 2,
+                        backgroundColor: pressed ? '#007bff' : '#ffffff',
+                        // borderBottomWidth: 2,
+                        borderBottomColor: 'silver',
+                        // borderRightWidth: 2,
                         borderRightColor: 'silver',
                       },
                     ]}
@@ -1899,14 +2171,14 @@ const DoctrackScreen = ({
                     {
                       width: '30%',
                       alignItems: 'center',
-                      paddingVertical: 10,
+                      paddingVertical: 5,
                       marginBottom: 10,
                       borderRadius: 5,
-                      elevation: 1,
+                      //elevation: 2,
                       backgroundColor: pressed ? '#007bff' : '#ffffff',
-                      borderBottomWidth: 2,
+                      // borderBottomWidth: 2,
                       borderBottomColor: 'silver',
-                      borderRightWidth: 2,
+                      // borderRightWidth: 2,
                       borderRightColor: 'silver',
                     },
                   ]}

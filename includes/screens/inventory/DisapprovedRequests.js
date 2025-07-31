@@ -6,39 +6,22 @@ import {
   StyleSheet,
   Pressable,
   TouchableOpacity,
-  Modal,
-  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {FlashList} from '@shopify/flash-list';
-import {useRequests, useSubmitCompleteRequest} from '../../hooks/useInventory';
+import {useRequests} from '../../hooks/useInventory';
 import {Shimmer} from '../../utils/useShimmer';
 
-export default function ForPickUp({navigation}) {
+export default function Disapproved({navigation}) {
   const {
     data: requestsData,
     isLoading: requestsLoading,
     isError: requestsError,
   } = useRequests();
 
-  const {
-    mutate: submitCompleteRequest,
-    isLoading: isCompleting,
-    isSuccess: isCompleteSuccess,
-    isError: isCompleteError,
-    error: completeError,
-    reset: resetCompleteStatus,
-  } = useSubmitCompleteRequest();
-
-  const [forPickUpItems, setForPickUpItems] = useState([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [issueStatusModalVisible, setIssueStatusModalVisible] = useState(false);
-  const [issueStatus, setIssueStatus] = useState('');
-  const [issueMessage, setIssueMessage] = useState('');
-
+  const [disapprovedItems, setDisapprovedItems] = useState([]);
   const [expandedItems, setExpandedItems] = useState({});
   // New state to track if an item's name is truncated
   const [isItemNameTruncated, setIsItemNameTruncated] = useState({});
@@ -46,9 +29,9 @@ export default function ForPickUp({navigation}) {
   useEffect(() => {
     if (requestsData) {
       const filteredItems = requestsData.filter(
-        request => request.Status.toLowerCase() === 'forpickup',
+        request => request.Status.toLowerCase() === 'disapproved',
       );
-      setForPickUpItems(filteredItems);
+      setDisapprovedItems(filteredItems);
     }
   }, [requestsData]);
 
@@ -69,62 +52,7 @@ export default function ForPickUp({navigation}) {
     }));
   }, []);
 
-  useEffect(() => {
-    if (isCompleteSuccess) {
-      setForPickupItems(prevItems =>
-        prevItems.filter(item => item.Id !== selectedItem?.Id),
-      );
-
-      setIssueStatus('success');
-      setIssueMessage(
-        `"${selectedItem?.Item}" (Qty: ${selectedItem?.Qty}) has been successfully picked up by ${selectedItem?.Name}.`,
-      );
-      setIssueStatusModalVisible(true);
-      resetCompleteStatus();
-    } else if (isCompleteError) {
-      setIssueStatus('error');
-      setIssueMessage(
-        `Failed to complete pickup for "${selectedItem?.Item}". Error: ${
-          completeError?.message || 'Unknown error'
-        }. Please try again.`,
-      );
-      setIssueStatusModalVisible(true);
-      resetCompleteStatus();
-    }
-  }, [
-    isCompleteSuccess,
-    isCompleteError,
-    completeError,
-    selectedItem,
-    resetCompleteStatus,
-  ]);
-
-  const handleCompletePickup = item => {
-    setSelectedItem(item);
-    setIsModalVisible(true);
-  };
-
-  const closeConfirmationModal = () => {
-    setIsModalVisible(false);
-  };
-
-  const handleCloseIssueStatusModal = () => {
-    setIssueStatusModalVisible(false);
-    setSelectedItem(null);
-  };
-
-  const confirmPickupCompletion = () => {
-    closeConfirmationModal();
-
-    if (selectedItem) {
-      console.log('Completing pickup for item:', selectedItem);
-      submitCompleteRequest({
-        requestId: selectedItem.Id,
-      });
-    }
-  };
-
-  const renderForPickUpItem = useCallback(
+  const renderDisapprovedItem = useCallback(
     ({item, index}) => {
       const isExpanded = expandedItems[item.Id];
       const isTruncated = isItemNameTruncated[item.Id];
@@ -162,7 +90,7 @@ export default function ForPickUp({navigation}) {
                   </TouchableOpacity>
                 )}
               </View>
-              <Text style={[styles.statusBadge, styles.statusForPickUp]}>
+              <Text style={[styles.statusBadge, styles.statusDisapproved]}>
                 {item.Status}
               </Text>
             </View>
@@ -237,22 +165,6 @@ export default function ForPickUp({navigation}) {
                   <Text style={styles.infoValue}>{item.Remarks}</Text>
                 </View>
               )}
-
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={() => handleCompletePickup(item)}
-                disabled={isCompleting && selectedItem?.Id === item.Id}>
-                <MaterialCommunityIcons
-                  name="check-circle-outline"
-                  size={18}
-                  color="#fff"
-                />
-                <Text style={styles.completeButtonText}>
-                  {isCompleting && selectedItem?.Id === item.Id
-                    ? 'Completing...'
-                    : 'Complete Pickup'}
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -294,7 +206,7 @@ export default function ForPickUp({navigation}) {
           onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>For Pick Up</Text>
+        <Text style={styles.headerTitle}>Disapproved</Text>
         <View style={{width: 40}} />
       </LinearGradient>
 
@@ -314,67 +226,21 @@ export default function ForPickUp({navigation}) {
             Please check your connection and try again
           </Text>
         </View>
-      ) : forPickUpItems.length > 0 ? (
+      ) : disapprovedItems.length > 0 ? (
         <FlashList
-          data={forPickUpItems}
-          renderItem={renderForPickUpItem}
+          data={disapprovedItems}
+          renderItem={renderDisapprovedItem}
           keyExtractor={item => item.Id.toString()}
           contentContainerStyle={styles.listContent}
           estimatedItemSize={260}
         />
       ) : (
         <View style={styles.emptyListContainer}>
-          <MaterialCommunityIcons
-            name="package-variant-closed"
-            size={80}
-            color="#bbb"
-          />
-          <Text style={styles.emptyListText}>No items for pickup</Text>
-          <Text style={styles.emptyListSubText}>
-            Your requested items will appear here once ready!
-          </Text>
+          <Ionicons name="sad-outline" size={80} color="#bbb" />
+          <Text style={styles.emptyListText}>No disapproved items</Text>
+          <Text style={styles.emptyListSubText}>All good!</Text>
         </View>
       )}
-
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isModalVisible}
-        statusBarTranslucent={true}
-        onRequestClose={closeConfirmationModal}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Confirm Pickup</Text>
-            <Text style={styles.modalItemDetail}>
-              Are you sure you want to mark{' '}
-              <Text style={styles.modalHighlightText}>
-                "{selectedItem?.Item}" (Qty: {selectedItem?.Qty})
-              </Text>{' '}
-              as picked up by{' '}
-              <Text style={styles.modalHighlightText}>
-                {selectedItem?.Name}
-              </Text>
-              ?
-            </Text>
-
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.buttonCancel]}
-                onPress={closeConfirmationModal}>
-                <Text style={styles.textStyle}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.buttonConfirm]}
-                onPress={confirmPickupCompletion}
-                disabled={isCompleting}>
-                <Text style={styles.textStyle}>
-                  {isCompleting ? 'Confirming...' : 'Confirm'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -490,11 +356,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  statusForPickUp: {
-    backgroundColor: '#E8F5E9', // Light Green
-    color: '#2E7D32', // Darker Green
+  statusDisapproved: {
+    backgroundColor: '#FFEBEE',
+    color: '#E53935',
     borderWidth: 1,
-    borderColor: '#A5D6A7', // Medium Green
+    borderColor: '#EF9A9A',
   },
   requestDetails: {
     marginBottom: 12,
@@ -519,29 +385,6 @@ const styles = StyleSheet.create({
     color: '#222',
     flex: 1,
     textAlign: 'right',
-  },
-    completeButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-end',
-    marginTop: 15,
-    shadowColor: '#28a745',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  completeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-    letterSpacing: 0.5,
   },
   emptyListContainer: {
     flex: 1,

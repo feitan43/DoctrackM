@@ -1,22 +1,22 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
   Text,
   StyleSheet,
-  Pressable,
   TouchableOpacity,
+  Pressable,
   Modal,
-  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import {FlashList} from '@shopify/flash-list';
-import {useRequests, useSubmitCompleteRequest} from '../../hooks/useInventory';
-import {Shimmer} from '../../utils/useShimmer';
+import { FlashList } from '@shopify/flash-list';
+import IssueStatusModal from './IssueStatusModal';
+import { useRequests, useSubmitCompleteRequest } from '../../hooks/useInventory';
+import { Shimmer } from '../../utils/useShimmer';
 
-export default function ForPickUp({navigation}) {
+export default function ForPickup({ navigation }) {
   const {
     data: requestsData,
     isLoading: requestsLoading,
@@ -32,74 +32,45 @@ export default function ForPickUp({navigation}) {
     reset: resetCompleteStatus,
   } = useSubmitCompleteRequest();
 
-  const [forPickUpItems, setForPickUpItems] = useState([]);
+  const [forPickupItems, setForPickupItems] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [issueStatusModalVisible, setIssueStatusModalVisible] = useState(false);
   const [issueStatus, setIssueStatus] = useState('');
   const [issueMessage, setIssueMessage] = useState('');
 
-  const [expandedItems, setExpandedItems] = useState({});
-  // New state to track if an item's name is truncated
-  const [isItemNameTruncated, setIsItemNameTruncated] = useState({});
-
   useEffect(() => {
     if (requestsData) {
       const filteredItems = requestsData.filter(
-        request => request.Status.toLowerCase() === 'forpickup',
+        (request) => request.Status.toLowerCase() === 'disapproved'
       );
-      setForPickUpItems(filteredItems);
+      setForPickupItems(filteredItems);
     }
   }, [requestsData]);
 
-  const toggleItemExpansion = useCallback(itemId => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId],
-    }));
-  }, []);
-
-  // Callback to detect if text is truncated
-  const handleTextLayout = useCallback((itemId, event) => {
-    // If the text component has more lines than its target (1 line when collapsed), it's truncated
-    const didTruncate = event.nativeEvent.lines.length > 1;
-    setIsItemNameTruncated(prev => ({
-      ...prev,
-      [itemId]: didTruncate,
-    }));
-  }, []);
-
   useEffect(() => {
     if (isCompleteSuccess) {
-      setForPickupItems(prevItems =>
-        prevItems.filter(item => item.Id !== selectedItem?.Id),
+      setForPickupItems((prevItems) =>
+        prevItems.filter((item) => item.Id !== selectedItem?.Id)
       );
 
       setIssueStatus('success');
       setIssueMessage(
-        `"${selectedItem?.Item}" (Qty: ${selectedItem?.Qty}) has been successfully picked up by ${selectedItem?.Name}.`,
+        `"${selectedItem?.Item}" (Qty: ${selectedItem?.Qty}) has been successfully picked up by ${selectedItem?.Name}.`
       );
       setIssueStatusModalVisible(true);
       resetCompleteStatus();
     } else if (isCompleteError) {
       setIssueStatus('error');
       setIssueMessage(
-        `Failed to complete pickup for "${selectedItem?.Item}". Error: ${
-          completeError?.message || 'Unknown error'
-        }. Please try again.`,
+        `Failed to complete pickup for "${selectedItem?.Item}". Error: ${completeError?.message || 'Unknown error'}. Please try again.`
       );
       setIssueStatusModalVisible(true);
       resetCompleteStatus();
     }
-  }, [
-    isCompleteSuccess,
-    isCompleteError,
-    completeError,
-    selectedItem,
-    resetCompleteStatus,
-  ]);
+  }, [isCompleteSuccess, isCompleteError, completeError, selectedItem, resetCompleteStatus]);
 
-  const handleCompletePickup = item => {
+  const handleCompletePickup = (item) => {
     setSelectedItem(item);
     setIsModalVisible(true);
   };
@@ -124,147 +95,79 @@ export default function ForPickUp({navigation}) {
     }
   };
 
-  const renderForPickUpItem = useCallback(
-    ({item, index}) => {
-      const isExpanded = expandedItems[item.Id];
-      const isTruncated = isItemNameTruncated[item.Id];
-      const shouldShowExpandButton = !isExpanded && isTruncated;
-
-      return (
-        <View style={styles.requestCard}>
-          <View style={styles.indexColumn}>
-            <Text style={styles.indexText}>{index + 1}</Text>
-          </View>
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <View style={styles.itemNameContainer}>
-                <Text
-                  style={styles.itemName}
-                  numberOfLines={isExpanded ? undefined : 3}
-                  ellipsizeMode="tail"
-                  onTextLayout={event => handleTextLayout(item.Id, event)}>
-                  {item.Item}
-                </Text>
-
-                {shouldShowExpandButton && (
-                  <TouchableOpacity
-                    onPress={() => toggleItemExpansion(item.Id)}
-                    style={styles.expandButton}>
-                    <Text style={styles.expandButtonText}>Show More</Text>
-                  </TouchableOpacity>
-                )}
-
-                {isExpanded && isTruncated && (
-                  <TouchableOpacity
-                    onPress={() => toggleItemExpansion(item.Id)}
-                    style={styles.expandButton}>
-                    <Text style={styles.expandButtonText}>Show Less</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <Text style={[styles.statusBadge, styles.statusForPickUp]}>
-                {item.Status}
-              </Text>
-            </View>
-
-            <View style={styles.requestDetails}>
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="person-circle-outline"
-                  size={18}
-                  style={styles.infoIcon}
-                />
-                <Text style={styles.infoLabel}>Requestor </Text>
-                <Text style={styles.infoValue}>{item.Name}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="finger-print-outline"
-                  size={18}
-                  style={styles.infoIcon}
-                />
-                <Text style={styles.infoLabel}>Employee No </Text>
-                <Text style={styles.infoValue}>{item.EmployeeNumber}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="barcode-outline"
-                  size={18}
-                  style={styles.infoIcon}
-                />
-                <Text style={styles.infoLabel}>Tracking No </Text>
-                <Text style={styles.infoValue}>{item.TrackingNumber}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons
-                  name="counter"
-                  size={18}
-                  style={styles.infoIcon}
-                />
-                <Text style={styles.infoLabel}>Quantity </Text>
-                <Text style={styles.infoValue}>
-                  {item.Qty} {item.Units}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={18}
-                  style={styles.infoIcon}
-                />
-                <Text style={styles.infoLabel}>Date Requested </Text>
-                <Text style={styles.infoValue}>
-                  {item.DateRequested || 'N/A'}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="chatbox-ellipses-outline"
-                  size={18}
-                  style={styles.infoIcon}
-                />
-                <Text style={styles.infoLabel}>Reason </Text>
-                <Text style={styles.infoValue}>{item.Reason}</Text>
-              </View>
-              {item.Remarks && (
-                <View style={styles.infoRow}>
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={18}
-                    style={styles.infoIcon}
-                  />
-                  <Text style={styles.infoLabel}>Remarks </Text>
-                  <Text style={styles.infoValue}>{item.Remarks}</Text>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={() => handleCompletePickup(item)}
-                disabled={isCompleting && selectedItem?.Id === item.Id}>
-                <MaterialCommunityIcons
-                  name="check-circle-outline"
-                  size={18}
-                  color="#fff"
-                />
-                <Text style={styles.completeButtonText}>
-                  {isCompleting && selectedItem?.Id === item.Id
-                    ? 'Completing...'
-                    : 'Complete Pickup'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+  const renderForPickupItem = useCallback(
+    ({ item, index }) => ( // Added 'index' here
+      <View style={styles.requestCard}>
+        <View style={styles.indexColumn}>
+          <Text style={styles.indexText}>{index + 1}</Text>
         </View>
-      );
-    },
-    [expandedItems, isItemNameTruncated, toggleItemExpansion, handleTextLayout],
+        <View style={styles.cardContent}> 
+          <View style={styles.cardHeader}>
+            <Text style={styles.itemName} numberOfLines={1} ellipsizeMode="tail">
+              {item.Item}
+            </Text>
+            <Text
+              style={[
+                styles.statusBadge,
+                styles.statusForPickup,
+              ]}>
+              {item.Status}
+            </Text>
+          </View>
+
+          <View style={styles.requestDetails}>
+            <View style={styles.infoRow}>
+              <Ionicons name="person-circle-outline" size={18} style={styles.infoIcon} />
+              <Text style={styles.infoLabel}>Requestor </Text>
+              <Text style={styles.infoValue}>{item.Name}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="finger-print-outline" size={18} style={styles.infoIcon} />
+              <Text style={styles.infoLabel}>Employee No </Text>
+              <Text style={styles.infoValue}>{item.EmployeeNumber}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="barcode-outline" size={18} style={styles.infoIcon} />
+              <Text style={styles.infoLabel}>Tracking No </Text>
+              <Text style={styles.infoValue}>{item.TrackingNumber}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="counter" size={18} style={styles.infoIcon} />
+              <Text style={styles.infoLabel}>Quantity </Text>
+              <Text style={styles.infoValue}>{item.Qty} {item.Units}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={18} style={styles.infoIcon} />
+              <Text style={styles.infoLabel}>Date Issued </Text>
+              <Text style={styles.infoValue}>{item.DateIssued || 'N/A'}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="chatbox-ellipses-outline" size={18} style={styles.infoIcon} />
+              <Text style={styles.infoLabel}>Reason </Text>
+              <Text style={styles.infoValue}>{item.Reason}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={() => handleCompletePickup(item)}
+            disabled={isCompleting && selectedItem?.Id === item.Id}
+          >
+            <MaterialCommunityIcons name="check-circle-outline" size={18} color="#fff" />
+            <Text style={styles.completeButtonText}>
+              {isCompleting && selectedItem?.Id === item.Id ? 'Completing...' : 'Complete Pickup'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    ),
+    [isCompleting, selectedItem, handleCompletePickup],
   );
 
   const ShimmerRequestCardPlaceholder = () => (
     <View style={[styles.requestCard, styles.shimmerCard]}>
-      <Shimmer style={styles.shimmerIndex} />
-      <View style={styles.shimmerContent}>
+      <Shimmer style={styles.shimmerIndex} /> 
+      <View style={styles.shimmerContent}> 
         <Shimmer style={styles.shimmerTitle} />
         <Shimmer style={styles.shimmerStatus} />
         {[...Array(5)].map((_, i) => (
@@ -273,6 +176,7 @@ export default function ForPickUp({navigation}) {
             <Shimmer style={styles.shimmerText} />
           </View>
         ))}
+        <Shimmer style={styles.shimmerButton} />
       </View>
     </View>
   );
@@ -281,8 +185,8 @@ export default function ForPickUp({navigation}) {
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#1A508C', '#0D3B66']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 0}}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
         style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -294,8 +198,8 @@ export default function ForPickUp({navigation}) {
           onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>For Pick Up</Text>
-        <View style={{width: 40}} />
+        <Text style={styles.headerTitle}>For Pickup</Text>
+        <View style={{ width: 40 }} />
       </LinearGradient>
 
       {requestsLoading ? (
@@ -314,25 +218,19 @@ export default function ForPickUp({navigation}) {
             Please check your connection and try again
           </Text>
         </View>
-      ) : forPickUpItems.length > 0 ? (
+      ) : forPickupItems.length > 0 ? (
         <FlashList
-          data={forPickUpItems}
-          renderItem={renderForPickUpItem}
-          keyExtractor={item => item.Id.toString()}
+          data={forPickupItems}
+          renderItem={renderForPickupItem}
+          keyExtractor={(item) => item.Id.toString()}
           contentContainerStyle={styles.listContent}
           estimatedItemSize={260}
         />
       ) : (
         <View style={styles.emptyListContainer}>
-          <MaterialCommunityIcons
-            name="package-variant-closed"
-            size={80}
-            color="#bbb"
-          />
-          <Text style={styles.emptyListText}>No items for pickup</Text>
-          <Text style={styles.emptyListSubText}>
-            Your requested items will appear here once ready!
-          </Text>
+          <Ionicons name="cube-outline" size={80} color="#bbb" />
+          <Text style={styles.emptyListText}>No items currently for pickup</Text>
+          <Text style={styles.emptyListSubText}>All clear!</Text>
         </View>
       )}
 
@@ -366,15 +264,24 @@ export default function ForPickUp({navigation}) {
               <TouchableOpacity
                 style={[styles.modalButton, styles.buttonConfirm]}
                 onPress={confirmPickupCompletion}
-                disabled={isCompleting}>
+                disabled={isCompleting}
+              >
                 <Text style={styles.textStyle}>
                   {isCompleting ? 'Confirming...' : 'Confirm'}
                 </Text>
               </TouchableOpacity>
             </View>
+            
           </View>
         </View>
       </Modal>
+
+      <IssueStatusModal
+        visible={issueStatusModalVisible}
+        status={issueStatus}
+        message={issueMessage}
+        onClose={handleCloseIssueStatusModal}
+      />
     </SafeAreaView>
   );
 }
@@ -392,7 +299,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
@@ -421,64 +328,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
     shadowColor: '#1A508C',
-    shadowOffset: {width: 0, height: 6},
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 5,
-    flexDirection: 'row',
-    overflow: 'hidden',
+    flexDirection: 'row', // Added for horizontal layout
+    overflow: 'hidden', // Ensures border radius clips content
   },
-  indexColumn: {
-    width: 30,
-    backgroundColor: '#E6EEF7',
-    //justifyContent: 'center',
+  indexColumn: { // New style for the index column
+    width: 50, // Fixed width for the index column
+    backgroundColor: '#E6EEF7', // Light background for the index
+    justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
     borderRightColor: 'rgba(0,0,0,0.05)',
-    paddingVertical: 20,
+    paddingVertical: 20, // Match card padding
   },
-  indexText: {
+  indexText: { // Style for the index number
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1A508C',
   },
-  cardContent: {
-    flex: 1,
-    padding: 20,
+  cardContent: { // New style to wrap the rest of the card content
+    flex: 1, // Takes up remaining space
+    padding: 20, // Original padding
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  itemNameContainer: {
-    flex: 1,
-    marginRight: 10,
-    width: '70%', // or another appropriate value
-  },
   itemName: {
-    fontSize: 18,
+   fontSize: 18,
     fontWeight: '700',
     color: '#1A508C',
     letterSpacing: 0.2,
     minHeight: 24, // approximate height of one line
-  },
-  expandButton: {
-    marginTop: 5,
-    alignSelf: 'flex-start',
-    paddingVertical: 2,
-    paddingHorizontal: 5,
-    borderRadius: 5,
-    backgroundColor: 'rgba(26, 80, 140, 0.1)',
-  },
-  expandButtonText: {
-    fontSize: 12,
-    color: '#1A508C',
-    fontWeight: '600',
   },
   statusBadge: {
     fontSize: 12,
@@ -490,11 +379,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  statusForPickUp: {
-    backgroundColor: '#E8F5E9', // Light Green
-    color: '#2E7D32', // Darker Green
+  statusForPickup: {
+    backgroundColor: '#FFF3E0',
+    color: '#FF9800',
     borderWidth: 1,
-    borderColor: '#A5D6A7', // Medium Green
+    borderColor: '#FFCC80',
   },
   requestDetails: {
     marginBottom: 12,
@@ -520,7 +409,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-    completeButton: {
+  completeButton: {
     backgroundColor: '#28a745',
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -562,21 +451,87 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#1A508C',
+  },
+  modalItemDetail: {
+    fontSize: 17,
+    marginBottom: 15,
+    textAlign: 'center',
+    color: '#555',
+  },
+  modalHighlightText: {
+    fontWeight: 'bold',
+    color: '#1A508C',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 10,
+  },
+  modalButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    elevation: 3,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  buttonCancel: {
+    backgroundColor: '#dc3545',
+  },
+  buttonConfirm: {
+    backgroundColor: '#28a745',
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  // Shimmer styles
   shimmerCard: {
     height: 260,
     justifyContent: 'flex-start',
     marginBottom: 16,
     backgroundColor: '#fff',
-    flexDirection: 'row',
+    flexDirection: 'row', // Match requestCard flex direction
   },
-  shimmerIndex: {
+  shimmerIndex: { // Shimmer for index column
     height: '100%',
     width: 50,
     backgroundColor: '#E0E0E0',
     borderTopLeftRadius: 16,
     borderBottomLeftRadius: 16,
   },
-  shimmerContent: {
+  shimmerContent: { // Shimmer for content area
     flex: 1,
     padding: 20,
   },
@@ -609,5 +564,12 @@ const styles = StyleSheet.create({
     height: 14,
     width: '60%',
     borderRadius: 4,
+  },
+  shimmerButton: {
+    height: 40,
+    width: 120,
+    borderRadius: 10,
+    alignSelf: 'flex-end',
+    marginTop: 15,
   },
 });

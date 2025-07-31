@@ -130,6 +130,11 @@ import ForPickUp from '../screens/inventory/ForPickUp';
 import SupplierRanking from '../screens/supplierRating/SupplierRanking';
 import SuppliesSummary from '../screens/inventory/SuppliesSummary';
 import SuppliersInfo from '../screens/supplierRating/SuppliersInfo';
+import DisapprovedRequests from '../screens/inventory/DisapprovedRequests';
+import SurveysScreen from '../screens/SurveysScreen';
+import SurveyDetailScreen from '../screens/SurveyDetailScreen';
+import CreateSurveyScreen from '../screens/CreateSurveyScreen';
+import PPMPScreen from '../screens/financial/PPMPScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -744,6 +749,31 @@ export function Route() {
          <Stack.Screen
           name="SuppliersInfo"
           component={SuppliersInfo}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="DisapprovedRequests"
+          component={DisapprovedRequests}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="Surveys"
+          component={SurveysScreen}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="SurveyDetail"
+          component={SurveyDetailScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="CreateSurvey"
+          component={CreateSurveyScreen}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="PPMPScreen"
+          component={PPMPScreen}
           options={{headerShown: false}}
         />
 

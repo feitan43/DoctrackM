@@ -576,3 +576,36 @@ export const useSubmitCompleteRequest = () => {
     // Optional: onMutate, onSettled callbacks can also be added here
   });
 };
+
+export const submitDisapproveRequest = async ({requestId, employeeNumber}) => {
+  const payload = {
+    RequestId: requestId,
+    ApproveBy: employeeNumber,
+  };
+
+  console.log("pay",payload);
+  const url = `/invDisapprovedRequest`;
+  const {data} = await apiClient.post(url, payload);
+
+  console.log("data",data);
+  return data;
+};
+
+export const useSubmitDisapproveRequest = () => {
+  const queryClient = useQueryClient();
+  const {employeeNumber, officeCode} = useUserInfo();
+  return useMutation({
+    mutationFn: async requestDetails => {
+      return submitDisapproveRequest({...requestDetails, employeeNumber});
+    },
+    onSuccess: (data, variables, context) => {
+      console.log('Request submitted successfully:', data);
+      queryClient.invalidateQueries(['inventoryRequests', officeCode]);
+    },
+    onError: (error, variables, context) => {
+      console.error('Failed to submit request:', error);
+    },
+    // Optional: onMutate, onSettled callbacks can also be added here
+  });
+};
+

@@ -17,7 +17,6 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetFlatList,
 } from '@gorhom/bottom-sheet';
-import { Print } from 'react-native-print';
 import useUserInfo from '../../api/useUserInfo';
 
 export default function SuppliesSummary({ navigation }) {
