@@ -117,7 +117,7 @@ const SuperAccessScreen = ({navigation}) => {
 
   // BottomSheet State and Ref
   const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['25%', '50%', '75%'], []); // Define snap points for the bottom sheet
+  const snapPoints = useMemo(() => ['70%', '90%'], []); // Define snap points for the bottom sheet
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false); // New state to control visibility
 
   // State for office search within BottomSheet

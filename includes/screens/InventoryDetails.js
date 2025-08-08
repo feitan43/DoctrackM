@@ -530,7 +530,7 @@ const InventoryDetails = ({route, navigation}) => {
                   <Text style={styles.value}>
                     {getDetail(inventoryItem?.StickerNumber)}
                   </Text>
-                </View> 
+                </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Unit Cost </Text>
                   <Text style={styles.value}>

@@ -71,52 +71,52 @@ export default function Requests({navigation}) {
     }
   }, [requestsData]);
 
-  useEffect(() => {
-    // This effect runs when the approval status changes
-    if (isApproveSuccess) {
-      setRequests(
-        prevRequests => prevRequests.filter(req => req.Id !== selectedRequest?.Id),
-      );
-      navigation.navigate('ForPickUp', {
-        issuedItem: {
-          id: selectedRequest?.Id,
-          itemName: selectedRequest?.Item,
-          quantity: issueQty,
-          requestor: selectedRequest?.Name,
-          employee: selectedRequest?.Name,
-          trackingNumber: selectedRequest?.TrackingNumber,
-          employeeNumber: selectedRequest?.EmployeeNumber,
-        },
-      });
-      setIssueStatus('success');
-      setIssueMessage(
-        `"${selectedRequest?.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest?.Name}.`,
-      );
-      setIssueStatusModalVisible(true);
-      resetApproveStatus();
-      setSelectedRequest(null); // Clear selectedRequest after successful action
-      refetchRequests(); // Refetch requests to ensure the list is up-to-date
-    } else if (isApproveError) {
-      setIssueStatus('error');
-      setIssueMessage(
-        `Failed to issue "${selectedRequest?.Item}". Error: ${
-          approveError?.message || 'Unknown error'
-        }. Please try again.`,
-      );
-      setIssueStatusModalVisible(true);
-      resetApproveStatus();
-      setSelectedRequest(null); // Clear selectedRequest even on error
-    }
-  }, [
-    isApproveSuccess,
-    isApproveError,
-    approveError,
-    selectedRequest,
-    issueQty,
-    navigation,
-    resetApproveStatus,
-    refetchRequests, // Add refetchRequests to dependencies
-  ]);
+  // useEffect(() => {
+  //   // This effect runs when the approval status changes
+  //   if (isApproveSuccess) {
+  //     setRequests(
+  //       prevRequests => prevRequests.filter(req => req.Id !== selectedRequest?.Id),
+  //     );
+  //     navigation.navigate('ForPickUp', {
+  //       issuedItem: {
+  //         id: selectedRequest?.Id,
+  //         itemName: selectedRequest?.Item,
+  //         quantity: issueQty,
+  //         requestor: selectedRequest?.Name,
+  //         employee: selectedRequest?.Name,
+  //         trackingNumber: selectedRequest?.TrackingNumber,
+  //         employeeNumber: selectedRequest?.EmployeeNumber,
+  //       },
+  //     });
+  //     setIssueStatus('success');
+  //     setIssueMessage(
+  //       `"${selectedRequest?.Item}" (Qty: ${issueQty}) has been successfully issued to ${selectedRequest?.Name}.`,
+  //     );
+  //     setIssueStatusModalVisible(true);
+  //     resetApproveStatus();
+  //     setSelectedRequest(null); // Clear selectedRequest after successful action
+  //     refetchRequests(); // Refetch requests to ensure the list is up-to-date
+  //   } else if (isApproveError) {
+  //     setIssueStatus('error');
+  //     setIssueMessage(
+  //       `Failed to issue "${selectedRequest?.Item}". Error: ${
+  //         approveError?.message || 'Unknown error'
+  //       }. Please try again.`,
+  //     );
+  //     setIssueStatusModalVisible(true);
+  //     resetApproveStatus();
+  //     setSelectedRequest(null); // Clear selectedRequest even on error
+  //   }
+  // }, [
+  //   isApproveSuccess,
+  //   isApproveError,
+  //   approveError,
+  //   selectedRequest,
+  //   issueQty,
+  //   navigation,
+  //   resetApproveStatus,
+  //   refetchRequests, // Add refetchRequests to dependencies
+  // ]);
 
   useEffect(() => {
     // New effect for disapproval status
@@ -186,21 +186,19 @@ export default function Requests({navigation}) {
   const closeDisapproveModal = () => {
     setIsDisapproveModalVisible(false);
     setDisapproveReason('');
-    // Do NOT set selectedRequest to null here.
-    // It needs to be available for the useEffect that listens to `isDisapproveSuccess`/`isDisapproveError`.
   };
 
   const handleCloseIssueStatusModal = () => {
     setIssueStatusModalVisible(false);
-    setSelectedRequest(null); // Now that the status modal is closed, it's safe to clear selectedRequest
+    setSelectedRequest(null); 
   };
 
-  const confirmIssue = () => {
-    closeIssueSelectionModal();
+ const confirmIssue = () => {
+  closeIssueSelectionModal();
 
-    if (selectedRequest) {
-      console.log('Issuing request:', selectedRequest);
-      submitApproveRequest({
+  if (selectedRequest) {
+    submitApproveRequest(
+      {
         requestorName: selectedRequest.Name,
         requestor: selectedRequest.EmployeeNumber,
         year: selectedRequest.Year,
@@ -210,12 +208,64 @@ export default function Requests({navigation}) {
         item: selectedRequest.Item,
         unit: selectedRequest.Units,
         invId: selectedRequest.InvId,
-        approvedQty: selectedRequest.Qty, // Assuming full quantity is approved for now
+        approvedQty: selectedRequest.Qty,
         remarks: selectedRequest.Reason,
-      });
-    }
-  };
+      },
+      {
+        onSuccess: data => {
+          if (data.status === 'success') {
+            setRequests(prevRequests =>
+              prevRequests.filter(req => req.Id !== selectedRequest?.Id),
+            );
 
+            navigation.navigate('ForPickUp', {
+              issuedItem: {
+                id: selectedRequest?.Id,
+                itemName: selectedRequest?.Item,
+                quantity: selectedRequest.Qty,
+                requestor: selectedRequest?.Name,
+                employee: selectedRequest?.Name,
+                trackingNumber: selectedRequest?.TrackingNumber,
+                employeeNumber: selectedRequest?.EmployeeNumber,
+              },
+            });
+
+            setIssueStatus('success');
+            setIssueMessage(
+              `"${selectedRequest?.Item}" (Qty: ${selectedRequest?.Qty}) has been successfully issued to ${selectedRequest?.Name}.`,
+            );
+            setIssueStatusModalVisible(true);
+
+            resetApproveStatus();
+            setSelectedRequest(null);
+            refetchRequests();
+          } else {
+            setIssueStatus('error');
+            setIssueMessage(data.message || 'An unknown error occurred. Please try again.');
+            setIssueStatusModalVisible(true);
+
+            resetApproveStatus();
+            setSelectedRequest(null);
+          }
+        },
+        onError: error => {
+          // This block runs only for true network/server errors (e.g., 500 status code)
+          console.error('Network or server error:', error);
+          setIssueStatus('error');
+          setIssueMessage(
+            `Failed to issue "${selectedRequest?.Item}". Error: ${
+              error?.message || 'Unknown network error'
+            }. Please try again.`,
+          );
+          setIssueStatusModalVisible(true);
+
+          resetApproveStatus();
+          setSelectedRequest(null);
+        },
+      },
+    );
+  }
+};
   const confirmDisapprove = () => {
     closeDisapproveModal();
 

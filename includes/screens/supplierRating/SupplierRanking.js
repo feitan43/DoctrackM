@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   indexText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1A508C',
   },

@@ -37,7 +37,7 @@ const MOCK_SURVEYS = [
 ];
 // --- End Mock Survey Data ---
 
-export default function SurveysScreen({navigation}) {
+export default function SurveysTab({navigation}) {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState({});
@@ -68,8 +68,9 @@ export default function SurveysScreen({navigation}) {
 
   // Function to handle "Take Survey" button press
   const handleTakeSurvey = useCallback(surveyId => {
-    navigation.navigate('SurveyDetail', {surveyId: surveyId});
+    navigation.navigate('TakeSurvey', {surveyId: surveyId});
   }, [navigation]);
+  
 
   // Function to handle "Create Survey" button press
   const handleCreateSurvey = useCallback(() => {

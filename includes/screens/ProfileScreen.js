@@ -125,7 +125,6 @@ const ProfileScreen = ({navigation}) => {
             <Text style={styles.detailLabel}>Employee Number</Text>
             <Text style={styles.detailValue}>{employeeNumber}</Text>
           </View>
-          <View style={styles.divider} />
 
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Office</Text>
@@ -134,7 +133,6 @@ const ProfileScreen = ({navigation}) => {
 
           {currentRoles.length > 0 && (
             <>
-              <View style={styles.divider} />
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>Roles</Text>
                 <View style={styles.rolesDisplayContainer}>
@@ -188,8 +186,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 15,
-    paddingTop: 20,
+    paddingHorizontal:10,
+    paddingHorizontal: 5,
+    paddingTop: 10,
   },
   profileImageContainer: {
     alignItems: 'center',
@@ -200,7 +199,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 5,
+    elevation: 2,
     marginBottom: 25,
   },
   profileImage: {
@@ -226,18 +225,20 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 5,
+    elevation: 2,
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
   detailItem: {
     flexDirection: 'row',
     paddingVertical: 10,
+    borderBottomWidth:StyleSheet.hairlineWidth,
+    borderColor:'#eee'
   },
   detailLabel: {
     fontFamily: 'Inter_28pt-Regular',

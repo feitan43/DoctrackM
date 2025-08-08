@@ -18,6 +18,8 @@ const CommunicationsScreen = () => {
         return <ForumsTab selectedYear={selectedYear} />;
       case 'message':
         return <MessageTab />;
+      case 'surveys': // New case for the Surveys tab
+        return <SurveysTab selectedYear={selectedYear} />;
       default:
         return <AnnouncementTab selectedYear={selectedYear} />;
     }
@@ -76,7 +78,7 @@ const CommunicationsScreen = () => {
           </TouchableWithoutFeedback>
         </Modal>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Surveys tab added here */}
         <View style={styles.tabNavigation}>
           <TabButton
             title="Announcements"
@@ -114,6 +116,18 @@ const CommunicationsScreen = () => {
               />
             }
           />
+          <TabButton
+            title="Surveys"
+            isActive={activeTab === 'surveys'}
+            onClick={() => setActiveTab('surveys')}
+            icon={
+              <MaterialCommunityIcons 
+                name="poll" // Using the 'poll' icon for surveys
+                size={24} 
+                color={activeTab === 'surveys' ? '#4a6da7' : '#64748b'} 
+              />
+            }
+          />
         </View>
 
         {/* Content Area */}
@@ -128,7 +142,7 @@ const CommunicationsScreen = () => {
   );
 };
 
-// Tab Button Component
+// Tab Button Component - No changes needed here
 const TabButton = ({ title, isActive, onClick, icon }) => {
   return (
     <TouchableOpacity
@@ -450,6 +464,102 @@ const MessageTab = () => {
   );
 };
 
+// New Surveys Tab Content
+const SurveysTab = ({ selectedYear }) => {
+  const surveysByYear = {
+    '2025': [
+      {
+        id: 1,
+        title: "Community Satisfaction Survey",
+        date: "July 20, 2025",
+        status: "Open",
+        responses: 85,
+        deadline: "July 31, 2025",
+      },
+      {
+        id: 2,
+        title: "Feature Feedback Poll",
+        date: "June 5, 2025",
+        status: "Closed",
+        responses: 112,
+        deadline: "June 15, 2025",
+      },
+    ],
+    '2024': [
+      {
+        id: 3,
+        title: "Year-End Community Poll",
+        date: "December 1, 2024",
+        status: "Closed",
+        responses: 240,
+        deadline: "December 31, 2024",
+      },
+    ],
+    '2023': [],
+    '2022': [],
+  };
+
+  const surveys = surveysByYear[selectedYear] || [];
+
+  return (
+    <View style={styles.surveysContainer}>
+      <View style={styles.surveysHeader}>
+        <Text style={styles.sectionHeader}>Surveys for {selectedYear}</Text>
+        <TouchableOpacity style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Add New Survey</Text>
+          <MaterialCommunityIcons name="plus" size={18} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      
+      {surveys.length > 0 ? (
+        surveys.map(survey => (
+          <View key={survey.id} style={styles.surveyCard}>
+            <View style={styles.surveyCardHeader}>
+              <Text style={styles.surveyTitle}>{survey.title}</Text>
+              <View style={[
+                styles.surveyStatusBadge, 
+                survey.status === 'Open' ? styles.openBadge : styles.closedBadge
+              ]}>
+                <Text style={[
+                  styles.surveyStatusText,
+                  survey.status === 'Open' ? styles.openText : styles.closedText
+                ]}>
+                  {survey.status}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.surveyDate}>
+              Created: {survey.date}
+            </Text>
+            <View style={styles.surveyStats}>
+              <View style={styles.surveyStatItem}>
+                <MaterialCommunityIcons name="account-group" size={16} color="#64748b" />
+                <Text style={styles.surveyStatText}>{survey.responses} Responses</Text>
+              </View>
+              {survey.status === 'Open' && (
+                <View style={styles.surveyStatItem}>
+                  <MaterialCommunityIcons name="clock-outline" size={16} color="#64748b" />
+                  <Text style={styles.surveyStatText}>Deadline: {survey.deadline}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity style={styles.viewSurveyButton}>
+              <Text style={styles.viewSurveyText}>View Survey</Text>
+              <MaterialCommunityIcons name="chevron-right" size={18} color="#4a6da7" />
+            </TouchableOpacity>
+          </View>
+        ))
+      ) : (
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="poll" size={48} color="#cbd5e1" />
+          <Text style={styles.emptyStateText}>No surveys for {selectedYear}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -459,12 +569,12 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 12, // Added borderRadius to the card for a more modern look
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 8, // Added elevation for Android shadow
     overflow: 'hidden',
   },
   header: {
@@ -810,27 +920,102 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
+  // Surveys Tab Styles
+  surveysContainer: {
+    marginBottom: 16,
+  },
+  surveysHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  surveyCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  surveyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  surveyTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginRight: 8,
+  },
+  surveyStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  openBadge: {
+    backgroundColor: '#d1fae5', // A green tone for open status
+  },
+  closedBadge: {
+    backgroundColor: '#e2e8f0', // A gray tone for closed status
+  },
+  surveyStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  openText: {
+    color: '#047857', // Dark green text
+  },
+  closedText: {
+    color: '#64748b', // Dark gray text
+  },
+  surveyDate: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 12,
+  },
+  surveyStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  surveyStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  surveyStatText: {
+    fontSize: 12,
+    color: '#475569',
+    marginLeft: 4,
+  },
+  viewSurveyButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewSurveyText: {
+    color: '#4a6da7',
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 4,
+  },
   // Shared Button Styles
   primaryButton: {
-    width: '100%',
     backgroundColor: '#4a6da7',
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 16,
-    shadowColor: '#4a6da7',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
     flexDirection: 'row',
-    justifyContent: 'center',
   },
   primaryButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginRight: 8,
+    marginRight: 4,
   },
   viewAllButton: {
     alignSelf: 'center',

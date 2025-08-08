@@ -1,14 +1,10 @@
-import React, {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import BASE_URL from '../../config';
-import {createDrawerNavigator} from '@react-navigation/drawer';
 import {
   View,
   StyleSheet,
   Pressable,
-  useWindowDimensions,
-  TouchableWithoutFeedback,
   Text,
-  StatusBar,
   Image,
   ImageBackground,
   FlatList,
@@ -17,21 +13,15 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
+  Animated,
 } from 'react-native';
-import {Dropdown} from 'react-native-element-dropdown';
 import notifee, {AuthorizationStatus} from '@notifee/react-native';
-import {HStack, Banner} from '@react-native-material/core';
+import {Banner, HStack} from '@react-native-material/core';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DoctrackScreen from './DoctrackScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SafeAreaLoader from '../../loader/SafeAreaLoader';
 import SettingsScreen from './SettingsScreen';
-import {
-  TabView,
-  SceneMap,
-  TabBar,
-  TransitionPager,
-} from 'react-native-tab-view';
 import useOfficeDelays from '../api/useOfficeDelays';
 import useDelaysRegOffice from '../api/useDelaysRegOffice';
 import useMyTransactions from '../api/useMyTransactions';
@@ -45,17 +35,18 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import useReceiving from '../api/useReceiving';
 import useTrackingSummary from '../api/useTrackingSummary';
 import useRegTrackingSummary from '../api/useRegTrackingSummary';
-//import useMyAccountability from '../api/useMyAccountabilty';
 import useRequestInspection from '../api/useRequestInspection';
 import useOnSchedule from '../api/useOnSchedule';
 import {useEvaluationByStatus} from '../hooks/useEvaluationByStatus';
 import {
-  Menu,
-  Divider,
   Provider as PaperProvider,
-  Button,
+  Button as PaperButton,
 } from 'react-native-paper';
-import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetBackdrop,
+} from '@gorhom/bottom-sheet';
 import {useEvaluatorSummary} from '../hooks/useEvaluatorSummary';
 import {
   useAdvanceInspection,
@@ -63,9 +54,24 @@ import {
   useInspectionRecentActivity,
 } from '../hooks/useInspection';
 import {useMyAccountability} from '../hooks/usePersonal';
-const Drawer = createDrawerNavigator();
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import CommunicationsScreen from '../components/CommunicationsScreen';
+
 const Tab = createBottomTabNavigator();
 const currentYear = new Date().getFullYear();
+
+const DoctrackScreenComponent = ({navigation, ...props}) => {
+  return <DoctrackScreen navigation={navigation} {...props} />;
+};
+
+const SearchScreenComponent = ({navigation, ...props}) => {
+  return <SearchScreen navigation={navigation} {...props} />;
+};
+
+const SettingsScreenComponent = ({navigation, ...props}) => {
+  return <SettingsScreen navigation={navigation} {...props} />;
+};
 
 const HomeScreen = ({navigation}) => {
   const {officeDelaysData, officeDelaysLength, fetchOfficeDelays} =
@@ -93,6 +99,8 @@ const HomeScreen = ({navigation}) => {
     caoEvaluator,
     payroll,
     boss,
+    sura,
+    fms,
   } = useUserInfo();
   const {
     recentlyUpdatedData,
@@ -101,7 +109,7 @@ const HomeScreen = ({navigation}) => {
     liveUpdatedNowData,
     updatedDateTime,
   } = useRecentlyUpdated();
-  const [loading, setLoading] = useState();
+  const [loading, setLoading] = useState(true);
   const [showReminder, setShowReminder] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
@@ -233,20 +241,16 @@ const HomeScreen = ({navigation}) => {
     }),
   );
 
-  const [visible, setVisible] = useState(false);
-  const openMenu = useCallback(() => setVisible(true), []);
-  const closeMenu = useCallback(() => setVisible(false), []);
-
   const [modalVisible, setModalVisible] = useState(false);
   const [progressModalVisible, setProgressModalVisible] = useState(false);
 
   const onEvalDataCount = onEvalData?.length || 0;
-
   const evaluatedDataCount = evaluatedData?.length || 0;
   const evalPendingDataCount = evalPendingData?.length || 0;
   const evalPendingReleasedCount = evalPendingReleased?.length || 0;
 
-  const bottomSheetRef = useRef(null);
+  const yearBottomSheetRef = useRef(null);
+  const settingsBottomSheetRef = useRef(null);
   useBackButtonHandler(navigation);
 
   useEffect(() => {
@@ -259,15 +263,19 @@ const HomeScreen = ({navigation}) => {
     checkNotificationPermission();
   }, []);
 
-  const openSelectYear = useCallback(() => {
-    closeMenu();
-    bottomSheetRef.current?.present();
+  const openYearSelector = useCallback(() => {
+    settingsBottomSheetRef.current?.close();
+    yearBottomSheetRef.current?.present();
+  }, []);
+
+  const openSettings = useCallback(() => {
+    settingsBottomSheetRef.current?.present();
   }, []);
 
   const handleYearSelect = year => {
     setLoading(true);
     setSelectedYear(year);
-    bottomSheetRef.current?.dismiss();
+    yearBottomSheetRef.current?.dismiss();
 
     setTimeout(() => {
       setLoading(false);
@@ -277,10 +285,6 @@ const HomeScreen = ({navigation}) => {
   const handleNotification = async () => {
     await notifee.openNotificationSettings();
     setShowReminder(false);
-  };
-
-  const handleComms = async () => {
-    navigation.navigate('Communications');
   };
 
   const checkToken = async () => {
@@ -329,164 +333,53 @@ const HomeScreen = ({navigation}) => {
     }
   };
 
-  const DoctrackScreenComponent = () => {
-    return (
-      <>
-        <DoctrackScreen
-          navigation={navigation}
-          officeDelaysLength={officeDelaysLength}
-          officeDelaysData={officeDelaysData}
-          myTransactionsLength={myTransactionsLength}
-          regOfficeDelaysLength={regOfficeDelaysLength}
-          recentlyUpdatedLength={recentlyUpdatedLength}
-          recentlyUpdatedData={recentlyUpdatedData}
-          updatedNowData={updatedNowData}
-          fullName={fullName}
-          employeeNumber={employeeNumber}
-          officeCode={officeCode}
-          officeName={officeName}
-          privilege={privilege}
-          permission={permission}
-          caoReceiver={caoReceiver}
-          caoEvaluator={caoEvaluator}
-          accountType={accountType}
-          officeAdmin={officeAdmin}
-          gsoInspection={gsoInspection}
-          procurement={procurement}
-          payroll={payroll}
-          boss={boss}
-          liveUpdatedNowData={liveUpdatedNowData}
-          updatedDateTime={updatedDateTime}
-          dataPR={dataPR}
-          dataPO={dataPO}
-          dataPX={dataPX}
-          PRPercentage={PRPercentage}
-          POPercentage={POPercentage}
-          PXPercentage={PXPercentage}
-          loadingTransSum={loadingTransSum}
-          selectedYear={selectedYear}
-          setSelectedYear={setSelectedYear}
-          fetchDataRegOfficeDelays={fetchDataRegOfficeDelays}
-          fetchOfficeDelays={fetchOfficeDelays}
-          fetchMyPersonal={fetchMyPersonal}
-          myTransactionsLoading={myTransactionsLoading}
-          fetchTransactionSummary={fetchTransactionSummary}
-          othersVouchersData={othersVouchersData}
-          othersOthersData={othersOthersData}
-          loadingUseOthers={loadingUseOthers}
-          refetchDataOthers={refetchDataOthers}
-          setDataPR={setDataPR}
-          setPRPercentage={setPRPercentage}
-          calculatePRPercentage={calculatePRPercentage}
-          setDataPO={setDataPO}
-          setPOPercentage={setPOPercentage}
-          calculatePOPercentage={calculatePOPercentage}
-          setDataPX={setDataPX}
-          setPXPercentage={setPXPercentage}
-          calculatePXPercentage={calculatePXPercentage}
-          advanceForInspection={advanceForInspection}
-          forInspection={forInspection}
-          inspected={inspected}
-          inspectionOnHold={inspectionOnHold}
-          //inspectionList={inspectionList}
-          inspectionLoading={inspectionLoading}
-          inspectionError={inspectionError}
-          recentActivityData={recentActivityData}
-          recentActivityError={recentActivityError}
-          recentActivityLoading={recentActivityLoading}
-          //fetchRecentActivity={fetchRecentActivity}
-          receivingCount={receivingCount}
-          receivingCountData={receivingCountData}
-          // receivedMonthly={receivedMonthly}
-          loadingReceiving={loadingReceiving}
-          isReceivedLoading={isReceivedLoading}
-          receivingError={receivingError}
-          trackSumData={trackSumData}
-          trackSumError={trackSumError}
-          trackSumLoading={trackSumLoading}
-          refetchTrackSum={refetchTrackSum}
-          regTrackSumData={regTrackSumData}
-          regTrackSumError={regTrackSumError}
-          regTrackSumLoading={regTrackSumLoading}
-          refetchRegTrackSum={refetchRegTrackSum}
-          accountabilityData={accountabilityData}
-          fetchMyAccountability={fetchMyAccountability}
-          requestsLength={requestsLength}
-          requestsLoading={requestsLoading}
-          fetchRequests={fetchRequests}
-          OnScheduleLength={OnScheduleLength}
-          onEvalDataCount={onEvalDataCount}
-          evaluatedDataCount={evaluatedDataCount}
-          evalPendingDataCount={evalPendingDataCount}
-          evalPendingReleasedCount={evalPendingReleasedCount}
-          evaluatorSummary={evaluatorSummary}
-        />
-      </>
-    );
+  const SettingsBottomSheetContent = () => (
+    <View style={styles.bottomSheetContent}>
+      <Text style={styles.title}>More Options</Text>
+      <TouchableOpacity
+        style={styles.bottomSheetButton}
+        onPress={openYearSelector}>
+        <Icon name="calendar-outline" size={24} color="#333" />
+        <Text style={styles.bottomSheetButtonText}>Change Year</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.bottomSheetButton, {marginTop: 10}]}
+        onPress={() => {
+          settingsBottomSheetRef.current?.close();
+          setModalVisible(true);
+        }}>
+        <Icon name="log-out-outline" size={24} color="red" />
+        <Text style={[styles.bottomSheetButtonText, {color: 'red'}]}>
+          Logout
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderBackdrop = useCallback(
+    props => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} />,
+    [],
+  );
+
+  const prevScrollY = useRef(0);
+  const [isTabVisible, setIsTabVisible] = useState(true);
+
+  const handleScroll = event => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+
+    const isScrollingUp = currentScrollY < prevScrollY.current;
+    const isScrollingDown = currentScrollY > prevScrollY.current;
+
+    const scrollThreshold = 10;
+
+    if (isScrollingDown && currentScrollY > scrollThreshold) {
+      setIsTabVisible(false);
+    } else if (isScrollingUp || currentScrollY < scrollThreshold) {
+      setIsTabVisible(true);
+    }
+
+    prevScrollY.current = currentScrollY;
   };
-
-  const SearchScreenComponent = ({}) => {
-    return (
-      <SearchScreen
-        navigation={navigation}
-        officeCode={officeCode}
-        officeName={officeName}
-        privilege={privilege}
-        fullName={fullName}
-        employeeNumber={employeeNumber}
-        permission={permission}
-        caoReceiver={caoReceiver}
-        caoEvaluator={caoEvaluator}
-        accountType={accountType}
-        officeAdmin={officeAdmin}
-        gsoInspection={gsoInspection}
-        procurement={procurement}
-        boss={boss}
-      />
-    );
-  };
-
-  const SettingsScreenComponent = ({}) => {
-    return (
-      <SettingsScreen
-        navigation={navigation}
-        officeCode={officeCode}
-        officeName={officeName}
-        privilege={privilege}
-        fullName={fullName}
-        employeeNumber={employeeNumber}
-        permission={permission}
-        caoReceiver={caoReceiver}
-        caoEvaluator={caoEvaluator}
-        accountType={accountType}
-        officeAdmin={officeAdmin}
-        gsoInspection={gsoInspection}
-        procurement={procurement}
-      />
-    );
-  };
-
-  useEffect(() => {
-    checkToken();
-  }, []);
-
-  const layout = useWindowDimensions();
-  const [index, setIndex] = useState(0);
-  const [routes] = useState([
-    {key: 'doctrack', title: 'Home', icon: 'home-outline'},
-    {key: 'search', title: 'Search', icon: 'search-outline'},
-    {key: 'settings', title: 'More', icon: 'menu-outline'},
-  ]);
-
-  const renderScene = SceneMap({
-    doctrack: DoctrackScreenComponent,
-    search: SearchScreenComponent,
-    settings: SettingsScreenComponent,
-  });
-
-  /* if (loading) {
-    return <SafeAreaLoader />;
-  } */
 
   return (
     <SafeAreaView style={[styles.container]}>
@@ -508,55 +401,42 @@ const HomeScreen = ({navigation}) => {
                       tintColor: '#fff',
                     }}
                   />
-                  {/*   <View style={styles.headerRightButtons}>  */}
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <Pressable
+                      onPress={openSettings}
+                      style={({pressed}) => [
+                        {
+                          padding: 10,
+                          borderRadius: 12, // radius here
+                          backgroundColor: pressed ? '#555' : 'transparent', // pressed effect
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        },
+                      ]}>
+                      <MaterialCommunityIcons
+                        name="cog"
+                        size={24}
+                        color="white"
+                      />
+                    </Pressable>
+                  </View>
 
-                  {/*  </View> */}
-
-                  <Menu
-                    visible={visible}
-                    onDismiss={closeMenu}
-                    statusBarHeight={80}
-                    anchor={
-                      <>
-                        <View
-                          style={{flexDirection: 'row', alignItems: 'centers'}}>
-                          {/* <Pressable
-                            onPress={handleComms} // This should ideally open a chatbox/notification menu
-                            style={{}}>
-                            <Icon
-                              name="chatbox-ellipses-outline"
-                              size={26}
-                              color="white"
-                            />
-                          </Pressable> */}
-                          <Pressable
-                            onPress={openMenu}
-                            style={styles.settingsButton}>
-                            <Icon
-                              name="settings-outline"
-                              size={24}
-                              color="white"
-                            />
-                          </Pressable>
-                        </View>
-                      </>
-                    }>
-                    {/* <View style={styles.pointer} /> */}
-                    <Menu.Item
-                      onPress={() => openSelectYear()}
-                      title="Change Year"
-                    />
-                    <Divider />
-                    <Menu.Item
-                      onPress={() => setModalVisible(true)}
-                      title="Logout"
-                    />
-                  </Menu>
+                  {/* Settings Bottom Sheet Modal */}
+                  <BottomSheetModal
+                    ref={settingsBottomSheetRef}
+                    index={0}
+                    snapPoints={['50%']}
+                    backgroundStyle={styles.bottomSheet}
+                    handleIndicatorStyle={styles.handleIndicator}
+                    backdropComponent={renderBackdrop}>
+                    <SettingsBottomSheetContent />
+                  </BottomSheetModal>
 
                   <Modal
                     animationType="slide"
                     transparent={true}
                     visible={modalVisible}
+                    statusBarTranslucent={true}
                     onRequestClose={() => setModalVisible(false)}>
                     <View style={styles.modalOverlay}>
                       <View style={styles.modalContainer}>
@@ -564,16 +444,12 @@ const HomeScreen = ({navigation}) => {
                         <Text style={styles.modalMessage}>
                           Are you sure you want to log out?
                         </Text>
-
                         <View style={styles.modalActions}>
-                          {/* Cancel Button */}
                           <TouchableOpacity
                             style={[styles.button, styles.cancelButton]}
                             onPress={() => setModalVisible(false)}>
                             <Text style={styles.buttonText}>Cancel</Text>
                           </TouchableOpacity>
-
-                          {/* Confirm Logout Button */}
                           <TouchableOpacity
                             style={[styles.button, styles.confirmButton]}
                             onPress={logout}>
@@ -585,9 +461,10 @@ const HomeScreen = ({navigation}) => {
                   </Modal>
 
                   <Modal
-                    animationType="fade"
+                    animationType="none"
                     transparent={true}
                     visible={progressModalVisible}
+                    statusBarTranslucent={true}
                     onRequestClose={() => {}}>
                     <View style={styles.modalOverlay}>
                       <View style={styles.modalContainer}>
@@ -601,19 +478,19 @@ const HomeScreen = ({navigation}) => {
                   </Modal>
 
                   <BottomSheetModal
-                    ref={bottomSheetRef}
+                    ref={yearBottomSheetRef}
                     index={0}
-                    snapPoints={['40%', '60%']} // Allows it to expand if needed
+                    snapPoints={['40%', '60%']}
                     backgroundStyle={styles.bottomSheet}
-                    handleIndicatorStyle={styles.handleIndicator}>
+                    handleIndicatorStyle={styles.handleIndicator}
+                    backdropComponent={renderBackdrop}>
                     <View style={styles.bottomSheetContent}>
                       <Text style={styles.title}>Select Year</Text>
-
                       <FlatList
                         data={years}
                         keyExtractor={item => item.value.toString()}
-                        contentContainerStyle={styles.scrollableList} // Makes it scrollable
-                        showsVerticalScrollIndicator={false} // Hides the scrollbar
+                        contentContainerStyle={styles.scrollableList}
+                        showsVerticalScrollIndicator={false}
                         renderItem={({item}) => (
                           <Pressable
                             style={styles.yearItem}
@@ -632,70 +509,265 @@ const HomeScreen = ({navigation}) => {
                     </View>
                   </BottomSheetModal>
                 </ImageBackground>
-                {showReminder /* || Platform.Version < 30 */ && (
+
+                {showReminder && (
                   <Banner
                     style={styles.bannerContainer}
                     text="You haven't enabled notifications. Enable them for timely updates."
                     buttons={
-                      <View style={styles.buttonStack}>
-                        <Button
+                      <HStack spacing={2}>
+                        <PaperButton
                           mode="contained"
                           onPress={handleNotification}
                           labelStyle={styles.buttonLabel}
                           style={styles.containedButton}>
                           Enable Notifications
-                        </Button>
-                        <Button
+                        </PaperButton>
+                        <PaperButton
                           mode="text"
                           onPress={() => setShowReminder(false)}
                           labelStyle={styles.dismissButtonLabel}>
                           Dismiss
-                        </Button>
-                      </View>
+                        </PaperButton>
+                      </HStack>
                     }
                   />
                 )}
-                <TabView
-                  navigationState={{index, routes}}
-                  renderScene={renderScene}
-                  onIndexChange={setIndex}
-                  initialLayout={{width: layout.width}}
-                  tabBarPosition="bottom"
-                  transitionStyle="scroll"
-                  swipeEnabled={false} // 👈 disables swipe
-                  // style={{backgroundColor: 'pink'}}
-                  renderTabBar={props => (
-                    <ImageBackground
-                      source={require('../../assets/images/CirclesBG2.png')}
-                      style={styles.tabBarBackground}>
-                      <TabBar
+
+                <Tab.Navigator
+                  screenOptions={{
+                    headerShown: false,
+                    tabBarStyle: [
+                      styles.tabBar,
+                      {
+                        bottom: isTabVisible ? 0 : -100,
+                      },
+                    ],
+                    tabBarActiveTintColor: '#3B82F6',
+                    tabBarInactiveTintColor: '#777777ff',
+                    tabBarShowLabel: true,
+                    tabBarBackground: () => (
+                      <LinearGradient
+                        colors={['#ffffffff', '#e9ebee']}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 0}}
+                        style={{
+                          ...styles.tabBarBackground,
+                        }}>
+                        <View
+                          style={{
+                            ...styles.tabBarBackground,
+                          }}
+                        />
+                      </LinearGradient>
+                    ),
+                  }}>
+                  <Tab.Screen
+                    name="Doctrack"
+                    options={{
+                      tabBarLabel: 'Home', // 👈 Set custom label here
+                      tabBarIcon: ({color, size, focused}) => (
+                        <MaterialCommunityIcons
+                          //name={focused ? 'home' : 'home-outline'}
+                          name={'home-outline'}
+                          size={focused ? 40 : 35}
+                          color={color}
+                        />
+                      ),
+                    }}>
+                    {props => (
+                      <DoctrackScreenComponent
                         {...props}
-                        renderIcon={({route, focused}) => (
-                          <Icon
-                            name={route.icon}
-                            size={focused ? 22 : 20}
-                            color={focused ? 'white' : 'white'}
-                            suppressHighlighting={true}
-                          />
-                        )}
-                        style={styles.tabBar}
-                        indicatorStyle={[styles.indicator, {top: 0}]}
-                        labelStyle={styles.tabLabel}
-                        getLabelText={({route}) => route.title}
-                        android_ripple={false}
-                        pressColor="transparent"
+                        officeDelaysLength={officeDelaysLength}
+                        officeDelaysData={officeDelaysData}
+                        myTransactionsLength={myTransactionsLength}
+                        regOfficeDelaysLength={regOfficeDelaysLength}
+                        recentlyUpdatedLength={recentlyUpdatedLength}
+                        recentlyUpdatedData={recentlyUpdatedData}
+                        updatedNowData={updatedNowData}
+                        fullName={fullName}
+                        employeeNumber={employeeNumber}
+                        officeCode={officeCode}
+                        officeName={officeName}
+                        privilege={privilege}
+                        permission={permission}
+                        caoReceiver={caoReceiver}
+                        caoEvaluator={caoEvaluator}
+                        accountType={accountType}
+                        officeAdmin={officeAdmin}
+                        gsoInspection={gsoInspection}
+                        procurement={procurement}
+                        payroll={payroll}
+                        boss={boss}
+                        sura={sura}
+                        fms={fms}
+                        liveUpdatedNowData={liveUpdatedNowData}
+                        updatedDateTime={updatedDateTime}
+                        dataPR={dataPR}
+                        dataPO={dataPO}
+                        dataPX={dataPX}
+                        PRPercentage={PRPercentage}
+                        POPercentage={POPercentage}
+                        PXPercentage={PXPercentage}
+                        loadingTransSum={loadingTransSum}
+                        selectedYear={selectedYear}
+                        setSelectedYear={setSelectedYear}
+                        fetchDataRegOfficeDelays={fetchDataRegOfficeDelays}
+                        fetchOfficeDelays={fetchOfficeDelays}
+                        fetchMyPersonal={fetchMyPersonal}
+                        myTransactionsLoading={myTransactionsLoading}
+                        fetchTransactionSummary={fetchTransactionSummary}
+                        othersVouchersData={othersVouchersData}
+                        othersOthersData={othersOthersData}
+                        loadingUseOthers={loadingUseOthers}
+                        refetchDataOthers={refetchDataOthers}
+                        setDataPR={setDataPR}
+                        setPRPercentage={setPRPercentage}
+                        calculatePRPercentage={calculatePRPercentage}
+                        setDataPO={setDataPO}
+                        setPOPercentage={setPOPercentage}
+                        calculatePOPercentage={calculatePOPercentage}
+                        setDataPX={setDataPX}
+                        setPXPercentage={setPXPercentage}
+                        calculatePXPercentage={calculatePXPercentage}
+                        advanceForInspection={advanceForInspection}
+                        forInspection={forInspection}
+                        inspected={inspected}
+                        inspectionOnHold={inspectionOnHold}
+                        inspectionLoading={inspectionLoading}
+                        inspectionError={inspectionError}
+                        recentActivityData={recentActivityData}
+                        recentActivityError={recentActivityError}
+                        recentActivityLoading={recentActivityLoading}
+                        receivingCount={receivingCount}
+                        receivingCountData={receivingCountData}
+                        loadingReceiving={loadingReceiving}
+                        isReceivedLoading={isReceivedLoading}
+                        receivingError={receivingError}
+                        trackSumData={trackSumData}
+                        trackSumError={trackSumError}
+                        trackSumLoading={trackSumLoading}
+                        refetchTrackSum={refetchTrackSum}
+                        regTrackSumData={regTrackSumData}
+                        regTrackSumError={regTrackSumError}
+                        regTrackSumLoading={regTrackSumLoading}
+                        refetchRegTrackSum={refetchRegTrackSum}
+                        accountabilityData={accountabilityData}
+                        fetchMyAccountability={fetchMyAccountability}
+                        requestsLength={requestsLength}
+                        requestsLoading={requestsLoading}
+                        fetchRequests={fetchRequests}
+                        OnScheduleLength={OnScheduleLength}
+                        onEvalDataCount={onEvalDataCount}
+                        evaluatedDataCount={evaluatedDataCount}
+                        evalPendingDataCount={evalPendingDataCount}
+                        evalPendingReleasedCount={evalPendingReleasedCount}
+                        evaluatorSummary={evaluatorSummary}
+                        onScroll={handleScroll}
                       />
-                    </ImageBackground>
-                  )}
-                  /* pager={props => <TransitionPager {...props} />} */
-                />
-                {/* {loading && (
-                  <View style={styles.loadingContainer}>
-                    <Text style={{color: 'white'}}>
-                      Changing year to {selectedYear}...
-                    </Text>
-                  </View>
-                )} */}
+                    )}
+                  </Tab.Screen>
+
+                  <Tab.Screen
+                    name="Search"
+                    options={{
+                      tabBarIcon: ({color, size, focused}) => (
+                        <MaterialCommunityIcons
+                          name={
+                            focused
+                              ? 'file-search-outline'
+                              : 'file-search-outline'
+                          }
+                          size={focused ? 40 : 30}
+                          color={color}
+                        />
+                      ),
+                    }}>
+                    {props => (
+                      <SearchScreenComponent
+                        {...props}
+                        officeCode={officeCode}
+                        officeName={officeName}
+                        privilege={privilege}
+                        fullName={fullName}
+                        employeeNumber={employeeNumber}
+                        permission={permission}
+                        caoReceiver={caoReceiver}
+                        caoEvaluator={caoEvaluator}
+                        accountType={accountType}
+                        officeAdmin={officeAdmin}
+                        gsoInspection={gsoInspection}
+                        procurement={procurement}
+                        boss={boss}
+                      />
+                    )}
+                  </Tab.Screen>
+                  <Tab.Screen
+                    name="Connect"
+                    options={{
+                      tabBarIcon: ({color, size, focused}) => (
+                        <MaterialCommunityIcons
+                          name={
+                            //focused ? 'android-messages' : 'android-messages'
+                            focused
+                              ? 'message-badge-outline'
+                              : 'message-badge-outline'
+                          }
+                          size={focused ? 40 : 30}
+                          color={color}
+                        />
+                      ),
+                    }}>
+                    {props => (
+                      <CommunicationsScreen
+                        {...props}
+                        officeCode={officeCode}
+                        officeName={officeName}
+                        privilege={privilege}
+                        fullName={fullName}
+                        employeeNumber={employeeNumber}
+                        permission={permission}
+                        caoReceiver={caoReceiver}
+                        caoEvaluator={caoEvaluator}
+                        accountType={accountType}
+                        officeAdmin={officeAdmin}
+                        gsoInspection={gsoInspection}
+                        procurement={procurement}
+                        onScroll={handleScroll}
+                      />
+                    )}
+                  </Tab.Screen>
+
+                  <Tab.Screen
+                    name="More"
+                    options={{
+                      tabBarIcon: ({color, size, focused}) => (
+                        <MaterialCommunityIcons
+                          name={focused ? 'dots-grid' : 'dots-grid'}
+                          size={focused ? 40 : 30}
+                          color={color}
+                        />
+                      ),
+                    }}>
+                    {props => (
+                      <SettingsScreenComponent
+                        {...props}
+                        officeCode={officeCode}
+                        officeName={officeName}
+                        privilege={privilege}
+                        fullName={fullName}
+                        employeeNumber={employeeNumber}
+                        permission={permission}
+                        caoReceiver={caoReceiver}
+                        caoEvaluator={caoEvaluator}
+                        accountType={accountType}
+                        officeAdmin={officeAdmin}
+                        gsoInspection={gsoInspection}
+                        procurement={procurement}
+                      />
+                    )}
+                  </Tab.Screen>
+                </Tab.Navigator>
               </>
             )}
           </SafeAreaLoader>
@@ -715,69 +787,39 @@ const styles = StyleSheet.create({
   buttonStack: {
     flexDirection: 'row',
     alignItems: 'center',
-    // Add spacing between buttons, if not handled by a true HStack component
-    // For example, you might add margin to individual buttons
   },
   containedButton: {
-    backgroundColor: '#1a508c', // Your specified background color
-    marginRight: 8, // Add some space between buttons
+    backgroundColor: '#1a508c',
+    marginRight: 8,
   },
   buttonLabel: {
     fontSize: 12,
-    color: 'white', // Contained buttons usually have white text
+    color: 'white',
   },
   dismissButtonLabel: {
     fontSize: 12,
-    color: '#1a508c', // Text buttons usually have colored text
-  },
-  scene: {
-    flex: 1,
-  },
-  tabBarContainer: {
-    width: '100%',
-    height: 50,
-    position: 'relative',
+    color: '#1a508c',
   },
   tabBarBackground: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    resizeMode: 'cover',
+    height: '100%',
+    //borderRadius: 50,
+    paddingBottom: 10,
   },
   tabBar: {
     backgroundColor: 'transparent',
-    height: 50,
+    height: 60,
     zIndex: 1,
-  },
-  indicator: {
-    backgroundColor: '#007aff',
-    height: 3,
-    borderRadius: 2,
-    alignSelf: 'center',
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '400',
-    color: 'white',
-    textTransform: 'capitalize',
-    marginBottom: 4,
-  },
-  badgeContainer: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: 'red',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    //borderTopWidth: 0,
+    //bottom: 20,
+    //right: 10,
+    //left: 10,
+    //borderRadius: 10,
+    paddingHorizontal: 10,
   },
   header: {
     paddingTop: 35,
@@ -785,112 +827,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a508c',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Changed from 'space-between' to 'flex-start' or 'flex-end' depending on desired logo position
+    justifyContent: 'space-between',
     paddingHorizontal: 10,
-    elevation: 4, // Shadow effect
-  },
-  headerRightButtons: {
-    flexDirection: 'row',
-    // If you want to push them all the way to the right and keep the logo on the left,
-    // you would set `justifyContent: 'flex-end'` on the `header` and remove `justifyContent: 'space-between'`
-    // If you keep 'space-between' on header, then this view will simply group them.
-  },
-  menuButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
+    //elevation: 4,
   },
   settingsButton: {
     marginEnd: 5,
     paddingHorizontal: 5,
-    //backgroundColor:'red',
     width: 50,
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 10,
-  },
-  backgroundImage: {
-    flex: 1, // Make it fill the entire screen
-    width: '100%',
-    height: '100%',
-  },
-  loadingContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Optional: semi-transparent background
-    borderRadius: 5,
-  },
-  pointer: {
-    position: 'absolute',
-    top: -10, // Position it above the menu
-    right: 10,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderBottomWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: 'white', // Match menu background
-  },
-  bottomSheet: {
-    //backgroundColor: 'rgba(255, 255, 255, 0.95)', // Soft white background
-    backgroundColor: 'white',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: {width: 0, height: -2},
-  },
-  handleIndicator: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
-    alignSelf: 'center',
-    marginTop: 8,
-  },
-  bottomSheetContent: {flex: 1, padding: 20, alignItems: 'center'},
-
-  // Title Styling
-  title: {fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15},
-
-  // Year Item Styling
-  yearItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    width: '100%',
-    alignItems: 'center',
-  },
-  yearText: {fontSize: 20, fontWeight: 'bold', color: '#333'},
-  selectedYear: {
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  logoutButton: {
-    backgroundColor: '#ff3b3b',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
@@ -933,6 +880,65 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  bottomSheet: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: -2},
+  },
+  handleIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#ccc',
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+  bottomSheetContent: {
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  yearItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    width: '100%',
+    alignItems: 'center',
+  },
+  yearText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  selectedYear: {
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  bottomSheetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+  },
+  bottomSheetButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginLeft: 15,
   },
 });
 

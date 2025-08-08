@@ -15,13 +15,14 @@ import {
   ImageBackground,
   Image,
   Dimensions,
-  ScrollView, // Keep for fallback, but main content will use FlatList
+  ScrollView,
   Modal,
-  FlatList, // This will be the main scrollable component
+  FlatList,
   ActivityIndicator,
   TextInput,
   Animated,
-  Alert, // Added Alert for scan error
+  Alert,
+  Pressable,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -40,7 +41,7 @@ import {
   useFrameProcessor,
   useSkiaFrameProcessor,
 } from 'react-native-vision-camera';
-import QRScanner from '../utils/qrScanner'; // Import the QRScanner
+import QRScanner from '../utils/qrScanner';
 import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetBackdrop,
@@ -100,8 +101,8 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
     }),
   );
 
-  const [searchText, setSearchText] = useState(''); // Initialize with empty string, not selectedSearch
-  const [selectedSearch, setSelectedSearch] = useState(''); // Keep if needed for other logic
+  const [searchText, setSearchText] = useState('');
+  const [selectedSearch, setSelectedSearch] = useState('');
   const [selectedView, setSelectedView] = useState('DocumentSearch');
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [modalVisible, setModalVisible] = useState(false);
@@ -111,7 +112,7 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
   const [dataError, setDataError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
-  const [showScanner, setShowScanner] = useState(false); // State for QR Scanner visibility
+  const [showScanner, setShowScanner] = useState(false);
 
   const {
     searchTrackData,
@@ -119,7 +120,6 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
     searchTrackLoading,
     error,
     fetchDataSearchTrack,
-    // fetchDataSearchPayroll, // Not used in this file
   } = useSearchTrack(searchText, selectedYear, search);
   const cameraPermission = useCameraPermission();
 
@@ -158,8 +158,6 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
     if (scannedYear && scannedTrackingNumber) {
       setSelectedYear(scannedYear.toString());
       setSearchText(scannedTrackingNumber);
-      // Wait for state updates before searching
-      // Use the scannedTrackingNumber directly for the search to ensure it's the latest
       await searchTrackingNumber(scannedTrackingNumber);
     } else {
       Alert.alert('Scan Error', 'Could not decode QR data properly.');
@@ -296,7 +294,7 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
       setDataError(false);
     }
 
-    setSearchTrackData(null); // Clear previous results
+    setSearchTrackData(null);
 
     try {
       const data = await fetchDataSearchTrack(keyword);
@@ -313,18 +311,14 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
         return;
       }
 
-      // If data.count is 1, navigate directly
       if (data.count === 1 && data.results.length > 0) {
         const trackingNumber =
           keyword.substring(4, 5) === '-' || keyword.substring(0, 3) === 'PR-'
             ? keyword
             : data.results[0].TrackingNumber;
-        addSearchItem(keyword); // Add to history only on successful fetch for single result
-        // No need to manually update searchHistory state here, addSearchItem does it
-        // setSearchHistory(prev => { /* ... */ });
-
-        setSearchModalVisible(false); // Consider if this is still relevant
-        setSearchText(''); // Clear search text after successful single search
+        addSearchItem(keyword);
+        setSearchModalVisible(false);
+        setSearchText('');
 
         navigation.navigate('Detail', {
           index: 0,
@@ -336,13 +330,11 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
           },
         });
       } else {
-        // If multiple results, FlatList will render them
-        // For multiple results, we still add to history if it's a valid search
         addSearchItem(keyword);
         console.log('Multiple results found for the search.');
       }
 
-      setSearch(true); // Indicate that a search was performed
+      setSearch(true);
     } catch (fetchError) {
       setDataError(true);
       triggerShakeAnimation();
@@ -362,19 +354,40 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
   };
 
   const renderCAOReceiver = () => (
-    <View style={styles.receiverContainer}>
-      <Text style={styles.sectionTitle}>CAO Receiver</Text>
-      <View style={styles.receiverButtons}>
-        <TouchableOpacity
-          style={styles.receiverButton}
-          onPress={handleQRManual}>
-          <Icons name="qrcode-scan" size={28} color="#007AFF" />
-          <Text style={styles.receiverButtonText}>Manual Receive</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.receiverButton} onPress={handleQRAuto}>
-          <Icons name="qrcode-scan" size={28} color="#007AFF" />
-          <Text style={styles.receiverButtonText}>Auto Receive</Text>
-        </TouchableOpacity>
+    <View style={styles.corporateReceiverContainer}>
+      <View
+        style={{
+          borderBottomWidth: 1,
+          borderBottomColor: '#eee',
+          paddingBottom: 5,
+          marginBottom: 5,
+          paddingVertical: 10,
+          paddingHorizontal: 10,
+        }}>
+        <Text style={styles.corporateSectionTitle}>CAO Receiver</Text>
+        <Text style={styles.corporateSectionSubtitle}>
+          Choose an action to receive documents.
+        </Text>
+      </View>
+      <View style={styles.corporateReceiverButtons}>
+        <Pressable
+          style={styles.corporateReceiverButton}
+          onPress={handleQRManual}
+          android_ripple={{color: 'rgba(0, 122, 255, 0.1)'}}>
+          <View style={styles.iconBackground}>
+            <Icons name="qrcode-scan" size={28} color="#007AFF" />
+          </View>
+          <Text style={styles.corporateReceiverButtonText}>Manual Receive</Text>
+        </Pressable>
+        <Pressable
+          style={styles.corporateReceiverButton}
+          onPress={handleQRAuto}
+          android_ripple={{color: 'rgba(0, 122, 255, 0.1)'}}>
+          <View style={styles.iconBackground}>
+            <Icons name="qrcode-scan" size={28} color="#007AFF" />
+          </View>
+          <Text style={styles.corporateReceiverButtonText}>Auto Receive</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -421,40 +434,37 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
     <View style={styles.mainContainer}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Search</Text>
-        <TouchableOpacity
-          onPress={handlePresentYearFilterSheet}
-          style={styles.yearFilterButton}>
-          <Text style={styles.yearFilterText}>{selectedYear}</Text>
-          <Icon name="chevron-down" size={20} color="#007AFF" />
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Icon
-            name="search-outline"
-            size={22}
-            color="#9CA3AF"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Enter tracking number"
-            placeholderTextColor="#9CA3AF"
-            value={searchText}
-            autoCapitalize="characters"
-            onChangeText={setSearchText}
-            onSubmitEditing={searchTrackingNumber}
-            //returnKeyType="search"
-          />
-          {searchText?.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchText('')}
-              style={styles.clearButton}>
-              <Icon name="close-circle" size={24} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
+      <View style={styles.combinedSearchInput}>
+        <TouchableOpacity
+          onPress={handlePresentYearFilterSheet}
+          style={styles.yearDropdown}>
+          <Text style={styles.yearDropdownText}>{selectedYear}</Text>
+          <Icon name="chevron-down" size={20} color="#9CA3AF" />
+        </TouchableOpacity>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Enter tracking number"
+          placeholderTextColor="#9CA3AF"
+          value={searchText}
+          autoCapitalize="characters"
+          onChangeText={setSearchText}
+          onSubmitEditing={searchTrackingNumber}
+        />
+        {searchText?.length > 0 ? (
+          <TouchableOpacity
+            onPress={() => setSearchText('')}
+            style={styles.clearButton}>
+            <Icon name="close-circle" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={() => setShowScanner(true)}
+            style={styles.scanButton}>
+            <Icons name="qrcode-scan" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <TouchableOpacity
@@ -471,13 +481,6 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.qrButton}
-        onPress={() => setShowScanner(true)}>
-        <Icons name="qrcode-scan" size={24} color="#007AFF" />
-        <Text style={styles.qrButtonText}>Scan QR Code</Text>
-      </TouchableOpacity>
-
       {dataError && (
         <Animated.View
           style={[
@@ -487,12 +490,6 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
           <Text style={styles.errorText}>{errorMessage}</Text>
         </Animated.View>
       )}
-
-      {/* {searchTrackLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="rgba(0, 116, 255, 0.7)" />
-        </View>
-      )} */}
 
       {error && (
         <Text style={styles.errorText}>Error loading data: {error}</Text>
@@ -508,7 +505,6 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
         resizeMode="cover">
         <View style={styles.overlay} />
 
-        {/* Conditionally render FlatList or a simple View based on search results */}
         {searchTrackData?.results?.length > 0 && searchTrackData.count > 1 ? (
           <FlatList
             data={searchTrackData.results}
@@ -519,7 +515,7 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
                 onPressItem={onPressItem}
               />
             )}
-            keyExtractor={item => item.TrackingNumber + item.Year} // Ensure unique key
+            keyExtractor={item => item.TrackingNumber + item.Year}
             ListHeaderComponent={renderListHeader}
             contentContainerStyle={styles.flatListContent}
           />
@@ -527,12 +523,9 @@ const SearchScreen = ({caoReceiver, cboReceiver, caoEvaluator}) => {
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
             {renderListHeader()}
             {caoReceiver === '1' && renderCAOReceiver()}
-            {/* {cboReceiver === '1' && renderCBOReceiver()} */}
-            {/* {caoEvaluator === '1' && renderCAOEvaluator()} */}
           </ScrollView>
         )}
 
-        {/* Modals and Bottom Sheets */}
         <BottomSheet
           ref={yearFilterBottomSheetRef}
           index={-1}
@@ -596,7 +589,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   scrollViewContent: {
-    padding: 16,
+    padding: 5,
     paddingBottom: 100,
   },
   flatListContent: {
@@ -604,68 +597,77 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   mainContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
+    shadowColor: '#a9b7c8',
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
+    paddingHorizontal:10,
+    paddingBottom:20,
+    //marginHorizontal: 0,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+    //borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 5,
+    marginBottom: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#252525',
+   // borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
+    borderColor: '#eee',
+    fontFamily: 'Montserrat-Bold',
   },
-  yearFilterButton: {
+  combinedSearchInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5fF5F5',
+    borderRadius: 12,
+    marginBottom: 10,
+    height: 52,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingHorizontal:10
+  },
+  yearDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  yearFilterText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-    marginRight: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    //height: 52, // Removed fixed height as TextInput might adjust
-  },
-  searchIcon: {
-    marginRight: 8,
     borderRightWidth: 1,
     borderRightColor: '#E0E0E0',
-    paddingRight: 10,
+    height: '100%',
+  },
+  yearDropdownText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#252525',
+    marginRight: 4,
+    fontFamily: 'Montserrat-SemiBold',
   },
   searchInput: {
     flex: 1,
-    height: 52,
+    height: '100%',
     fontSize: 16,
     color: '#252525',
+    paddingHorizontal: 10,
+    fontFamily: 'Montserrat-Regular',
   },
   clearButton: {
-    //padding: 5,
+    padding: 8,
+  },
+  scanButton: {
+    padding: 8,
   },
   searchButton: {
     backgroundColor: '#007AFF',
@@ -677,25 +679,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#007AFF',
   },
-  qrButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    borderRadius: 12,
-    borderColor: '#007AFF',
-  },
   searchButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#fff',
     marginLeft: 8,
-  },
-  qrButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-    marginLeft: 8,
+    fontFamily: 'Montserrat-Medium',
   },
   resultsContainer: {
     backgroundColor: 'white',
@@ -737,12 +726,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'white',
     fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
   },
   trackingNumberText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
     flex: 1,
+    fontFamily: 'Montserrat-Bold',
   },
   cardBody: {
     padding: 16,
@@ -756,10 +747,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#252525',
+    fontFamily: 'Montserrat-SemiBold',
   },
   dateModifiedText: {
     fontSize: 14,
     color: '#6B7280',
+    fontFamily: 'Montserrat-Regular',
   },
   detailRow: {
     flexDirection: 'row',
@@ -768,6 +761,7 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 14,
     color: '#4B5563',
+    fontFamily: 'Montserrat-Regular',
   },
   receiverContainer: {
     backgroundColor: 'white',
@@ -778,13 +772,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
-    marginTop: 16, // Added margin top to separate from search results
+    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#252525',
     marginBottom: 16,
+    fontFamily: 'Montserrat-Bold',
   },
   receiverButtons: {
     flexDirection: 'row',
@@ -804,6 +799,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: 'gray',
     marginTop: 8,
+    fontFamily: 'Montserrat-Medium',
   },
   bottomSheetHeader: {
     padding: 16,
@@ -814,6 +810,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#252525',
+    fontFamily: 'Montserrat-Bold',
   },
   yearOptionButton: {
     paddingVertical: 16,
@@ -829,10 +826,12 @@ const styles = StyleSheet.create({
   yearOptionText: {
     fontSize: 16,
     color: '#374151',
+    fontFamily: 'Montserrat-Regular',
   },
   selectedYearOptionText: {
     color: 'white',
     fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
   },
   yearOptionsFlatListContent: {
     paddingBottom: 24,
@@ -851,19 +850,71 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444',
     marginBottom: 16,
-    marginTop: 16, // Added margin top to separate from search input
+    marginTop: 16,
   },
   errorText: {
     color: '#DC2626',
     fontSize: 14,
     fontWeight: '500',
+    fontFamily: 'Montserrat-Medium',
   },
-  loadingOverlay: {
-    // This style is for the ActivityIndicator when loading, can be adjusted
-    // if you want it to overlay the whole screen or just a section
+  // New styles for the improved UI
+  corporateReceiverContainer: {
+    marginHorizontal: 0,
+    marginTop: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
+    shadowColor: '#a9b7c8',
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
+    //marginHorizontal: 10,
+  },
+  corporateSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007bff',
+    fontFamily: 'Montserrat-Bold',
+    marginBottom: 4,
+  },
+  corporateSectionSubtitle: {
+    fontSize: 14,
+    color: '#616161',
+    fontFamily: 'Montserrat-Regular',
+    marginBottom: 20,
+  },
+  corporateReceiverButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  corporateReceiverButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    //borderWidth: 1,
+    borderColor: '#E3E9F2',
+  },
+  corporateReceiverButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A237E',
+    marginTop: 8,
+    fontFamily: 'Montserrat-SemiBold',
+  },
+  iconBackground: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
   },
 });
 

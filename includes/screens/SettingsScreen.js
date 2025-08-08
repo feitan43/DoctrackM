@@ -11,6 +11,7 @@ import {
   ImageBackground,
   StatusBar,
   Button,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DeviceInfo from 'react-native-device-info';
@@ -98,16 +99,22 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
   };
 
   const SettingItem = ({icon, label, onPress, danger}) => (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.7}
-      style={styles.settingItem}>
+      unstable_pressDelay={20}
+      delayHoverIn={1000}
+      delayPressIn={5000} // 🕒 Add a 100ms delay before ripple starts
+      android_ripple={{color: '#eee' /* borderless: false */}}
+      style={({pressed}) => [
+        styles.settingItem,
+        pressed /* && {backgroundColor: '#f0f0f0'} */,
+      ]}>
       <Icon name={icon} size={22} color={danger ? '#ff3b30' : '#666'} />
       <Text style={[styles.settingLabel, danger && {color: '#ff3b30'}]}>
         {label}
       </Text>
       <Icon name="chevron-forward" size={20} color="#bbb" />
-    </TouchableOpacity>
+    </Pressable>
   );
 
   return (
@@ -170,8 +177,9 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
         {/* Logout Confirmation Modal */}
         <Modal
           transparent
-          animationType="slide"
+          animationType="none"
           visible={modalVisible}
+          statusBarTranslucent={true}
           onRequestClose={() => setModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
@@ -196,7 +204,11 @@ const SettingsScreen = ({fullName, employeeNumber, officeName, navigation}) => {
         </Modal>
 
         {/* Progress Modal */}
-        <Modal transparent animationType="fade" visible={progressModalVisible}>
+        <Modal
+          transparent
+          animationType="fade"
+          visible={progressModalVisible}
+          statusBarTranslucent={true}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
               <ActivityIndicator size="large" color="#2a7dd8" />
@@ -217,7 +229,7 @@ const styles = StyleSheet.create({
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    margin: 16,
+    margin: 5,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
@@ -227,11 +239,13 @@ const styles = StyleSheet.create({
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginStart: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+    //paddingVertical: 14,
+    //paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#eee',
+    //marginStart: 10,
   },
   settingLabel: {
     flex: 1,

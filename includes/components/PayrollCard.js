@@ -12,42 +12,33 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const ProgressBar = React.memo(
-  ({percentage, color, trackColor = '#E0E0E0', height = 18}) => {
-    const widthAnim = useRef(
-      new Animated.Value(parseInt(percentage, 10) || 0),
-    ).current;
+const ProgressBar = React.memo(({percentage, color}) => {
+  const widthAnim = useRef(new Animated.Value(parseInt(percentage))).current;
 
-    useEffect(() => {
-      Animated.timing(widthAnim, {
-        toValue: percentage,
-        duration: 750,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    }, [percentage]);
+  useEffect(() => {
+    Animated.timing(widthAnim, {
+      toValue: percentage,
+      duration: 1000,
+      useNativeDriver: false,
+    }).start();
+  }, [percentage]);
 
-    const animatedWidth = widthAnim.interpolate({
-      inputRange: [0, 100],
-      outputRange: ['0%', '100%'],
-    });
+  const animatedWidth = widthAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
 
-    return (
-      <View
+  return (
+    <View style={styles.progressBarContainer}>
+      <Animated.View
         style={[
-          styles.progressBarContainer,
-          {backgroundColor: trackColor, height: height, borderRadius: 5},
-        ]}>
-        <Animated.View
-          style={[
-            styles.progressBar,
-            {width: animatedWidth, backgroundColor: color, borderRadius: 5},
-          ]}
-        />
-      </View>
-    );
-  },
-);
+          styles.progressBar,
+          {width: animatedWidth, backgroundColor: color},
+        ]}
+      />
+    </View>
+  );
+});
 
 const PayrollCard = ({
   loadingTransSum,
@@ -202,22 +193,13 @@ const PayrollCard = ({
                 onPress={() => setVisibleDocuments(prevState => !prevState)}>
                 <ProgressBar
                   percentage={Math.round(percentageVouchers)}
-                  color="#4A90E2"
+                  color="rgba(42, 126, 216, 0.75)"
                   height={18}
                 />
               </TouchableOpacity>
               <Text style={styles.percentageText}>
                 {Math.round(percentageVouchers)}%
               </Text>
-              <TouchableOpacity
-                onPress={() => setVisibleDocuments(prevState => !prevState)}
-                style={styles.expandIconContainer}>
-                <Ionicons
-                  name={visibleDocuments ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
             </View>
             <Animated.View
               style={[
@@ -229,56 +211,50 @@ const PayrollCard = ({
               othersVouchersData.length > 0
                 ? othersVouchersData.map((item, index) => (
                     <View key={index} style={styles.subDocumentItemWrapper}>
-                      <View style={styles.documentTypeHeader}>
+                      <TouchableOpacity
+                        style={styles.documentTypeHeader}
+                        onPress={() =>
+                          toggleStatusVisibility(item.DocumentType)
+                        }>
                         <Text style={styles.documentTypeHeaderText}>
                           {item.DocumentType}
                         </Text>
-                      </View>
-                      <View style={styles.subDocumentRow}>
-                        <Text style={styles.subDocumentCount}>
-                          {item.DocumentTypeCount}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.subDocumentProgressBarTouchable}
-                          onPress={() =>
-                            toggleStatusVisibility(item.DocumentType)
-                          }>
-                          <ProgressBar
-                            percentage={
+                        <View style={styles.headerRightContainer}>
+                          <Text style={styles.subDocumentCount}>
+                            {item.DocumentTypeCount}
+                          </Text>
+                          {/*  <View style={styles.subDocumentProgressBarWrapper}>
+                            <ProgressBar
+                              percentage={
+                                ((item.StatusCounts.find(
+                                  status => status.Status === 'Check Released',
+                                )?.StatusCount || 0) /
+                                  parseInt(item.DocumentTypeCount, 10)) *
+                                100
+                              }
+                              color={
+                                ((item.StatusCounts.find(
+                                  status => status.Status === 'Check Released',
+                                )?.StatusCount || 0) /
+                                  parseInt(item.DocumentTypeCount, 10)) *
+                                  100 ===
+                                100
+                                  ? '#2ECC71'
+                                  : '#87CEEB'
+                              }
+                              height={16}
+                            />
+                          </View> */}
+                          {/* <Text style={styles.subDocumentPercentageText}>
+                            {Math.round(
                               ((item.StatusCounts.find(
                                 status => status.Status === 'Check Released',
                               )?.StatusCount || 0) /
                                 parseInt(item.DocumentTypeCount, 10)) *
-                              100
-                            }
-                            color={
-                              ((item.StatusCounts.find(
-                                status => status.Status === 'Check Released',
-                              )?.StatusCount || 0) /
-                                parseInt(item.DocumentTypeCount, 10)) *
-                                100 ===
-                              100
-                                ? '#2ECC71'
-                                : '#87CEEB'
-                            }
-                            height={16}
-                          />
-                        </TouchableOpacity>
-                        <Text style={styles.subDocumentPercentageText}>
-                          {Math.round(
-                            ((item.StatusCounts.find(
-                              status => status.Status === 'Check Released',
-                            )?.StatusCount || 0) /
-                              parseInt(item.DocumentTypeCount, 10)) *
-                              100,
-                          )}{' '}
-                          %
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() =>
-                            toggleStatusVisibility(item.DocumentType)
-                          }
-                          style={styles.expandIconContainer}>
+                                100,
+                            )}{' '}
+                            %
+                          </Text> */}
                           <Ionicons
                             name={
                               visibleStatusCounts[item.DocumentType]
@@ -288,8 +264,8 @@ const PayrollCard = ({
                             size={18}
                             color="#777"
                           />
-                        </TouchableOpacity>
-                      </View>
+                        </View>
+                      </TouchableOpacity>
                       <Animated.View
                         style={[
                           styles.subStatusContainer,
@@ -348,24 +324,13 @@ const PayrollCard = ({
                 }>
                 <ProgressBar
                   percentage={Math.round(percentageOthers)}
-                  color="#4A90E2"
+                  color="rgba(42, 126, 216, 0.50)"
                   height={18}
                 />
               </TouchableOpacity>
               <Text style={styles.percentageText}>
                 {Math.round(percentageOthers)}%
               </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  setVisibleDocumentsOthers(prevState => !prevState)
-                }
-                style={styles.expandIconContainer}>
-                <Ionicons
-                  name={visibleDocumentsOthers ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
             </View>
             <Animated.View
               style={[
@@ -377,79 +342,75 @@ const PayrollCard = ({
               othersOthersData.length > 0
                 ? othersOthersData.map((item, index) => (
                     <View key={index} style={styles.subDocumentItemWrapper}>
-                      <View style={styles.documentTypeHeader}>
+                      <TouchableOpacity
+                        style={styles.documentTypeHeader}
+                        onPress={() =>
+                          toggleStatusVisibility(item.DocumentType)
+                        }>
                         <Text style={styles.documentTypeHeaderText}>
                           {item.DocumentType}
                         </Text>
-                      </View>
-                      <View style={styles.subDocumentRow}>
-                        <Text style={styles.subDocumentCount}>
-                          {item.DocumentTypeCount}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.subDocumentProgressBarTouchable}
-                          onPress={() =>
-                            toggleStatusVisibility(item.DocumentType)
-                          }>
-                          <ProgressBar
-                            percentage={
-                              item.DocumentType === 'Liquidation'
-                                ? ((item.StatusCounts.find(
-                                    status => status.Status === 'CAO Released',
-                                  )?.StatusCount || 0) /
-                                    parseInt(item.DocumentTypeCount, 10)) *
-                                  100
-                                : ((item.StatusCounts.find(
-                                    status =>
-                                      status.Status === 'Check Released',
-                                  )?.StatusCount || 0) /
-                                    parseInt(item.DocumentTypeCount, 10)) *
-                                  100
-                            }
-                            color={
-                              item.DocumentType === 'Liquidation'
-                                ? ((item.StatusCounts.find(
-                                    status => status.Status === 'CAO Released',
-                                  )?.StatusCount || 0) /
-                                    parseInt(item.DocumentTypeCount, 10)) *
-                                    100 ===
-                                  100
+                        <View style={styles.headerRightContainer}>
+                          <Text style={styles.subDocumentCount}>
+                            {item.DocumentTypeCount}
+                          </Text>
+                          {/*   <View style={styles.subDocumentProgressBarWrapper}>
+                            <ProgressBar
+                              percentage={
+                                item.DocumentType === 'Liquidation'
+                                  ? ((item.StatusCounts.find(
+                                      status =>
+                                        status.Status === 'CAO Released',
+                                    )?.StatusCount || 0) /
+                                      parseInt(item.DocumentTypeCount, 10)) *
+                                    100
+                                  : ((item.StatusCounts.find(
+                                      status =>
+                                        status.Status === 'Check Released',
+                                    )?.StatusCount || 0) /
+                                      parseInt(item.DocumentTypeCount, 10)) *
+                                    100
+                              }
+                              color={
+                                item.DocumentType === 'Liquidation'
+                                  ? ((item.StatusCounts.find(
+                                      status =>
+                                        status.Status === 'CAO Released',
+                                    )?.StatusCount || 0) /
+                                      parseInt(item.DocumentTypeCount, 10)) *
+                                      100 ===
+                                    100
+                                    ? '#2ECC71'
+                                    : '#87CEEB'
+                                  : ((item.StatusCounts.find(
+                                      status =>
+                                        status.Status === 'Check Released',
+                                    )?.StatusCount || 0) /
+                                      parseInt(item.DocumentTypeCount, 10)) *
+                                      100 ===
+                                    100
                                   ? '#2ECC71'
                                   : '#87CEEB'
-                                : ((item.StatusCounts.find(
-                                    status =>
-                                      status.Status === 'Check Released',
+                              }
+                              height={16}
+                            />
+                          </View>
+                          <Text style={styles.subDocumentPercentageText}>
+                            {Math.round(
+                              item.DocumentType === 'Liquidation'
+                                ? ((item.StatusCounts.find(
+                                    status => status.Status === 'CAO Released',
                                   )?.StatusCount || 0) /
                                     parseInt(item.DocumentTypeCount, 10)) *
-                                    100 ===
-                                  100
-                                ? '#2ECC71'
-                                : '#87CEEB'
-                            }
-                            height={16}
-                          />
-                        </TouchableOpacity>
-                        <Text style={styles.subDocumentPercentageText}>
-                          {Math.round(
-                            item.DocumentType === 'Liquidation'
-                              ? ((item.StatusCounts.find(
-                                  status => status.Status === 'CAO Released',
-                                )?.StatusCount || 0) /
-                                  parseInt(item.DocumentTypeCount, 10)) *
-                                  100
-                              : ((item.StatusCounts.find(
-                                  status => status.Status === 'Check Released',
-                                )?.StatusCount || 0) /
-                                  parseInt(item.DocumentTypeCount, 10)) *
-                                  100,
-                          )}{' '}
-                          %
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() =>
-                            toggleStatusVisibility(item.DocumentType)
-                          }
-                          style={styles.expandIconContainer}>
+                                    100
+                                : ((item.StatusCounts.find(
+                                    status => status.Status === 'Check Released',
+                                  )?.StatusCount || 0) /
+                                    parseInt(item.DocumentTypeCount, 10)) *
+                                    100,
+                            )}{' '}
+                            %
+                          </Text> */}
                           <Ionicons
                             name={
                               visibleStatusCounts[item.DocumentType]
@@ -459,8 +420,8 @@ const PayrollCard = ({
                             size={18}
                             color="#777"
                           />
-                        </TouchableOpacity>
-                      </View>
+                        </View>
+                      </TouchableOpacity>
                       <Animated.View
                         style={[
                           styles.subStatusContainer,
@@ -518,27 +479,31 @@ const PayrollCard = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    marginTop: 15,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    marginTop: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
+    shadowColor: '#a9b7c8',
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
+    marginHorizontal: 10,
   },
   sectionTitleContainer: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E0E0E0',
-    paddingBottom: 15,
-    marginBottom: 20,
+    paddingBottom: 5,
+    marginBottom: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontFamily: 'Inter_28pt-Bold',
+    fontFamily: 'Montserrat-Bold',
     color: '#5d5d5d',
-    fontSize: 18,
-    //marginStart: 5,
+    fontSize: 16,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -552,29 +517,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   progressSection: {
-    paddingVertical: 5,
+    paddingVertical: 10,
   },
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
   },
   documentLabel: {
-    fontFamily: 'Inter_28pt-Regular',
-    width: 90,
-    textAlign: 'left',
-    fontSize: 16,
-    color: '#34495E',
-    fontWeight: '500',
+    fontFamily: 'Montserrat-Regular',
+    width: 70,
+    textAlign: 'right',
+    fontSize: 13,
+    color: '#333',
+    paddingRight: 5,
   },
   progressBarTouchable: {
     flex: 1,
-    marginVertical: 0,
-    marginHorizontal: 12,
+    marginVertical: 10,
+    marginHorizontal: 5,
   },
   percentageText: {
     fontSize: 16,
@@ -585,24 +547,23 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
   },
   progressBarContainer: {
+    height: 25,
     width: '100%',
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#EAEAEA',
+    borderRadius: 5,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
+    borderRadius: 5,
   },
-  expandIconContainer: {
-    paddingLeft: 12,
-  },
-
   subDocumentSection: {
     overflow: 'hidden',
     paddingVertical: 8,
   },
   subDocumentItemWrapper: {
     backgroundColor: '#FFFFFF',
-    marginBottom: 12,
+    marginBottom: 0,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E8E8E8',
@@ -614,10 +575,13 @@ const styles = StyleSheet.create({
   },
   documentTypeHeader: {
     backgroundColor: '#F7F9FA',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 18,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   documentTypeHeaderText: {
     color: '#34495E',
@@ -626,6 +590,17 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     textTransform: 'capitalize',
     fontWeight: '600',
+    flex: 1,
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  subDocumentProgressBarWrapper: {
+    flex: 1,
+    marginHorizontal: 10,
+    minWidth: 80,
+    maxWidth: 120,
   },
   subDocumentRow: {
     paddingHorizontal: 18,
@@ -642,11 +617,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     width: 45,
     marginRight: 8,
-  },
-  subDocumentProgressBarTouchable: {
-    flex: 1,
-    marginVertical: 0,
-    marginHorizontal: 10,
   },
   subDocumentPercentageText: {
     fontSize: 15,
@@ -676,14 +646,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    //paddingVertical: 6,
   },
   subStatusText: {
     color: '#555555',
     fontSize: 14,
     fontFamily: 'Inter_28pt-Regular',
     letterSpacing: 0.1,
-    textAlign: 'left',
+    textAlign: 'right',
     flex: 1,
   },
   subStatusCount: {

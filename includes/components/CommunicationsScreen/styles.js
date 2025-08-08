@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    backgroundColor: '#4a6da7',
+    //backgroundColor: '#4a6da7',
     padding: 24,
     paddingBottom: 20,
   },
@@ -28,12 +28,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerText: {
-    color: '#ffffff',
+    color: '#5c5c5cff',
     fontSize: 24,
     fontWeight: '700',
   },
   headerSubtext: {
-    color: '#dbe4f5',
+    color: '#6e6e6eff',
     fontSize: 14,
   },
   yearSelector: {
@@ -104,8 +104,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '400',
+    fontFamily: 'Inter_28pts-Thin',
     marginTop: 6,
   },
   tabButtonTextActive: {
@@ -125,7 +126,6 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    padding: 16,
   },
   sectionHeader: {
     fontSize: 18,

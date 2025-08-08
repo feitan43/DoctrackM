@@ -12,12 +12,14 @@ import {
   LayoutAnimation,
   UIManager,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {useSuppliers, useSuppliersGroup} from '../../hooks/useSuppliers';
 import {categoryIconMap} from '../../utils';
+import {useQueryClient} from '@tanstack/react-query';
 
 // Gorhom Bottom Sheet Imports
 import BottomSheet, {
@@ -52,23 +54,19 @@ const SupplierGroupCard = ({group, onPress}) => {
         borderless: false, // Ripple effect will be contained within the card's bounds
       }}>
       <View style={groupCardStyles.iconContainer}>
-     
         <MaterialCommunityIcons name={iconName} size={30} color="#1A508C" />
       </View>
-         <Text style={groupCardStyles.supplierCount}>
-        {group.CategoryCode}
-      </Text>
+      <Text style={groupCardStyles.supplierCount}>{group.CategoryCode}</Text>
       <Text
         style={groupCardStyles.description}
         numberOfLines={2}
         ellipsizeMode="tail">
         {group.Description}
       </Text>
-      
+
       <Text style={groupCardStyles.supplierCount}>
-        {group.SupplierCount} Suppliers
+        {group.Suppliers?.length || 0} Suppliers
       </Text>
-        
     </Pressable>
   );
 };
@@ -305,10 +303,34 @@ const SuppliersInfo = ({navigation}) => {
   );
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false); // New state to control rendering
+  const queryClient = useQueryClient();
 
-  const {data: suppliersData} = useSuppliers(searchQuery);
-  const {data: suppliersGroupData} = useSuppliersGroup();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // const {data: suppliersData} = useSuppliers(searchQuery);
+  // const {data: suppliersGroupData} = useSuppliersGroup();
+
+  const {data: suppliersData, refetch: refetchSuppliers} =
+    useSuppliers(searchQuery);
+  const {data: suppliersGroupData, refetch: refetchSuppliersGroup} =
+    useSuppliersGroup();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (showGroupedSuppliers) {
+        await queryClient.invalidateQueries({queryKey: ['getSuppliersGroup']});
+      } else {
+        await queryClient.invalidateQueries({
+          queryKey: ['getSuppliers', searchQuery],
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const handleSearch = () => {
     setSearchQuery(searchText);
     setShowGroupedSuppliers(false);
@@ -325,6 +347,12 @@ const SuppliersInfo = ({navigation}) => {
   };
 
   const handleCategoryPress = group => {
+    console.log('Category Description:', group.Description);
+    console.log('Advertised Supplier Count:', group.SupplierCount);
+    console.log(
+      'Actual Suppliers Array Length:',
+      group.Suppliers ? group.Suppliers.length : 0,
+    );
     setSelectedCategorySuppliers(group.Suppliers || []);
     setSelectedCategoryName(group.Description);
     setIsBottomSheetOpen(true); // Open the bottom sheet
@@ -489,6 +517,13 @@ const SuppliersInfo = ({navigation}) => {
           )}
           numColumns={3}
           contentContainerStyle={styles.groupedListContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor="#1A508C" // Optional: customize the spinner color for iOS
+            />
+          }
         />
       ) : showGroupedSuppliers &&
         (!suppliersGroupData || suppliersGroupData.length === 0) ? (

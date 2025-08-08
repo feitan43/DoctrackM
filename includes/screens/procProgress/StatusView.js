@@ -2,25 +2,26 @@ import React, {useState, memo, useCallback} from 'react';
 import {
   View,
   Text,
-  ImageBackground,
   Pressable,
-  TouchableOpacity,
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import ProgressBar from '../../utils/ProgressBar';
+
+const {width} = Dimensions.get('window');
 
 const StatusView = ({route, navigation}) => {
   const [visibleItems, setVisibleItems] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const {selectedItem, statusViewResults, officeName, loadingTransSum} =
-    route.params;
-    
+  const {selectedItem, statusViewResults, loadingTransSum} = route.params;
+
   function insertCommas(value) {
     if (value === null) {
       return '';
@@ -56,147 +57,117 @@ const StatusView = ({route, navigation}) => {
     }
   };
 
-  const RenderStatusView = memo(({item, index, onPressItem}) => (
-    <View
-      style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-        //marginHorizontal: 10,
-        marginTop: 10,
-      }}>
-      <TouchableOpacity onPress={() => onPressItem(index)}>
-        <View
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            paddingBottom: 10,
-          }}>
-          <View style={{flexDirection: 'row'}}>
-            <View>
-              <Text
-                style={{
-                  backgroundColor: 'rgba(6, 70, 175, 1)',
-                  paddingHorizontal: 15,
-                  fontFamily: 'Oswald-SemiBold',
-                  fontSize: 15,
-                  color: 'white',
-                  textAlign: 'center',
-                }}>
-                {index + 1}
-              </Text>
-            </View>
-            <View
-              style={{
-                flex: 1,
-                paddingStart: 10,
-              }}>
-              <LinearGradient
-                colors={['transparent', '#252525']}
-                start={{x: 0, y: 0}}
-                end={{x: 3, y: 0}}
-                style={{
-                  elevation: 1,
-                }}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                  }}>
-                  {item.TrackingNumber}
-                </Text>
-              </LinearGradient>
-              <View style={{marginVertical: 5}}>
-                <View style={{rowGap: -5}}>
-                  <Text
-                    style={{
-                      color: item.Status.includes('Pending')
-                        ? 'rgba(250, 135, 0, 1)'
-                        : //: 'rgba(252, 191, 27, 1)',
-                          'rgba(255, 255, 255, 1)',
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 18,
-                      textShadowRadius: 1,
-                      elevation: 1,
-                      textShadowOffset: {width: 1, height: 2},
-                    }}>
-                    {item.Status}
-                  </Text>
+  const calculateProgress = status => {
+    if (status && status.includes('Pending')) {
+      return '50%';
+    }
+    return '100%';
+  };
 
-                  {/* ProgressBar inserted between Status and DateModified */}
-                  <View style={{width: '100%', marginVertical: 5}}>
+  const RenderStatusView = memo(({item, index, onPressItem}) => {
+    const isPending = item?.Status?.includes('Pending');
+    const statusColor = isPending ? '#FF9800' : '#28A745';
+    const statusBgColor = isPending ? '#FFF3E0' : '#E6F4EA';
+    const progressPercentage = calculateProgress(item?.Status);
+
+    return (
+      <Pressable
+        onPress={() => onPressItem(index)}
+        style={({pressed}) => [
+          styles.cardContainer,
+          pressed && styles.cardContainerPressed,
+        ]}>
+        <View style={styles.cardLayout}>
+          <View style={styles.indexColumn}>
+            <Text style={styles.indexText}>{index + 1}</Text>
+          </View>
+          <View style={styles.contentColumn}>
+            <View style={styles.mainInfoContainer}>
+              <View style={styles.mainInfoLeft}>
+                <View style={styles.trackingNumberRow}>
+                  <Text style={styles.trackingNumberText}>
+                    {item.TrackingNumber || 'N/A'}
+                  </Text>
+                  <View style={[styles.statusBadge, {backgroundColor: statusBgColor}]}>
+                    <Text style={[styles.statusBadgeText, {color: statusColor}]}>
+                      {item?.Status ?? 'N/A'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.documentAndFundRow}>
+                  <Text style={styles.documentTypeText}>
+                    {item.DocumentType || 'N/A'}
+                  </Text>
+                  <Text style={styles.fundText}>
+                    {item.Fund || 'N/A'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.amountContainer}>
+                <Text style={styles.amountText}>
+                  {insertCommas(item.TotalAmount)}
+                </Text>
+                <Text style={styles.amountLabel}>Total Amount</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.detailRow}>
+              {item.TrackingType !== 'PR' ? (
+                <View style={styles.leftDetailContainer}>
+                  <Text style={styles.detailLabel}>Claimant</Text>
+                  <Text style={styles.detailValue}>{item.Claimant || 'N/A'}</Text>
+                </View>
+              ) : (
+                <View style={styles.leftDetailContainer}>
+                  <Text style={styles.detailLabel}>PR Number</Text>
+                  <Text style={styles.detailValue}>{item.PR_Number || 'N/A'}</Text>
+                </View>
+              )}
+              <View style={styles.rightDetailContainer}>
+                <Text style={styles.detailLabel}>Date Modified</Text>
+                <Text style={styles.dateModifiedValue}>
+                  {item.DateModified || 'N/A'}
+                </Text>
+                <Text style={styles.quarterText}>{item.Year || 'N/A'}</Text>
+              </View>
+            </View>
+
+           {/*  <View style={{width: '100%', marginVertical: 5, backgroundColor:'red'}}>
                     <ProgressBar
                       TrackingType={item.TrackingType}
                       Status={item.Status}
                       DocumentType={item.DocumentType}
                       Mode={item.ModeOfProcurement}
                     />
-                  </View>
+                  </View> */}
 
-                  <Text
-                    style={{
-                      color: 'silver',
-                      fontFamily: 'Oswald-Light',
-                      fontSize: 12,
-                    }}>
-                    {item.DateModified}
-                  </Text>
+
+            {/* <View style={styles.progressBarContainer}>
+              <View style={styles.progressBarWrapper}>
+                <View style={styles.progressBarInner}>
+                  <ProgressBar
+                    TrackingType={item.TrackingType}
+                    Status={item.Status}
+                    DocumentType={item.DocumentType}
+                    Mode={item.ModeOfProcurement}
+                  />
                 </View>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                    marginTop: 5,
-                  }}>
-                  {item.DocumentType}
-                </Text>
-                {/*  <Text
-                style={{
-                  color: 'white',
-                  fontFamily: 'Oswald-Light',
-                  fontSize: 12,
-                }}>
-                {item.Quarter}
-              </Text> */}
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {item.Description}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {insertCommas(item.TotalAmount)}
+                <Text style={styles.progressPercentageText}>
+                  {progressPercentage}
                 </Text>
               </View>
-            </View>
-            <View>
-              <Text
-                style={{
-                  backgroundColor: 'rgba(37, 37, 37, 0.4)',
-                  paddingHorizontal: 10,
-                  fontFamily: 'Oswald-Regular',
-                  color: 'white',
-                  fontSize: 16,
-                  textAlign: 'center',
-                }}>
-                {item.Year}
-              </Text>
-            </View>
+            </View> */}
           </View>
         </View>
-      </TouchableOpacity>
-    </View>
-  ));
+      </Pressable>
+    );
+  });
 
   const renderContent = () => {
     return (
-      <>
+      <View style={styles.listContainer}>
         <FlatList
           data={statusViewResults.slice(0, visibleItems)}
           renderItem={({item, index}) => (
@@ -209,246 +180,299 @@ const StatusView = ({route, navigation}) => {
           keyExtractor={(item, index) =>
             item && item.Id ? item.Id.toString() : index.toString()
           }
-          ListEmptyComponent={() => <Text>No results found</Text>}
           ListFooterComponent={() =>
-            loadingTransSum ? <ActivityIndicator color="white" /> : null
+            isLoadingMore ? (
+              <ActivityIndicator
+                size="small"
+                color="#1A237E"
+                style={styles.loadingMoreIndicator}
+              />
+            ) : null
           }
           onScroll={handleScroll}
+          scrollEventThrottle={16}
+          ListEmptyComponent={() => (
+            <View style={styles.noResultsContainer}>
+              <Text style={styles.noResultsText}>NO RESULTS FOUND</Text>
+            </View>
+          )}
         />
-        {isLoadingMore && (
-          <ActivityIndicator
-            size="large"
-            color="white"
-            style={{justifyContent: 'center', alignContent: 'center'}}
-          />
-        )}
-      </>
+      </View>
     );
   };
 
   return (
-    <ImageBackground
-      source={require('../../../assets/images/docmobileBG.png')}
-      style={{flex: 1, paddingHorizontal: 10}}>
-      <SafeAreaView style={{flex: 1}}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 10,
-            marginTop: 10,
-            position: 'relative',
-            marginBottom: 10,
-          }}>
-          <View
-            style={{
-              position: 'absolute',
-              left: 1,
-              borderRadius: 999,
-              overflow: 'hidden',
-            }}>
+    <SafeAreaView style={{flex: 1, backgroundColor: '#F4F7F9'}}>
+      <View style={styles.mainContainer}>
+        <LinearGradient
+          colors={['#1A508C', '#004ab1']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          style={styles.topHeader}>
+          <Pressable
+            style={styles.backButton}
+            android_ripple={{
+              color: 'rgba(255,255,255,0.2)',
+              borderless: true,
+              radius: 20,
+            }}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.topHeaderTitle}>Procurement Transactions</Text>
+          </View>
+          <View style={styles.headerRightIcons}>
             <Pressable
-              style={({pressed}) => [
-                pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                {
-                  backgroundColor: 'transparent',
-                  padding: 10,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                },
-              ]}
-              android_ripple={{color: 'gray'}}
-              onPress={() => navigation.goBack()}>
-              <Icon name="chevron-back-outline" size={26} color="white" />
+              style={styles.iconButton}
+              android_ripple={{
+                color: 'rgba(255,255,255,0.2)',
+                borderless: true,
+                radius: 20,
+              }}>
+              <MaterialCommunityIcons name="magnify" size={24} color="#fff" />
+            </Pressable>
+            <Pressable
+              style={styles.iconButton}
+              android_ripple={{
+                color: 'rgba(255,255,255,0.2)',
+                borderless: true,
+                radius: 20,
+              }}>
+              <MaterialCommunityIcons name="filter" size={24} color="#fff" />
             </Pressable>
           </View>
-          <View style={{alignItems: 'center', rowGap: -5}}>
-            <Text
-              style={{
-                color: 'white',
-                fontSize: 18,
-                fontFamily: 'Oswald-Medium',
-                lineHeight: 22,
-              }}>
-              List of Procurement Transactions
-            </Text>
-          </View>
-        </View>
+        </LinearGradient>
 
-        {/*  <View
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.2)',
-            borderColor: 'white',
-            padding: 15,
-            paddingStart: 20,
-          }}>
-          <View style={{flexDirection: 'row'}}>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                opacity: 0.5,
-                width: 60,
-              }}>
-              Office
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Regular',
-                color: 'white',
-                textAlign: 'left',
-                paddingStart: 20,
-                flex: 1,
-                flexShrink: 1,
-                flexWrap: 'wrap',
-              }}>
-              {officeName}
-            </Text>
-          </View>
-          <View style={{flexDirection: 'row'}}>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                opacity: 0.5,
-                width: 60,
-              }}>
-              Year
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                textAlign: 'left',
-                paddingStart: 20,
-              }}>
-              {statusViewResults[0].Year}
-            </Text>
-          </View>
-          <View style={{flexDirection: 'row'}}>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                opacity: 0.5,
-                width: 60,
-              }}>
-              Status
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                textAlign: 'left',
-                paddingStart: 20,
-              }}>
-              {selectedItem.Status}
-            </Text>
-          </View>
-          <View style={{flexDirection: 'row'}}>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                opacity: 0.5,
-                width: 60,
-              }}>
-              Transaction
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                textAlign: 'left',
-                paddingStart: 20,
-              }}>
-              {statusViewResults[0].DocumentType}
-            </Text>
-          </View>
-          <View style={{flexDirection: 'row'}}>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                opacity: 0.5,
-                width: 60,
-              }}>
-              Count
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Oswald-Light',
-                color: 'white',
-                textAlign: 'left',
-                paddingStart: 20,
-              }}>
-              {selectedItem.StatusCount} transactions
-            </Text>
-          </View>
-        </View> */}
-
-        <View>
-          {loadingTransSum ? (
-            <ActivityIndicator
-              size="large"
-              color="white"
-              style={{justifyContent: 'center', alignContent: 'center'}}
-            />
-          ) : (
-            <View
-              style={{
-                height: '100%',
-                paddingBottom: 55,
-              }}>
-              {renderContent()}
-            </View>
-          )}
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
+        {loadingTransSum ? (
+          <ActivityIndicator
+            size="large"
+            color="#1A237E"
+            style={{justifyContent: 'center', alignContent: 'center', flex: 1}}
+          />
+        ) : (
+          renderContent()
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
-const styles = {
-  tableHeader: {
+const styles = StyleSheet.create({
+  mainContainer: {
     flex: 1,
-    color: 'white',
-    fontFamily: 'Oswald-Regular',
-    textAlign: 'left',
-    fontSize: 13,
+    backgroundColor: '#F4F7F9',
   },
-  sectionContainer: {
+  topHeader: {
+    height: 100,
+    paddingTop: 30,
     flexDirection: 'row',
-    backgroundColor: 'rgba(37, 37, 37, 0.2)',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
-  sectionHeader: {
-    color: 'white',
-    fontFamily: 'Oswald-Regular',
-    fontSize: 12,
-    paddingStart: 10,
-    width: 60,
-    paddingVertical: 5,
-    backgroundColor: 'rgba(0,0,0, 0.2)',
-    textAlign: 'left',
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
   },
-  rowContainer: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  tableCell: {
+  headerTitleContainer: {
     flex: 1,
-    fontSize: 12,
-    opacity: 0.8,
-    color: 'white',
-    fontFamily: 'Oswald-Light',
-    textAlign: 'left',
+    alignItems: 'center',
   },
-};
+  topHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: 'Montserrat-Bold',
+  },
+  headerRightIcons: {
+    flexDirection: 'row',
+    width: 80,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  listContainer: {
+    flex: 1,
+    marginTop: 10,
+  },
+  cardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  cardContainerPressed: {
+    backgroundColor: '#F0F4F7',
+  },
+  cardLayout: {
+    flexDirection: 'row',
+    padding: 16,
+  },
+  indexColumn: {
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  indexText: {
+    color: '#007bff',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 16,
+  },
+  contentColumn: {
+    flex: 1,
+  },
+  mainInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mainInfoLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  trackingNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  trackingNumberText: {
+    color: '#1A237E',
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 16,
+    marginRight: 8,
+  },
+  statusBadge: {
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusBadgeText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  documentAndFundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  documentTypeText: {
+    color: '#616161',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  fundText: {
+    color: '#616161',
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 14,
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+  },
+  amountText: {
+    color: '#007bff',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 18,
+  },
+  amountLabel: {
+    color: '#616161',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 12,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  leftDetailContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  rightDetailContainer: {
+    alignItems: 'flex-end',
+  },
+  detailLabel: {
+    color: '#9E9E9E',
+    fontFamily: 'Montserrat-Light',
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  detailValue: {
+    color: '#424242',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+  },
+  dateModifiedValue: {
+    color: '#424242',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  quarterText: {
+    color: '#424242',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  progressBarContainer: {
+    marginTop: 10,
+  },
+  progressBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressBarInner: {
+    flex: 1,
+    marginRight: 10,
+  },
+  progressPercentageText: {
+    color: '#1A237E',
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 12,
+  },
+  loadingMoreIndicator: {
+    paddingVertical: 20,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    marginTop: 50,
+  },
+  noResultsText: {
+    fontFamily: 'Montserrat-SemiBold',
+    color: '#616161',
+    fontSize: 18,
+    marginTop: 20,
+  },
+});
 
 export default StatusView;

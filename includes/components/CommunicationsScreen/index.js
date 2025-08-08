@@ -6,12 +6,24 @@ import AnnouncementTab from './AnnouncementTab';
 import ForumsTab from './ForumsTab';
 import MessageTab from './MessageTab';
 import styles from './styles';
+import FeedsTab from './FeedsTab'; // Importing the new Feeds tab component
+import SurveysTab from './SurveysTab';
+//import SurveysTab from '../../screens/SurveysScreen';
 
-const CommunicationsScreen = ({ navigation }) => { // <--- Ensure navigation prop is received
+// Placeholder component for the new Surveys tab
+// const SurveysTab = () => {
+//   return (
+//     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+//       <Text>Surveys Tab Content</Text>
+//     </View>
+//   );
+// };
+
+
+const CommunicationsScreen = ({ navigation, onScroll }) => {
   const [activeTab, setActiveTab] = useState('announcement');
   const [selectedYear, setSelectedYear] = useState('2025');
   const [showYearDropdown, setShowYearDropdown] = useState(false);
-
   const years = ['2025', '2024', '2023', '2022'];
 
   const renderContent = () => {
@@ -19,12 +31,16 @@ const CommunicationsScreen = ({ navigation }) => { // <--- Ensure navigation pro
       case 'announcement':
         return <AnnouncementTab selectedYear={selectedYear} />;
       case 'forums':
-        return <ForumsTab selectedYear={selectedYear} />;
+        return <ForumsTab navigation={navigation} selectedYear={selectedYear} />;
       case 'message':
-        // Pass navigation prop to MessageTab
-        return <MessageTab navigation={navigation} />; // <--- Pass navigation prop
+        return <MessageTab navigation={navigation} />;
+      case 'surveys':
+        return <SurveysTab navigation={navigation} selectedYear={selectedYear} />;
+      // New case for Feeds
+      case 'feeds':
+        return <FeedsTab selectedYear={selectedYear} onScroll={onScroll} />;
       default:
-        return <AnnouncementTab selectedYear={selectedYear} />;
+        return <AnnouncementTab selectedYear={selectedYear}  />;
     }
   };
 
@@ -33,42 +49,9 @@ const CommunicationsScreen = ({ navigation }) => { // <--- Ensure navigation pro
     setShowYearDropdown(false);
   };
 
-  const handleGoBack = () => {
-    if (navigation && navigation.goBack) {
-      navigation.goBack();
-    } else {
-      console.warn("Navigation prop not available or goBack method not found.");
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={communicationsScreenStyles.headerMainRow}>
-            <TouchableOpacity onPress={handleGoBack} style={communicationsScreenStyles.backButton}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
-            </TouchableOpacity>
-
-            <Text style={styles.headerText}>Communications</Text>
-
-            <TouchableOpacity
-              style={styles.yearSelector}
-              onPress={() => setShowYearDropdown(true)}>
-              <Text style={styles.yearText}>{selectedYear}</Text>
-              <MaterialCommunityIcons
-                name="chevron-down"
-                size={18}
-                color="#fff"
-              />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.headerSubtext}>
-            Stay connected with Doctrack Community
-          </Text>
-        </View>
-
         {/* Year Dropdown Modal */}
         <Modal
           visible={showYearDropdown}
@@ -119,11 +102,28 @@ const CommunicationsScreen = ({ navigation }) => { // <--- Ensure navigation pro
             activeColor="#4a6da7"
             inactiveColor="#64748b"
           />
-          <TabButton
+          {/* <TabButton
             title="Messages"
             isActive={activeTab === 'message'}
             onClick={() => setActiveTab('message')}
             iconName="email-outline"
+            activeColor="#4a6da7"
+            inactiveColor="#64748b"
+          /> */}
+          <TabButton
+            title="Surveys"
+            isActive={activeTab === 'surveys'}
+            onClick={() => setActiveTab('surveys')}
+            iconName="chart-box-outline"
+            activeColor="#4a6da7"
+            inactiveColor="#64748b"
+          />
+          {/* New Feeds Tab */}
+          <TabButton
+            title="Feeds"
+            isActive={activeTab === 'feeds'}
+            onClick={() => setActiveTab('feeds')}
+            iconName="newspaper-variant-outline" // Using a feed-related icon
             activeColor="#4a6da7"
             inactiveColor="#64748b"
           />
@@ -139,18 +139,5 @@ const CommunicationsScreen = ({ navigation }) => { // <--- Ensure navigation pro
     </View>
   );
 };
-
-const communicationsScreenStyles = StyleSheet.create({
-  headerMainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingTop:20
-  },
-  backButton: {
-    paddingRight: 15,
-  },
-});
 
 export default CommunicationsScreen;

@@ -71,7 +71,7 @@ export default function ForPickUp({navigation}) {
 
   useEffect(() => {
     if (isCompleteSuccess) {
-      setForPickupItems(prevItems =>
+      setForPickUpItems(prevItems =>
         prevItems.filter(item => item.Id !== selectedItem?.Id),
       );
 
@@ -163,7 +163,9 @@ export default function ForPickUp({navigation}) {
                 )}
               </View>
               <Text style={[styles.statusBadge, styles.statusForPickUp]}>
-                {item.Status}
+                {item.Status.toUpperCase() === 'FORPICKUP'
+                  ? 'FOR PICKUP'
+                  : item.Status}
               </Text>
             </View>
 
@@ -186,7 +188,7 @@ export default function ForPickUp({navigation}) {
                 <Text style={styles.infoLabel}>Employee No </Text>
                 <Text style={styles.infoValue}>{item.EmployeeNumber}</Text>
               </View>
-              <View style={styles.infoRow}>
+              {/* <View style={styles.infoRow}>
                 <Ionicons
                   name="barcode-outline"
                   size={18}
@@ -194,7 +196,7 @@ export default function ForPickUp({navigation}) {
                 />
                 <Text style={styles.infoLabel}>Tracking No </Text>
                 <Text style={styles.infoValue}>{item.TrackingNumber}</Text>
-              </View>
+              </View> */}
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons
                   name="counter"
@@ -206,7 +208,7 @@ export default function ForPickUp({navigation}) {
                   {item.Qty} {item.Units}
                 </Text>
               </View>
-              <View style={styles.infoRow}>
+              {/* <View style={styles.infoRow}>
                 <Ionicons
                   name="calendar-outline"
                   size={18}
@@ -216,7 +218,7 @@ export default function ForPickUp({navigation}) {
                 <Text style={styles.infoValue}>
                   {item.DateRequested || 'N/A'}
                 </Text>
-              </View>
+              </View> */}
               <View style={styles.infoRow}>
                 <Ionicons
                   name="chatbox-ellipses-outline"
@@ -430,21 +432,23 @@ const styles = StyleSheet.create({
   },
   indexColumn: {
     width: 30,
-    backgroundColor: '#E6EEF7',
+    backgroundColor: '#fff',
     //justifyContent: 'center',
     alignItems: 'center',
-    borderRightWidth: 1,
+    //borderRightWidth: 1,
     borderRightColor: 'rgba(0,0,0,0.05)',
-    paddingVertical: 20,
+    //paddingVertical: 20,
+    padding: 10,
   },
   indexText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1A508C',
+    textAlign: 'right',
   },
   cardContent: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -520,7 +524,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-    completeButton: {
+  completeButton: {
     backgroundColor: '#28a745',
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -531,7 +535,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginTop: 15,
     shadowColor: '#28a745',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
@@ -609,5 +613,128 @@ const styles = StyleSheet.create({
     height: 14,
     width: '60%',
     borderRadius: 4,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#1A508C',
+  },
+  modalItemDetail: {
+    fontSize: 17,
+    marginBottom: 15,
+    textAlign: 'center',
+    color: '#555',
+  },
+  modalHighlightText: {
+    fontWeight: 'bold',
+    color: '#1A508C',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 10,
+  },
+  modalButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    elevation: 3,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  buttonCancel: {
+    backgroundColor: '#dc3545',
+  },
+  buttonConfirm: {
+    backgroundColor: '#28a745',
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  // Shimmer styles
+  shimmerCard: {
+    height: 260,
+    justifyContent: 'flex-start',
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    flexDirection: 'row', // Match requestCard flex direction
+  },
+  shimmerIndex: {
+    // Shimmer for index column
+    height: '100%',
+    width: 50,
+    backgroundColor: '#E0E0E0',
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  shimmerContent: {
+    // Shimmer for content area
+    flex: 1,
+    padding: 20,
+  },
+  shimmerTitle: {
+    height: 20,
+    width: '70%',
+    borderRadius: 4,
+    marginBottom: 16,
+  },
+  shimmerStatus: {
+    height: 16,
+    width: 80,
+    borderRadius: 8,
+    position: 'absolute',
+    top: 20,
+    right: 20,
+  },
+  shimmerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  shimmerIcon: {
+    height: 16,
+    width: 16,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  shimmerText: {
+    height: 14,
+    width: '60%',
+    borderRadius: 4,
+  },
+  shimmerButton: {
+    height: 40,
+    width: 120,
+    borderRadius: 10,
+    alignSelf: 'flex-end',
+    marginTop: 15,
   },
 });

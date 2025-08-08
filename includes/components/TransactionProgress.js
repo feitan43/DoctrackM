@@ -333,7 +333,7 @@ const TransactionProgress = ({
               loadingTransSum={loadingTransSum}
             />
 
-           {/*  <View style={styles.progressRow}>
+            {/*  <View style={styles.progressRow}>
               <Text style={styles.documentLabel}>Vouchers</Text>
               <TouchableOpacity
                 style={styles.progressBarTouchable}
@@ -558,27 +558,31 @@ const TransactionProgress = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 15,
-    marginTop: 15,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
+    marginTop: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
+    shadowColor: '#a9b7c8',
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
+    marginHorizontal: 10,
   },
   sectionTitleContainer: {
     borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-    paddingBottom: 10,
-    marginBottom: 15,
+    borderBottomColor: '#eee',
+    paddingBottom: 5,
+    marginBottom: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontFamily: 'Inter_28pt-Bold',
+    fontFamily: 'Montserrat-Bold',
     color: '#5d5d5d',
-    fontSize: 18,
-    marginStart: 10,
+    fontSize: 16,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -600,11 +604,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   documentLabel: {
-    fontFamily: 'Inter_28pt-Regular',
+    fontFamily: 'Montserrat-Regular',
     width: 70,
-    textAlign: 'left',
+    textAlign: 'right',
     fontSize: 15,
     color: '#333',
+    paddingRight: 30,
   },
   progressBarTouchable: {
     flex: 1,
@@ -646,6 +651,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingStart: 20,
+    borderBottomWidth:StyleSheet.hairlineWidth,
+    borderBottomColor:'#eee'
   },
   statusText: {
     color: '#555',

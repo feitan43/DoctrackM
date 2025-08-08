@@ -472,7 +472,6 @@ export const useSubmitInventoryRequest = () => {
       });
     },
     onSuccess: (data, variables, context) => {
-      console.log('Request submitted successfully:', data);
       queryClient.invalidateQueries(['inventoryRequests', officeCode]);
     },
     onError: (error, variables, context) => {
@@ -537,7 +536,6 @@ export const useSubmitApproveRequest = () => {
       });
     },
     onSuccess: (data, variables, context) => {
-      console.log('Request submitted successfully:', data);
       queryClient.invalidateQueries(['inventoryRequests', officeCode]);
     },
     onError: (error, variables, context) => {
@@ -567,7 +565,6 @@ export const useSubmitCompleteRequest = () => {
       return submitCompleteRequest({...requestDetails, employeeNumber});
     },
     onSuccess: (data, variables, context) => {
-      console.log('Request submitted successfully:', data);
       queryClient.invalidateQueries(['inventoryRequests', officeCode]);
     },
     onError: (error, variables, context) => {
@@ -599,7 +596,6 @@ export const useSubmitDisapproveRequest = () => {
       return submitDisapproveRequest({...requestDetails, employeeNumber});
     },
     onSuccess: (data, variables, context) => {
-      console.log('Request submitted successfully:', data);
       queryClient.invalidateQueries(['inventoryRequests', officeCode]);
     },
     onError: (error, variables, context) => {

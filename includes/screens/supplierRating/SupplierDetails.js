@@ -17,6 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import {useSupplierDetails} from '../../hooks/useSuppliers';
+import { officeMap } from '../../utils/officeMap';
 
 // Enable LayoutAnimation for Android if supported
 if (
@@ -257,7 +258,7 @@ const SupplierDetails = ({route, navigation}) => {
 
       <ScrollView contentContainerStyle={detailsStyles.content}>
         <View style={detailsStyles.detailSection}>
-          <Text style={detailsStyles.sectionTitle}>General Information</Text>
+          {/* <Text style={detailsStyles.sectionTitle}>General Information</Text> */}
           {details.map((detail, index) => {
             const isLast = index === details.length - 1;
             const IconComponent =
@@ -270,13 +271,13 @@ const SupplierDetails = ({route, navigation}) => {
                   detailsStyles.detailRow,
                   isLast && detailsStyles.detailRowLast,
                 ]}>
-                <IconComponent
+                {/* <IconComponent
                   name={detail.icon}
                   size={20}
                   color={detail.color || '#666'}
                   style={detailsStyles.icon}
-                />
-                <Text style={detailsStyles.detailLabel}>{detail.label}:</Text>
+                /> */}
+                <Text style={detailsStyles.detailLabel}>{detail.label} </Text>
                 <Text style={detailsStyles.detailValue}>{detail.value}</Text>
               </View>
             );
@@ -330,7 +331,7 @@ const SupplierDetails = ({route, navigation}) => {
                       />
                       <Text style={detailsStyles.feedbackLabel}>Office</Text>
                       <Text style={detailsStyles.feedbackValue}>
-                        {feedback.reviewerOffice}
+                        {officeMap[feedback.reviewerOffice]}
                       </Text>
                     </View>
                   )}
@@ -569,7 +570,7 @@ const detailsStyles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    //alignItems: 'center',
     marginBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
@@ -587,7 +588,7 @@ const detailsStyles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#555',
     width: 100,
   },

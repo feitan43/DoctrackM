@@ -1,26 +1,35 @@
-import React, {useCallback, useState, useEffect, memo, useRef} from 'react';
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  memo,
+  useRef,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Pressable,
   Dimensions,
   Animated,
-  ImageBackground,
   RefreshControl,
+  SafeAreaView,
+  TextInput,
+  ScrollView,
 } from 'react-native';
+import {FlashList} from '@shopify/flash-list';
 import useOfficeDelays from '../api/useOfficeDelays';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const {width, height} = Dimensions.get('window');
 
-const shimmerWidth = width * 0.95; // 90% of device width
-const shimmerHeight = height * 0.17; // 15% of device height
+const shimmerWidth = width * 0.95;
+const shimmerHeight = 100;
 
 const Shimmer = ({width, height, borderRadius}) => {
   const shimmerAnimatedValue = useRef(new Animated.Value(0)).current;
@@ -45,7 +54,7 @@ const Shimmer = ({width, height, borderRadius}) => {
       <Animated.View
         style={{...StyleSheet.absoluteFillObject, transform: [{translateX}]}}>
         <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.2)', 'transparent']}
+          colors={['transparent', 'rgba(0,0,0,0.1)', 'transparent']}
           start={{x: 0, y: 1}}
           end={{x: 1, y: 1}}
           style={styles.gradient}
@@ -63,195 +72,75 @@ function insertCommas(value) {
 }
 
 const monthMap = {
-  1: "January",
-  2: "February",
-  3: "March",
-  4: "April",
-  5: "May",
-  6: "June",
-  7: "July",
-  8: "August",
-  9: "September",
-  10: "October",
-  11: "November",
-  12: "December"
+  1: 'January',
+  2: 'February',
+  3: 'March',
+  4: 'April',
+  5: 'May',
+  6: 'June',
+  7: 'July',
+  8: 'August',
+  9: 'September',
+  10: 'October',
+  11: 'November',
+  12: 'December',
 };
 
-const getMonthName = (PMonth) => {
-  return monthMap[PMonth] || PMonth; // Return month name or PMonth if not valid
+const getMonthName = PMonth => {
+  return monthMap[PMonth] || PMonth;
 };
 
 const RenderOfficeDelays = memo(({item, index, onPressItem}) => {
   return (
-    <View
-      style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-        marginHorizontal: 10,
-        marginTop: 10,
-      }}>
-      <TouchableOpacity onPress={() => onPressItem(index, item)}>
-        <View
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            paddingBottom: 10,
-          }}>
-          <View style={{flexDirection: 'row'}}>
-            <View style={{}}>
-              <Text
-                style={{
-                  backgroundColor: 'rgba(6, 70, 175, 1)',
-                  paddingHorizontal: 15,
-                  fontFamily: 'Oswald-SemiBold',
-                  fontSize: 15,
-                  color: 'white',
-                  textAlign: 'center',
-                }}>
-                {index + 1}
-              </Text>
-            </View>
-            <View
-              style={{
-                flex: 1,
-                paddingStart: 10,
-              }}>
-              <LinearGradient
-                colors={['transparent', 'black']}
-                start={{x: 0, y: 0}}
-                end={{x: 3, y: 0}}
-                style={{
-                  //alignItems: 'flex-start',
-                  elevation: 1,
-                }}>
-                <Text
-                  style={{
-                    fontFamily: 'Oswald-Regular',
-                    color: 'white',
-                    fontSize: 16,
-                    //textAlign: 'center',
-                  }}>
-                  {item.TrackingNumber}
-                </Text>
-              </LinearGradient>
-              <View style={{marginVertical: 5}}>
-                <View style={{rowGap: -5}}>
-                  <Text
-                    style={{
-                      color: 'rgba(250, 135, 0, 1)',
-                      fontFamily: 'Oswald-Regular',
-                      fontSize: 18,
-                      textShadowRadius: 1,
-                      elevation: 1,
-                      //letterSpacing: 1,
-                      textShadowOffset: {width: 1, height: 2},
-                    }}>
+    <TouchableOpacity onPress={onPressItem} style={styles.cardContainer}>
+      <View style={styles.cardLayout}>
+        <View style={styles.indexColumn}>
+          <Text style={styles.indexText}>{index + 1}</Text>
+        </View>
+        <View style={styles.contentColumn}>
+          <View style={styles.mainInfoContainer}>
+            <View style={styles.mainInfoLeft}>
+              <View style={styles.trackingNumberRow}>
+                <Text style={styles.trackingNumber}>{item.TrackingNumber}</Text>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.documentStatus}>
                     {item.DocumentStatus}
                   </Text>
                 </View>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {item.DocumentType}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {insertCommas(item.Amount)}
-                </Text>
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Oswald-Light',
-                    fontSize: 12,
-                  }}>
-                  {getMonthName(item.PMonth)}
-                </Text>
-
-                <View
-                  style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
-                  {/*   <View style={{alignSelf: 'flex-end', flexDirection: 'row'}}>
-                  <Text style={{fontSize: 12,color:'#808080', fontFamily: 'Oswald-ExtraLight'}}>Last Updated : </Text>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontFamily: 'Oswald-Light',
-                      fontSize: 12,
-                      textTransform: 'uppercase',
-                    }}>
-                    {item.DateModified}
-                  </Text>
-                </View> */}
-
-                  <View
-                    style={{
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      marginEnd: 5,
-                      rowGap: -10,
-                    }}>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontFamily: 'Oswald-Regular',
-                        fontSize: 35,
-                        lineHeight: 40,
-                      }}>
-                      {item.DelayedDays}
-                    </Text>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontFamily: 'Oswald-ExtraLight',
-                        fontSize: 8,
-                        textTransform: 'uppercase',
-                      }}>
-                      Days Delayed
-                    </Text>
-                  </View>
-                  <View style={{}}>
-                    <Text
-                      style={{
-                        color: 'silver',
-                        fontFamily: 'Oswald-ExtraLight',
-                        fontSize: 10,
-                      }}>
-                      Last Updated:
-                    </Text>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontFamily: 'Oswald-Light',
-                        fontSize: 10,
-                      }}>
-                      {item.DateModified}
-                    </Text>
-                  </View>
-                </View>
+              </View>
+              <View style={styles.documentTypeRow}>
+                <MaterialCommunityIcons
+                  name="file-document-outline"
+                  size={16}
+                  color="#616161"
+                />
+                <Text style={styles.documentType}>{item.DocumentType}</Text>
               </View>
             </View>
-
-            <View style={{}}>
-              <Text
-                style={{
-                  backgroundColor: 'rgba(37, 37, 37, 0.5)',
-                  paddingHorizontal: 10,
-                  fontFamily: 'Oswald-Regular',
-                  color: 'white',
-                  fontSize: 16,
-                  textAlign: 'center',
-                }}>
-                {item.Year}
+            <View style={styles.delayedDaysContainer}>
+              <Text style={styles.delayedDays}>{item.DelayedDays}</Text>
+              <Text style={styles.daysDelayedText}>Days Delayed</Text>
+            </View>
+          </View>
+          <View style={styles.detailRow}>
+            <View>
+              {/* <Text style={styles.amountText}>
+                Amount: ${insertCommas(item.Amount)}
+              </Text> */}
+              <Text style={styles.monthYearText}>
+                {getMonthName(item.PMonth)} {item.Year}
+              </Text>
+            </View>
+            <View style={styles.dateRow}>
+              <MaterialCommunityIcons name="update" size={16} color="#9E9E9E" />
+              <Text style={styles.dateText}>
+                Last Updated: {item.DateModified}
               </Text>
             </View>
           </View>
         </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 });
 
@@ -260,9 +149,17 @@ const OfficeDelaysScreen = ({navigation}) => {
     useOfficeDelays();
 
   const [visibleItems, setVisibleItems] = useState(10);
-
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showWarningBanner, setShowWarningBanner] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [filterCriteria, setFilterCriteria] = useState({
+    year: null,
+    status: null,
+    sortBy: 'latest',
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -278,7 +175,11 @@ const OfficeDelaysScreen = ({navigation}) => {
   );
 
   const loadMore = () => {
-    if (!isLoadingMore && officeDelaysData.length > visibleItems) {
+    if (
+      !isLoadingMore &&
+      officeDelaysData &&
+      officeDelaysData.length > visibleItems
+    ) {
       setIsLoadingMore(true);
       setTimeout(() => {
         setVisibleItems(prevVisibleItems => prevVisibleItems + 10);
@@ -287,192 +188,749 @@ const OfficeDelaysScreen = ({navigation}) => {
     }
   };
 
-  const handleScroll = ({nativeEvent}) => {
-    const {layoutMeasurement, contentOffset, contentSize} = nativeEvent;
-    const paddingToBottom = 20;
-    if (
-      layoutMeasurement.height + contentOffset.y >=
-      contentSize.height - paddingToBottom
-    ) {
-      loadMore();
-    }
+  const clearFilters = () => {
+    setFilterCriteria({
+      year: null,
+      status: null,
+      sortBy: 'latest',
+    });
+    setIsFilterModalVisible(false);
   };
 
+  const filteredData = useMemo(() => {
+    if (!officeDelaysData) {
+      return [];
+    }
+
+    let data = [...officeDelaysData];
+
+    if (searchQuery) {
+      const lowercasedQuery = searchQuery.toLowerCase();
+      data = data.filter(item => {
+        return (
+          item.TrackingNumber.toLowerCase().includes(lowercasedQuery) ||
+          item.DocumentType.toLowerCase().includes(lowercasedQuery)
+        );
+      });
+    }
+
+    if (filterCriteria.year) {
+      data = data.filter(item => item.Year.toString() === filterCriteria.year);
+    }
+
+    if (filterCriteria.status && filterCriteria.status !== 'All Status') {
+      data = data.filter(item => item.DocumentStatus === filterCriteria.status);
+    }
+
+    if (filterCriteria.sortBy === 'highestDelay') {
+      data.sort((a, b) => b.DelayedDays - a.DelayedDays);
+    } else if (filterCriteria.sortBy === 'lowestDelay') {
+      data.sort((a, b) => a.DelayedDays - b.DelayedDays);
+    } else if (filterCriteria.sortBy === 'latest') {
+      data.sort((a, b) => new Date(b.DateModified) - new Date(a.DateModified));
+    } else if (filterCriteria.sortBy === 'oldest') {
+      data.sort((a, b) => new Date(a.DateModified) - new Date(b.DateModified));
+    }
+
+    return data;
+  }, [officeDelaysData, searchQuery, filterCriteria]);
+
+  const delayedCount =
+    filteredData?.filter(item => item.DelayedDays > 3).length || 0;
+
+  const getUniqueYears = () => {
+    const years = officeDelaysData?.map(item => item.Year.toString()) || [];
+    return [...new Set(years)].sort();
+  };
+
+  const getUniqueStatuses = () => {
+    const statuses = officeDelaysData?.map(item => item.DocumentStatus) || [];
+    return ['All Status', ...new Set(statuses)];
+  };
+
+  const renderFilterModal = () => (
+    <View style={styles.modalOverlay}>
+      <View style={styles.bottomSheet}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Filter & Sort</Text>
+          <Pressable
+            onPress={() => setIsFilterModalVisible(false)}
+            style={styles.modalCloseButton}>
+            <Icon name="close" size={24} color="#333" />
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Sort By</Text>
+            <View style={styles.filterOptionsContainer}>
+              <Pressable
+                onPress={() =>
+                  setFilterCriteria({...filterCriteria, sortBy: 'highestDelay'})
+                }
+                style={[
+                  styles.filterOptionButton,
+                  filterCriteria.sortBy === 'highestDelay' &&
+                    styles.filterOptionButtonActive,
+                ]}>
+                <Text
+                  style={[
+                    styles.filterOptionText,
+                    filterCriteria.sortBy === 'highestDelay' &&
+                      styles.filterOptionTextActive,
+                  ]}>
+                  Highest Delay
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  setFilterCriteria({...filterCriteria, sortBy: 'lowestDelay'})
+                }
+                style={[
+                  styles.filterOptionButton,
+                  filterCriteria.sortBy === 'lowestDelay' &&
+                    styles.filterOptionButtonActive,
+                ]}>
+                <Text
+                  style={[
+                    styles.filterOptionText,
+                    filterCriteria.sortBy === 'lowestDelay' &&
+                      styles.filterOptionTextActive,
+                  ]}>
+                  Lowest Delay
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  setFilterCriteria({...filterCriteria, sortBy: 'latest'})
+                }
+                style={[
+                  styles.filterOptionButton,
+                  filterCriteria.sortBy === 'latest' &&
+                    styles.filterOptionButtonActive,
+                ]}>
+                <Text
+                  style={[
+                    styles.filterOptionText,
+                    filterCriteria.sortBy === 'latest' &&
+                      styles.filterOptionTextActive,
+                  ]}>
+                  Latest
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  setFilterCriteria({...filterCriteria, sortBy: 'oldest'})
+                }
+                style={[
+                  styles.filterOptionButton,
+                  filterCriteria.sortBy === 'oldest' &&
+                    styles.filterOptionButtonActive,
+                ]}>
+                <Text
+                  style={[
+                    styles.filterOptionText,
+                    filterCriteria.sortBy === 'oldest' &&
+                      styles.filterOptionTextActive,
+                  ]}>
+                  Oldest
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Filter by Year</Text>
+            <View style={styles.filterOptionsContainer}>
+              {getUniqueYears().map(year => (
+                <Pressable
+                  key={year}
+                  onPress={() => setFilterCriteria({...filterCriteria, year})}
+                  style={[
+                    styles.filterOptionButton,
+                    filterCriteria.year === year &&
+                      styles.filterOptionButtonActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.filterOptionText,
+                      filterCriteria.year === year &&
+                        styles.filterOptionTextActive,
+                    ]}>
+                    {year}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Filter by Status</Text>
+            <View style={styles.filterOptionsContainer}>
+              {getUniqueStatuses().map(status => (
+                <Pressable
+                  key={status}
+                  onPress={() => setFilterCriteria({...filterCriteria, status})}
+                  style={[
+                    styles.filterOptionButton,
+                    filterCriteria.status === status &&
+                      styles.filterOptionButtonActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.filterOptionText,
+                      filterCriteria.status === status &&
+                        styles.filterOptionTextActive,
+                    ]}>
+                    {status}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+        <View style={styles.modalFooter}>
+          <Pressable onPress={clearFilters} style={styles.clearFiltersButton}>
+            <Text style={styles.clearFiltersText}>Clear Filters</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setIsFilterModalVisible(false)}
+            style={styles.applyFiltersButton}>
+            <Text style={styles.applyFiltersText}>Apply</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+
   const renderContent = () => {
+    const dataToRender = filteredData.slice(0, visibleItems);
+
     return (
-      <>
-        <FlatList
-          data={officeDelaysData.slice(0, visibleItems)}
-          renderItem={({item, index}) => (
-            <RenderOfficeDelays
-              item={item}
-              index={index}
-              onPressItem={onPressItem}
-            />
-          )}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          keyExtractor={(item, index) =>
-            item && item.Id ? item.Id.toString() : index.toString()
-          }
-          style={styles.transactionList}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.1}
-          onScroll={handleScroll}
-          ListEmptyComponent={() => <Text>No results found</Text>}
-          ListFooterComponent={() =>
-            delaysLoading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : null
-          } // Display ActivityIndicator at the bottom when loading more data
-        />
-        {isLoadingMore && (
-          <ActivityIndicator
-            size="small"
-            color="white"
-            style={{justifyContent: 'center', alignContent: 'center'}}
+      <FlashList
+        data={dataToRender}
+        renderItem={({item, index}) => (
+          <RenderOfficeDelays
+            item={item}
+            index={index}
+            onPressItem={() => onPressItem(index)}
           />
         )}
-      </>
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyExtractor={(item, index) =>
+          item && item.Id ? item.Id.Id.toString() : index.toString()
+        }
+        style={styles.transactionList}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={() =>
+          isLoadingMore ? (
+            <ActivityIndicator
+              size="small"
+              color="#1A237E"
+              style={styles.loadingMoreIndicator}
+            />
+          ) : null
+        }
+        ListEmptyComponent={() =>
+          !delaysLoading &&
+          dataToRender.length === 0 && (
+            <View style={styles.noResultsContainer}>
+              <Text style={styles.noResultsText}>NO RESULTS FOUND</Text>
+            </View>
+          )
+        }
+        estimatedItemSize={shimmerHeight + 16}
+      />
     );
   };
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/docmobileBG.png')}
-      style={{flex: 1}}>
-      <SafeAreaView style={{flex: 1}}>
-        <View style={styles.container}>
-          <View
-            style={{
-              //backgroundColor: 'rgba(20, 16, 25, 0.2)',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 10,
-              position: 'relative',
-              paddingTop: 20,
-            }}>
-            <View
-              style={{
-                position: 'absolute',
-                left: 10,
-                borderRadius: 999,
-                overflow: 'hidden',
-              }}>
+    <SafeAreaView style={{flex: 1}}>
+      <View style={styles.mainContainer}>
+        <LinearGradient
+          colors={['#1A508C', '#004ab1']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          style={styles.topHeader}>
+          <Pressable
+            style={styles.backButton}
+            android_ripple={{
+              color: 'rgba(255,255,255,0.2)',
+              borderless: true,
+              radius: 20,
+            }}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+          {isSearching ? (
+            <View style={styles.searchBarContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search..."
+                placeholderTextColor="#ccc"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
               <Pressable
-                style={({pressed}) => [
-                  pressed && {backgroundColor: 'rgba(0, 0, 0, 0.1)'},
-                  {
-                    backgroundColor: 'transparent',
-                    padding: 10,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  },
-                ]}
-                android_ripple={{color: 'gray'}}
-                onPress={() => navigation.goBack()}>
-                <Icon name="chevron-back-outline" size={26} color="white" />
+                style={styles.iconButton}
+                android_ripple={{
+                  color: 'rgba(255,255,255,0.2)',
+                  borderless: true,
+                  radius: 20,
+                }}
+                onPress={() => {
+                  setSearchQuery('');
+                  setIsSearching(false);
+                }}>
+                <Icon name="close" size={24} color="#fff" />
               </Pressable>
             </View>
-            <View style={{alignItems: 'center', rowGap: -5}}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 18,
-                  fontFamily: 'Oswald-Medium',
-                  lineHeight: 20,
-                }}>
-                OFFICE DELAYS
-              </Text>
-            </View>
-          </View>
-
-          {delaysLoading ? (
-            <View style={[styles.container2, {top: 25}]}>
-              {[...Array(7)].map((_, index) => (
-                <Shimmer
-                  key={index}
-                  width={shimmerWidth}
-                  height={shimmerHeight}
-                />
-              ))}
-            </View>
-          ) : officeDelaysData === null ? (
-            <View style={[styles.container2, {top: 25}]}>
-              {[...Array(7)].map((_, index) => (
-                <Shimmer
-                  key={index}
-                  width={shimmerWidth}
-                  height={shimmerHeight}
-                  borderRadius={4}
-                />
-              ))}
-            </View>
-          ) : officeDelaysData.length === 0 ? (
-            <View
-              style={{
-                justifyContent: 'center',
-                marginHorizontal: 10,
-                borderWidth: 1,
-                borderColor: 'white',
-                backgroundColor: 'rgba(0,0,0,0.1)',
-              }}>
-              <Text
-                style={{
-                  fontFamily: 'Oswald-Light',
-                  alignSelf: 'center',
-                  color: 'white',
-                  fontSize: 18,
-                  padding: 5,
-                }}>
-                NO RESULTS FOUND
-              </Text>
-            </View>
           ) : (
-            <View style={{height: '100%', paddingBottom: 55}}>
-              {renderContent()}
-            </View>
+            <>
+              <View style={styles.headerTitleContainer}>
+                <Text style={styles.topHeaderTitle}>Office Delays</Text>
+              </View>
+              <View style={styles.headerRightIcons}>
+                <Pressable
+                  style={styles.iconButton}
+                  android_ripple={{
+                    color: 'rgba(255,255,255,0.2)',
+                    borderless: true,
+                    radius: 20,
+                  }}
+                  onPress={() => setIsSearching(true)}>
+                  <MaterialCommunityIcons
+                    name="magnify"
+                    size={26}
+                    color="#fff"
+                  />
+                </Pressable>
+                <Pressable
+                  style={styles.iconButton}
+                  android_ripple={{
+                    color: 'rgba(255,255,255,0.2)',
+                    borderless: true,
+                    radius: 20,
+                  }}
+                  onPress={() => setIsFilterModalVisible(true)}>
+                  <MaterialCommunityIcons
+                    name="filter-menu-outline"
+                    size={26}
+                    color="#fff"
+                  />
+                </Pressable>
+              </View>
+            </>
           )}
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
+        </LinearGradient>
+        {showWarningBanner && (
+          <View style={styles.warningBanner}>
+            <View style={styles.warningBannerContent}>
+              <Text style={styles.warningTitle}>
+                You have {delayedCount} Delayed Transactions!
+              </Text>
+              <Text style={styles.warningText}>
+                Hello there! 👋 This list shows transactions delayed by more
+                than 3 days. Please cancel the tracking if not continued,
+                otherwise, take action.
+              </Text>
+              <Text style={styles.warningSignature}>
+                — from Project Doctrack
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setShowWarningBanner(false)}
+              style={styles.closeButton}
+              android_ripple={{
+                color: 'rgba(255,255,255,0.2)',
+                borderless: true,
+                radius: 15,
+              }}>
+              <Icon name="close-circle" size={24} color="#856404" />
+            </Pressable>
+          </View>
+        )}
+        {delaysLoading ? (
+          <View style={styles.shimmerList}>
+            {[...Array(7)].map((_, index) => (
+              <Shimmer
+                key={index}
+                width={shimmerWidth}
+                height={shimmerHeight}
+                borderRadius={12}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.listContainer}>{renderContent()}</View>
+        )}
+      </View>
+      {isFilterModalVisible && renderFilterModal()}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
+    backgroundColor: '#F4F7F9',
+  },
+  topHeader: {
+    height: 100,
+    paddingTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  searchBarContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    height: 40,
+    paddingHorizontal: 10,
+    marginLeft: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 16,
+    paddingLeft: 10,
   },
   backButton: {
     width: 40,
-    backgroundColor: 'transparent',
-    padding: 10,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    //alignItems: 'center',
+  },
+  topHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  headerRightIcons: {
+    flexDirection: 'row',
+    width: 80,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  warningBanner: {
+    backgroundColor: '#fff3cd',
+    padding: 15,
+    marginHorizontal: 15,
+    marginVertical: 10,
+    borderRadius: 12,
+    borderLeftWidth: 5,
+    borderLeftColor: '#ffc107',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  warningBannerContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#856404',
+    fontFamily: 'Montserrat-Bold',
+    marginBottom: 5,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#856404',
+    fontFamily: 'Montserrat-Regular',
+    marginBottom: 5,
+  },
+  warningSignature: {
+    fontSize: 12,
+    color: '#856404',
+    fontFamily: 'Montserrat-Bold',
+    textAlign: 'right',
+  },
+  closeButton: {
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    height: 30,
+    width: 30,
+  },
+  listContainer: {
+    flex: 1,
+    marginTop: 10,
+  },
+  cardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginVertical: 8,
+    marginHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  cardLayout: {
+    flexDirection: 'row',
+    padding: 16,
+  },
+  indexColumn: {
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  indexText: {
+    color: '#007bff',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 16,
+  },
+  contentColumn: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  mainInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  mainInfoLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  trackingNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  trackingNumber: {
+    color: '#1A237E',
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 16,
+    marginRight: 8,
+  },
+  documentTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  documentType: {
+    marginLeft: 5,
+    color: '#616161',
+    fontFamily: 'Montserrat-Light',
+    fontSize: 14,
+  },
+  statusBadge: {
+    backgroundColor: '#D32F2F',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  documentStatus: {
+    color: '#fff',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  delayedDaysContainer: {
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  delayedDays: {
+    color: '#FF9800',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 24,
+  },
+  daysDelayedText: {
+    color: '#FF9800',
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  amountText: {
+    color: '#333',
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  monthYearText: {
+    color: '#616161',
+    fontFamily: 'Montserrat-Regular',
+    fontSize: 12,
+  },
+  dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  blurBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  dateText: {
+    marginLeft: 5,
+    color: '#9E9E9E',
+    fontFamily: 'Montserrat-Light',
+    fontSize: 12,
   },
   shimmerWrapper: {
     overflow: 'hidden',
-    backgroundColor: 'rgba(0,0,0, 0.1)',
+    backgroundColor: '#EAEAEA',
+    marginHorizontal: 15,
+    marginVertical: 8,
+    borderRadius: 12,
+  },
+  shimmerList: {
+    gap: 10,
+    marginTop: 20,
   },
   gradient: {
     flex: 1,
   },
-  container2: {
-    gap: 10,
-    marginTop: 50,
+  noResultsContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    margin: 20,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  noResultsText: {
+    fontFamily: 'Montserrat-SemiBold',
+    color: '#616161',
+    fontSize: 18,
+  },
+  loadingMoreIndicator: {
+    paddingVertical: 20,
+  },
+
+  // Bottom Sheet styles
+  modalOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: height * 0.7,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A237E',
+    fontFamily: 'Montserrat-Bold',
+  },
+  modalCloseButton: {
+    padding: 5,
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
+  },
+  filterSection: {
+    marginBottom: 20,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    fontFamily: 'Montserrat-SemiBold',
+  },
+  filterOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  filterOptionButton: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  filterOptionButtonActive: {
+    backgroundColor: '#1A237E',
+  },
+  filterOptionText: {
+    color: '#333',
+    fontFamily: 'Montserrat-Medium',
+  },
+  filterOptionTextActive: {
+    color: '#fff',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingTop: 20,
+  },
+  clearFiltersButton: {
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#F4F7F9',
+  },
+  clearFiltersText: {
+    color: '#616161',
+    fontFamily: 'Montserrat-Bold',
+  },
+  applyFiltersButton: {
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#007bff',
+  },
+  applyFiltersText: {
+    color: '#fff',
+    fontFamily: 'Montserrat-Bold',
   },
 });
 

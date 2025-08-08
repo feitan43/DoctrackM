@@ -42,6 +42,8 @@ const DoctrackScreen = ({
   caoEvaluator,
   payroll,
   boss,
+  sura,
+  fms,
   officeName,
   privilege,
   permission,
@@ -100,6 +102,7 @@ const DoctrackScreen = ({
   recentActivityData,
   recentActivityError,
   recentActivityLoading,
+  onScroll,
 }) => {
   const [showPRStatus, setShowPRStatus] = useState(false);
   const [showPOStatus, setShowPOStatus] = useState(false);
@@ -110,7 +113,6 @@ const DoctrackScreen = ({
   const queryClient = useQueryClient();
 
   const navigation = useNavigation();
-
   const openModal = () => {
     setSetModalVisible(true);
   };
@@ -201,6 +203,7 @@ const DoctrackScreen = ({
         transparent={true}
         animationType="fade"
         visible={visible}
+        statusBarTranslucent={true}
         onRequestClose={() => {}}>
         <View style={styles.modalBackground}>
           <View style={styles.activityIndicatorWrapper}>
@@ -324,7 +327,7 @@ const DoctrackScreen = ({
         style={{
           flex: 1,
           justifyContent: 'center',
-          paddingHorizontal: 10,
+          //paddingHorizontal: 5,
         }}>
         {/* {boss === '1' && (
           <View style={{}}>
@@ -337,8 +340,7 @@ const DoctrackScreen = ({
             <>
               <View
                 style={{
-                  padding: 10,
-                  marginTop: 15,
+                  marginTop: 20,
                   backgroundColor: 'white',
                   borderRadius: 5,
                   elevation: 1,
@@ -348,14 +350,15 @@ const DoctrackScreen = ({
                     borderBottomWidth: 1,
                     borderBottomColor: '#eee',
                     paddingBottom: 5,
-                    marginBottom: 10,
+                    marginBottom: 5,
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
                   }}>
                   <Text
                     style={{
-                      fontFamily: 'Inter_28pt-Bold',
+                      fontFamily: 'Montserrat-Bold',
                       color: '#5d5d5d',
-                      fontSize: 18,
-                      marginStart: 10,
+                      fontSize: 16,
                     }}>
                     Transaction Counter
                   </Text>
@@ -573,12 +576,12 @@ const DoctrackScreen = ({
                         {
                           label: 'Daily',
                           screen: 'EvalDaily',
-                          icon: 'calendar-today', 
+                          icon: 'calendar-today',
                         },
                         {
                           label: 'Monthly',
                           screen: 'EvalMonthly',
-                          icon: 'calendar-month', 
+                          icon: 'calendar-month',
                         },
                         {
                           label: 'Annual',
@@ -910,19 +913,18 @@ const DoctrackScreen = ({
                 {accountType === '1' && (
                   <View
                     style={{
-                      padding: 10,
-                      marginTop: 10,
-                      backgroundColor: 'white',
-                      borderRadius: 5,
-                      // shadowColor: '#000',
-                      // shadowOffset: {width: 0, height: 2},
-                      // shadowOpacity: 0.25,
-                      // shadowRadius: 3.84,
-                      elevation: 1,
-                      // borderBottomWidth: 1,
-                      // borderBottomColor: 'silver',
-                      // borderRightWidth: 1,
-                      // borderRightColor: 'silver',
+                      marginTop: 20,
+                      backgroundColor: '#ffffff', // Match the background of the screen
+                      borderRadius: 5, // Neumorphism Effect
+                      shadowColor: '#a9b7c8', // Dark shadow color
+                      shadowOffset: {
+                        width: 5,
+                        height: 5,
+                      },
+                      shadowOpacity: 1,
+                      shadowRadius: 10,
+                      elevation: 5,
+                      marginHorizontal: 10,
                     }}>
                     <View
                       style={{
@@ -930,13 +932,14 @@ const DoctrackScreen = ({
                         borderBottomColor: '#eee',
                         paddingBottom: 5,
                         marginBottom: 5,
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
                       }}>
                       <Text
                         style={{
-                          fontFamily: 'Inter_28pt-Bold',
+                          fontFamily: 'Montserrat-Bold',
                           color: '#5d5d5d',
-                          fontSize: 18,
-                          marginStart: 10,
+                          fontSize: 16,
                         }}>
                         Tracking Summary
                       </Text>
@@ -947,7 +950,7 @@ const DoctrackScreen = ({
                         //paddingHorizontal: 10,
                         paddingTop: 10,
                         paddingBottom: 10,
-                        marginStart: 5,
+                        //marginStart: 5,
                       }}>
                       {trackSumLoading ? (
                         <Text style={{textAlign: 'center'}}>Loading...</Text>
@@ -970,18 +973,19 @@ const DoctrackScreen = ({
                                 })
                               }
                               style={{}}
-                              android_ripple={{color: 'rgba(0, 0, 0, 0.2)'}}>
+                              android_ripple={{
+                                color: 'rgba(153, 153, 153, 0.2)',
+                              }}>
                               <View
                                 style={{
                                   flexDirection: 'row',
-                                  //alignItems: 'center',
-                                  borderBottomWidth: 1,
+                                  borderBottomWidth: StyleSheet.hairlineWidth,
                                   borderBottomColor: '#eee',
                                   paddingVertical: 5,
                                 }}>
                                 <Text
                                   style={{
-                                    fontFamily: 'Inter_28pt-Bold',
+                                    fontFamily: 'Montserrat-Bold',
                                     fontSize: 15,
                                     color: item.Status.includes('Pending')
                                       ? 'rgb(248, 12, 12)'
@@ -989,8 +993,7 @@ const DoctrackScreen = ({
                                     width: '20%',
                                     textAlign: 'right',
                                     paddingRight: 10,
-                                    //alignSelf: 'center',
-                                    textAlignVertical: 'top',
+                                    //textAlignVertical: 'top',
                                   }}>
                                   {item.Count}
                                 </Text>
@@ -998,7 +1001,8 @@ const DoctrackScreen = ({
                                   <Text
                                     style={{
                                       fontSize: 14,
-                                      fontFamily: 'Inter_28pt-Regular',
+                                      fontFamily: 'Montserrat-Regular',
+                                      letterSpacing: -0,
                                     }}>
                                     {item.Status}
                                   </Text>
@@ -1013,9 +1017,6 @@ const DoctrackScreen = ({
                                 alignSelf: 'flex-end',
                                 marginTop: 10,
                                 paddingHorizontal: 10,
-                                borderRightWidth: 1,
-                                borderBottomWidth: 1,
-                                borderColor: '#ccc',
                                 borderRadius: 5,
                                 padding: 3,
                               }}>
@@ -1024,7 +1025,7 @@ const DoctrackScreen = ({
                                 <Text
                                   style={{
                                     color: 'rgb(8, 112, 231)',
-                                    fontWeight: 'bold',
+                                    fontFamily: 'Montserrat-SemiBold',
                                   }}>
                                   {showAll ? 'Show Less' : 'Show More'}
                                 </Text>
@@ -1049,19 +1050,18 @@ const DoctrackScreen = ({
                   ].includes(officeCode) && (
                     <View
                       style={{
-                        padding: 10,
-                        marginTop: 10,
-                        backgroundColor: 'white',
-                        borderRadius: 5,
-                        // shadowColor: '#000',
-                        // shadowOffset: {width: 0, height: 2},
-                        // shadowOpacity: 0.25,
-                        // shadowRadius: 3.84,
-                        elevation: 1,
-                        // borderBottomWidth: 1,
-                        // borderBottomColor: 'silver',
-                        // borderRightWidth: 1,
-                        // borderRightColor: 'silver',
+                        marginTop: 20,
+                        backgroundColor: '#ffffff', // Match the background of the screen
+                        borderRadius: 5, // Neumorphism Effect
+                        shadowColor: '#a9b7c8', // Dark shadow color
+                        shadowOffset: {
+                          width: 5,
+                          height: 5,
+                        },
+                        shadowOpacity: 1,
+                        shadowRadius: 10,
+                        elevation: 5,
+                        marginHorizontal: 10,
                       }}>
                       <View
                         style={{
@@ -1069,13 +1069,14 @@ const DoctrackScreen = ({
                           borderBottomColor: '#eee',
                           paddingBottom: 5,
                           marginBottom: 5,
+                          paddingVertical: 10,
+                          paddingHorizontal: 20,
                         }}>
                         <Text
                           style={{
-                            fontFamily: 'Inter_28pt-Bold',
+                            fontFamily: 'Montserrat-Bold',
                             color: '#5d5d5d',
-                            fontSize: 18,
-                            marginStart: 10,
+                            fontSize: 16,
                           }}>
                           Tracking Summary
                         </Text>
@@ -1181,30 +1182,37 @@ const DoctrackScreen = ({
 
                 <View
                   style={{
-                    padding: 10,
-                    marginTop: 15,
-                    backgroundColor: 'white',
+                    marginTop: 20,
+                    backgroundColor: '#ffffff',
                     borderRadius: 5,
-                    elevation: 1,
+                    shadowColor: '#a9b7c8',
+                    shadowOffset: {
+                      width: 5,
+                      height: 5,
+                    },
+                    shadowOpacity: 1,
+                    shadowRadius: 10,
+                    elevation: 5,
+                    marginHorizontal: 10,
                   }}>
                   <View
                     style={{
                       borderBottomWidth: 1,
                       borderBottomColor: '#eee',
                       paddingBottom: 5,
-                      marginBottom: 10,
+                      marginBottom: 5,
+                      paddingVertical: 10,
+                      paddingHorizontal: 20,
                     }}>
                     <Text
                       style={{
-                        fontFamily: 'Inter_28pt-Bold',
+                        fontFamily: 'Montserrat-Bold',
                         color: '#5d5d5d',
-                        fontSize: 18,
-                        marginStart: 10,
+                        fontSize: 16,
                       }}>
-                      Transaction Counter
+                      Transaction Counter                
                     </Text>
                   </View>
-
                   <View
                     style={{
                       flexDirection: 'row',
@@ -1277,7 +1285,7 @@ const DoctrackScreen = ({
                               <Text
                                 style={{
                                   color: pressed ? 'white' : '#007bff',
-                                  fontFamily: 'Inter_28pt-Bold',
+                                  fontFamily: 'Montserrat-Bold',
                                   fontSize: 26,
                                 }}>
                                 {item.count || 0}
@@ -1285,7 +1293,7 @@ const DoctrackScreen = ({
                               <Text
                                 style={{
                                   color: pressed ? 'white' : '#252525',
-                                  fontFamily: 'Inter_28pt-Regular',
+                                  fontFamily: 'Montserrat-Regular',
                                   fontSize: 10,
                                 }}>
                                 {item.label}
@@ -1317,7 +1325,7 @@ const DoctrackScreen = ({
           )}
         </View>
 
-        {payroll === '1' && (
+        {payroll != '1' && (
           <PayrollCard
             dataPR={dataPR}
             dataPO={dataPO}
@@ -1339,25 +1347,33 @@ const DoctrackScreen = ({
           employeeNumber === '391094') && (
           <View
             style={{
-              padding: 10,
-              marginTop: 15,
-              backgroundColor: 'white',
+              marginTop: 20,
+              backgroundColor: '#ffffff',
               borderRadius: 5,
-              elevation: 1,
+              shadowColor: '#a9b7c8',
+              shadowOffset: {
+                width: 5,
+                height: 5,
+              },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 5,
+              marginHorizontal: 10,
             }}>
             <View
               style={{
                 borderBottomWidth: 1,
                 borderBottomColor: '#eee',
                 paddingBottom: 5,
-                marginBottom: 10,
+                marginBottom: 5,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-Bold',
+                  fontFamily: 'Montserrat-Bold',
                   color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
+                  fontSize: 16,
                 }}>
                 Inventory
               </Text>
@@ -1373,12 +1389,6 @@ const DoctrackScreen = ({
                 gap: 15,
               }}>
               {[
-                /*   {
-                label: 'Request',
-                icon: 'note-plus-outline', // Changed icon for Request
-                condition: procurement !== '1',
-                screen: 'InventoryScreen',
-              }, */
                 {
                   label: 'Stocks',
                   icon: 'package-variant', // Changed icon for Stocks
@@ -1398,11 +1408,6 @@ const DoctrackScreen = ({
                   screen: 'SuppliesSummary',
                 },
               ].map((item, index) => {
-                // Corrected condition to check if it SHOULD be rendered
-                // The original logic `if (!item.condition) return null;` meant it would only render
-                // if `procurement === '1'`, which contradicts the `condition: procurement != '1'`
-                // on the items themselves. I'm assuming you want these items to show when
-                // `procurement !== '1'`.
                 if (item.condition === false) return null; // Only render if condition is met
 
                 return (
@@ -1464,25 +1469,33 @@ const DoctrackScreen = ({
         {procurement === '1' && (
           <View
             style={{
-              padding: 10,
-              marginTop: 15,
-              backgroundColor: 'white',
+              marginTop: 20,
+              backgroundColor: '#ffffff',
               borderRadius: 5,
-              elevation: 1,
+              shadowColor: '#a9b7c8',
+              shadowOffset: {
+                width: 5,
+                height: 5,
+              },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 5,
+              marginHorizontal: 10,
             }}>
             <View
               style={{
                 borderBottomWidth: 1,
                 borderBottomColor: '#eee',
                 paddingBottom: 5,
-                marginBottom: 10,
+                marginBottom: 5,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-Bold',
+                  fontFamily: 'Montserrat-Bold',
                   color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
+                  fontSize: 16,
                 }}>
                 Uploader
               </Text>
@@ -1506,13 +1519,13 @@ const DoctrackScreen = ({
               {[
                 {
                   label: 'Attachments',
-                  icon: 'file-download-outline',
+                  icon: 'file-upload-outline',
                   condition: procurement === '1',
                   screen: 'Attachments',
                 },
                 {
                   label: 'Inventory',
-                  icon: 'cube-outline', // Changed icon for Upload
+                  icon: 'file-upload-outline',
                   condition: procurement === '1',
                   screen: 'InventoryScreen',
                 },
@@ -1583,25 +1596,33 @@ const DoctrackScreen = ({
         {boss === '1' && (
           <View
             style={{
-              padding: 10,
               marginTop: 20,
-              backgroundColor: 'white',
+              backgroundColor: '#ffffff',
               borderRadius: 5,
-              elevation: 2,
+              shadowColor: '#a9b7c8',
+              shadowOffset: {
+                width: 5,
+                height: 5,
+              },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 5,
+              marginHorizontal: 10,
             }}>
             <View
               style={{
                 borderBottomWidth: 1,
                 borderBottomColor: '#eee',
                 paddingBottom: 5,
-                marginBottom: 10,
+                marginBottom: 5,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-Bold',
+                  fontFamily: 'Montserrat-Bold',
                   color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
+                  fontSize: 16,
                 }}>
                 Boss Level
               </Text>
@@ -1712,28 +1733,36 @@ const DoctrackScreen = ({
           </View>
         )}
 
-        {boss === '1' && (
+        {sura === '1' && (
           <View
             style={{
-              padding: 10,
               marginTop: 20,
-              backgroundColor: 'white',
+              backgroundColor: '#ffffff',
               borderRadius: 5,
-              elevation: 2,
+              shadowColor: '#a9b7c8',
+              shadowOffset: {
+                width: 5,
+                height: 5,
+              },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 5,
+              marginHorizontal: 10,
             }}>
             <View
               style={{
                 borderBottomWidth: 1,
                 borderBottomColor: '#eee',
                 paddingBottom: 5,
-                marginBottom: 10,
+                marginBottom: 5,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-Bold',
+                  fontFamily: 'Montserrat-Bold',
                   color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
+                  fontSize: 16,
                 }}>
                 Supplier
               </Text>
@@ -1747,6 +1776,7 @@ const DoctrackScreen = ({
                 alignItems: 'center',
                 alignSelf: 'flex-start',
                 gap: 15,
+                marginBottom: 5,
               }}>
               {[
                 {
@@ -1789,8 +1819,8 @@ const DoctrackScreen = ({
                       {
                         width: '30%',
                         alignItems: 'center',
-                        paddingVertical: 8,
-                        marginBottom: 10,
+                        paddingVertical: 5,
+                        //marginBottom: 10,
                         borderRadius: 5,
                         //elevation: 2,
                         backgroundColor: pressed ? '#007bff' : '#ffffff',
@@ -1853,31 +1883,40 @@ const DoctrackScreen = ({
             </View>
           </View>
         )}
-        {/* COMMUNICATIONS */}
-        {/* {boss === '1' && (
+
+        {/*FINANCIAL */}
+        {(boss === '1' || fms === '1') && (
           <View
             style={{
-              padding: 10,
               marginTop: 20,
-              backgroundColor: 'white',
+              backgroundColor: '#ffffff',
               borderRadius: 5,
-              elevation: 2,
+              shadowColor: '#a9b7c8',
+              shadowOffset: {
+                width: 5,
+                height: 5,
+              },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 5,
+              marginHorizontal: 10,
             }}>
             <View
               style={{
                 borderBottomWidth: 1,
                 borderBottomColor: '#eee',
                 paddingBottom: 5,
-                marginBottom: 10,
+                marginBottom: 5,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-Bold',
+                  fontFamily: 'Montserrat-Bold',
                   color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
+                  fontSize: 16,
                 }}>
-                Communications
+                Financial
               </Text>
             </View>
 
@@ -1892,23 +1931,35 @@ const DoctrackScreen = ({
               }}>
               {[
                 {
-                  label: 'Surveys',
+                  label: 'PPMP',
                   icon: true,
-                  iconName: 'comment-question-outline',
-                  screen: 'Surveys',
+                  iconName: 'file-document-outline',
+                  screen: 'PPMPScreen',
                 },
-                {
-                  label: 'Announcements',
-                  icon: true,
-                  iconName: 'bullhorn-outline',
-                  screen: 'SupplierReviews',
-                },
-                {
-                  label: 'Forums',
-                  icon: true,
-                  iconName: 'forum-outline',
-                  screen: 'Forum',
-                },
+                // {
+                //   label: 'Appropriation',
+                //   icon: true,
+                //   iconName: 'cash-multiple', // Indicates funding or allocation
+                //   screen: 'AppropriationScreen',
+                // },
+                // {
+                //   label: 'Transactions',
+                //   icon: true,
+                //   iconName: 'swap-horizontal', // Represents transactions or exchanges
+                //   screen: 'TransactionsScreen',
+                // },
+                // {
+                //   label: 'Status',
+                //   icon: true,
+                //   iconName: 'checkbox-marked-circle-outline', // Represents a status/checked state
+                //   screen: 'Forum',
+                // },
+                // {
+                //   label: 'Analytics',
+                //   icon: true,
+                //   iconName: 'chart-bar', // Represents analytics or reports
+                //   screen: 'Forum',
+                // },
               ].map((item, index) => {
                 if (item.condition === false) return null;
 
@@ -1982,33 +2033,41 @@ const DoctrackScreen = ({
               })}
             </View>
           </View>
-        )} */}
+        )}
 
-        {/*FINANCIAL */}
-        {boss === '1' && (
+        {/*ELOGS */}
+        {(boss === '1' || fms === '1') && (
           <View
             style={{
-              padding: 10,
               marginTop: 20,
-              backgroundColor: 'white',
+              backgroundColor: '#ffffff',
               borderRadius: 5,
-              elevation: 2,
+              shadowColor: '#a9b7c8',
+              shadowOffset: {
+                width: 5,
+                height: 5,
+              },
+              shadowOpacity: 1,
+              shadowRadius: 10,
+              elevation: 5,
+              marginHorizontal: 10,
             }}>
             <View
               style={{
                 borderBottomWidth: 1,
                 borderBottomColor: '#eee',
                 paddingBottom: 5,
-                marginBottom: 10,
+                marginBottom: 5,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
               }}>
               <Text
                 style={{
-                  fontFamily: 'Inter_28pt-Bold',
+                  fontFamily: 'Montserrat-Bold',
                   color: '#5d5d5d',
-                  fontSize: 18,
-                  marginStart: 10,
+                  fontSize: 16,
                 }}>
-                Financial
+                E-Logs
               </Text>
             </View>
 
@@ -2023,35 +2082,35 @@ const DoctrackScreen = ({
               }}>
               {[
                 {
-                  label: 'PPMP',
+                  label: 'ELogs',
                   icon: true,
-                  iconName: 'file-document-outline', // More suitable for documents/forms
-                  screen: 'PPMPScreen',
+                  iconName: 'notebook-outline', // More suitable for documents/forms
+                  screen: 'ELogs',
                 },
-                {
-                  label: 'Appropriation',
-                  icon: true,
-                  iconName: 'cash-multiple', // Indicates funding or allocation
-                  screen: 'AppropriationScreen',
-                },
-                {
-                  label: 'Transactions',
-                  icon: true,
-                  iconName: 'swap-horizontal', // Represents transactions or exchanges
-                  screen: 'TransactionsScreen',
-                },
-                {
-                  label: 'Status',
-                  icon: true,
-                  iconName: 'checkbox-marked-circle-outline', // Represents a status/checked state
-                  screen: 'Forum',
-                },
-                {
-                  label: 'Analytics',
-                  icon: true,
-                  iconName: 'chart-bar', // Represents analytics or reports
-                  screen: 'Forum',
-                },
+                // {
+                //   label: 'Appropriation',
+                //   icon: true,
+                //   iconName: 'cash-multiple', // Indicates funding or allocation
+                //   screen: 'AppropriationScreen',
+                // },
+                // {
+                //   label: 'Transactions',
+                //   icon: true,
+                //   iconName: 'swap-horizontal', // Represents transactions or exchanges
+                //   screen: 'TransactionsScreen',
+                // },
+                // {
+                //   label: 'Status',
+                //   icon: true,
+                //   iconName: 'checkbox-marked-circle-outline', // Represents a status/checked state
+                //   screen: 'Forum',
+                // },
+                // {
+                //   label: 'Analytics',
+                //   icon: true,
+                //   iconName: 'chart-bar', // Represents analytics or reports
+                //   screen: 'Forum',
+                // },
               ].map((item, index) => {
                 if (item.condition === false) return null;
 
@@ -2130,35 +2189,33 @@ const DoctrackScreen = ({
         {/*PERSONAL VIEW */}
         <View
           style={{
-            padding: 10,
             marginTop: 20,
-            marginBottom: 60,
-            backgroundColor: 'white',
+            backgroundColor: '#ffffff',
             borderRadius: 5,
-            /* shadowColor: '#000',
-            shadowOffset: {width: 0, height: 2},
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84, */
-            elevation: 2,
-            /*  elevation: 1,
-            borderBottomWidth: 1,
-            borderBottomColor: 'silver',
-            borderRightWidth: 1,
-            borderRightColor: 'silver', */
+            shadowColor: '#a9b7c8',
+            shadowOffset: {
+              width: 5,
+              height: 5,
+            },
+            shadowOpacity: 1,
+            shadowRadius: 10,
+            elevation: 5,
+            marginHorizontal: 10,
           }}>
           <View
             style={{
               borderBottomWidth: 1,
               borderBottomColor: '#eee',
               paddingBottom: 5,
-              marginBottom: 10,
+              marginBottom: 5,
+              paddingVertical: 10,
+              paddingHorizontal: 20,
             }}>
             <Text
               style={{
-                fontFamily: 'Inter_28pt-Bold',
+                fontFamily: 'Montserrat-Bold',
                 color: '#5d5d5d',
-                fontSize: 18,
-                marginStart: 10,
+                fontSize: 16,
               }}>
               Personal
             </Text>
@@ -2266,6 +2323,7 @@ const DoctrackScreen = ({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
+            marginTop: 50,
             paddingBottom: 100,
           }}>
           <Image
@@ -2285,6 +2343,14 @@ const DoctrackScreen = ({
               opacity: 0.8,
             }}
           />
+          {/* <Image
+            source={require('../../assets/images/dtlogo.png')}
+            style={{
+              width: 150,
+              height: 41,
+              opacity: 0.8,
+            }}
+          /> */}
         </View>
       </View>
     );
@@ -2292,10 +2358,12 @@ const DoctrackScreen = ({
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
-      <ImageBackground
+      {/* <ImageBackground
         source={require('../../assets/images/bgasset.jpg')}
         style={{flex: 1}}
-        resizeMode="cover">
+        opacity={0.7}
+        resizeMode="cover"> */}
+        <View style={{backgroundColor: '#ebebebff'}}>
         <View
           style={{
             ...StyleSheet.absoluteFillObject,
@@ -2309,19 +2377,25 @@ const DoctrackScreen = ({
         /> */}
         <ScrollView
           showsVerticalScrollIndicator={false}
+          onScroll={onScroll} // This is where the event is handled
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={selectedOnRefresh}
             />
           }>
-          {renderUI()}
-          <LoadingModal visible={isModalVisible} />
+          <View style={{paddingHorizontal: 0, paddingBottom: 100}}>
+            {renderUI()}
+          </View>
+
+          {/* <LoadingModal visible={isModalVisible} /> */}
           <CustomModal visible={isSetModalVisible} onRequestClose={closeModal}>
             <Text>This feature is currently under development.</Text>
           </CustomModal>
         </ScrollView>
-      </ImageBackground>
+         </View>
+     {/*  </ImageBackground> */}
     </SafeAreaView>
   );
 };

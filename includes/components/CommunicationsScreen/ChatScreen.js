@@ -1,35 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// This is the new component for your full-screen chat view
-const ChatScreen = ({ navigation, route }) => {
-  const { message } = route.params; // Get the message passed from the previous screen
+const { width } = Dimensions.get('window');
 
+// A simple function to determine if a message was sent today or yesterday
+const isToday = (someDate) => {
+  const today = new Date();
+  return someDate.getDate() === today.getDate() &&
+    someDate.getMonth() === today.getMonth() &&
+    someDate.getFullYear() === today.getFullYear();
+};
+
+const isYesterday = (someDate) => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return someDate.getDate() === yesterday.getDate() &&
+    someDate.getMonth() === yesterday.getMonth() &&
+    someDate.getFullYear() === yesterday.getFullYear();
+};
+
+const ChatScreen = ({ navigation, route }) => {
+  const { message } = route.params;
   const [replyText, setReplyText] = useState('');
-  const [chatMessages, setChatMessages] = useState([]); // To simulate a conversation
+  const [chatMessages, setChatMessages] = useState([]);
+  const scrollViewRef = useRef();
 
   useEffect(() => {
     // When the screen loads, display the original message
     if (message) {
       setChatMessages([
-        { id: message.id, sender: message.sender, text: message.fullMessage, time: message.time, isMine: false },
+        {
+          id: message.id,
+          sender: message.sender,
+          text: message.fullMessage,
+          time: message.time,
+          isMine: false,
+          timestamp: new Date(), // Add a timestamp for proper sorting and display
+        },
       ]);
     }
-  }, [message]);
+
+    // Set the header title dynamically
+    navigation.setOptions({
+      headerTitle: message.sender,
+    });
+  }, [message, navigation]);
 
   const handleSendReply = () => {
     if (replyText.trim() === '') {
-      alert('Reply cannot be empty.');
-      return;
+      return; // Do nothing if the message is empty
     }
 
     const newReply = {
-      id: Math.random().toString(), // Simple unique ID
-      sender: "You", // Or your user's name
+      id: Math.random().toString(),
+      sender: "You",
       text: replyText.trim(),
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-      isMine: true, // This message is from the current user
+      timestamp: new Date(),
+      isMine: true,
     };
 
     setChatMessages([...chatMessages, newReply]);
@@ -37,62 +66,77 @@ const ChatScreen = ({ navigation, route }) => {
 
     // In a real application, you would send this reply to a backend API
     console.log("Sending reply:", newReply);
-    console.log("To original message:", message.id, message.subject);
-    // You might also want to show a success message or update a global message state
+  };
+
+  const renderDateSeparator = (timestamp, prevTimestamp) => {
+    const currentDate = new Date(timestamp);
+    const prevDate = prevTimestamp ? new Date(prevTimestamp) : null;
+
+    if (!prevDate || currentDate.toDateString() !== prevDate.toDateString()) {
+      let dateString;
+      if (isToday(currentDate)) {
+        dateString = 'Today';
+      } else if (isYesterday(currentDate)) {
+        dateString = 'Yesterday';
+      } else {
+        dateString = currentDate.toLocaleDateString();
+      }
+      return (
+        <View style={chatStyles.dateSeparator}>
+          <Text style={chatStyles.dateSeparatorText}>{dateString}</Text>
+        </View>
+      );
+    }
+    return null;
   };
 
   return (
     <KeyboardAvoidingView
       style={chatStyles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0} // Adjust as needed
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
-      {/* Header for the chat screen */}
-      <View style={chatStyles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={chatStyles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={chatStyles.headerTitle}>{message.sender}</Text>
-        <View style={chatStyles.headerRightPlaceholder} /> 
-      </View>
-
-      {/* Chat Messages Area */}
       <ScrollView
+        ref={scrollViewRef}
         style={chatStyles.messagesContainer}
         contentContainerStyle={chatStyles.messagesContentContainer}
         showsVerticalScrollIndicator={false}
-        ref={scrollViewRef => { this.scrollView = scrollViewRef; }} // For auto-scrolling
-        onContentSizeChange={() => this.scrollView.scrollToEnd({ animated: true })} // Auto-scroll to bottom
+        onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: true })}
       >
-        {chatMessages.map((msg) => (
-          <View
-            key={msg.id}
-            style={[
-              chatStyles.messageBubble,
-              msg.isMine ? chatStyles.myMessageBubble : chatStyles.otherMessageBubble,
-            ]}
-          >
-            {!msg.isMine && <Text style={chatStyles.messageSenderName}>{msg.sender}</Text>}
-            <Text style={chatStyles.messageText}>{msg.text}</Text>
-            <Text style={chatStyles.messageTime}>{msg.time}</Text>
-          </View>
-        ))}
+        {chatMessages.map((msg, index) => {
+          const prevTimestamp = index > 0 ? chatMessages[index - 1].timestamp : null;
+          return (
+            <React.Fragment key={msg.id}>
+              {renderDateSeparator(msg.timestamp, prevTimestamp)}
+              <View
+                style={[
+                  chatStyles.messageBubble,
+                  msg.isMine ? chatStyles.myMessageBubble : chatStyles.otherMessageBubble,
+                ]}
+              >
+                {!msg.isMine && <Text style={chatStyles.messageSenderName}>{msg.sender}</Text>}
+                <Text style={chatStyles.messageText}>{msg.text}</Text>
+                <Text style={chatStyles.messageTime}>{msg.time}</Text>
+              </View>
+            </React.Fragment>
+          );
+        })}
       </ScrollView>
 
-      {/* Reply Input Area */}
       <View style={chatStyles.replyInputContainer}>
         <TextInput
           style={chatStyles.replyTextInput}
           placeholder="Type your message..."
+          placeholderTextColor="#999"
           value={replyText}
           onChangeText={setReplyText}
           multiline
-          maxHeight={100} // Limit height to prevent excessive expansion
+          maxHeight={100}
         />
         <TouchableOpacity
           style={chatStyles.sendButton}
           onPress={handleSendReply}
-          disabled={replyText.trim() === ''} // Disable if empty
+          disabled={replyText.trim() === ''}
         >
           <MaterialCommunityIcons name="send" size={24} color="#fff" />
         </TouchableOpacity>
@@ -104,48 +148,33 @@ const ChatScreen = ({ navigation, route }) => {
 const chatStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5', // Light background for the chat screen
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#4a6da7',
-    paddingTop: Platform.OS === 'ios' ? 50 : 15, // Adjust for notch/status bar
-    paddingBottom: 15,
-    paddingHorizontal: 15,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    flex: 1, // Allow title to take available space
-    textAlign: 'center',
-  },
-  headerRightPlaceholder: {
-    width: 34, // Same width as backButton (icon size + padding) for centering
+    backgroundColor: '#F0F2F5', // Light background for the chat screen
   },
   messagesContainer: {
     flex: 1,
     padding: 10,
   },
   messagesContentContainer: {
-    paddingBottom: 20, // Space at the bottom
+    paddingBottom: 20,
+  },
+  dateSeparator: {
+    alignSelf: 'center',
+    marginBottom: 10,
+    marginTop: 5,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  dateSeparatorText: {
+    fontSize: 12,
+    color: '#666',
   },
   messageBubble: {
-    maxWidth: '75%',
-    padding: 10,
-    borderRadius: 15,
+    maxWidth: width * 0.75, // Messages take up to 75% of the screen width
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
     marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -155,50 +184,54 @@ const chatStyles = StyleSheet.create({
   },
   myMessageBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: '#DCF8C6', // Light green for sent messages
+    backgroundColor: '#3B82F6', // A professional blue for sent messages
     marginRight: 5,
+    borderBottomRightRadius: 5, // A subtle detail for sent messages
   },
   otherMessageBubble: {
     alignSelf: 'flex-start',
     backgroundColor: '#FFFFFF', // White for received messages
     marginLeft: 5,
+    borderBottomLeftRadius: 5, // A subtle detail for received messages
   },
   messageSenderName: {
     fontSize: 12,
-    color: '#666',
+    color: '#3B82F6', // Match the sender's color to the brand color
     marginBottom: 3,
+    fontWeight: 'bold',
   },
   messageText: {
     fontSize: 16,
-    color: '#333',
+    color: '#1F2937',
   },
   messageTime: {
     fontSize: 10,
-    color: '#888',
+    color: '#9CA3AF',
     alignSelf: 'flex-end',
     marginTop: 5,
   },
   replyInputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end', // Aligns items to the bottom, useful for multiline input
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: '#E5E7EB',
     backgroundColor: '#fff',
   },
   replyTextInput: {
     flex: 1,
+    minHeight: 40,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
+    borderColor: '#D1D5DB',
+    borderRadius: 25,
     paddingHorizontal: 15,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8, // Adjust for vertical centering
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
     marginRight: 10,
     fontSize: 16,
-    maxHeight: 100, // Prevents input from growing too large
+    maxHeight: 120, // Prevents input from growing too large
   },
   sendButton: {
-    backgroundColor: '#4a6da7',
+    backgroundColor: '#3B82F6',
     borderRadius: 25,
     width: 50,
     height: 50,

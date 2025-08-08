@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   calendarListContent: {
-    paddingHorizontal: 10, // This is padding *around* the cells inside the scroll view
+    paddingHorizontal: 5, // This is padding *around* the cells inside the scroll view
   },
   monthCalendarCell: {
     paddingVertical: 10,
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   monthCalendarText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: '#34495E',
     marginBottom: 2,
@@ -557,9 +557,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   monthCalendarQty: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '500',
     color: '#7F8C8D',
+    textAlign:'right'
   },
   monthCalendarQtySelected: {
     color: 'rgba(255,255,255,0.8)',
@@ -567,8 +568,8 @@ const styles = StyleSheet.create({
   // --- Main Details Section (below calendar) ---
   detailsSection: {
     flex: 1,
-    paddingHorizontal: 16,
     paddingTop: 15,
+    marginHorizontal:10
   },
   detailsSectionTitle: {
     fontSize: 18,
@@ -578,14 +579,13 @@ const styles = StyleSheet.create({
   },
   detailItemRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    //justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginBottom: 8,
-    borderWidth: 1,
+    //borderRadius: 8,
+    paddingVertical: 10,
+    marginBottom: 5,
+    //borderWidth: 1,
     borderColor: '#E0E6EE',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
@@ -609,8 +609,8 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   itemTransactionDetailsContainer: {
-    paddingHorizontal: 10,
-    paddingBottom: 10,
+    //paddingHorizontal: 5,
+    //paddingBottom: 10,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     marginBottom: 10,

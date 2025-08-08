@@ -140,6 +140,12 @@ import MayorScreen from '../screens/MayorScreen';
 import AppropriationScreen from '../screens/financial/AppropriationScreen';
 import TransactionsScreen from '../screens/financial/TransactionsScreen';
 import SupplierDetails from '../screens/supplierRating/SupplierDetails';
+import PPMPDetails from '../screens/financial/PPMPDetails';
+import FeedDetails from '../components/CommunicationsScreen/FeedDetails';
+import ForumsConvo from '../components/CommunicationsScreen/ForumsConvo';
+import TakeSurvey from '../components/CommunicationsScreen/TakeSurvey';
+import ELogsScreen from '../screens/elogs/ELogsScreen';
+import ELogsDetailsScreen from '../screens/elogs/ELogsDetailsScreen';
 
 export function Route() {
   const [initialRoute, setInitialRoute] = useState('Home');
@@ -787,6 +793,11 @@ export function Route() {
           options={{headerShown: false}}
         />
          <Stack.Screen
+          name="PPMPDetails"
+          component={PPMPDetails}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
           name="AppropriationScreen"
           component={AppropriationScreen}
           options={{headerShown: false}}
@@ -804,6 +815,32 @@ export function Route() {
         <Stack.Screen
           name="SupplierDetails"
           component={SupplierDetails}
+          options={{headerShown: false}}
+        />
+         <Stack.Screen
+          name="FeedDetails"
+          component={FeedDetails}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="ForumsConvo"
+          component={ForumsConvo}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="TakeSurvey"
+          component={TakeSurvey}
+          options={{headerShown: false}}
+        />
+
+        <Stack.Screen
+          name="ELogs"
+          component={ELogsScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="ELogsDetails"
+          component={ELogsDetailsScreen}
           options={{headerShown: false}}
         />
 

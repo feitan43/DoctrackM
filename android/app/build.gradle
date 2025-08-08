@@ -78,6 +78,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'com.facebook.fresco:animated-gif:2.6.0'
     implementation project(':react-native-stallion')
+    implementation 'com.facebook.android:facebook-android-sdk:latest.release'
 
     if (hermesEnabled) {
         implementation("com.facebook.react:hermes-android")
