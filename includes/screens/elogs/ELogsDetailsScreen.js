@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,37 +13,88 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Linking,
+  PermissionsAndroid,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DatePicker from 'react-native-date-picker';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import {launchCamera} from 'react-native-image-picker';
+import {pick, types, isCancel} from '@react-native-documents/picker';
+import {
+  useElogsLetterTypes,
+  useElogsOffices,
+  useElogsStatuses,
+  useElogsAttachments,
+} from '../../hooks/useElogs';
+import PdfViewer from '../../utils/PDFViewer';
 
-// Custom Dropdown Component
-const CustomDropdown = ({ label, value, options, onSelect }) => {
+// Updated Color Palette
+const COLORS = {
+  primary: '#007bff',
+  secondary: '#60A5FA',
+  background: '#F0F4F8',
+  card: '#FFFFFF',
+  text: '#1F2937',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  success: '#34D399',
+  error: '#DC2626',
+  subtle: '#9CA3AF',
+};
+
+// Typography for Montserrat
+const FONT = {
+  regular: 'Montserrat-Regular',
+  medium: 'Montserrat-Medium',
+  bold: 'Montserrat-Bold',
+  semiBold: 'Montserrat-SemiBold',
+};
+
+const CustomDropdown = ({
+  label,
+  value,
+  options,
+  onSelect,
+  keyToShow,
+  colorKey,
+}) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const handleSelect = (itemValue) => {
+  const handleSelect = itemValue => {
     onSelect(itemValue);
     setModalVisible(false);
   };
+
+  const displayText = value?.[keyToShow] || `Select ${label}`;
+  const displayColor = value?.[colorKey] || styles.dropdownText.color;
+
   return (
     <View style={styles.dropdownContainer}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
-        style={styles.dropdownButton}
-      >
-        <Text style={styles.dropdownText} numberOfLines={1}>{value}</Text>
-        <Icon name="chevron-down-outline" size={20} color="#90A4AE" />
+        style={styles.dropdownButton}>
+        <Text
+          style={[styles.dropdownText, {color: displayColor}]}
+          numberOfLines={1}>
+          {displayText}
+        </Text>
+        <Icon
+          name="chevron-down-outline"
+          size={20}
+          color={COLORS.textSecondary}
+        />
       </TouchableOpacity>
       <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
+        statusBarTranslucent={true}
         onRequestClose={() => {
           setModalVisible(!modalVisible);
-        }}
-      >
+        }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select {label}</Text>
@@ -52,16 +103,20 @@ const CustomDropdown = ({ label, value, options, onSelect }) => {
                 <TouchableOpacity
                   key={index}
                   onPress={() => handleSelect(option)}
-                  style={styles.modalItem}
-                >
-                  <Text style={styles.modalItemText}>{option}</Text>
+                  style={styles.modalItem}>
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      {color: option[colorKey] || styles.modalItemText.color},
+                    ]}>
+                    {option[keyToShow]}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
             <TouchableOpacity
               onPress={() => setModalVisible(false)}
-              style={styles.modalCloseButton}
-            >
+              style={styles.modalCloseButton}>
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -71,154 +126,522 @@ const CustomDropdown = ({ label, value, options, onSelect }) => {
   );
 };
 
-function ELogsDetailsScreen({ route, navigation }) {
-  const { document } = route.params;
+const parseDateString = dateString => {
+  if (!dateString) {
+    return null;
+  }
+  if (dateString.includes('AM') || dateString.includes('PM')) {
+    const [datePart, timePart, ampm] = dateString.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    let [hours, minutes] = timePart.split(':').map(Number);
+    if (ampm === 'PM' && hours < 12) {
+      hours += 12;
+    }
+    if (ampm === 'AM' && hours === 12) {
+      hours = 0;
+    }
+    return new Date(year, month - 1, day, hours, minutes);
+  } else {
+    const [datePart, timePart] = dateString.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes, seconds] = timePart.split(':').map(Number);
+    return new Date(year, month - 1, day, hours, minutes, seconds);
+  }
+};
 
-  const [documentType, setDocumentType] = useState(document.Type);
-  const [status, setStatus] = useState(document.Status);
+const DateSelectModal = ({visible, onClose, onSelectToday, onSelectCustom}) => {
+  return (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={visible}
+      statusBarTranslucent={true}
+      onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Select a date</Text>
+          <TouchableOpacity onPress={onSelectToday} style={styles.modalItem}>
+            <Text style={styles.modalItemText}>Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onSelectCustom}
+            style={[styles.modalItem, {borderBottomWidth: 0}]}>
+            <Text style={styles.modalItemText}>Select a date</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+            <Text style={styles.modalCloseText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+function ELogsDetailsScreen({route, navigation}) {
+  const {document} = route.params;
+  const [documentType, setDocumentType] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [officeFrom, setOfficeFrom] = useState(document.SenderEntity);
+  const [officeTo, setOfficeTo] = useState(document.ReceiverOffice);
+
   const [from, setFrom] = useState(document.Sender);
   const [to, setTo] = useState(document.Receiver);
   const [subject, setSubject] = useState(document.Subject);
   const [remarks, setRemarks] = useState(document.Remarks);
-
-  const [dateReceived, setDateReceived] = useState(() => {
-    const dateValue = document.DateReceived;
-    if (dateValue) {
-      const date = new Date(dateValue);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-    }
-    return new Date();
-  });
-
-  const [dateReleased, setDateReleased] = useState(() => {
-    const dateValue = document.DateReleased;
-    if (dateValue) {
-      const date = new Date(dateValue);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-    }
-    return null;
-  });
-
+  const [dateReceived, setDateReceived] = useState(
+    parseDateString(document.DateReceived) || null,
+  );
+  const [dateReleased, setDateReleased] = useState(
+    parseDateString(document.DateReleased) || null,
+  );
   const [openDateReceivedPicker, setOpenDateReceivedPicker] = useState(false);
   const [openDateReleasedPicker, setOpenDateReleasedPicker] = useState(false);
+  const [
+    isDateReceivedSelectionModalVisible,
+    setIsDateReceivedSelectionModalVisible,
+  ] = useState(false);
+  const [
+    isDateReleasedSelectionModalVisible,
+    setIsDateReleasedSelectionModalVisible,
+  ] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState([]);
 
-  // Mock data for dropdowns
-  const mockDocumentTypes = [
-    'Endorsement',
-    'REQUEST LETTER',
-    '1ST INDORSEMENT',
-    'MEMORANDUM',
-  ];
-  const mockStatuses = [
-    'ENCODED',
-    'RELEASE',
-    'Forwarded',
-    'Pending',
-    'Endorsement',
-    'Further Discussion',
-  ];
-  const mockFromTo = ['N/A', 'CITY ADMIN OFFICE', 'VAL BALANGUE'];
+  // New state for PDF Viewer and Image Viewer
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfUrlToShow, setPdfUrlToShow] = useState('');
+  const [showFlashImage, setShowFlashImage] = useState(false);
+  const [imageUrlToShow, setImageUrlToShow] = useState('');
 
-  const handleSaveChanges = () => {
-    Alert.alert('Success', 'Document details updated successfully!');
-    navigation.goBack();
+  const [isUploading, setIsUploading] = useState(false);
+  const MAX_ATTACHMENTS = 5;
+
+  const {
+    data: letterTypes,
+    isLoading: letterTypesLoading,
+    isError: letterTypesError,
+  } = useElogsLetterTypes();
+  const {
+    data: letterStatuses,
+    isLoading: letterStatusesLoading,
+    isError: letterStatusesError,
+  } = useElogsStatuses();
+
+  const {
+    data: offices,
+    isLoading: officesLoading,
+    isError: officesError,
+  } = useElogsOffices();
+
+  const {
+    data: attachments,
+    isLoading: attachmentsLoading,
+    isError: attachmentsError,
+  } = useElogsAttachments(document?.TrackingNumber);
+
+  useEffect(() => {
+    if (letterTypes) {
+      const initialDocType = letterTypes.find(
+        item => item.Type === document.Type,
+      );
+      setDocumentType(initialDocType);
+    }
+    if (letterStatuses) {
+      const initialStatus = letterStatuses.find(
+        item => item.StatusName === document.Status,
+      );
+      setStatus(initialStatus);
+    }
+  }, [letterTypes, letterStatuses, document.Type, document.Status]);
+
+  useEffect(() => {
+    if (offices) {
+      const initialOfficeFrom = offices.find(
+        item => item.Code === document.SenderEntity,
+      );
+      setOfficeFrom(initialOfficeFrom);
+
+      const initialOfficeTo = offices.find(
+        item => item.Code === document.ReceiverOffice,
+      );
+      setOfficeTo(initialOfficeTo);
+    }
+  }, [offices, document.SenderEntity, document.ReceiverOffice]);
+
+  const uploadFilesToServer = async files => {
+    if (files.length === 0) {
+      return true;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      files.forEach((file, index) => {
+        formData.append('attachments', {
+          uri: file.uri,
+          type: file.type,
+          name: file.name || `file_${index}.${file.type.split('/')[1]}`,
+        });
+      });
+
+      // NOTE: Replace 'YOUR_UPLOAD_ENDPOINT_URL' with your actual API endpoint.
+      // You'll also need to handle authentication (e.g., tokens) here.
+      const response = await fetch('YOUR_UPLOAD_ENDPOINT_URL', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          // 'Authorization': `Bearer YOUR_AUTH_TOKEN`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with an error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Upload successful:', result);
+      return true;
+    } catch (error) {
+      console.error('Upload failed:', error);
+      Alert.alert('Upload Error', 'Failed to upload attachments.');
+      return false;
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const handleImagePicker = async (type) => {
-    let result;
-    const options = {
-      mediaType: 'photo',
-      quality: 1,
-    };
-    if (type === 'library') {
-      result = await launchImageLibrary(options);
+  const handleSaveChanges = async () => {
+    const uploadSuccess = await uploadFilesToServer(attachedFiles);
+
+    if (uploadSuccess) {
+      // You can add your API call to update the document details here.
+      // For this example, we'll just show a success alert.
+      Alert.alert(
+        'Success',
+        'Document details and attachments updated successfully!',
+      );
+      setAttachedFiles([]);
+      navigation.goBack();
+    }
+  };
+
+  const handleImagePicker = async () => {
+    try {
+      const results = await pick({
+        type: [types.images, types.pdf],
+        allowMultiSelection: true,
+      });
+
+      if (results && results.length > 0) {
+        setAttachedFiles(prevFiles => {
+          const currentCount = prevFiles.length;
+          const newFiles = results
+            .filter(
+              newFile =>
+                !prevFiles.some(
+                  existingFile => existingFile.name === newFile.name,
+                ),
+            )
+            .slice(0, MAX_ATTACHMENTS - currentCount);
+
+          if (newFiles.length === 0) {
+            Alert.alert(
+              'Duplicate Files',
+              'The selected files are already in the list or the limit has been reached.',
+            );
+            return prevFiles;
+          }
+
+          if (currentCount + newFiles.length > MAX_ATTACHMENTS) {
+            Alert.alert(
+              'Limit Reached',
+              `You can only attach a maximum of ${MAX_ATTACHMENTS} files.`,
+            );
+            return prevFiles;
+          }
+
+          return [...prevFiles, ...newFiles];
+        });
+      }
+    } catch (err) {
+      if (isCancel(err)) {
+        console.log('User cancelled document picker');
+      } else {
+        Alert.alert('Error', 'Failed to select files.');
+        console.error(err);
+      }
+    }
+  };
+
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'This app needs access to your camera to take photos.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleCameraLaunch = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (hasPermission) {
+      const result = await launchCamera({
+        mediaType: 'photo',
+        quality: 1,
+        includeExtra: true,
+      });
+      if (result.assets && result.assets.length > 0) {
+        setAttachedFiles(prevFiles => {
+          const currentCount = prevFiles.length;
+          const newFiles = result.assets.filter(
+            newFile =>
+              !prevFiles.some(
+                existingFile => existingFile.name === newFile.name,
+              ),
+          );
+
+          if (currentCount + newFiles.length > MAX_ATTACHMENTS) {
+            Alert.alert(
+              'Limit Reached',
+              `You can only attach a maximum of ${MAX_ATTACHMENTS} files.`,
+            );
+            return prevFiles;
+          }
+
+          return [
+            ...prevFiles,
+            ...newFiles.map(file => ({
+              ...file,
+              name: file.fileName || 'photo.jpg',
+            })),
+          ];
+        });
+      }
     } else {
-      result = await launchCamera(options);
-    }
-
-    if (result.assets && result.assets.length > 0) {
-      setAttachedFiles(prevFiles => [...prevFiles, ...result.assets]);
+      Alert.alert(
+        'Permission Denied',
+        'Camera permission is required to take photos.',
+      );
     }
   };
 
-  const removeFile = (indexToRemove) => {
-    setAttachedFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
+  const handleFileSelection = () => {
+    if (attachedFiles.length >= MAX_ATTACHMENTS) {
+      Alert.alert(
+        'Limit Reached',
+        `You can only attach a maximum of ${MAX_ATTACHMENTS} files.`,
+      );
+      return;
+    }
+    Alert.alert(
+      'Attach File',
+      'Choose an option:',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => handleCameraLaunch(),
+        },
+        {
+          text: 'Choose from Library',
+          onPress: () => handleImagePicker(),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      {cancelable: true},
+    );
   };
 
-  const formatDate = (date) => {
+  const removeFile = indexToRemove => {
+    setAttachedFiles(prevFiles =>
+      prevFiles.filter((_, index) => index !== indexToRemove),
+    );
+  };
+
+  const formatDateWithTime = date => {
     if (!date) return 'Select Date & Time';
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }) + ' at ' + date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
+    const today = new Date();
+    const isToday =
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+    const dateString = isToday
+      ? 'Today'
+      : date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+    return (
+      dateString +
+      ' at ' +
+      date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+    );
+  };
+
+  const handleSelectTodayReceived = () => {
+    setDateReceived(new Date());
+    setIsDateReceivedSelectionModalVisible(false);
+  };
+
+  const handleSelectCustomReceived = () => {
+    setIsDateReceivedSelectionModalVisible(false);
+    setOpenDateReceivedPicker(true);
+  };
+
+  const handleSelectTodayReleased = () => {
+    setDateReleased(new Date());
+    setIsDateReleasedSelectionModalVisible(false);
+  };
+
+  const handleSelectCustomReleased = () => {
+    setIsDateReleasedSelectionModalVisible(false);
+    setOpenDateReleasedPicker(true);
+  };
+
+  const attachmentList = attachments?.attachments || []; // safely get the array
+
+  const handleFilePress = file => {
+    const fileUrl = `https://www.davaocityportal.com/${file.filepath_full.replace(
+      '../../',
+      '',
+    )}`;
+    const fileName = file.filename.toLowerCase();
+
+    if (fileName.endsWith('.pdf')) {
+      setPdfUrlToShow(fileUrl);
+      setShowPdfViewer(true);
+    } else if (
+      fileName.endsWith('.jpg') ||
+      fileName.endsWith('.png') ||
+      fileName.endsWith('.jpeg')
+    ) {
+      setImageUrlToShow(fileUrl);
+      setShowFlashImage(true);
+    } else {
+      Linking.openURL(fileUrl).catch(err =>
+        console.error('Failed to open link:', err),
+      );
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Header */}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={30} color="#1A535C" />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={COLORS.text}
+            />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Document Details</Text>
+          <Text style={styles.headerTitle}>{/* Document Details */}</Text>
         </View>
-
         <ScrollView style={styles.scrollViewContent}>
           <View style={styles.content}>
-            {/* Document Info Section */}
             <View style={styles.card}>
-              <Text style={styles.tnLabel}>Tracking Number:</Text>
-              <Text style={styles.tnValue}>{document.TrackingNumber}</Text>
-
-              <View style={styles.encodedInfo}>
-                <Text style={styles.encodedLabel}>Encoded By: <Text style={styles.encodedValue}>{document.EncodedBy}</Text></Text>
-                <Text style={styles.encodedLabel}>Date Encoded: <Text style={styles.encodedValue}>{document.DateEncoded}</Text></Text>
+              <View style={styles.headerContainer}>
+                <View style={styles.headerLeft}>
+                  <Text style={styles.tnLabel}>
+                    TN:{' '}
+                    <Text style={styles.tnValue}>
+                      {document.TrackingNumber}
+                    </Text>
+                  </Text>
+                  <Text style={styles.largeDocType}>
+                    {documentType?.Type || document.Type}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.encodedInfoContainer}>
+                <View style={[styles.encodedInfoItem, {flex: 1}]}>
+                  <Text style={styles.encodedLabel}>Encoded By</Text>
+                  <Text style={styles.encodedValue}>
+                    {document.FirstName} {document.LastName}
+                  </Text>
+                </View>
+                <View style={[styles.encodedInfoItem, {flex: 1}]}>
+                  <Text style={styles.encodedLabel}>Date Encoded</Text>
+                  <Text style={styles.encodedValue}>
+                    {formatDateWithTime(parseDateString(document.DateEncoded))}
+                  </Text>
+                </View>
               </View>
             </View>
 
-            {/* Form Fields Section */}
             <View style={styles.formSection}>
               <View style={styles.inputRow}>
                 <CustomDropdown
                   label="Document Type"
                   value={documentType}
-                  options={mockDocumentTypes}
+                  options={letterTypes || []}
                   onSelect={setDocumentType}
+                  keyToShow="Type"
                 />
                 <CustomDropdown
                   label="Status"
                   value={status}
-                  options={mockStatuses}
+                  options={letterStatuses || []}
                   onSelect={setStatus}
+                  keyToShow="StatusName"
+                  colorKey="Color"
                 />
               </View>
 
-              <View style={styles.inputRow}>
+              <View style={styles.fullWidthInputContainer}>
                 <CustomDropdown
                   label="From"
-                  value={from}
-                  options={mockFromTo}
-                  onSelect={setFrom}
+                  value={officeFrom}
+                  options={offices || []}
+                  onSelect={setOfficeFrom}
+                  keyToShow="Name"
                 />
+                <TextInput
+                  style={[styles.textInput, {marginTop: 10}]}
+                  value={from}
+                  onChangeText={setFrom}
+                  placeholder="Enter sender's name"
+                  placeholderTextColor={COLORS.subtle}
+                />
+              </View>
+              <View style={styles.fullWidthInputContainer}>
                 <CustomDropdown
                   label="To"
+                  value={officeTo}
+                  options={offices || []}
+                  onSelect={setOfficeTo}
+                  keyToShow="Name"
+                />
+                <TextInput
+                  style={[styles.textInput, {marginTop: 10}]}
                   value={to}
-                  options={mockFromTo}
-                  onSelect={setTo}
+                  onChangeText={setTo}
+                  placeholder="Enter receiver's name"
+                  placeholderTextColor={COLORS.subtle}
                 />
               </View>
 
@@ -229,47 +652,44 @@ function ELogsDetailsScreen({ route, navigation }) {
                   value={subject}
                   onChangeText={setSubject}
                   placeholder="Enter subject"
-                  placeholderTextColor="#90A4AE"
+                  placeholderTextColor={COLORS.subtle}
                 />
               </View>
 
-              <View style={styles.inputRow}>
-                <View style={styles.datePickerContainer}>
-                  <Text style={styles.fieldLabel}>Date Received</Text>
-                  <TouchableOpacity onPress={() => setOpenDateReceivedPicker(true)} style={styles.datePickerButton}>
-                    <Text style={styles.datePickerText}>{formatDate(dateReceived)}</Text>
-                  </TouchableOpacity>
-                  <DatePicker
-                    modal
-                    open={openDateReceivedPicker}
-                    date={dateReceived}
-                    onConfirm={(date) => {
-                      setOpenDateReceivedPicker(false);
-                      setDateReceived(date);
-                    }}
-                    onCancel={() => {
-                      setOpenDateReceivedPicker(false);
-                    }}
+              <View style={styles.fullWidthInputContainer}>
+                <Text style={styles.fieldLabel}>Date Received</Text>
+                <TouchableOpacity
+                  onPress={() => setIsDateReceivedSelectionModalVisible(true)}
+                  style={styles.datePickerButton}>
+                  <Icon
+                    name="calendar-outline"
+                    size={20}
+                    color={COLORS.primary}
                   />
-                </View>
-                <View style={styles.datePickerContainer}>
-                  <Text style={styles.fieldLabel}>Date Released</Text>
-                  <TouchableOpacity onPress={() => setOpenDateReleasedPicker(true)} style={styles.datePickerButton}>
-                    <Text style={styles.datePickerText}>{formatDate(dateReleased)}</Text>
-                  </TouchableOpacity>
-                  <DatePicker
-                    modal
-                    open={openDateReleasedPicker}
-                    date={dateReleased || new Date()}
-                    onConfirm={(date) => {
-                      setOpenDateReleasedPicker(false);
-                      setDateReleased(date);
-                    }}
-                    onCancel={() => {
-                      setOpenDateReleasedPicker(false);
-                    }}
+                  <Text style={styles.datePickerText}>
+                    {dateReceived
+                      ? formatDateWithTime(dateReceived)
+                      : 'Select Date & Time'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.fullWidthInputContainer}>
+                <Text style={styles.fieldLabel}>Date Released</Text>
+                <TouchableOpacity
+                  onPress={() => setIsDateReleasedSelectionModalVisible(true)}
+                  style={styles.datePickerButton}>
+                  <Icon
+                    name="calendar-outline"
+                    size={20}
+                    color={COLORS.primary}
                   />
-                </View>
+                  <Text style={styles.datePickerText}>
+                    {dateReleased
+                      ? formatDateWithTime(dateReleased)
+                      : 'Select Date & Time'}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.fullWidthInputContainer}>
@@ -278,52 +698,273 @@ function ELogsDetailsScreen({ route, navigation }) {
                   style={[styles.textInput, styles.remarksInput]}
                   value={remarks}
                   onChangeText={setRemarks}
+                  placeholder="Add remarks..."
+                  placeholderTextColor={COLORS.subtle}
                   multiline
-                  placeholder="Add remarks here..."
-                  placeholderTextColor="#90A4AE"
                 />
               </View>
-            </View>
 
-            {/* Attach Files Section */}
-            <View style={styles.card}>
-              <Text style={styles.attachFilesLabel}>Attach Files</Text>
-              <View style={styles.attachButtonsContainer}>
-                <TouchableOpacity onPress={() => handleImagePicker('library')} style={[styles.attachButton, { marginRight: 10 }]}>
-                  <Icon name="image-outline" size={20} color="#fff" style={styles.buttonIcon} />
-                  <Text style={styles.attachButtonText}>Library</Text>
+              {/* Combined Attachments Section */}
+              <View style={styles.attachmentsContainer}>
+                <Text style={styles.attachmentsTitle}>
+                  Attachments{' '}
+                  {attachedFiles.length > 0 && (
+                    <Text style={styles.uploadLimitText}>
+                      ({attachedFiles.length}/{MAX_ATTACHMENTS})
+                    </Text>
+                  )}
+                </Text>
+
+                {/* Conditionally render based on if any files exist */}
+                {attachmentList.length === 0 && attachedFiles.length === 0 ? (
+                  <Text style={styles.noAttachmentsText}>
+                    No files attached.
+                  </Text>
+                ) : (
+                  <>
+                    {/* Render current attachments */}
+                    {attachmentList.map((file, index) => {
+                      const fileName = file.filename;
+                      const fileType = fileName?.toLowerCase() || '';
+                      const isPdf = fileType.endsWith('.pdf');
+                      const isImage =
+                        fileType.endsWith('.jpg') ||
+                        fileType.endsWith('.jpeg') ||
+                        fileType.endsWith('.png');
+
+                      let iconName;
+                      if (isPdf) {
+                        iconName = 'document-text-outline';
+                      } else if (isImage) {
+                        iconName = 'image-outline';
+                      } else {
+                        iconName = 'document-outline';
+                      }
+
+                      return (
+                        <View
+                          key={`current-${index}`}
+                          style={styles.attachmentItem}>
+                          <Icon
+                            name={iconName}
+                            size={20}
+                            color={COLORS.textSecondary}
+                          />
+                          <Text style={styles.attachmentName} numberOfLines={1}>
+                            {fileName}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => handleFilePress(file)}>
+                            <Icon
+                              name="open-outline"
+                              size={20}
+                              color={COLORS.primary}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+
+                    {/* Render divider only if both lists have files */}
+                    {attachmentList.length > 0 && attachedFiles.length > 0 && (
+                      <View style={styles.attachmentsDivider} />
+                    )}
+
+                    {/* Render new files to be uploaded */}
+                    {attachedFiles.map((file, index) => {
+                      const fileName =
+                        file.name ||
+                        (file.type === 'application/pdf'
+                          ? 'document.pdf'
+                          : 'photo.jpg');
+                      const fileType = fileName?.toLowerCase() || '';
+                      const isPdf = fileType.endsWith('.pdf');
+                      const isImage =
+                        fileType.endsWith('.jpg') ||
+                        fileType.endsWith('.jpeg') ||
+                        fileType.endsWith('.png');
+
+                      let iconName;
+                      if (isPdf) {
+                        iconName = 'document-text-outline';
+                      } else if (isImage) {
+                        iconName = 'image-outline';
+                      } else {
+                        iconName = 'document-outline';
+                      }
+
+                      return (
+                        <View
+                          key={`local-${index}`}
+                          style={styles.attachmentItem}>
+                          <Icon
+                            name={iconName}
+                            size={20}
+                            color={COLORS.textSecondary}
+                          />
+                          <Text style={styles.attachmentName} numberOfLines={1}>
+                            {fileName}
+                          </Text>
+                          <TouchableOpacity onPress={() => removeFile(index)}>
+                            <Icon
+                              name="trash-outline"
+                              size={20}
+                              color={COLORS.error}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+                <TouchableOpacity
+                  onPress={handleFileSelection}
+                  style={[
+                    styles.attachButton,
+                    {
+                      backgroundColor:
+                        attachedFiles.length >= MAX_ATTACHMENTS
+                          ? COLORS.subtle // color when max reached
+                          : COLORS.secondary, // normal color
+                    },
+                  ]}
+                  disabled={
+                    isUploading || attachedFiles.length >= MAX_ATTACHMENTS
+                  }>
+                  {isUploading ? (
+                    <ActivityIndicator color={COLORS.card} />
+                  ) : (
+                    <>
+                      <Icon
+                        name="attach-outline"
+                        size={20}
+                        color={COLORS.card}
+                      />
+                      <Text style={styles.attachButtonText}>Attach File</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleImagePicker('camera')} style={styles.attachButton}>
-                  <Icon name="camera-outline" size={20} color="#fff" style={styles.buttonIcon} />
-                  <Text style={styles.attachButtonText}>Take Photo</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.fileListContainer}>
-                {attachedFiles.map((file, index) => (
-                  <View key={index} style={styles.fileItem}>
-                    <View style={styles.fileIconContainer}>
-                      {file.uri ? (
-                        <Image source={{ uri: file.uri }} style={styles.fileThumbnail} />
-                      ) : (
-                        <Icon name="document-outline" size={20} color="#4A6572" />
-                      )}
-                      <Text style={styles.fileName}>{file.fileName}</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => removeFile(index)} style={styles.deleteButton}>
-                      <Icon name="close-circle" size={24} color="#E74C3C" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
               </View>
             </View>
           </View>
         </ScrollView>
 
-        {/* Save Changes Button */}
-        <TouchableOpacity onPress={handleSaveChanges} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Changes</Text>
-        </TouchableOpacity>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.footerButton, styles.cancelButton]}
+            disabled={isUploading}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSaveChanges}
+            style={[styles.footerButton, styles.saveButton]}
+            disabled={isUploading}>
+            {isUploading ? (
+              <ActivityIndicator color={COLORS.card} />
+            ) : (
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
+
+      <DatePicker
+        modal
+        open={openDateReceivedPicker}
+        date={dateReceived || new Date()}
+        onConfirm={date => {
+          setOpenDateReceivedPicker(false);
+          setDateReceived(date);
+        }}
+        onCancel={() => {
+          setOpenDateReceivedPicker(false);
+        }}
+      />
+      <DatePicker
+        modal
+        open={openDateReleasedPicker}
+        date={dateReleased || new Date()}
+        onConfirm={date => {
+          setOpenDateReleasedPicker(false);
+          setDateReleased(date);
+        }}
+        onCancel={() => {
+          setOpenDateReleasedPicker(false);
+        }}
+      />
+      <DateSelectModal
+        visible={isDateReceivedSelectionModalVisible}
+        onClose={() => setIsDateReceivedSelectionModalVisible(false)}
+        onSelectToday={handleSelectTodayReceived}
+        onSelectCustom={handleSelectCustomReceived}
+      />
+      <DateSelectModal
+        visible={isDateReleasedSelectionModalVisible}
+        onClose={() => setIsDateReleasedSelectionModalVisible(false)}
+        onSelectToday={handleSelectTodayReleased}
+        onSelectCustom={handleSelectCustomReleased}
+      />
+
+      {/* PDF Viewer Modal */}
+      <Modal
+        visible={showPdfViewer}
+        onRequestClose={() => setShowPdfViewer(false)}
+        animationType="slide"
+        statusBarTranslucent={true}>
+        <SafeAreaView style={{flex: 1}}>
+          <View style={{flex: 1, backgroundColor: COLORS.background}}>
+            <View style={styles.pdfHeader}>
+              <TouchableOpacity
+                onPress={() => setShowPdfViewer(false)}
+                style={styles.backButton}>
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={24}
+                  color={COLORS.text}
+                />
+              </TouchableOpacity>
+              <Text style={styles.pdfTitle} numberOfLines={1}>
+                {pdfUrlToShow.split('/').pop()}
+              </Text>
+            </View>
+            {pdfUrlToShow && <PdfViewer pdfUrl={pdfUrlToShow} />}
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={showFlashImage}
+        onRequestClose={() => setShowFlashImage(false)}
+        animationType="slide"
+        statusBarTranslucent={true}>
+        <SafeAreaView style={{flex: 1}}>
+          <View style={styles.imageModalContainer}>
+            <View style={styles.imageModalHeader}>
+              <TouchableOpacity
+                onPress={() => setShowFlashImage(false)}
+                style={styles.backButton}>
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={24}
+                  color={COLORS.text}
+                />
+              </TouchableOpacity>
+              <Text style={styles.imageModalTitle} numberOfLines={1}>
+                {imageUrlToShow.split('/').pop()}
+              </Text>
+            </View>
+            {imageUrlToShow && (
+              <Image
+                source={{uri: imageUrlToShow}}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -331,7 +972,7 @@ function ELogsDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#e9ebee',
+    backgroundColor: COLORS.background,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -339,269 +980,335 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    padding: 16,
+    paddingTop: 50,
+    backgroundColor: COLORS.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#CFD8DC',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 10,
+    borderBottomColor: COLORS.border,
   },
   backButton: {
-    padding: 5,
-    marginRight: 10,
+    paddingRight: 10,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1A535C',
+    fontFamily: FONT.semiBold,
+    fontSize: 20,
+    color: COLORS.text,
+  },
+  pdfHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 50,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  pdfTitle: {
+    fontFamily: FONT.semiBold,
+    fontSize: 18,
+    color: COLORS.text,
+    flex: 1,
+  },
+  imageModalContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    padding: 16,
+    paddingTop: 50,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  imageModalTitle: {
+    fontFamily: FONT.semiBold,
+    fontSize: 18,
+    color: 'white',
+    flex: 1,
+  },
+  fullImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
   },
   scrollViewContent: {
     flex: 1,
-    backgroundColor: '#e9ebee',
   },
   content: {
-    padding: 20,
-    paddingBottom: 100,
+    padding: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#E0E6ED',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  formSection: {
-    marginBottom: 20,
-  },
-  tnLabel: {
-    fontSize: 16,
-    color: '#4A6572',
-  },
-  tnValue: {
-    fontWeight: 'bold',
-    fontSize: 24,
-    color: '#1A535C',
-    marginBottom: 10,
-  },
-  encodedInfo: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  headerLeft: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
+  tnLabel: {
+    fontFamily: FONT.regular,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  tnValue: {
+    fontFamily: FONT.semiBold,
+    fontSize: 18,
+    color: COLORS.secondary,
+  },
+  largeDocType: {
+    fontFamily: FONT.bold,
+    fontSize: 24,
+    color: COLORS.text,
+  },
+  encodedInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#CFD8DC',
+    borderTopColor: COLORS.border,
     paddingTop: 10,
+    marginTop: 10,
+  },
+  encodedInfoItem: {
+    alignItems: 'flex-start',
+    flex: 1,
   },
   encodedLabel: {
+    fontFamily: FONT.regular,
     fontSize: 12,
-    color: '#90A4AE',
+    color: COLORS.textSecondary,
   },
   encodedValue: {
-    fontWeight: '600',
-    color: '#4A6572',
+    fontFamily: FONT.medium,
+    fontSize: 14,
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  formSection: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  dropdownContainer: {
-    flex: 1,
-    marginRight: 10,
-  },
-  dropdownButton: {
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
-    borderRadius: 8,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: '#34495E',
-    flex: 1,
-  },
-  fieldLabel: {
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#4A6572',
+    marginBottom: 16,
+    gap: 10,
   },
   fullWidthInputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontFamily: FONT.semiBold,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 8,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
     borderRadius: 8,
     padding: 12,
-    backgroundColor: '#FFFFFF',
-    color: '#34495E',
-    fontSize: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   remarksInput: {
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  datePickerContainer: {
+  dropdownContainer: {
     flex: 1,
-    marginRight: 10,
+    //marginRight: 8,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    height: 48,
+  },
+  dropdownText: {
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: COLORS.text,
+    flex: 1,
   },
   datePickerButton: {
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   datePickerText: {
+    fontFamily: FONT.regular,
     fontSize: 16,
-    color: '#34495E',
-  },
-  attachFilesLabel: {
-    fontWeight: 'bold',
-    marginBottom: 15,
-    fontSize: 16,
-    color: '#1A535C',
-  },
-  attachButtonsContainer: {
-    flexDirection: 'row',
-    marginBottom: 15,
-  },
-  attachButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3498DB',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-  },
-  attachButtonText: {
-    color: '#fff',
+    color: COLORS.primary,
     marginLeft: 8,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  buttonIcon: {
-    marginRight: 5,
-  },
-  fileListContainer: {
-    marginTop: 10,
-  },
-  fileItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: '#F0F4F8',
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
-  },
-  fileIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  fileThumbnail: {
-    width: 30,
-    height: 30,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  fileName: {
-    marginLeft: 10,
-    color: '#34495E',
-    flexShrink: 1,
-  },
-  deleteButton: {
-    padding: 5,
-  },
-  saveButton: {
-    backgroundColor: '#1A535C',
-    padding: 18,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: 'white',
+    width: '80%',
+    backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 20,
-    width: '80%',
-    maxHeight: '70%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontFamily: FONT.bold,
+    fontSize: 20,
+    color: COLORS.text,
+    marginBottom: 16,
     textAlign: 'center',
-    color: '#1A535C',
   },
   modalScrollView: {
-    maxHeight: 250,
+    maxHeight: 200,
   },
   modalItem: {
-    paddingVertical: 15,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.border,
   },
   modalItemText: {
+    fontFamily: FONT.regular,
     fontSize: 16,
-    color: '#34495E',
+    color: COLORS.text,
   },
   modalCloseButton: {
     marginTop: 20,
-    backgroundColor: '#F0F4F8',
     padding: 12,
+    backgroundColor: COLORS.background,
     borderRadius: 8,
     alignItems: 'center',
   },
   modalCloseText: {
+    fontFamily: FONT.medium,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4A6572',
+    color: COLORS.text,
+  },
+  attachmentsContainer: {
+    marginTop: 16,
+  },
+  attachmentsTitle: {
+    fontFamily: FONT.semiBold,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  attachmentsDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 16,
+  },
+  noAttachmentsText: {
+    fontFamily: FONT.regular,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 10,
+  },
+  attachmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  attachmentName: {
+    fontFamily: FONT.regular,
+    flex: 1,
+    marginLeft: 8,
+    color: COLORS.text,
+  },
+  attachButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  attachButtonText: {
+    fontFamily: FONT.bold,
+    color: COLORS.card,
+    marginLeft: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.card,
+  },
+  footerButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.border,
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    fontFamily: FONT.medium,
+    color: COLORS.text,
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary,
+    marginLeft: 8,
+  },
+  saveButtonText: {
+    fontFamily: FONT.bold,
+    color: COLORS.card,
+  },
+  uploadLimitText: {
+    fontFamily: FONT.regular,
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
 });
 

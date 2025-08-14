@@ -7,8 +7,9 @@ import {
   FlatList,
   ActivityIndicator,
   Dimensions,
+  SafeAreaView
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+//import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';

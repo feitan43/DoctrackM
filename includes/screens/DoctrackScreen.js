@@ -1656,12 +1656,12 @@ const DoctrackScreen = ({
                 //   iconName: 'crown-outline',
                 //   screen: 'MayorsPortal',
                 // },`
-                /* {
+                {
                   label: 'Edit',
                   icon: true,
                   iconName: 'pencil-outline',
                   screen: 'BossEditScreen',
-                }, */
+                },
               ].map((item, index) => {
                 if (item.condition === false) return null;
 

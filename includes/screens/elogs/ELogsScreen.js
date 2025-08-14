@@ -13,15 +13,806 @@ import {
   SafeAreaView,
   Keyboard,
   Modal,
+  ImageBackground,
+  PermissionsAndroid,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useNavigation} from '@react-navigation/native';
-import {useElogsLetters} from '../../hooks/useElogs';
-import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import {
+  useElogsLetters,
+  useElogsLetterTypes,
+  useElogsStatuses,
+  useUpdateLetterStatus,
+  useAddLetterTypes,
+  useDeleteLetterType,
+  useAddLetterStatus,
+  useDeleteLetterStatus,
+} from '../../hooks/useElogs';
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetTextInput,
+} from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import LinearGradient from 'react-native-linear-gradient';
 import moment from 'moment';
+import ColorPicker, {Panel1, HueSlider} from 'reanimated-color-picker';
+import {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+  useAnimatedReaction,
+} from 'react-native-reanimated';
+import {pick} from '@react-native-documents/picker';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+
+// -------------------------------------------------
+// Refactored Bottom Sheet Components
+// -------------------------------------------------
+// Add these two new components to your file
+
+const EditLetterTypeBottomSheet = React.memo(
+  ({
+    editLetterTypeSheetRef,
+    snapPointsEditLetterType,
+    editedLetterType,
+    setEditedLetterType,
+    handleSaveEditLetterType,
+  }) => {
+    const handleClosePress = useCallback(() => {
+      editLetterTypeSheetRef.current?.close();
+    }, [editLetterTypeSheetRef]);
+
+    return (
+      <BottomSheetModal
+        ref={editLetterTypeSheetRef}
+        index={0}
+        snapPoints={snapPointsEditLetterType}
+        keyboardBehavior="interactive"
+        enablePanDownToClose={true}
+        backdropComponent={({style}) => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              style,
+              {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+            ]}
+          />
+        )}
+        onDismiss={() => {
+          setEditedLetterType('');
+        }}>
+        <View style={styles.bottomSheetContent}>
+          <Text style={styles.bottomSheetTitle}>Edit Letter Type</Text>
+          <Text style={styles.inputLabel}>New Name</Text>
+          <BottomSheetTextInput
+            style={styles.setupInput}
+            placeholder="e.g., REQUEST LETTER"
+            placeholderTextColor="#90A4AE"
+            value={editedLetterType}
+            onChangeText={setEditedLetterType}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={handleSaveEditLetterType}>
+            <Text style={styles.addButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
+    );
+  },
+);
+
+const EditStatusBottomSheet = React.memo(
+  ({
+    editStatusSheetRef,
+    snapPointsEditStatus,
+    editedStatus,
+    setEditedStatus,
+    editedStatusColor,
+    setEditedStatusColor,
+    handleSaveEditStatus,
+  }) => {
+    const [isPickerVisible, setIsPickerVisible] = useState(false);
+    const selectedColor = useSharedValue(editedStatusColor);
+
+    useEffect(() => {
+      selectedColor.value = editedStatusColor;
+    }, [editedStatusColor, selectedColor]);
+
+    useAnimatedReaction(
+      () => selectedColor.value,
+      hex => {
+        runOnJS(setEditedStatusColor)(hex);
+      },
+      [setEditedStatusColor],
+    );
+
+    const onCompleteWorklet = color => {
+      'worklet';
+      selectedColor.value = color.hex;
+    };
+
+    return (
+      <BottomSheetModal
+        ref={editStatusSheetRef}
+        index={0}
+        snapPoints={snapPointsEditStatus}
+        keyboardBehavior="interactive"
+        enablePanDownToClose={true}
+        handleIndicatorStyle={{backgroundColor: '#BDC3C7', width: 40}}
+        backdropComponent={({style}) => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              style,
+              {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+            ]}
+          />
+        )}
+        onDismiss={() => {
+          setEditedStatus('');
+          setEditedStatusColor('');
+          setIsPickerVisible(false);
+        }}>
+        <View style={styles.bottomSheetContent}>
+          <Text style={styles.bottomSheetTitle}>Edit Status</Text>
+          <Text style={styles.inputLabel}>New Status Name</Text>
+          <BottomSheetTextInput
+            style={styles.setupInput}
+            placeholder="e.g., RELEASE"
+            placeholderTextColor="#90A4AE"
+            value={editedStatus}
+            onChangeText={setEditedStatus}
+          />
+          <View style={{marginTop: 20}}>
+            <Text style={styles.inputLabel}>Color</Text>
+            <TouchableOpacity
+              onPress={() => setIsPickerVisible(!isPickerVisible)}
+              style={styles.colorInputContainer}>
+              <View
+                style={[
+                  styles.colorBox,
+                  {backgroundColor: editedStatusColor || '#FFFFFF'},
+                ]}
+              />
+              <BottomSheetTextInput
+                style={[styles.setupInput, {flex: 1}]}
+                placeholder="e.g., #007BFF"
+                placeholderTextColor="#90A4AE"
+                value={editedStatusColor}
+                onChangeText={setEditedStatusColor}
+              />
+            </TouchableOpacity>
+          </View>
+          {isPickerVisible && (
+            <ColorPicker
+              style={{width: '100%', marginBottom: 20}}
+              value={editedStatusColor || '#FFFFFF'}
+              onComplete={onCompleteWorklet}>
+              <Panel1 style={{marginBottom: 10}} />
+              <HueSlider />
+            </ColorPicker>
+          )}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={handleSaveEditStatus}>
+            <Text style={styles.addButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
+    );
+  },
+);
+
+const AddLetterTypeBottomSheet = React.memo(
+  ({
+    addLetterTypeSheetRef,
+    snapPointsLetterType,
+    setNewLetterType,
+    setNewLetterTypeCode,
+    newLetterType,
+    newLetterTypeCode,
+    handleAddLetterType,
+  }) => {
+    return (
+      <BottomSheetModal
+        ref={addLetterTypeSheetRef}
+        index={0}
+        snapPoints={snapPointsLetterType}
+        keyboardBehavior="interactive"
+        backdropComponent={({style}) => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              style,
+              {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+            ]}
+          />
+        )}
+        onDismiss={() => {
+          setNewLetterType('');
+          setNewLetterTypeCode('');
+        }}>
+        <View style={styles.bottomSheetContent}>
+          <Text style={styles.bottomSheetTitle}>Add New Letter Type</Text>
+          <Text style={styles.inputLabel}>New Letter Type</Text>
+          <BottomSheetTextInput
+            style={styles.setupInput}
+            placeholder="e.g., REQUEST LETTER"
+            placeholderTextColor="#90A4AE"
+            value={newLetterType}
+            onChangeText={setNewLetterType}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {/* <Text style={styles.inputLabel}>Code</Text>
+          <BottomSheetTextInput
+            style={styles.setupInput}
+            placeholder="e.g., RL"
+            placeholderTextColor="#90A4AE"
+            value={newLetterTypeCode}
+            onChangeText={setNewLetterTypeCode}
+          /> */}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={handleAddLetterType}>
+            <Text style={styles.addButtonText}>Add Letter Type</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
+    );
+  },
+);
+
+const AddStatusBottomSheet = React.memo(
+  ({
+    addStatusSheetRef,
+    snapPointsStatus,
+    setNewStatus,
+    setNewStatusColor,
+    newStatus,
+    newStatusColor,
+    handleAddStatus,
+  }) => {
+    const [isPickerVisible, setIsPickerVisible] = useState(false);
+    const selectedColor = useSharedValue('#FFFFFF');
+
+    // The logic below ensures that the color picker's internal
+    // state is synchronized with the newStatusColor state
+    useAnimatedReaction(
+      () => selectedColor.value,
+      hex => {
+        runOnJS(setNewStatusColor)(hex);
+      },
+      [setNewStatusColor],
+    );
+
+    const onCompleteWorklet = color => {
+      'worklet';
+      selectedColor.value = color.hex;
+    };
+
+    return (
+      <BottomSheetModal
+        ref={addStatusSheetRef}
+        index={0}
+        snapPoints={snapPointsStatus}
+        keyboardBehavior="interactive"
+        enablePanDownToClose={true}
+        handleIndicatorStyle={{backgroundColor: '#BDC3C7', width: 40}}
+        backdropComponent={({style}) => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              style,
+              {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+            ]}
+            onTouchEnd={() => addStatusSheetRef.current?.close()}
+          />
+        )}
+        onDismiss={() => {
+          setNewStatus('');
+          setNewStatusColor('');
+          selectedColor.value = '#FFFFFF';
+          setIsPickerVisible(false);
+        }}>
+        <View style={styles.bottomSheetContent}>
+          <Text style={styles.bottomSheetTitle}>Add New Status</Text>
+          <Text style={styles.inputLabel}>New Status</Text>
+          <BottomSheetTextInput
+            style={styles.setupInput}
+            placeholder="e.g., RELEASE"
+            placeholderTextColor="#90A4AE"
+            value={newStatus}
+            onChangeText={setNewStatus}
+          />
+          <View style={{marginTop: 20}}>
+            <Text style={styles.inputLabel}>Color</Text>
+
+            <TouchableOpacity
+              onPress={() => setIsPickerVisible(!isPickerVisible)}
+              style={styles.colorInputContainer}>
+              <View
+                style={[
+                  styles.colorBox,
+                  {backgroundColor: newStatusColor || '#FFFFFF'},
+                ]}
+              />
+              <BottomSheetTextInput
+                style={[styles.setupInput, {flex: 1}]}
+                placeholder="e.g., #007BFF"
+                placeholderTextColor="#90A4AE"
+                value={newStatusColor}
+                onChangeText={setNewStatusColor}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {isPickerVisible && (
+            <ColorPicker
+              style={{width: '100%', marginBottom: 20}}
+              // This is the key change: provide a default valid color
+              value={newStatusColor || '#FFFFFF'}
+              onComplete={onCompleteWorklet}>
+              <Panel1 style={{marginBottom: 10}} />
+              <HueSlider />
+            </ColorPicker>
+          )}
+
+          <TouchableOpacity style={styles.addButton} onPress={handleAddStatus}>
+            <Text style={styles.addButtonText}>Add Status</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
+    );
+  },
+);
+
+const ActionOptionsBottomSheet = React.memo(
+  ({
+    actionOptionsSheetRef,
+    snapPointsActionOptions,
+    actionItemType,
+    handleEditLetterType,
+    handleEditStatus,
+    handleRemoveLetterType,
+    handleRemoveStatus,
+  }) => (
+    <BottomSheetModal
+      ref={actionOptionsSheetRef}
+      index={0}
+      snapPoints={snapPointsActionOptions}
+      enablePanDownToClose={true}
+      backdropComponent={({style}) => (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            style,
+            {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+          ]}
+        />
+      )}
+      onDismiss={() => {}}>
+      <View style={styles.actionOptionsContent}>
+        {/* <Text style={styles.bottomSheetTitle}>Options</Text> */}
+        <TouchableOpacity
+          style={styles.actionOptionButton}
+          onPress={
+            actionItemType === 'letterType'
+              ? handleEditLetterType
+              : handleEditStatus
+          }>
+          <Icon name="pencil-outline" size={24} color="#ccc" />
+          <Text style={styles.actionOptionText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionOptionButton, styles.deleteActionOptionButton]}
+          onPress={
+            actionItemType === 'letterType'
+              ? handleRemoveLetterType
+              : handleRemoveStatus
+          }>
+          <Icon name="trash-outline" size={24} color="#ccc" />
+          <Text style={styles.actionOptionText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </BottomSheetModal>
+  ),
+);
+
+// New Component for the Document Form
+const NewDocumentForm = React.memo(({newFormSheetRef}) => {
+  const snapPoints = useMemo(() => ['95%'], []);
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const MAX_FILES = 5;
+
+  const handleClosePress = useCallback(() => {
+    newFormSheetRef.current?.close();
+  }, [newFormSheetRef]);
+
+  const handleRemoveFile = useCallback(index => {
+    Alert.alert(
+      'Remove File',
+      `Are you sure you want to remove this file?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setAttachedFiles(prevFiles =>
+              prevFiles.filter((_, i) => i !== index),
+            );
+          },
+        },
+      ],
+      {cancelable: true},
+    );
+  }, []);
+
+  const handleChooseFiles = useCallback(() => {
+    Alert.alert(
+      'Attach Files',
+      'Choose an option to attach files',
+      [
+        {
+          text: 'Choose from Documents',
+          onPress: async () => {
+            if (attachedFiles.length >= MAX_FILES) {
+              Alert.alert(
+                'File Limit Reached',
+                `You can only attach a maximum of ${MAX_FILES} files.`,
+              );
+              return;
+            }
+
+            try {
+              if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                  PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+                  {
+                    title: 'Storage Permission',
+                    message:
+                      'This app needs access to your storage to select files.',
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                  },
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                  Alert.alert(
+                    'Permission Denied',
+                    'You have denied storage access. Please enable it in your device settings to select files.',
+                  );
+                  return;
+                }
+              }
+              const res = await pick({
+                type: ['application/pdf', 'image/*'],
+                allowMultiSelection: true,
+              });
+
+              if (res.length > 0) {
+                const newTotal = attachedFiles.length + res.length;
+                if (newTotal > MAX_FILES) {
+                  const numFilesToTake = MAX_FILES - attachedFiles.length;
+                  const filesToAdd = res.slice(0, numFilesToTake);
+                  Alert.alert(
+                    'File Limit Exceeded',
+                    `You can only add ${numFilesToTake} more file(s) to reach the maximum of ${MAX_FILES}.`,
+                  );
+                  setAttachedFiles(prevFiles => [...prevFiles, ...filesToAdd]);
+                } else {
+                  setAttachedFiles(prevFiles => [...prevFiles, ...res]);
+                }
+              }
+            } catch (err) {
+              /* if (pick.isCancel(err)) {
+                console.log('User cancelled the picker');
+              } else {
+                console.log(err);
+              } */
+            }
+          },
+        },
+        {
+          text: 'Take a Photo',
+          onPress: async () => {
+            if (attachedFiles.length >= MAX_FILES) {
+              Alert.alert(
+                'File Limit Reached',
+                `You can only attach a maximum of ${MAX_FILES} files.`,
+              );
+              return;
+            }
+
+            try {
+              if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                  PermissionsAndroid.PERMISSIONS.CAMERA,
+                  {
+                    title: 'Camera Permission',
+                    message: 'This app needs camera access to take photos.',
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                  },
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                  Alert.alert(
+                    'Permission Denied',
+                    'You have denied camera access. Please enable it in your device settings to take photos.',
+                  );
+                  return;
+                }
+              }
+              const result = await launchCamera({
+                mediaType: 'photo',
+                quality: 0.7,
+              });
+              if (result.assets && result.assets.length > 0) {
+                if (attachedFiles.length < MAX_FILES) {
+                  setAttachedFiles(prevFiles => [
+                    ...prevFiles,
+                    result.assets[0],
+                  ]);
+                } else {
+                  Alert.alert(
+                    'File Limit Reached',
+                    `You can only attach a maximum of ${MAX_FILES} files.`,
+                  );
+                }
+              }
+            } catch (err) {
+              console.log('Camera launch error:', err);
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      {cancelable: true},
+    );
+  }, [attachedFiles]);
+
+  return (
+    <BottomSheetModal
+      ref={newFormSheetRef}
+      index={0}
+      snapPoints={snapPoints}
+      keyboardBehavior="interactive"
+      enablePanDownToClose={true}
+      backdropComponent={({style}) => (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            style,
+            {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+          ]}
+        />
+      )}
+      onDismiss={() => {
+        // Reset form state here
+        setAttachedFiles([]);
+      }}>
+      <View style={styles.formContainer}>
+        <View style={styles.formHeader}>
+          <Text style={styles.formTitle}>New Form</Text>
+          <TouchableOpacity onPress={handleClosePress} style={{}}>
+            <Icon name="close-circle-outline" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          contentContainerStyle={styles.formScrollView}
+          showsVerticalScrollIndicator={false}>
+          <Text style={styles.formLabel}>Document Type</Text>
+          <TextInput
+            style={styles.formInput}
+            placeholder="Select Document Type"
+          />
+
+          <View style={styles.formRow}>
+            <View style={styles.formHalfWidth}>
+              <Text style={styles.formLabel}>From</Text>
+              <TextInput style={styles.formInput} placeholder="N/A" />
+            </View>
+            <View style={styles.formHalfWidth}>
+              <Text style={styles.formLabel}> </Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Name of Sender"
+              />
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={styles.formHalfWidth}>
+              <Text style={styles.formLabel}>To</Text>
+              <TextInput style={styles.formInput} placeholder="N/A" />
+            </View>
+            <View style={styles.formHalfWidth}>
+              <Text style={styles.formLabel}> </Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Name of Receiver"
+              />
+            </View>
+          </View>
+
+          <Text style={styles.formLabel}>Subject</Text>
+          <TextInput style={styles.formInput} placeholder="Subject" />
+
+          <Text style={styles.formLabel}>Date Received</Text>
+          <TextInput
+            style={styles.formInput}
+            placeholder="YYYY-MM-DD 00:00 AM/PM"
+          />
+
+          <Text style={styles.formLabel}>Remarks</Text>
+          <TextInput
+            style={[styles.formInput, styles.formTextArea]}
+            multiline
+            placeholder="Remarks"
+          />
+
+          <Text style={styles.formLabel}>Attach Files</Text>
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={handleChooseFiles}>
+            <Text style={styles.attachButtonText}>Choose Files</Text>
+          </TouchableOpacity>
+          <Text style={styles.attachHint}>
+            (Max 5 files, PDF and Images only)
+          </Text>
+
+          {attachedFiles.length > 0 && (
+            <View style={styles.attachedFilesContainer}>
+              <Text style={styles.attachedFilesHeader}>Attached Files:</Text>
+              {attachedFiles.map((file, index) => (
+                <View key={index} style={styles.attachedFileItem}>
+                  <Icon name="document" size={16} color="#4A6572" />
+                  <Text style={styles.attachedFileName} numberOfLines={1}>
+                    {file.name || file.fileName}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveFile(index)}
+                    style={styles.removeFileButton}>
+                    <Icon name="trash-outline" size={20} color="#E74C3C" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+        <TouchableOpacity style={styles.submitButton}>
+          <Text style={styles.submitButtonText}>Submit</Text>
+        </TouchableOpacity>
+      </View>
+    </BottomSheetModal>
+  );
+});
+
+// -------------------------------------------------
+// New Component for the Document Card UI/UX
+// -------------------------------------------------
+const DocumentCard = React.memo(
+  ({doc, documentIndex, handleDocumentPress, statusColors}) => {
+    return (
+      <TouchableOpacity
+        style={styles.documentCardNew}
+        onPress={() => handleDocumentPress(doc)}>
+        <View style={styles.cardContentContainerNew}>
+          <View style={styles.cardIndexColumn}>
+            <Text style={styles.cardIndexText}>{documentIndex}</Text>
+          </View>
+
+          <View style={styles.cardDetailsColumnNew}>
+            <View style={styles.cardHeaderNew}>
+              <View style={[styles.statusBadge]}>
+                <Text style={styles.statusBadgeText}>
+                  {doc.Status}
+                  {'  '}
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderWidth: 1,
+                      borderRadius: 999,
+                      backgroundColor: statusColors[doc.Status] || '#B0BEC5',
+                      borderColor: statusColors[doc.Status] || '#B0BEC5',
+                    }}
+                  />
+                </Text>
+                {doc.DateModified && (
+                  <Text style={[styles.cardDateNew, {textAlign: 'right'}]}>
+                    {doc.DateModified}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.cardBodyNew}>
+              <Text style={styles.cardTrackingNumberNew}>
+                {/* <Text style={{fontFamily: 'Montserrat-Regular', color: 'gray'}}>
+                </Text>{' '} */}
+                {doc.TrackingNumber}
+              </Text>
+              <Text style={styles.cardSubjectNew}>{doc.Subject}</Text>
+
+              <View style={styles.cardInfoRow}>
+                {/* <Icon name="mail-outline" size={16} color="#7F8C8D" /> */}
+                <Text style={styles.cardInfoText}>Type</Text>
+                <Text style={styles.cardInfoValue}> {doc.Type}</Text>
+              </View>
+
+              <View style={styles.cardInfoRow}>
+                {/* <Icon name="person-circle-outline" size={16} color="#7F8C8D" /> */}
+                <Text style={styles.cardInfoText}>From</Text>
+                <Text style={styles.cardInfoValue} /* numberOfLines={1} */>
+                  {doc.Sender}
+                </Text>
+              </View>
+
+              <View style={styles.cardInfoRow}>
+                {/* <Icon name="person-circle-outline" size={16} color="#7F8C8D" /> */}
+                <Text style={styles.cardInfoText}>To</Text>
+                <Text style={styles.cardInfoValue} /* numberOfLines={1} */>
+                  {doc.Receiver}
+                </Text>
+              </View>
+
+              {doc.DateReleased && (
+                <View style={styles.cardInfoRow}>
+                  {/* <Icon name="send-outline" size={16} color="#7F8C8D" /> */}
+                  <Text style={styles.cardInfoText}>Released</Text>
+                  <Text style={styles.cardInfoValue}>
+                    {moment(doc.DateReleased, 'YYYY-MM-DD hh:mm A').format(
+                      'MMMM D, YYYY h:mm A',
+                    )}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.cardFooterNew}>
+              <View style={styles.cardFooterLeft}>
+                {/*  <Icon name="calendar-outline" size={16} color="#7F8C8D" /> */}
+                <Text style={styles.cardDateNew}>
+                  {/*  {moment(doc.DateReceived, 'YYYY-MM-DD hh:mm A').format(
+                    'MMMM D, YYYY h:mm A',
+                  )} */}
+                </Text>
+              </View>
+              <View style={styles.cardFooterRight}>
+                {doc.AttachmentCount > '0' ? (
+                  <Icon name="document-attach" size={20} color="#1A535C" />
+                ) : (
+                  <Icon name="document-outline" size={20} color="#B0BEC5" />
+                )}
+                <Text style={styles.attachmentCountText}>
+                  {doc.AttachmentCount > '0' ? doc.AttachmentCount : ''}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+);
+
+// -------------------------------------------------
+// Main Component
+// -------------------------------------------------
 
 function ELogsScreen({navigation}) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,47 +822,80 @@ function ELogsScreen({navigation}) {
   const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
   const [documentToUpdate, setDocumentToUpdate] = useState(null);
 
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const [deleteType, setDeleteType] = useState('');
+  const [actionItem, setActionItem] = useState(null);
+  const [actionItemType, setActionItemType] = useState('');
 
-  const {data: elogsData, loading, error, refetch} = useElogsLetters();
+  const {
+    data: elogsData,
+    isPending: loading,
+    isError: error,
+    refetch,
+  } = useElogsLetters();
+  const {
+    data: letterTypes,
+    isLoading: letterTypesLoading,
+    isError: letterTypesError,
+  } = useElogsLetterTypes();
+  const {
+    data: letterStatuses,
+    isLoading: letterStatusesLoading,
+    isError: letterStatusesError,
+  } = useElogsStatuses();
 
-  const [documentTypes, setDocumentTypes] = useState([
-    {type: 'REQUEST LETTER', code: 'RL'},
-    {type: '1ST INDORSEMENT', code: '1I'},
-    {type: 'MEMORANDUM', code: 'MM'},
-  ]);
-  const [statuses, setStatuses] = useState([
-    {status: 'RELEASE', color: '#28A745', dateAdded: '2025-08-01'},
-    {status: 'Forwarded', color: '#FFC107', dateAdded: '2025-08-01'},
-    {status: 'Pending', color: '#DC3545', dateAdded: '2025-08-01'},
-    {status: 'ENCODED', color: '#17A2B8', dateAdded: '2025-08-01'},
-    {status: 'Endorsement', color: '#FD7E14', dateAdded: '2025-08-01'},
-    {status: 'Further Discussion', color: '#007BFF', dateAdded: '2025-08-01'},
-  ]);
+  const {
+    mutateAsync: updateLetterStatus,
+    isLoading: updateLetterStatusLoading,
+  } = useUpdateLetterStatus();
+  const {
+    mutateAsync: addLetterTypes,
+    isPending: addLetterTypesLoading,
+    isError: addLetterTypesError,
+  } = useAddLetterTypes();
+  const {
+    mutateAsync: deleteLetterType,
+    isPending: deleteLetterTypeLoading,
+    isError: deleteLetterTypeError,
+  } = useDeleteLetterType();
 
-  const [newDocumentType, setNewDocumentType] = useState('');
-  const [newDocumentTypeCode, setNewDocumentTypeCode] = useState('');
+  const {
+    mutateAsync: addLetterStatus,
+    isPending: addLetterStatusLoading,
+    isError: addLetterStatusError,
+  } = useAddLetterStatus();
+
+  const {
+    mutateAsync: deleteLetterStatus,
+    isPending: deleteLetterStatusLoading,
+    isError: deleteLetterStatusError,
+  } = useDeleteLetterStatus();
+
+  const [newLetterType, setNewLetterType] = useState('');
+  const [newLetterTypeCode, setNewLetterTypeCode] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('');
 
+  const [editedLetterType, setEditedLetterType] = useState('');
+  const [editedStatus, setEditedStatus] = useState('');
+  const [editedStatusColor, setEditedStatusColor] = useState('');
+  const [editedItemId, setEditedItemId] = useState(null);
+
   const [localDatabase, setLocalDatabase] = useState(elogsData || {});
 
-  const addDocumentTypeSheetRef = useRef(null);
+  const addLetterTypeSheetRef = useRef(null);
   const addStatusSheetRef = useRef(null);
+  const actionOptionsSheetRef = useRef(null);
+  const newFormSheetRef = useRef(null);
+  // New refs for editing
+  const editLetterTypeSheetRef = useRef(null);
+  const editStatusSheetRef = useRef(null);
 
-  const snapPointsDocumentType = useMemo(() => ['90%'], []);
-  const snapPointsStatus = useMemo(() => ['50%'], []);
-
-  // Handlers for opening bottom sheets
-  const handlePresentDocumentTypeSheet = useCallback(() => {
-    addDocumentTypeSheetRef.current?.present();
-  }, []);
-
-  const handlePresentStatusSheet = useCallback(() => {
-    addStatusSheetRef.current?.present();
-  }, []);
+  const snapPointsLetterType = useMemo(() => ['90%'], []);
+  const snapPointsStatus = useMemo(() => ['90%'], []);
+  const snapPointsActionOptions = useMemo(() => ['25%'], []);
+  const snapPointsNewForm = useMemo(() => ['75%'], []);
+  // New snap points for editing
+  const snapPointsEditLetterType = useMemo(() => ['50%'], []);
+  const snapPointsEditStatus = useMemo(() => ['90%'], []);
 
   useEffect(() => {
     if (elogsData) {
@@ -79,17 +903,72 @@ function ELogsScreen({navigation}) {
     }
   }, [elogsData]);
 
-  const filteredDocuments = Object.values(localDatabase)
-    .filter(
-      doc =>
-        doc?.TrackingNumber?.toLowerCase()?.includes(
-          searchTerm.toLowerCase(),
-        ) ||
-        doc?.Subject?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-        doc?.Sender?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-        doc?.Receiver?.toLowerCase()?.includes(searchTerm.toLowerCase()),
-    )
-    .sort((a, b) => new Date(b.DateReceived) - new Date(a.DateReceived));
+  /*  useEffect(() => {
+    if (actionItem && actionItemType) {
+      actionOptionsSheetRef.current?.present();
+    }
+  }, [actionItem, actionItemType]); */
+
+  const handlePresentLetterTypeSheet = useCallback(() => {
+    addLetterTypeSheetRef.current?.present();
+  }, []);
+
+  const handlePresentStatusSheet = useCallback(() => {
+    addStatusSheetRef.current?.present();
+  }, []);
+
+  const handlePresentActionOptionsSheet = useCallback((item, type) => {
+    actionOptionsSheetRef.current?.present();
+    setActionItem(item);
+    setActionItemType(type);
+  }, []);
+
+  // New handler to present the new form sheet
+  const handlePresentNewFormSheet = useCallback(() => {
+    newFormSheetRef.current?.present();
+  }, []);
+
+  const filteredDocuments = useMemo(() => {
+    return Object.values(localDatabase)
+      .filter(
+        doc =>
+          doc?.TrackingNumber?.toLowerCase()?.includes(
+            searchTerm.toLowerCase(),
+          ) ||
+          doc?.Subject?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+          doc?.Sender?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+          doc?.Receiver?.toLowerCase()?.includes(searchTerm.toLowerCase()),
+      )
+      .sort((a, b) => new Date(b.DateReceived) - new Date(a.DateReceived));
+  }, [localDatabase, searchTerm]);
+
+  const groupedDocuments = useMemo(() => {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}/;
+
+    const groups = filteredDocuments.reduce((acc, doc) => {
+      const dateMatch = doc.DateReceived?.match(dateRegex);
+      const date = dateMatch ? dateMatch[0] : 'No Date';
+
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(doc);
+      return acc;
+    }, {});
+
+    const sortedDates = Object.keys(groups).sort((a, b) => {
+      if (a === 'No Date') return 1;
+      if (b === 'No Date') return -1;
+      return new Date(b) - new Date(a);
+    });
+
+    return sortedDates.map(date => ({
+      date,
+      documents: groups[date].sort(
+        (a, b) => new Date(b.DateReceived) - new Date(a.DateReceived),
+      ),
+    }));
+  }, [filteredDocuments]);
 
   const handleDocumentPress = document => {
     Alert.alert(
@@ -116,83 +995,197 @@ function ELogsScreen({navigation}) {
   };
 
   const handleUpdateStatus = newStatus => {
-    const updatedDatabase = {...localDatabase};
+    // Check if there's a document to update
+    if (!documentToUpdate) {
+      console.error('No document selected for update.');
+      return;
+    }
+
     const trackingNumber = documentToUpdate.TrackingNumber;
 
-    updatedDatabase[trackingNumber] = {
-      ...updatedDatabase[trackingNumber],
-      Status: newStatus,
-    };
+    console.log(trackingNumber, newStatus);
 
-    setLocalDatabase(updatedDatabase);
-    setIsStatusModalVisible(false);
-    setDocumentToUpdate(null);
-
-    Alert.alert(
-      'Success',
-      `Status for document ${trackingNumber} has been updated to "${newStatus}".`,
+    updateLetterStatus(
+      {tn: trackingNumber, status: newStatus},
+      {
+        onSuccess: () => {
+          Alert.alert(
+            'Success',
+            `Status for document ${trackingNumber} has been updated to "${newStatus}".`,
+          );
+        },
+        onError: error => {
+          // This will run if the API call fails.
+          console.error('Update failed:', error);
+          Alert.alert(
+            'Error',
+            `Failed to update status for document ${trackingNumber}. Please try again.`,
+          );
+        },
+        onSettled: () => {
+          setIsStatusModalVisible(false);
+          setDocumentToUpdate(null);
+        },
+      },
     );
   };
 
-  const handleAddDocumentType = () => {
-    if (newDocumentType.trim() !== '' && newDocumentTypeCode.trim() !== '') {
-      setDocumentTypes(prev => [
-        ...prev,
-        {type: newDocumentType.trim(), code: newDocumentTypeCode.trim()},
-      ]);
-      setNewDocumentType('');
-      setNewDocumentTypeCode('');
-      addDocumentTypeSheetRef.current?.close();
+  const handleAddLetterType = useCallback(async () => {
+    if (newLetterType.trim() === '') {
+      Alert.alert('Error', 'Letter type cannot be empty.');
+      return;
+    }
+
+    try {
+      // 1. Call the async mutation function.
+      // This will trigger the API call and wait for it to complete.
+      await addLetterTypes({letterType: newLetterType});
+
+      // 2. Only proceed with success actions if the API call was successful.
+      setNewLetterType('');
+      addLetterTypeSheetRef.current?.close();
+
       Alert.alert(
         'Success',
-        `Document Type "${newDocumentType}" added with code "${newDocumentTypeCode}".`,
+        `Letter Type "${newLetterType}" added successfully.`,
       );
-    } else {
-      Alert.alert('Error', 'Document type and code cannot be empty.');
+    } catch (error) {
+      // 3. Handle any errors that occurred during the API call.
+      console.error('Failed to add letter type:', error);
+      Alert.alert(
+        'Error',
+        `Failed to add letter type "${newLetterType}". Please try again.`,
+      );
     }
-  };
+  }, [newLetterType, addLetterTypes]);
 
-  const handleRemoveDocumentType = typeToRemove => {
-    setDocumentTypes(prev => prev.filter(type => type.type !== typeToRemove));
-    setIsDeleteModalVisible(false);
-  };
+  // const handleRemoveLetterType = useCallback(() => {
+  //   actionOptionsSheetRef.current?.close();
 
-  const handleEditDocumentType = type => {
-    Alert.alert(
-      'Edit Document Type',
-      `Functionality to edit ${type.type} is not yet implemented.`,
-    );
-  };
+  //   Alert.alert(
+  //     'Success',
+  //     `Letter Type "${actionItem.Id}" has been removed.`,
+  //   );
+  // }, [actionItem]);
 
-  const handleAddStatus = () => {
-    if (newStatus.trim() !== '' && newStatusColor.trim() !== '') {
-      const newStatusEntry = {
-        status: newStatus.trim(),
-        color: newStatusColor.trim(),
-        dateAdded: new Date().toISOString().split('T')[0],
-      };
-      setStatuses(prev => [...prev, newStatusEntry]);
+  const handleRemoveLetterType = useCallback(async () => {
+    if (!actionItem || !actionItem.Id) {
+      Alert.alert('Error', 'No letter type selected for deletion.');
+      return;
+    }
+
+    try {
+      await deleteLetterType({letterTypeId: actionItem.Id});
+
+      actionOptionsSheetRef.current?.close();
+
+      Alert.alert(
+        'Success',
+        `Letter Type "${actionItem.Id}" has been removed.`,
+      );
+    } catch (error) {
+      console.error('Failed to delete letter type:', error);
+      Alert.alert(
+        'Error',
+        `Failed to remove letter type "${actionItem.Type}". Please try again.`,
+      );
+    }
+  }, [actionItem, actionOptionsSheetRef, deleteLetterType]);
+
+  const handleEditLetterType = useCallback(() => {
+    // Close the options menu first
+    actionOptionsSheetRef.current?.close();
+
+    // Set the state with the selected item's data
+    if (actionItem && actionItem.Type) {
+      setEditedItemId(actionItem.Id); // Store the ID
+      setEditedLetterType(actionItem.Type);
+      // Open the edit bottom sheet
+      editLetterTypeSheetRef.current?.present();
+    }
+  }, [actionItem]);
+
+  const handleAddStatus = useCallback(async () => {
+    if (newStatus.trim() === '' || newStatusColor.trim() === '') {
+      Alert.alert('Error', 'Status and color cannot be empty.');
+      return;
+    }
+
+    try {
+      // Call the async mutation function from the hook
+      await addLetterStatus({status: newStatus, color: newStatusColor});
+
+      // These actions are only performed if the API call is successful
       setNewStatus('');
       setNewStatusColor('');
       addStatusSheetRef.current?.close();
+
+      Alert.alert('Success', `Status "${newStatus}" added successfully.`);
+    } catch (error) {
+      // If an error occurs during the API call, catch it here and alert the user
+      console.error('Failed to add status:', error);
       Alert.alert(
-        'Success',
-        `Status "${newStatus}" added with color "${newStatusColor}".`,
+        'Error',
+        `Failed to add status "${newStatus}". Please try again.`,
       );
-    } else {
-      Alert.alert('Error', 'Status and color cannot be empty.');
     }
-  };
+  }, [newStatus, newStatusColor, addLetterStatus, addStatusSheetRef]);
 
-  const handleRemoveStatus = statusToRemove => {
-    setStatuses(prev =>
-      prev.filter(status => status.status !== statusToRemove),
+  const handleRemoveStatus = useCallback(async () => {
+    if (!actionItem || !actionItem.Id) {
+      Alert.alert('Error', 'No letter type selected for deletion.');
+      return;
+    }
+
+    try {
+      await deleteLetterStatus({letterTypeId: actionItem.Id});
+
+      actionOptionsSheetRef.current?.close();
+
+      Alert.alert('Success', `Status "${actionItem.Id}" has been removed.`);
+    } catch (error) {
+      console.error('Failed to delete status:', error);
+      Alert.alert(
+        'Error',
+        `Failed to remove status "${actionItem.StatusName}". Please try again.`,
+      );
+    }
+  }, [actionItem, actionOptionsSheetRef, deleteLetterStatus]);
+
+  const handleEditStatus = useCallback(() => {
+    // Close the options menu first
+    actionOptionsSheetRef.current?.close();
+
+    // Set the state with the selected item's data
+    if (actionItem && actionItem.StatusName) {
+      setEditedItemId(actionItem.Id); // Store the ID
+      setEditedStatus(actionItem.StatusName);
+      setEditedStatusColor(actionItem.Color);
+      // Open the edit bottom sheet
+      editStatusSheetRef.current?.present();
+    }
+  }, [actionItem]);
+
+  const handleSaveEditLetterType = useCallback(() => {
+    // This is where you would call your mutation hook
+    console.log(
+      `Saving edited letter type for ID ${editedItemId}: ${editedLetterType}`,
     );
-    setIsDeleteModalVisible(false);
-  };
+    // For now, just close the sheet
+    editLetterTypeSheetRef.current?.close();
+  }, [editedItemId, editedLetterType, editLetterTypeSheetRef]);
 
-  const statusColors = statuses.reduce((acc, curr) => {
-    acc[curr.status] = curr.color;
+  const handleSaveEditStatus = useCallback(() => {
+    // This is where you would call your mutation hook
+    console.log(
+      `Saving edited status for ID ${editedItemId}: ${editedStatus} with color ${editedStatusColor}`,
+    );
+    // For now, just close the sheet
+    editStatusSheetRef.current?.close();
+  }, [editedItemId, editedStatus, editedStatusColor, editStatusSheetRef]);
+
+  const statusColors = (letterStatuses || []).reduce((acc, curr) => {
+    acc[curr.StatusName] = curr.Color;
     return acc;
   }, {});
 
@@ -224,97 +1217,41 @@ function ELogsScreen({navigation}) {
       );
     }
 
-    if (filteredDocuments.length === 0) {
+    if (groupedDocuments.length === 0) {
       return (
         <Text style={styles.noResultsText}>
           No documents found matching your search.
         </Text>
       );
     }
-    return filteredDocuments.map((doc, index) => (
-      <TouchableOpacity
-        key={doc.TrackingNumber}
-        style={styles.documentCard}
-        onPress={() => handleDocumentPress(doc)}>
-        <View style={styles.cardContentContainer}>
-          <View style={styles.cardIndexColumn}>
-            <Text style={styles.cardIndexText}>{index + 1}</Text>
-          </View>
-          <View style={styles.cardDetailsColumn}>
-            <Text style={styles.cardTrackingNumber}>
-              <Text style={{color: '#9c9c9cff', fontWeight: '400'}}>TN:</Text>{' '}
-              {doc.TrackingNumber}
-            </Text>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardType}>{doc.Type}</Text>
-              <Text style={styles.cardDate}>
-                {doc.DateReceived
-                  ? moment(doc.DateReceived, 'YYYY-MM-DD hh:mm A').format(
-                      'MMMM D, YYYY h:mm A',
-                    )
-                  : ''}
-              </Text>
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardSubject}>{doc.Subject}</Text>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>From:</Text>
-                <Text style={styles.cardValue} numberOfLines={1}>
-                  {doc.Sender}
-                </Text>
-              </View>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>To:</Text>
-                <Text style={styles.cardValue} numberOfLines={1}>
-                  {doc.Receiver}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardDate}>
-                {doc.DateReleased
-                  ? moment(doc.DateReleased, 'YYYY-MM-DD hh:mm A').format(
-                      'MMMM D, YYYY h:mm A',
-                    )
-                  : ''}
-              </Text>
-              <View style={styles.cardStatusContainer}>
-                <Text
-                  style={[
-                    styles.cardStatus,
-                    {color: statusColors[doc.Status] || '#28A745'},
-                  ]}>
-                  {doc.Status}
-                </Text>
-                {doc.AttachmentCount > '0' ? (
-                  <Icon
-                    name="document-attach"
-                    size={24}
-                    color="#1A535C"
-                    style={styles.cardAttachmentIcon}
-                  />
-                ) : (
-                  <Icon
-                    name="document-outline"
-                    size={24}
-                    color="#B0BEC5"
-                    style={styles.cardAttachmentIcon}
-                  />
-                )}
-              </View>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
+
+    let documentIndex = 0;
+    return groupedDocuments.map((group, groupIndex) => (
+      <View key={group.date} style={styles.dateSection}>
+        <Text style={styles.dateHeader}>
+          {moment(group.date).format('MMMM D, YYYY')}
+        </Text>
+        {group.documents.map((doc, docIndex) => {
+          documentIndex += 1;
+          return (
+            <DocumentCard
+              key={doc.TrackingNumber}
+              doc={doc}
+              documentIndex={documentIndex}
+              handleDocumentPress={handleDocumentPress}
+              statusColors={statusColors}
+            />
+          );
+        })}
+      </View>
     ));
   };
 
   const renderSearchBarHeader = () => (
-    <LinearGradient
-      colors={['#1A508C', '#004ab1']}
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 0}}
+    <ImageBackground
+      source={require('../../../assets/images/CirclesBG.png')}
       style={styles.searchHeader}>
+      <View style={styles.overlay} />
       <View style={styles.searchBarContainerExpanded}>
         <Icon
           name="search"
@@ -327,6 +1264,7 @@ function ELogsScreen({navigation}) {
           placeholder="Search"
           placeholderTextColor="#90A4AE"
           value={searchTerm}
+          autoCapitalize="characters"
           onChangeText={setSearchTerm}
           onSubmitEditing={Keyboard.dismiss}
           autoFocus
@@ -340,34 +1278,44 @@ function ELogsScreen({navigation}) {
         }}>
         <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity>
-    </LinearGradient>
+    </ImageBackground>
   );
 
   const renderDefaultHeader = () => (
-    <LinearGradient
-      colors={['#1A508C', '#004ab1']}
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 0}}
-      style={styles.header}>
-      {/* <View style={styles.header}> */}
+    <ImageBackground
+      source={require('../../../assets/images/CirclesBG.png')}
+      style={styles.header}
+      imageStyle={styles.bgHeaderImageStyle}>
+      <View style={styles.overlay} />
       <View style={styles.headerLeft}>
-        <TouchableOpacity style={{padding: 5}} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={30} color="#fff" />
+        <TouchableOpacity
+          style={{padding: 5}}
+          onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>E-Logs</Text>
       </View>
       <View style={styles.headerRight}>
-        <TouchableOpacity onPress={() => setIsSearching(true)}>
+        <TouchableOpacity onPress={handlePresentNewFormSheet}>
           <Icon
-            name="search"
+            name="add-circle-outline"
             size={24}
             color="#fff"
-            style={styles.searchIcon}
+            style={{marginRight: 15}}
           />
         </TouchableOpacity>
+        {selectedTab === 'received' && (
+          <TouchableOpacity onPress={() => setIsSearching(true)}>
+            <Icon
+              name="search"
+              size={24}
+              color="#fff"
+              style={styles.searchIcon}
+            />
+          </TouchableOpacity>
+        )}
       </View>
-      {/* </View> */}
-    </LinearGradient>
+    </ImageBackground>
   );
 
   const renderStatusModal = () => {
@@ -380,6 +1328,7 @@ function ELogsScreen({navigation}) {
         animationType="fade"
         transparent={true}
         visible={isStatusModalVisible}
+        statusBarTranslucent={true}
         onRequestClose={() => {
           setIsStatusModalVisible(false);
           setDocumentToUpdate(null);
@@ -389,18 +1338,18 @@ function ELogsScreen({navigation}) {
             <Text style={styles.modalTitle}>
               Update Status for {documentToUpdate.TrackingNumber}
             </Text>
-            {statuses.map((status, index) => (
+            {(letterStatuses || []).map((status, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.statusOption}
-                onPress={() => handleUpdateStatus(status.status)}>
+                onPress={() => handleUpdateStatus(status.StatusName)}>
                 <View
                   style={[
                     styles.colorIndicator,
-                    {backgroundColor: status.color},
+                    {backgroundColor: status.Color},
                   ]}
                 />
-                <Text style={styles.statusText}>{status.status}</Text>
+                <Text style={styles.statusText}>{status.StatusName}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
@@ -417,112 +1366,42 @@ function ELogsScreen({navigation}) {
     );
   };
 
-  const renderDeleteModal = () => {
-    if (!isDeleteModalVisible || !itemToDelete) {
-      return null;
-    }
-
-    return (
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isDeleteModalVisible}
-        onRequestClose={() => setIsDeleteModalVisible(false)}>
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Confirm Deletion</Text>
-            <Text style={styles.modalText}>
-              Are you sure you want to delete
-              <Text style={{fontWeight: 'bold'}}>
-                {' '}
-                {itemToDelete.type || itemToDelete.status}
-              </Text>
-              ?
-            </Text>
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelModalButton]}
-                onPress={() => setIsDeleteModalVisible(false)}>
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.deleteModalButton]}
-                onPress={() => {
-                  if (deleteType === 'documentType') {
-                    handleRemoveDocumentType(itemToDelete.type);
-                  } else {
-                    handleRemoveStatus(itemToDelete.status);
-                  }
-                }}>
-                <Text style={styles.modalButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   const renderSetupScreen = () => {
     return (
       <ScrollView contentContainerStyle={styles.setupScrollView}>
         <View style={styles.setupContainer}>
           <View style={styles.setupSectionHeader}>
-            <Text style={styles.setupHeader}>Document Types</Text>
+            <Text style={styles.setupHeader}>Letter Types</Text>
             <TouchableOpacity
-              onPress={handlePresentDocumentTypeSheet}
+              onPress={handlePresentLetterTypeSheet}
               style={styles.addIcon}>
               <Icon name="add-circle-outline" size={28} color="#1A535C" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.tableCard}>
-            {/* <View style={styles.tableHeader}>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 0.5}]}>
-                {" "}
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 2}]}>
-                Document Type
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 1}]}>
-                Code
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 1.5}]}>
-                Actions
-              </Text>
-            </View> */}
-            {documentTypes.map((type, index) => (
+            {(letterTypes || []).map((type, index) => (
               <View key={index} style={styles.tableRow}>
                 <Text style={[styles.tableCell, {flex: 0.5}]}>{index + 1}</Text>
-                <Text style={[styles.tableCell, {flex: 2}]}>{type.type}</Text>
-                <Text style={[styles.tableCell, {flex: 1}]}>{type.code}</Text>
-                <View
-                  style={[styles.tableCell, styles.actionButtons, {flex: 1.5}]}>
-                  <TouchableOpacity
-                    onPress={() => handleEditDocumentType(type)}>
-                    <MaterialCommunityIcons
-                      name="pencil-outline"
-                      size={24}
-                      color="#3498DB"
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setDeleteType('documentType');
-                      setItemToDelete(type);
-                      setIsDeleteModalVisible(true);
-                    }}>
-                    <MaterialCommunityIcons
-                      name="trash-can-outline"
-                      size={24}
-                      color="#E74C3C"
-                    />
-                  </TouchableOpacity>
-                </View>
+                <Text
+                  style={[
+                    styles.tableCell,
+                    {flex: 2, fontFamily: 'Montserrat-Medium'},
+                  ]}>
+                  {type.Type}
+                </Text>
+                <Text style={[styles.tableCell, {flex: 1}]}>{type.Code}</Text>
+                <TouchableOpacity
+                  style={[styles.tableCell, styles.actionButtonContainer]}
+                  onPress={() =>
+                    handlePresentActionOptionsSheet(type, 'letterType')
+                  }>
+                  <MaterialCommunityIcons
+                    name="dots-vertical"
+                    size={24}
+                    color="#4A6572"
+                  />
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -537,68 +1416,38 @@ function ELogsScreen({navigation}) {
           </View>
 
           <View style={styles.tableCard}>
-            {/* <View style={styles.tableHeader}>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 0.5}]}>
-                {""}
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 2}]}>
-                Status
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 0.5}]}>
-                Color
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 1.5}]}>
-                Date Added
-              </Text>
-              <Text
-                style={[styles.tableCell, styles.tableHeaderCell, {flex: 1.5}]}>
-                Actions
-              </Text>
-            </View> */}
-            {statuses.map((status, index) => (
+            {(letterStatuses || []).map((status, index) => (
               <View key={index} style={styles.tableRow}>
                 <Text style={[styles.tableCell, {flex: 0.5}]}>{index + 1}</Text>
-                <Text style={[styles.tableCell, {flex: 2}]}>
-                  {status.status}
+                <Text
+                  style={[
+                    styles.tableCell,
+                    {flex: 2, fontFamily: 'Montserrat-Medium'},
+                  ]}>
+                  {status.StatusName}
                 </Text>
                 <View style={[styles.tableCell, {flex: 0.5}]}>
                   <View
                     style={[
                       styles.colorIndicator,
-                      {backgroundColor: status.color},
+                      {backgroundColor: status.Color},
                     ]}
                   />
                 </View>
                 <Text style={[styles.tableCell, {flex: 1.5}]}>
-                  {status.dateAdded}
+                  {status.DateAdded}
                 </Text>
-                <View
-                  style={[styles.tableCell, styles.actionButtons, {flex: 1.5}]}>
-                  <TouchableOpacity
-                    onPress={() => handleEditDocumentType(status)}>
-                    <MaterialCommunityIcons
-                      name="pencil-outline"
-                      size={24}
-                      color="#3498DB"
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setDeleteType('status');
-                      setItemToDelete(status);
-                      setIsDeleteModalVisible(true);
-                    }}>
-                    <MaterialCommunityIcons
-                      name="trash-can-outline"
-                      size={24}
-                      color="#E74C3C"
-                    />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[styles.tableCell, styles.actionButtonContainer]}
+                  onPress={() =>
+                    handlePresentActionOptionsSheet(status, 'status')
+                  }>
+                  <MaterialCommunityIcons
+                    name="dots-vertical"
+                    size={24}
+                    color="#4A6572"
+                  />
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -607,158 +1456,117 @@ function ELogsScreen({navigation}) {
     );
   };
 
-  const AddDocumentTypeBottomSheet = () => (
-    <BottomSheetModal
-      ref={addDocumentTypeSheetRef}
-      index={0}
-      snapPoints={snapPointsDocumentType}
-      keyboardBehavior="interactive" // <--- The key fix is here
-      backdropComponent={({style}) => (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            style,
-            {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
-          ]}
-        />
-      )}
-      onDismiss={() => {
-        setNewDocumentType('');
-        setNewDocumentTypeCode('');
-      }}>
-      <View style={styles.bottomSheetContent}>
-        <Text style={styles.bottomSheetTitle}>Add New Document Type</Text>
-        <Text style={styles.inputLabel}>New Document Type</Text>
-        <TextInput
-          style={styles.setupInput}
-          placeholder="e.g., REQUEST LETTER"
-          placeholderTextColor="#90A4AE"
-          value={newDocumentType}
-          onChangeText={setNewDocumentType}
-        />
-        <Text style={styles.inputLabel}>Code</Text>
-        <TextInput
-          style={styles.setupInput}
-          placeholder="e.g., RL"
-          placeholderTextColor="#90A4AE"
-          value={newDocumentTypeCode}
-          onChangeText={setNewDocumentTypeCode}
-        />
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={handleAddDocumentType}>
-          <Text style={styles.addButtonText}>Add Document Type</Text>
-        </TouchableOpacity>
-      </View>
-    </BottomSheetModal>
-  );
-
-  const AddStatusBottomSheet = () => (
-    <BottomSheetModal
-      ref={addStatusSheetRef}
-      index={0}
-      snapPoints={snapPointsStatus}
-      keyboardBehavior="interactive" // <--- The key fix is here
-      backdropComponent={({style}) => (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            style,
-            {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
-          ]}
-        />
-      )}
-      onDismiss={() => {
-        setNewStatus('');
-        setNewStatusColor('');
-      }}>
-      <View style={styles.bottomSheetContent}>
-        <Text style={styles.bottomSheetTitle}>Add New Status</Text>
-        <Text style={styles.inputLabel}>New Status</Text>
-        <TextInput
-          style={styles.setupInput}
-          placeholder="e.g., RELEASE"
-          placeholderTextColor="#90A4AE"
-          value={newStatus}
-          onChangeText={setNewStatus}
-        />
-        <Text style={styles.inputLabel}>Color (Hex Code)</Text>
-        <TextInput
-          style={styles.setupInput}
-          placeholder="e.g., #007BFF"
-          placeholderTextColor="#90A4AE"
-          value={newStatusColor}
-          onChangeText={setNewStatusColor}
-        />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddStatus}>
-          <Text style={styles.addButtonText}>Add Status</Text>
-        </TouchableOpacity>
-      </View>
-    </BottomSheetModal>
-  );
-
   return (
-    <BottomSheetModalProvider style={{flex: 1}}>
-      <SafeAreaView style={styles.safeArea}>
-        {isSearching ? renderSearchBarHeader() : renderDefaultHeader()}
+    <GestureHandlerRootView style={{flex: 1}}>
+      <BottomSheetModalProvider style={{flex: 1}}>
+        <SafeAreaView style={styles.safeArea}>
+          {isSearching ? renderSearchBarHeader() : renderDefaultHeader()}
 
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === 'received' && styles.activeTab]}
-            onPress={() => setSelectedTab('received')}>
-            <Text
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
               style={[
-                styles.tabText,
-                selectedTab === 'received' && styles.activeTabText,
-              ]}>
-              Documents Received
-            </Text>
-          </TouchableOpacity>
+                styles.tab,
+                selectedTab === 'received' && styles.activeTab,
+              ]}
+              onPress={() => setSelectedTab('received')}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === 'received' && styles.activeTabText,
+                ]}>
+                Documents Received
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              {marginLeft: 20},
-              selectedTab === 'setup' && styles.activeTab,
-            ]}
-            onPress={() => setSelectedTab('setup')}>
-            <Text
+            <TouchableOpacity
               style={[
-                styles.tabText,
-                selectedTab === 'setup' && styles.activeTabText,
-              ]}>
-              Setup
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.scrollViewContent}>
-          <View style={styles.content}>
-            {selectedTab === 'received' ? renderList() : renderSetupScreen()}
+                styles.tab,
+                {marginLeft: 20},
+                selectedTab === 'setup' && styles.activeTab,
+              ]}
+              onPress={() => setSelectedTab('setup')}>
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === 'setup' && styles.activeTabText,
+                ]}>
+                Setup
+              </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-        {renderStatusModal()}
-        {renderDeleteModal()}
-      </SafeAreaView>
 
-      <AddDocumentTypeBottomSheet />
-      <AddStatusBottomSheet />
-    </BottomSheetModalProvider>
+          <ScrollView style={styles.scrollViewContent}>
+            <View style={styles.content}>
+              {selectedTab === 'received' ? renderList() : renderSetupScreen()}
+            </View>
+          </ScrollView>
+          {renderStatusModal()}
+        </SafeAreaView>
+
+        <AddLetterTypeBottomSheet
+          addLetterTypeSheetRef={addLetterTypeSheetRef}
+          snapPointsLetterType={snapPointsLetterType}
+          setNewLetterType={setNewLetterType}
+          setNewLetterTypeCode={setNewLetterTypeCode}
+          newLetterType={newLetterType}
+          newLetterTypeCode={newLetterTypeCode}
+          handleAddLetterType={handleAddLetterType}
+        />
+        <AddStatusBottomSheet
+          addStatusSheetRef={addStatusSheetRef}
+          snapPointsStatus={snapPointsStatus}
+          setNewStatus={setNewStatus}
+          setNewStatusColor={setNewStatusColor}
+          newStatus={newStatus}
+          newStatusColor={newStatusColor}
+          handleAddStatus={handleAddStatus}
+        />
+        <ActionOptionsBottomSheet
+          actionOptionsSheetRef={actionOptionsSheetRef}
+          snapPointsActionOptions={snapPointsActionOptions}
+          actionItemType={actionItemType}
+          handleEditLetterType={handleEditLetterType}
+          handleEditStatus={handleEditStatus}
+          handleRemoveLetterType={handleRemoveLetterType}
+          handleRemoveStatus={handleRemoveStatus}
+        />
+        <NewDocumentForm newFormSheetRef={newFormSheetRef} />
+        <EditLetterTypeBottomSheet
+          editLetterTypeSheetRef={editLetterTypeSheetRef}
+          snapPointsEditLetterType={snapPointsEditLetterType}
+          editedLetterType={editedLetterType}
+          setEditedLetterType={setEditedLetterType}
+          handleSaveEditLetterType={handleSaveEditLetterType}
+        />
+        <EditStatusBottomSheet
+          editStatusSheetRef={editStatusSheetRef}
+          snapPointsEditStatus={snapPointsEditStatus}
+          editedStatus={editedStatus}
+          setEditedStatus={setEditedStatus}
+          editedStatusColor={editedStatusColor}
+          setEditedStatusColor={setEditedStatusColor}
+          handleSaveEditStatus={handleSaveEditStatus}
+        />
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#e9ebee',
+    backgroundColor: '#fafafaff',
   },
   keyboardAvoidingView: {
     flex: 1,
   },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
@@ -792,10 +1600,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 16,
     color: '#fff',
     marginLeft: 10,
+    fontFamily: 'Montserrat-Bold',
   },
   headerRight: {
     flexDirection: 'row',
@@ -809,7 +1617,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 25,
     paddingHorizontal: 10,
-    height: 40,
+    height: 45,
     borderWidth: 1,
     borderColor: '#B0BEC5',
     flex: 1,
@@ -820,16 +1628,18 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: '#34495E',
     height: '100%',
     paddingLeft: 5,
+    fontFamily: 'Montserrat-Regular',
   },
   cancelButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 10,
+    fontFamily: 'Montserrat-Bold',
   },
   headerBackButton: {
     flexDirection: 'row',
@@ -837,7 +1647,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flex: 1,
-    backgroundColor: '#e9ebee',
+    backgroundColor: '#fafafaff',
   },
   content: {
     padding: 5,
@@ -877,6 +1687,7 @@ const styles = StyleSheet.create({
     color: '#34495E',
     marginTop: 15,
     marginBottom: 5,
+    fontFamily: 'Montserrat-Bold',
   },
   errorText: {
     fontSize: 16,
@@ -884,6 +1695,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 10,
     marginBottom: 20,
+    fontFamily: 'Montserrat-Regular',
   },
   retryButton: {
     backgroundColor: '#007bff',
@@ -895,6 +1707,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -905,20 +1718,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   tab: {
-    paddingBottom: 10,
-    borderBottomWidth: 2,
+    paddingBottom: 5,
+    borderBottomWidth: 1.5,
     borderBottomColor: 'transparent',
   },
   activeTab: {
     borderBottomColor: '#1A535C',
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 13,
     color: '#90A4AE',
+    fontFamily: 'Montserrat-Bold',
   },
   activeTabText: {
     color: '#1A535C',
+    fontFamily: 'Montserrat-Bold',
   },
   documentCard: {
     backgroundColor: '#FFFFFF',
@@ -929,7 +1743,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 2,
     borderWidth: 1,
     borderColor: '#E0E6ED',
   },
@@ -942,9 +1756,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   cardIndexText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 18,
     color: '#4476e3',
+    fontFamily: 'Montserrat-Bold',
   },
   cardDetailsColumn: {
     flex: 1,
@@ -954,7 +1768,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#000000ff',
     paddingBottom: 12,
     marginBottom: 12,
   },
@@ -963,11 +1777,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A535C',
     textTransform: 'uppercase',
+    fontFamily: 'Montserrat-Bold',
   },
   cardDate: {
     fontSize: 12,
     color: '#546E7A',
     fontWeight: '500',
+    fontFamily: 'Montserrat-Medium',
   },
   cardBody: {
     marginBottom: 12,
@@ -977,25 +1793,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C3E50',
     marginBottom: 5,
+    fontFamily: 'Montserrat-SemiBold',
   },
   cardRow: {
     flexDirection: 'row',
     marginBottom: 4,
   },
+  cardRowHorizontal: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  cardColumn: {
+    flex: 1,
+  },
   cardLabel: {
     fontSize: 14,
     color: '#7F8C8D',
-    fontWeight: 'bold',
     width: 60,
+    fontFamily: 'Montserrat-Regular',
   },
   cardValue: {
     fontSize: 14,
+    fontWeight: 'bold',
     color: '#5D7B8C',
     flex: 1,
+    fontFamily: 'Montserrat-Bold',
   },
   cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#ECEFF1',
@@ -1003,9 +1829,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   cardTrackingNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4476e3',
+    color: '#1A237E',
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: 16,
   },
   cardStatusContainer: {
     flexDirection: 'row',
@@ -1016,7 +1842,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#28A745',
     marginRight: 8,
+    fontFamily: 'Montserrat-SemiBold',
   },
+
   cardAttachmentIcon: {
     marginLeft: 5,
   },
@@ -1026,6 +1854,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7F8C8D',
     fontStyle: 'italic',
+    fontFamily: 'Montserrat-Italic',
   },
   setupContainer: {
     padding: 5,
@@ -1037,12 +1866,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   setupHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 16,
     color: '#1A535C',
+    fontFamily: 'Montserrat-Bold',
   },
   addIcon: {
     padding: 5,
@@ -1063,43 +1892,47 @@ const styles = StyleSheet.create({
     color: '#4A6572',
     marginBottom: 5,
     fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
   },
   setupInput: {
     borderWidth: 1,
     borderColor: '#BDC3C7',
     borderRadius: 8,
-    padding: 10,
-    marginBottom: 15,
+    //padding: 10,
+    //marginBottom: 15,
     fontSize: 16,
     backgroundColor: '#F8F9FA',
     color: '#34495E',
+    fontFamily: 'Montserrat-Regular',
   },
   addButton: {
-    backgroundColor: '#1A535C',
+    backgroundColor: '#007bff',
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
+    elevation: 5,
   },
   addButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Montserrat-Bold',
   },
   tableCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 5,
     marginBottom: 20,
-    borderWidth: 1,
+    //borderWidth: 1,
     borderColor: '#E0E6ED',
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -1112,6 +1945,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4A6572',
     textAlign: 'center',
+    fontFamily: 'Montserrat-Bold',
   },
   tableRow: {
     flexDirection: 'row',
@@ -1121,14 +1955,20 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ECEFF1',
   },
   tableCell: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#34495E',
     paddingHorizontal: 10,
     textAlign: 'center',
+    fontFamily: 'Montserrat-Regular',
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  actionButtonContainer: {
+    flex: 1.5,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   colorIndicator: {
@@ -1149,6 +1989,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 14,
     color: '#1A535C',
+    fontFamily: 'Montserrat-Regular',
   },
   centeredView: {
     flex: 1,
@@ -1174,12 +2015,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     color: '#1A535C',
+    fontFamily: 'Montserrat-Bold',
   },
   modalText: {
     marginBottom: 15,
     textAlign: 'center',
     fontSize: 16,
     color: '#4A6572',
+    fontFamily: 'Montserrat-Regular',
   },
   statusOption: {
     flexDirection: 'row',
@@ -1192,6 +2035,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 16,
     color: '#34495E',
+    fontFamily: 'Montserrat-Regular',
   },
   closeButton: {
     marginTop: 20,
@@ -1205,6 +2049,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     textAlign: 'center',
+    fontFamily: 'Montserrat-Bold',
   },
   modalButtonContainer: {
     flexDirection: 'row',
@@ -1229,6 +2074,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+    fontFamily: 'Montserrat-Bold',
   },
   colorInputContainer: {
     flexDirection: 'row',
@@ -1252,9 +2098,30 @@ const styles = StyleSheet.create({
     color: '#1A535C',
     marginBottom: 15,
     textAlign: 'center',
+    fontFamily: 'Montserrat-Bold',
+  },
+  actionOptionsContent: {
+    padding: 20,
+  },
+  actionOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E6ED',
+  },
+  actionOptionText: {
+    fontSize: 18,
+    color: '#34495E',
+    marginLeft: 15,
+    fontFamily: 'Montserrat-Regular',
+  },
+  deleteActionOptionButton: {
+    borderBottomWidth: 0,
   },
   corporateErrorCard: {
-    backgroundColor: '#FFFFFF', // Light red background
+    backgroundColor: '#FFFFFF',
     borderColor: '#E74C3C',
     borderWidth: 1,
     borderRadius: 12,
@@ -1270,9 +2137,253 @@ const styles = StyleSheet.create({
   corporateErrorText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#721C24', // Darker, more professional red
+    color: '#721C24',
     textAlign: 'center',
     fontWeight: '500',
+    fontFamily: 'Montserrat-Medium',
+  },
+  dateSection: {
+    marginBottom: 10,
+  },
+  dateHeader: {
+    fontSize: 13,
+    color: '#7F8C8D',
+    marginLeft: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    fontFamily: 'Montserrat-Bold',
+  },
+  // Styles for the NewDocumentForm component
+  formContainer: {
+    padding: 20,
+    flex: 1,
+  },
+  formHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingBottom: 10,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A535C',
+    fontFamily: 'Montserrat-Bold',
+  },
+  formScrollView: {
+    paddingBottom: 20,
+  },
+  formLabel: {
+    fontSize: 14,
+    color: '#4A6572',
+    marginBottom: 5,
+    fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#BDC3C7',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+    fontSize: 16,
+    backgroundColor: '#F8F9FA',
+    color: '#34495E',
+    fontFamily: 'Montserrat-Regular',
+  },
+  formTextArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  formRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  formHalfWidth: {
+    width: '48%',
+  },
+  attachButton: {
+    backgroundColor: '#F0F4F8',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CFD8DC',
+    alignItems: 'center',
+  },
+  attachButtonText: {
+    color: '#4A6572',
+    fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
+  },
+  attachHint: {
+    fontSize: 12,
+    color: '#90A4AE',
+    marginTop: 5,
+    marginBottom: 20,
+    fontFamily: 'Montserrat-Regular',
+  },
+  attachedFilesContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E6ED',
+  },
+  attachedFilesHeader: {
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#34495E',
+    fontFamily: 'Montserrat-Bold',
+  },
+  attachedFileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+    paddingRight: 10,
+  },
+  attachedFileName: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#546E7A',
+    flex: 1,
+    fontFamily: 'Montserrat-Regular',
+  },
+  removeFileButton: {
+    marginLeft: 10,
+    padding: 5,
+  },
+  submitButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+    elevation: 5,
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
+  },
+
+  // NEW STYLES FOR THE REFACTORED CARD
+  documentCardNew: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardContentContainerNew: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  cardDetailsColumnNew: {
+    flex: 1,
+  },
+  cardHeaderNew: {
+    flexDirection: 'row',
+    //justifyContent: 'space-between',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    //paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4F8',
+  },
+  cardTrackingNumberNew: {
+    fontSize: 14,
+    //fontWeight: 'bold',
+    color: '#1A535C',
+    fontFamily: 'Montserrat-Bold',
+  },
+  statusBadge: {
+    flex: 1,
+    //backgroundColor:'red',
+    // paddingHorizontal: 10,
+    //paddingVertical: 4,
+    marginBottom: 5,
+    borderRadius: 12,
+    //flex:1,
+  },
+  statusBadgeText: {
+    color: '#000000ff',
+    fontWeight: 'bold',
+    fontSize: 12,
+    fontFamily: 'Montserrat-Bold',
+    alignSelf: 'flex-end',
+  },
+  cardBodyNew: {
+    paddingTop: 10,
+    // paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F4F8',
+  },
+  cardSubjectNew: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#34495E',
+    marginBottom: 10,
+    fontFamily: 'Montserrat-SemiBold',
+  },
+  cardInfoRow: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    //alignItems: 'center',
+    marginBottom: 5,
+  },
+  cardInfoText: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    //marginLeft: 8,
+    fontFamily: 'Montserrat-Regular',
+  },
+  cardInfoValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#5D7B8C',
+    marginStart: 10,
+    fontFamily: 'Montserrat-Medium',
+    flex: 1,
+    textAlign: 'right',
+  },
+  cardFooterNew: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+  },
+  cardFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardFooterRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardDateNew: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    marginLeft: 5,
+    fontFamily: 'Montserrat-Regular',
+  },
+  attachmentCountText: {
+    fontSize: 14,
+    color: '#1A535C',
+    marginLeft: 5,
+    fontWeight: 'bold',
+    fontFamily: 'Montserrat-Bold',
   },
 });
 

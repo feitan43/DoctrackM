@@ -166,25 +166,32 @@ const DeliveryRecordItem = ({
           activeOpacity={0.9}>
           <View style={itemStyles.itemHeader}>
             <Text style={itemStyles.itemTrackingNumber}>
-              <Text style={itemStyles.label}>TN:</Text> {item.TrackingNumber}
+              {item.TrackingNumber}
             </Text>
             <Text style={itemStyles.itemId}>ID: {item.Id}</Text>
           </View>
-          <Text style={itemStyles.itemDetails}>
-            <Text style={itemStyles.label}>Year:</Text> {item.Year}
-          </Text>
-          <Text style={itemStyles.itemDetails}>
-            <Text style={itemStyles.label}>Inspector:</Text> {item.InspectedBy}{' '}
-            - {item.Inspector}
-          </Text>
-          <Text style={itemStyles.itemDetails}>
-            <Text style={itemStyles.label}>Office:</Text>{' '}
-            {officeMap[item.Office] || 'N/A'}
-          </Text>
-          <Text style={itemStyles.itemDeliveryDate}>
-            <Text style={itemStyles.label}>Delivery Date:</Text>{' '}
-            {item.DeliveryDate || 'N/A'}
-          </Text>
+          <View style={itemStyles.detailRow}>
+            <Text style={itemStyles.detailLabel}>Year:</Text>
+            <Text style={itemStyles.detailValue}>{item.Year}</Text>
+          </View>
+          <View style={itemStyles.detailRow}>
+            <Text style={itemStyles.detailLabel}>Inspector:</Text>
+            <Text style={itemStyles.detailValue}>
+              {item.InspectedBy} - {item.Inspector}
+            </Text>
+          </View>
+          <View style={itemStyles.detailRow}>
+            <Text style={itemStyles.detailLabel}>Office:</Text>
+            <Text style={itemStyles.detailValue}>
+              {officeMap[item.Office] || 'N/A'}
+            </Text>
+          </View>
+          <View style={itemStyles.dateSection}>
+            <Icon name="calendar-outline" size={16} color="#007bff" />
+            <Text style={itemStyles.itemDeliveryDate}>
+              {item.DeliveryDate || 'N/A'}
+            </Text>
+          </View>
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -199,6 +206,7 @@ const itemStyles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
     borderRadius: 12,
+    elevation:1,
   },
   animatedCard: {
     flex: 1,
@@ -207,45 +215,62 @@ const itemStyles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 18,
     borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#005f9c',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
-    borderLeftWidth: 5,
-    borderLeftColor: '#4A90E2',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 3,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingBottom: 8,
   },
   itemTrackingNumber: {
-    fontWeight: '800',
+    fontWeight: '700',
     fontSize: 18,
-    color: '#1A508C',
+    color: '#005f9c',
   },
   itemId: {
     fontSize: 14,
-    color: '#777',
+    color: '#888',
     fontWeight: '500',
   },
-  label: {
-    fontWeight: 'bold',
-    color: '#555',
-  },
-  itemDetails: {
-    fontSize: 15,
-    color: '#444',
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
+  detailLabel: {
+    fontWeight: '600',
+    color: '#555',
+    marginRight: 8,
+    width: 80, // Fixed width for alignment
+  },
+  detailValue: {
+    fontSize: 15,
+    color: '#444',
+    flex: 1,
+  },
+  dateSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
   itemDeliveryDate: {
-    marginTop: 8,
+    marginLeft: 8,
     fontSize: 13,
     color: '#007bff',
     fontWeight: '600',
-    fontStyle: 'italic',
   },
   hiddenDeleteButtonContainer: {
     position: 'absolute',
@@ -275,7 +300,6 @@ const itemStyles = StyleSheet.create({
 
 const BossEditScreen = ({navigation}) => {
   const [allData, setAllData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -291,28 +315,34 @@ const BossEditScreen = ({navigation}) => {
 
   const [swipedItemId, setSwipedItemId] = useState(null);
 
-  const loadData = async (tn = '') => {
+  useEffect(() => {
+    // Generate year options dynamically from 2024 up to the current year
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = 2024; y <= currentYear; y++) {
+      years.push({label: String(y), value: y});
+    }
+    setYearOptions(years);
+  }, []);
+
+  const loadData = async (tn = '', year = null) => {
     setLoading(true);
     setRefreshing(true);
     try {
-      const url = `https://davaocityportal.com/gord/ajax/dataprocessor.php?shalltear=1${
-        tn ? `&tn=${tn}` : ''
-      }`;
+      let url = `https://davaocityportal.com/gord/ajax/dataprocessor.php?shalltear=1`;
+      if (tn) {
+        url += `&tn=${tn}`;
+      }
+      if (year) {
+        url += `&year=${year}`;
+      }
+
       const res = await fetch(url);
       const json = await res.json();
 
       const data = Array.isArray(json) ? json : [];
 
       setAllData(data);
-      setFilteredData(data);
-
-      if (!tn && data.length > 0) {
-        const years = [...new Set(data.map(item => item.Year))].sort(
-          (a, b) => b - a,
-        );
-        setYearOptions(years.map(y => ({label: String(y), value: y})));
-      } else if (data.length === 0) {
-      }
     } catch (err) {
       console.error('Failed to load inspection data:', err);
       Alert.alert(
@@ -320,7 +350,6 @@ const BossEditScreen = ({navigation}) => {
         'Failed to load inspection data. Please try again later.',
       );
       setAllData([]);
-      setFilteredData([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -328,16 +357,8 @@ const BossEditScreen = ({navigation}) => {
   };
 
   useEffect(() => {
-    loadData(trackingNumberFilter);
-  }, [trackingNumberFilter]);
-
-  useEffect(() => {
-    const filtered = allData.filter(item => {
-      const matchYear = !selectedYear || item.Year === selectedYear;
-      return matchYear;
-    });
-    setFilteredData(filtered);
-  }, [selectedYear, allData]);
+    loadData(trackingNumberFilter, selectedYear);
+  }, [selectedYear, trackingNumberFilter]);
 
   const handleSearch = () => {
     if (trackingNumberInput !== trackingNumberFilter) {
@@ -403,7 +424,7 @@ const BossEditScreen = ({navigation}) => {
 
               if (response.ok && result.success) {
                 Alert.alert('Success', 'Record deleted successfully!');
-                loadData(trackingNumberFilter);
+                loadData(trackingNumberFilter, selectedYear);
               } else {
                 Alert.alert(
                   'Error',
@@ -458,6 +479,7 @@ const BossEditScreen = ({navigation}) => {
 
       <View style={styles.contentContainer}>
         <View style={styles.filterSection}>
+          <Text style={styles.filterLabel}>Filter by Year</Text>
           <Dropdown
             style={styles.dropdown}
             containerStyle={styles.dropdownContainer}
@@ -481,27 +503,34 @@ const BossEditScreen = ({navigation}) => {
             )}
           />
 
-          <View style={styles.trackingNumberInputContainer}>
-            <TextInput
-              placeholder="Search by Tracking Number..."
-              placeholderTextColor="#888"
-              style={styles.trackingNumberInput}
-              value={trackingNumberInput}
-              onChangeText={setTrackingNumberInput}
-              clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
-              onSubmitEditing={handleSearch}
-            />
-            {Platform.OS === 'android' && trackingNumberInput.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setTrackingNumberInput('')}
-                style={styles.clearButton}>
-                <Icon name="close-circle" size={20} color="#888" />
-              </TouchableOpacity>
-            )}
+          <View style={styles.searchContainer}>
+            <Text style={styles.filterLabel}>Search by Tracking Number</Text>
+            <View style={styles.trackingNumberInputContainer}>
+              <TextInput
+                placeholder="Enter Tracking Number..."
+                placeholderTextColor="#888"
+                style={styles.trackingNumberInput}
+                value={trackingNumberInput}
+                onChangeText={setTrackingNumberInput}
+                clearButtonMode={
+                  Platform.OS === 'ios' ? 'while-editing' : 'never'
+                }
+                autoCapitalize="characters"
+                onSubmitEditing={handleSearch}
+              />
+              {Platform.OS === 'android' && trackingNumberInput.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setTrackingNumberInput('')}
+                  style={styles.clearButton}>
+                  <Icon name="close-circle" size={20} color="#888" />
+                </TouchableOpacity>
+              )}
+            </View>
             <TouchableOpacity
               onPress={handleSearch}
               style={styles.searchButton}>
               <Icon name="search-outline" size={24} color="#FFF" />
+              <Text style={styles.searchButtonText}>Search</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -513,13 +542,17 @@ const BossEditScreen = ({navigation}) => {
           </View>
         ) : (
           <FlashList
-            data={filteredData}
+            data={allData}
             renderItem={renderItem}
             keyExtractor={item => String(item.Id)}
             estimatedItemSize={120}
             contentContainerStyle={styles.listContentContainer}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={() => loadData(trackingNumberFilter)} tintColor="#1A508C" />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadData(trackingNumberFilter, selectedYear)}
+                tintColor="#1A508C"
+              />
             }
             ListEmptyComponent={
               <View style={styles.emptyListContainer}>
@@ -529,7 +562,8 @@ const BossEditScreen = ({navigation}) => {
                   color="#999"
                 />
                 <Text style={styles.emptyListText}>
-                  No matching records found. Try adjusting your filters or search.
+                  No matching records found. Try adjusting your filters or
+                  search.
                 </Text>
               </View>
             }
@@ -550,7 +584,11 @@ const BossEditScreen = ({navigation}) => {
         theme="light"
         confirmText="Confirm"
         cancelText="Cancel"
-        title={selectedItem ? `Set Date for TN: ${selectedItem.TrackingNumber}` : 'Select Delivery Date'}
+        title={
+          selectedItem
+            ? `Set Date for TN: ${selectedItem.TrackingNumber}`
+            : 'Select Delivery Date'
+        }
       />
     </View>
   );
@@ -569,8 +607,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A508C',
     justifyContent: 'flex-end',
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
@@ -611,8 +647,18 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
+    shadowColor: '#a9b7c8',
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
+    paddingHorizontal: 10,
+    //marginHorizontal: 10,
   },
   filterSection: {
     marginBottom: 20,
@@ -625,6 +671,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
   dropdown: {
     backgroundColor: '#F5F5F5',
     borderRadius: 10,
@@ -632,7 +684,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 15,
     paddingVertical: Platform.OS === 'ios' ? 14 : 12,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   dropdownContainer: {
     borderRadius: 10,
@@ -654,6 +706,9 @@ const styles = StyleSheet.create({
   },
   dropdownIcon: {
     marginRight: 8,
+  },
+  searchContainer: {
+    marginBottom: 10,
   },
   trackingNumberInputContainer: {
     flexDirection: 'row',
@@ -677,12 +732,19 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   searchButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 8,
-    padding: 8,
-    marginLeft: 8,
+    backgroundColor: '#007bff',
+    borderRadius: 10,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+    elevation: 5,
+  },
+  searchButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   listContentContainer: {
     paddingBottom: 20,
