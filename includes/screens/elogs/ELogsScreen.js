@@ -15,6 +15,7 @@ import {
   Modal,
   ImageBackground,
   PermissionsAndroid,
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -28,11 +29,14 @@ import {
   useDeleteLetterType,
   useAddLetterStatus,
   useDeleteLetterStatus,
+  useElogsOffices,
+  useAddLetter,
 } from '../../hooks/useElogs';
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetTextInput,
+  BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import LinearGradient from 'react-native-linear-gradient';
@@ -46,11 +50,132 @@ import {
 } from 'react-native-reanimated';
 import {pick} from '@react-native-documents/picker';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+import DatePicker from 'react-native-date-picker';
+import {formatDateTime, formatDateWithTime, parseDateString} from '../../utils';
 
 // -------------------------------------------------
 // Refactored Bottom Sheet Components
 // -------------------------------------------------
 // Add these two new components to your file
+const COLORS = {
+  primary: '#007bff',
+  secondary: '#60A5FA',
+  background: '#F0F4F8',
+  card: '#FFFFFF',
+  text: '#1F2937',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  success: '#34D399',
+  error: '#DC2626',
+  subtle: '#9CA3AF',
+};
+
+// Typography for Montserrat
+const FONT = {
+  regular: 'Montserrat-Regular',
+  medium: 'Montserrat-Medium',
+  bold: 'Montserrat-Bold',
+  semiBold: 'Montserrat-SemiBold',
+};
+
+const DateSelectModal = ({visible, onClose, onSelectToday, onSelectCustom}) => {
+  return (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={visible}
+      statusBarTranslucent={true}
+      onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Select a date</Text>
+          <TouchableOpacity onPress={onSelectToday} style={styles.modalItem}>
+            <Text style={styles.modalItemText}>Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onSelectCustom}
+            style={[styles.modalItem, {borderBottomWidth: 0}]}>
+            <Text style={styles.modalItemText}>Select a date</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+            <Text style={styles.modalCloseText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const CustomDropdown = ({
+  label,
+  value,
+  options,
+  onSelect,
+  keyToShow,
+  colorKey,
+}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const handleSelect = itemValue => {
+    onSelect(itemValue);
+    setModalVisible(false);
+  };
+  const displayText = value?.[keyToShow] || `Select ${label}`;
+  const displayColor = value?.[colorKey] || styles.dropdownText.color;
+  return (
+    <View style={styles.dropdownContainer}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        style={styles.dropdownButton}>
+        <Text
+          style={[styles.dropdownText, {color: displayColor}]}
+          numberOfLines={1}>
+          {displayText}
+        </Text>
+        <Icon
+          name="chevron-down-outline"
+          size={20}
+          color={COLORS.textSecondary}
+        />
+      </TouchableOpacity>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select {label}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {options.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => handleSelect(option)}
+                  style={styles.modalItem}>
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      {color: option[colorKey] || styles.modalItemText.color},
+                    ]}>
+                    {option[keyToShow]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.modalCloseButton}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
 
 const EditLetterTypeBottomSheet = React.memo(
   ({
@@ -398,7 +523,6 @@ const ActionOptionsBottomSheet = React.memo(
       )}
       onDismiss={() => {}}>
       <View style={styles.actionOptionsContent}>
-        {/* <Text style={styles.bottomSheetTitle}>Options</Text> */}
         <TouchableOpacity
           style={styles.actionOptionButton}
           onPress={
@@ -424,282 +548,471 @@ const ActionOptionsBottomSheet = React.memo(
   ),
 );
 
-// New Component for the Document Form
-const NewDocumentForm = React.memo(({newFormSheetRef}) => {
-  const snapPoints = useMemo(() => ['95%'], []);
-  const [attachedFiles, setAttachedFiles] = useState([]);
-  const MAX_FILES = 5;
+const NewDocumentForm = React.memo(
+  ({newFormSheetRef, letterTypes, offices, addLetter}) => {
+    const snapPoints = useMemo(() => ['95%'], []);
+    const scrollViewRef = useRef(null);
+    const [attachedFiles, setAttachedFiles] = useState([]);
+    const [selectedDocumentType, setSelectedDocumentType] = useState(null);
+    const [selectedFromOffice, setSelectedFromOffice] = useState(null);
+    const [selectedToOffice, setSelectedToOffice] = useState(null);
 
-  const handleClosePress = useCallback(() => {
-    newFormSheetRef.current?.close();
-  }, [newFormSheetRef]);
+    // New states for form inputs
+    const [sender, setSender] = useState('');
+    const [receiver, setReceiver] = useState('');
+    const [subject, setSubject] = useState('');
+    const [remarks, setRemarks] = useState('');
 
-  const handleRemoveFile = useCallback(index => {
-    Alert.alert(
-      'Remove File',
-      `Are you sure you want to remove this file?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            setAttachedFiles(prevFiles =>
-              prevFiles.filter((_, i) => i !== index),
-            );
+    // State for date selection
+    const [
+      isDateReceivedSelectionModalVisible,
+      setIsDateReceivedSelectionModalVisible,
+    ] = useState(false);
+    const [openDateReceivedPicker, setOpenDateReceivedPicker] = useState(false);
+    const [dateReceived, setDateReceived] = useState(null);
+
+    const MAX_FILES = 5;
+
+    useEffect(() => {
+      if (attachedFiles.length > 0 && scrollViewRef.current) {
+        scrollViewRef.current.scrollToEnd({animated: true});
+      }
+    }, [attachedFiles]);
+
+    const handleClosePress = useCallback(() => {
+      newFormSheetRef.current?.close();
+    }, [newFormSheetRef]);
+
+    const handleRemoveFile = useCallback(index => {
+      Alert.alert(
+        'Remove File',
+        `Are you sure you want to remove this file?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-        },
-      ],
-      {cancelable: true},
-    );
-  }, []);
-
-  const handleChooseFiles = useCallback(() => {
-    Alert.alert(
-      'Attach Files',
-      'Choose an option to attach files',
-      [
-        {
-          text: 'Choose from Documents',
-          onPress: async () => {
-            if (attachedFiles.length >= MAX_FILES) {
-              Alert.alert(
-                'File Limit Reached',
-                `You can only attach a maximum of ${MAX_FILES} files.`,
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => {
+              setAttachedFiles(prevFiles =>
+                prevFiles.filter((_, i) => i !== index),
               );
-              return;
-            }
-
-            try {
-              if (Platform.OS === 'android') {
-                const granted = await PermissionsAndroid.request(
-                  PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-                  {
-                    title: 'Storage Permission',
-                    message:
-                      'This app needs access to your storage to select files.',
-                    buttonNeutral: 'Ask Me Later',
-                    buttonNegative: 'Cancel',
-                    buttonPositive: 'OK',
-                  },
-                );
-                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                  Alert.alert(
-                    'Permission Denied',
-                    'You have denied storage access. Please enable it in your device settings to select files.',
-                  );
-                  return;
-                }
-              }
-              const res = await pick({
-                type: ['application/pdf', 'image/*'],
-                allowMultiSelection: true,
-              });
-
-              if (res.length > 0) {
-                const newTotal = attachedFiles.length + res.length;
-                if (newTotal > MAX_FILES) {
-                  const numFilesToTake = MAX_FILES - attachedFiles.length;
-                  const filesToAdd = res.slice(0, numFilesToTake);
-                  Alert.alert(
-                    'File Limit Exceeded',
-                    `You can only add ${numFilesToTake} more file(s) to reach the maximum of ${MAX_FILES}.`,
-                  );
-                  setAttachedFiles(prevFiles => [...prevFiles, ...filesToAdd]);
-                } else {
-                  setAttachedFiles(prevFiles => [...prevFiles, ...res]);
-                }
-              }
-            } catch (err) {
-              /* if (pick.isCancel(err)) {
-                console.log('User cancelled the picker');
-              } else {
-                console.log(err);
-              } */
-            }
+            },
           },
-        },
-        {
-          text: 'Take a Photo',
-          onPress: async () => {
-            if (attachedFiles.length >= MAX_FILES) {
-              Alert.alert(
-                'File Limit Reached',
-                `You can only attach a maximum of ${MAX_FILES} files.`,
-              );
-              return;
-            }
+        ],
+        {cancelable: true},
+      );
+    }, []);
 
-            try {
-              if (Platform.OS === 'android') {
-                const granted = await PermissionsAndroid.request(
-                  PermissionsAndroid.PERMISSIONS.CAMERA,
-                  {
-                    title: 'Camera Permission',
-                    message: 'This app needs camera access to take photos.',
-                    buttonNeutral: 'Ask Me Later',
-                    buttonNegative: 'Cancel',
-                    buttonPositive: 'OK',
-                  },
+    const handleChooseFiles = useCallback(() => {
+      Alert.alert(
+        'Attach Files',
+        'Choose an option to attach files',
+        [
+          {
+            text: 'Choose from Documents',
+            onPress: async () => {
+              if (attachedFiles.length >= MAX_FILES) {
+                Alert.alert(
+                  'File Limit Reached',
+                  `You can only attach a maximum of ${MAX_FILES} files.`,
                 );
-                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                  Alert.alert(
-                    'Permission Denied',
-                    'You have denied camera access. Please enable it in your device settings to take photos.',
-                  );
-                  return;
-                }
+                return;
               }
-              const result = await launchCamera({
-                mediaType: 'photo',
-                quality: 0.7,
-              });
-              if (result.assets && result.assets.length > 0) {
-                if (attachedFiles.length < MAX_FILES) {
-                  setAttachedFiles(prevFiles => [
-                    ...prevFiles,
-                    result.assets[0],
-                  ]);
-                } else {
-                  Alert.alert(
-                    'File Limit Reached',
-                    `You can only attach a maximum of ${MAX_FILES} files.`,
+              try {
+                if (Platform.OS === 'android') {
+                  const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+                    {
+                      title: 'Storage Permission',
+                      message:
+                        'This app needs access to your storage to select files.',
+                      buttonNeutral: 'Ask Me Later',
+                      buttonNegative: 'Cancel',
+                      buttonPositive: 'OK',
+                    },
                   );
-                }
-              }
-            } catch (err) {
-              console.log('Camera launch error:', err);
-            }
-          },
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ],
-      {cancelable: true},
-    );
-  }, [attachedFiles]);
 
-  return (
-    <BottomSheetModal
-      ref={newFormSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      keyboardBehavior="interactive"
-      enablePanDownToClose={true}
-      backdropComponent={({style}) => (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            style,
-            {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
-          ]}
-        />
-      )}
-      onDismiss={() => {
-        // Reset form state here
-        setAttachedFiles([]);
-      }}>
-      <View style={styles.formContainer}>
-        <View style={styles.formHeader}>
-          <Text style={styles.formTitle}>New Form</Text>
-          <TouchableOpacity onPress={handleClosePress} style={{}}>
-            <Icon name="close-circle-outline" size={24} color="#666" />
-          </TouchableOpacity>
+                  if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    Alert.alert(
+                      'Permission Denied',
+                      'You have denied storage access. Please enable it in your device settings to select files.',
+                    );
+                    return;
+                  }
+                }
+                const res = await pick({
+                  type: ['application/pdf', 'image/*'],
+                  allowMultiSelection: true,
+                });
+
+                if (res.length > 0) {
+                  const newTotal = attachedFiles.length + res.length;
+                  if (newTotal > MAX_FILES) {
+                    const numFilesToTake = MAX_FILES - attachedFiles.length;
+                    const filesToAdd = res.slice(0, numFilesToTake);
+                    Alert.alert(
+                      'File Limit Exceeded',
+                      `You can only add ${numFilesToTake} more file(s) to reach the maximum of ${MAX_FILES}.`,
+                    );
+                    setAttachedFiles(prevFiles => [
+                      ...prevFiles,
+                      ...filesToAdd,
+                    ]);
+                  } else {
+                    setAttachedFiles(prevFiles => [...prevFiles, ...res]);
+                  }
+                }
+              } catch (err) {
+                /* if (pick.isCancel(err)) {
+                  console.log('User cancelled the picker');
+                } else {
+                  console.log(err);
+                } */
+              }
+            },
+          },
+          {
+            text: 'Take a Photo',
+            onPress: async () => {
+              if (attachedFiles.length >= MAX_FILES) {
+                Alert.alert(
+                  'File Limit Reached',
+                  `You can only attach a maximum of ${MAX_FILES} files.`,
+                );
+                return;
+              }
+
+              try {
+                if (Platform.OS === 'android') {
+                  const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.CAMERA,
+                    {
+                      title: 'Camera Permission',
+                      message: 'This app needs camera access to take photos.',
+                      buttonNeutral: 'Ask Me Later',
+                      buttonNegative: 'Cancel',
+                      buttonPositive: 'OK',
+                    },
+                  );
+
+                  if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    Alert.alert(
+                      'Permission Denied',
+                      'You have denied camera access. Please enable it in your device settings to take photos.',
+                    );
+                    return;
+                  }
+                }
+                const result = await launchCamera({
+                  mediaType: 'photo',
+                  quality: 0.7,
+                });
+
+                if (result.assets && result.assets.length > 0) {
+                  if (attachedFiles.length < MAX_FILES) {
+                    setAttachedFiles(prevFiles => [
+                      ...prevFiles,
+                      result.assets[0],
+                    ]);
+                  } else {
+                    Alert.alert(
+                      'File Limit Reached',
+                      `You can only attach a maximum of ${MAX_FILES} files.`,
+                    );
+                  }
+                }
+              } catch (err) {
+                console.log('Camera launch error:', err);
+              }
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ],
+        {cancelable: true},
+      );
+    }, [attachedFiles]);
+
+    const handleDocumentTypeSelect = useCallback(item => {
+      setSelectedDocumentType(item);
+    }, []);
+
+    const handleFromOfficeSelect = useCallback(item => {
+      setSelectedFromOffice(item);
+    }, []);
+
+    const handleToOfficeSelect = useCallback(item => {
+      setSelectedToOffice(item);
+    }, []);
+
+    const handleSelectTodayReceived = useCallback(() => {
+      setDateReceived(new Date());
+      setIsDateReceivedSelectionModalVisible(false);
+    }, []);
+
+    const handleSelectCustomReceived = useCallback(() => {
+      setIsDateReceivedSelectionModalVisible(false);
+      setOpenDateReceivedPicker(true);
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+      // 1. Map form data to the correct payload for createLetter
+      const payload = {
+        type: selectedDocumentType?.Type,
+        sender: sender,
+        senderEntity: selectedFromOffice?.Code, // Assuming sender and senderEntity are the same for this form
+        receiver: receiver,
+        receiverOffice: selectedToOffice?.Code,
+        subject: subject,
+        dateReceived: formatDateTime(dateReceived?.toISOString()),
+        remarks: remarks,
+        attachments: attachedFiles,
+      };
+
+      // 2. Perform basic validation
+      if (
+        !payload.type ||
+        !payload.receiverOffice ||
+        !payload.dateReceived ||
+        !payload.sender ||
+        !payload.receiver ||
+        !payload.subject
+      ) {
+        Alert.alert('Validation Error', 'Please fill out all required fields.');
+        return; // Stop the submission
+      }
+
+      try {
+        // 3. Call the mutation function with the payload
+        await addLetter(payload);
+
+        // 4. Handle success
+        Alert.alert('Success', 'Document submitted successfully!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              //handleClosePress();
+            },
+          },
+        ]);
+      } catch (error) {
+        // 5. Handle error
+        console.error('Submission error:', error);
+        Alert.alert(
+          'Submission Failed',
+          'An error occurred while submitting the document. Please try again.',
+        );
+      }
+    }, [
+      addLetter,
+      selectedDocumentType,
+      selectedFromOffice,
+      selectedToOffice,
+      dateReceived,
+      sender,
+      receiver,
+      subject,
+      remarks,
+      attachedFiles,
+      handleClosePress,
+    ]);
+    return (
+      <BottomSheetModal
+        ref={newFormSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        enablePanDownToClose={false}
+        handleComponent={null}
+        keyboardBehavior="interactive"
+        handleIndicatorStyle={{backgroundColor: '#ccc', width: 40}}
+        backdropComponent={({style}) => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              style,
+              {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
+            ]}
+          />
+        )}
+        onDismiss={() => {
+          // Reset all form state here
+          setAttachedFiles([]);
+          setSelectedDocumentType(null);
+          setSelectedFromOffice(null);
+          setSelectedToOffice(null);
+          setDateReceived(null);
+          setSender('');
+          setReceiver('');
+          setSubject('');
+          setRemarks('');
+        }}>
+        <View style={styles.formContainer}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>New Document</Text>
+            <TouchableOpacity onPress={handleClosePress} style={{}}>
+              <Icon name="close-circle-outline" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <BottomSheetScrollView
+            contentContainerStyle={styles.formScrollView}
+            ref={scrollViewRef}
+            showsVerticalScrollIndicator={false}>
+            {/* Document Type Dropdown */}
+            <CustomDropdown
+              label="Document Type"
+              value={selectedDocumentType}
+              options={letterTypes || []}
+              onSelect={handleDocumentTypeSelect}
+              keyToShow="Type"
+              colorKey="color"
+            />
+
+            {/* Corrected 'From' field layout */}
+            <View style={styles.formRow}>
+              <View style={styles.formHalfWidth}>
+                <CustomDropdown
+                  label="From Office"
+                  value={selectedFromOffice}
+                  options={offices || []}
+                  onSelect={handleFromOfficeSelect}
+                  keyToShow="Name"
+                  colorKey="color"
+                />
+              </View>
+              <View style={styles.formHalfWidth}>
+                <Text style={styles.fieldLabel}>Sender</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Name of Sender"
+                  value={sender} // Connected to state
+                  onChangeText={setSender} // Connected to state
+                />
+              </View>
+            </View>
+
+            {/* Corrected 'To' field layout */}
+            <View style={styles.formRow}>
+              <View style={styles.formHalfWidth}>
+                <CustomDropdown
+                  label="To Office"
+                  value={selectedToOffice}
+                  options={offices || []}
+                  onSelect={handleToOfficeSelect}
+                  keyToShow="Name"
+                  colorKey="color"
+                />
+              </View>
+              <View style={styles.formHalfWidth}>
+                <Text style={styles.fieldLabel}>Receiver</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Name of Receiver"
+                  value={receiver} // Connected to state
+                  onChangeText={setReceiver} // Connected to state
+                />
+              </View>
+            </View>
+
+            {/* Other form fields */}
+            <Text style={styles.fieldLabel}>Subject</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Subject"
+              value={subject} // Connected to state
+              onChangeText={setSubject} // Connected to state
+            />
+
+            {/* Date Received section with modal trigger */}
+            <Text style={styles.fieldLabel}>Date Received</Text>
+            <TouchableOpacity
+              onPress={() => setIsDateReceivedSelectionModalVisible(true)}
+              style={styles.datePickerButton}>
+              <Icon name="calendar-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.datePickerText}>
+                {dateReceived
+                  ? formatDateWithTime(dateReceived)
+                  : 'Select Date & Time'}
+              </Text>
+            </TouchableOpacity>
+            <View style={{marginTop: 15}}>
+              <Text style={styles.fieldLabel}>Remarks</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                multiline
+                placeholder="Remarks"
+                value={remarks} // Connected to state
+                onChangeText={setRemarks} // Connected to state
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.attachButton}
+              onPress={handleChooseFiles}>
+              <Icon name="attach-outline" size={20} color={COLORS.card} />
+              <Text style={styles.attachButtonText}>Attach Files</Text>
+            </TouchableOpacity>
+            <Text style={styles.attachHint}>
+              (Max 5 files, PDF and Images only)
+            </Text>
+            {attachedFiles.length > 0 && (
+              <View style={styles.attachedFilesContainer}>
+                <Text style={styles.attachedFilesHeader}>Attached Files:</Text>
+                {attachedFiles.map((file, index) => (
+                  <View key={index} style={styles.attachedFileItem}>
+                    <Icon name="document" size={16} color="#4A6572" />
+                    <Text style={styles.attachedFileName} numberOfLines={1}>
+                      {file.name || file.fileName}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveFile(index)}
+                      style={styles.removeFileButton}>
+                      <Icon name="trash-outline" size={20} color="#E74C3C" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </BottomSheetScrollView>
+          <View
+            style={{
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: '#ccc',
+            }}>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>Submit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <ScrollView
-          contentContainerStyle={styles.formScrollView}
-          showsVerticalScrollIndicator={false}>
-          <Text style={styles.formLabel}>Document Type</Text>
-          <TextInput
-            style={styles.formInput}
-            placeholder="Select Document Type"
-          />
-
-          <View style={styles.formRow}>
-            <View style={styles.formHalfWidth}>
-              <Text style={styles.formLabel}>From</Text>
-              <TextInput style={styles.formInput} placeholder="N/A" />
-            </View>
-            <View style={styles.formHalfWidth}>
-              <Text style={styles.formLabel}> </Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="Name of Sender"
-              />
-            </View>
-          </View>
-
-          <View style={styles.formRow}>
-            <View style={styles.formHalfWidth}>
-              <Text style={styles.formLabel}>To</Text>
-              <TextInput style={styles.formInput} placeholder="N/A" />
-            </View>
-            <View style={styles.formHalfWidth}>
-              <Text style={styles.formLabel}> </Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="Name of Receiver"
-              />
-            </View>
-          </View>
-
-          <Text style={styles.formLabel}>Subject</Text>
-          <TextInput style={styles.formInput} placeholder="Subject" />
-
-          <Text style={styles.formLabel}>Date Received</Text>
-          <TextInput
-            style={styles.formInput}
-            placeholder="YYYY-MM-DD 00:00 AM/PM"
-          />
-
-          <Text style={styles.formLabel}>Remarks</Text>
-          <TextInput
-            style={[styles.formInput, styles.formTextArea]}
-            multiline
-            placeholder="Remarks"
-          />
-
-          <Text style={styles.formLabel}>Attach Files</Text>
-          <TouchableOpacity
-            style={styles.attachButton}
-            onPress={handleChooseFiles}>
-            <Text style={styles.attachButtonText}>Choose Files</Text>
-          </TouchableOpacity>
-          <Text style={styles.attachHint}>
-            (Max 5 files, PDF and Images only)
-          </Text>
-
-          {attachedFiles.length > 0 && (
-            <View style={styles.attachedFilesContainer}>
-              <Text style={styles.attachedFilesHeader}>Attached Files:</Text>
-              {attachedFiles.map((file, index) => (
-                <View key={index} style={styles.attachedFileItem}>
-                  <Icon name="document" size={16} color="#4A6572" />
-                  <Text style={styles.attachedFileName} numberOfLines={1}>
-                    {file.name || file.fileName}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveFile(index)}
-                    style={styles.removeFileButton}>
-                    <Icon name="trash-outline" size={20} color="#E74C3C" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-        <TouchableOpacity style={styles.submitButton}>
-          <Text style={styles.submitButtonText}>Submit</Text>
-        </TouchableOpacity>
-      </View>
-    </BottomSheetModal>
-  );
-});
+        {/* Date selection components */}
+        <DateSelectModal
+          visible={isDateReceivedSelectionModalVisible}
+          onClose={() => setIsDateReceivedSelectionModalVisible(false)}
+          onSelectToday={handleSelectTodayReceived}
+          onSelectCustom={handleSelectCustomReceived}
+        />
+        <DatePicker
+          modal
+          open={openDateReceivedPicker}
+          date={dateReceived || new Date()}
+          onConfirm={date => {
+            setOpenDateReceivedPicker(false);
+            setDateReceived(date);
+          }}
+          onCancel={() => {
+            setOpenDateReceivedPicker(false);
+          }}
+        />
+      </BottomSheetModal>
+    );
+  },
+);
 
 // -------------------------------------------------
 // New Component for the Document Card UI/UX
@@ -734,7 +1047,9 @@ const DocumentCard = React.memo(
                 </Text>
                 {doc.DateModified && (
                   <Text style={[styles.cardDateNew, {textAlign: 'right'}]}>
-                    {doc.DateModified}
+                    {moment(doc.DateModified, 'YYYY-MM-DD hh:mm A').format(
+                      'MMMM D, YYYY h:mm A',
+                    )}
                   </Text>
                 )}
               </View>
@@ -841,6 +1156,11 @@ function ELogsScreen({navigation}) {
     isLoading: letterStatusesLoading,
     isError: letterStatusesError,
   } = useElogsStatuses();
+  const {
+    data: offices,
+    isLoading: officesLoading,
+    isError: officesError,
+  } = useElogsOffices();
 
   const {
     mutateAsync: updateLetterStatus,
@@ -868,6 +1188,13 @@ function ELogsScreen({navigation}) {
     isPending: deleteLetterStatusLoading,
     isError: deleteLetterStatusError,
   } = useDeleteLetterStatus();
+  const {
+    mutateAsync: addLetter,
+    isPending: addLetterLoading,
+    isError: addLetterError,
+  } = useAddLetter();
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const [newLetterType, setNewLetterType] = useState('');
   const [newLetterTypeCode, setNewLetterTypeCode] = useState('');
@@ -879,7 +1206,7 @@ function ELogsScreen({navigation}) {
   const [editedStatusColor, setEditedStatusColor] = useState('');
   const [editedItemId, setEditedItemId] = useState(null);
 
-  const [localDatabase, setLocalDatabase] = useState(elogsData || {});
+  //const [localDatabase, setLocalDatabase] = useState(elogsData || {});
 
   const addLetterTypeSheetRef = useRef(null);
   const addStatusSheetRef = useRef(null);
@@ -897,11 +1224,17 @@ function ELogsScreen({navigation}) {
   const snapPointsEditLetterType = useMemo(() => ['50%'], []);
   const snapPointsEditStatus = useMemo(() => ['90%'], []);
 
-  useEffect(() => {
-    if (elogsData) {
-      setLocalDatabase(elogsData);
-    }
-  }, [elogsData]);
+  // useEffect(() => {
+  //   if (elogsData) {
+  //     setLocalDatabase(elogsData);
+  //   }
+  // }, [elogsData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch(); // Call the refetch function to get new data
+    setRefreshing(false);
+  }, [refetch]);
 
   /*  useEffect(() => {
     if (actionItem && actionItemType) {
@@ -929,7 +1262,7 @@ function ELogsScreen({navigation}) {
   }, []);
 
   const filteredDocuments = useMemo(() => {
-    return Object.values(localDatabase)
+    return Object.values(elogsData || [])
       .filter(
         doc =>
           doc?.TrackingNumber?.toLowerCase()?.includes(
@@ -940,7 +1273,7 @@ function ELogsScreen({navigation}) {
           doc?.Receiver?.toLowerCase()?.includes(searchTerm.toLowerCase()),
       )
       .sort((a, b) => new Date(b.DateReceived) - new Date(a.DateReceived));
-  }, [localDatabase, searchTerm]);
+  }, [elogsData, searchTerm]);
 
   const groupedDocuments = useMemo(() => {
     const dateRegex = /^\d{4}-\d{2}-\d{2}/;
@@ -1002,8 +1335,6 @@ function ELogsScreen({navigation}) {
     }
 
     const trackingNumber = documentToUpdate.TrackingNumber;
-
-    console.log(trackingNumber, newStatus);
 
     updateLetterStatus(
       {tn: trackingNumber, status: newStatus},
@@ -1184,10 +1515,12 @@ function ELogsScreen({navigation}) {
     editStatusSheetRef.current?.close();
   }, [editedItemId, editedStatus, editedStatusColor, editStatusSheetRef]);
 
-  const statusColors = (letterStatuses || []).reduce((acc, curr) => {
-    acc[curr.StatusName] = curr.Color;
-    return acc;
-  }, {});
+  const statusColors = Array.isArray(letterStatuses)
+    ? letterStatuses.reduce((acc, curr) => {
+        acc[curr.StatusName] = curr.Color;
+        return acc;
+      }, {})
+    : {};
 
   const renderList = () => {
     if (loading) {
@@ -1495,7 +1828,11 @@ function ELogsScreen({navigation}) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollViewContent}>
+          <ScrollView
+            style={styles.scrollViewContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }>
             <View style={styles.content}>
               {selectedTab === 'received' ? renderList() : renderSetupScreen()}
             </View>
@@ -1530,7 +1867,12 @@ function ELogsScreen({navigation}) {
           handleRemoveLetterType={handleRemoveLetterType}
           handleRemoveStatus={handleRemoveStatus}
         />
-        <NewDocumentForm newFormSheetRef={newFormSheetRef} />
+        <NewDocumentForm
+          newFormSheetRef={newFormSheetRef}
+          letterTypes={letterTypes}
+          offices={offices}
+          addLetter={addLetter}
+        />
         <EditLetterTypeBottomSheet
           editLetterTypeSheetRef={editLetterTypeSheetRef}
           snapPointsEditLetterType={snapPointsEditLetterType}
@@ -2171,9 +2513,8 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
     color: '#1A535C',
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: FONT.bold,
   },
   formScrollView: {
     paddingBottom: 20,
@@ -2204,22 +2545,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 5,
+    marginTop: 20,
   },
   formHalfWidth: {
     width: '48%',
   },
   attachButton: {
-    backgroundColor: '#F0F4F8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary,
     padding: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CFD8DC',
-    alignItems: 'center',
+    marginTop: 10,
   },
   attachButtonText: {
-    color: '#4A6572',
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: FONT.bold,
+    color: COLORS.card,
+    marginLeft: 8,
   },
   attachHint: {
     fontSize: 12,
@@ -2384,6 +2727,97 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontWeight: 'bold',
     fontFamily: 'Montserrat-Bold',
+  },
+  fieldLabel: {
+    fontFamily: FONT.semiBold,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  // New styles for the CustomDropdown
+  dropdownContainer: {
+    flex: 1,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    height: 48,
+  },
+  dropdownText: {
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: COLORS.text,
+    flex: 1,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  datePickerText: {
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: COLORS.primary,
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontFamily: FONT.bold,
+    fontSize: 20,
+    color: COLORS.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalScrollView: {
+    maxHeight: 200,
+  },
+  modalItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalItemText: {
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  modalCloseButton: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontFamily: FONT.medium,
+    fontSize: 16,
+    color: COLORS.text,
   },
 });
 

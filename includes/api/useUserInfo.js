@@ -59,6 +59,8 @@ const useUserInfo = () => {
     payroll: userData?.PAYROLL ?? null,
     boss: userData?.BOSS ?? null,
     fms: userData?.FMS ?? null,
+    ims: userData?.IMS ?? null,
+    adminGroup: userData?.AdminGroup ?? null
   };
 };
 

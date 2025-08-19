@@ -28,8 +28,12 @@ import {
   useElogsOffices,
   useElogsStatuses,
   useElogsAttachments,
+  useLatestTN,
+  useUpdateLetter,
+  useElogsLetterDetails, // Corrected: This import was missingf
 } from '../../hooks/useElogs';
 import PdfViewer from '../../utils/PDFViewer';
+import {formatDate, formatDateTime} from '../../utils';
 
 // Updated Color Palette
 const COLORS = {
@@ -126,26 +130,207 @@ const CustomDropdown = ({
   );
 };
 
+const CustomDropdownTypes = ({
+  label,
+  value,
+  options,
+  onSelect,
+  keyToShow,
+  colorKey,
+  setSelectedTypeForTN,
+}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const selectedItem = options?.find(option => option.Type === value?.Type);
+
+  const displayText = selectedItem?.[keyToShow] || `Select ${label}`;
+  const displayColor = selectedItem?.[colorKey] || styles.dropdownText.color;
+
+  const handleSelect = itemValue => {
+    //console.log(itemValue)
+    setSelectedTypeForTN(itemValue);
+    onSelect(itemValue);
+    setModalVisible(false);
+  };
+
+  return (
+    <View style={styles.dropdownContainer}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        style={styles.dropdownButton}>
+        <Text
+          style={[styles.dropdownText, {color: displayColor}]}
+          numberOfLines={1}>
+          {displayText}
+        </Text>
+        <Icon
+          name="chevron-down-outline"
+          size={20}
+          color={COLORS.textSecondary}
+        />
+      </TouchableOpacity>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select {label}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {options?.map((option, index) => (
+                <TouchableOpacity
+                  key={option.Id || index} // Use a unique ID as the key
+                  onPress={() => handleSelect(option)}
+                  style={styles.modalItem}>
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      {color: option[colorKey] || styles.modalItemText.color},
+                    ]}>
+                    {option[keyToShow]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.modalCloseButton}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const CustomDropdownStatus = ({
+  label,
+  value,
+  options,
+  onSelect,
+  keyToShow,
+  colorKey,
+}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const selectedItem = options.find(
+    option => option.StatusName === value?.StatusName,
+  );
+
+  const displayText = selectedItem?.[keyToShow] || `Select ${label}`;
+  const displayColor = selectedItem?.[colorKey] || styles.dropdownText.color;
+
+  const handleSelect = itemValue => {
+    onSelect(itemValue);
+    setModalVisible(false);
+  };
+
+  return (
+    <View style={styles.dropdownContainer}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        style={styles.dropdownButton}>
+        <Text
+          style={[styles.dropdownText, {color: displayColor}]}
+          numberOfLines={1}>
+          {displayText}
+        </Text>
+        <Icon
+          name="chevron-down-outline"
+          size={20}
+          color={COLORS.textSecondary}
+        />
+      </TouchableOpacity>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select {label}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {options.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => handleSelect(option)}
+                  style={styles.modalItem}>
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      {color: option[colorKey] || styles.modalItemText.color},
+                    ]}>
+                    {option[keyToShow]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.modalCloseButton}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
 const parseDateString = dateString => {
-  if (!dateString) {
+  if (!dateString || typeof dateString !== 'string') {
     return null;
   }
-  if (dateString.includes('AM') || dateString.includes('PM')) {
-    const [datePart, timePart, ampm] = dateString.split(' ');
-    const [year, month, day] = datePart.split('-').map(Number);
-    let [hours, minutes] = timePart.split(':').map(Number);
-    if (ampm === 'PM' && hours < 12) {
-      hours += 12;
-    }
-    if (ampm === 'AM' && hours === 12) {
-      hours = 0;
-    }
-    return new Date(year, month - 1, day, hours, minutes);
+
+  const trimmed = dateString.trim();
+
+  if (trimmed.includes('T') && trimmed.includes('Z')) {
+    const date = new Date(trimmed);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  // Check for AM/PM format
+  if (trimmed.includes('AM') || trimmed.includes('PM')) {
+    const parts = trimmed.split(' ');
+    if (parts.length < 3) return null;
+
+    const [datePart, timePart, ampm] = parts;
+    const [year, month, day] = (datePart || '').split('-').map(Number);
+    let [hours, minutes] = (timePart || '').split(':').map(Number);
+
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+
+    const date = new Date(year, month - 1, day, hours, minutes || 0);
+    return isNaN(date.getTime()) ? null : date;
   } else {
-    const [datePart, timePart] = dateString.split(' ');
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hours, minutes, seconds] = timePart.split(':').map(Number);
-    return new Date(year, month - 1, day, hours, minutes, seconds);
+    // Handle the custom format (e.g., "YYYY-MM-DD HH:mm:ss")
+    const parts = trimmed.split(' ');
+    if (parts.length < 2) return null;
+
+    const [datePart, timePart] = parts;
+    const [year, month, day] = (datePart || '').split('-').map(Number);
+    const [hours, minutes, seconds] = (timePart || '').split(':').map(Number);
+
+    const date = new Date(
+      year,
+      month - 1,
+      day,
+      hours || 0,
+      minutes || 0,
+      seconds || 0,
+    );
+    return isNaN(date.getTime()) ? null : date;
   }
 };
 
@@ -179,41 +364,11 @@ const DateSelectModal = ({visible, onClose, onSelectToday, onSelectCustom}) => {
 
 function ELogsDetailsScreen({route, navigation}) {
   const {document} = route.params;
-  const [documentType, setDocumentType] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [officeFrom, setOfficeFrom] = useState(document.SenderEntity);
-  const [officeTo, setOfficeTo] = useState(document.ReceiverOffice);
-
-  const [from, setFrom] = useState(document.Sender);
-  const [to, setTo] = useState(document.Receiver);
-  const [subject, setSubject] = useState(document.Subject);
-  const [remarks, setRemarks] = useState(document.Remarks);
-  const [dateReceived, setDateReceived] = useState(
-    parseDateString(document.DateReceived) || null,
-  );
-  const [dateReleased, setDateReleased] = useState(
-    parseDateString(document.DateReleased) || null,
-  );
-  const [openDateReceivedPicker, setOpenDateReceivedPicker] = useState(false);
-  const [openDateReleasedPicker, setOpenDateReleasedPicker] = useState(false);
-  const [
-    isDateReceivedSelectionModalVisible,
-    setIsDateReceivedSelectionModalVisible,
-  ] = useState(false);
-  const [
-    isDateReleasedSelectionModalVisible,
-    setIsDateReleasedSelectionModalVisible,
-  ] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState([]);
-
-  // New state for PDF Viewer and Image Viewer
-  const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [pdfUrlToShow, setPdfUrlToShow] = useState('');
-  const [showFlashImage, setShowFlashImage] = useState(false);
-  const [imageUrlToShow, setImageUrlToShow] = useState('');
-
-  const [isUploading, setIsUploading] = useState(false);
-  const MAX_ATTACHMENTS = 5;
+  const {
+    data: letterDetails,
+    isPending: letterDetailsLoading,
+    isError: letterDetailsError,
+  } = useElogsLetterDetails(document?.TrackingNumber);
 
   const {
     data: letterTypes,
@@ -236,36 +391,108 @@ function ELogsDetailsScreen({route, navigation}) {
     data: attachments,
     isLoading: attachmentsLoading,
     isError: attachmentsError,
-  } = useElogsAttachments(document?.TrackingNumber);
+  } = useElogsAttachments(letterDetails?.TrackingNumber);
+
+  const {mutateAsync: updateLetterMutation} = useUpdateLetter();
+
+  const [documentType, setDocumentType] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [officeFrom, setOfficeFrom] = useState(null);
+  const [officeTo, setOfficeTo] = useState(null);
+  const [from, setFrom] = useState(null);
+  const [to, setTo] = useState(null);
+  const [subject, setSubject] = useState(null);
+  const [remarks, setRemarks] = useState(null);
+  const [dateReceived, setDateReceived] = useState(null);
+  const [dateReleased, setDateReleased] = useState(null);
+  const [openDateReceivedPicker, setOpenDateReceivedPicker] = useState(false);
+  const [openDateReleasedPicker, setOpenDateReleasedPicker] = useState(false);
+  const [
+    isDateReceivedSelectionModalVisible,
+    setIsDateReceivedSelectionModalVisible,
+  ] = useState(false);
+  const [
+    isDateReleasedSelectionModalVisible,
+    setIsDateReleasedSelectionModalVisible,
+  ] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState([]);
+
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfUrlToShow, setPdfUrlToShow] = useState('');
+  const [showFlashImage, setShowFlashImage] = useState(false);
+  const [imageUrlToShow, setImageUrlToShow] = useState('');
+
+  const [isUploading, setIsUploading] = useState(false);
+  const MAX_ATTACHMENTS = 5;
+  const [selectedTypeForTN, setSelectedTypeForTN] = useState(null); // <-- Add this new state
+
+  const {data: latestTN, isLoading: latestTNLoading} = useLatestTN(
+    selectedTypeForTN?.Type,
+  );
+  // Use useEffect to set the initial state once the data is loaded
+  useEffect(() => {
+    if (letterDetails) {
+      setFrom(letterDetails.Sender);
+      setTo(letterDetails.Receiver);
+      setSubject(letterDetails.Subject);
+      setRemarks(letterDetails.Remarks);
+      setDateReceived(parseDateString(letterDetails.DateReceived) || null);
+      setDateReleased(parseDateString(letterDetails.DateReleased) || null);
+    }
+  }, [letterDetails]);
 
   useEffect(() => {
-    if (letterTypes) {
-      const initialDocType = letterTypes.find(
-        item => item.Type === document.Type,
-      );
-      setDocumentType(initialDocType);
-    }
-    if (letterStatuses) {
+    if (letterStatuses && letterDetails) {
       const initialStatus = letterStatuses.find(
-        item => item.StatusName === document.Status,
+        item => item.StatusName === letterDetails.Status,
       );
       setStatus(initialStatus);
     }
-  }, [letterTypes, letterStatuses, document.Type, document.Status]);
+  }, [letterStatuses, letterDetails]);
 
   useEffect(() => {
-    if (offices) {
+    if (letterTypes && letterDetails) {
+      const initialDocType = letterTypes.find(
+        item => item.Type === letterDetails.Type,
+      );
+      setDocumentType(initialDocType);
+    }
+  }, [letterTypes, letterDetails]);
+
+  useEffect(() => {
+    if (offices && letterDetails) {
       const initialOfficeFrom = offices.find(
-        item => item.Code === document.SenderEntity,
+        item => item.Code === letterDetails.SenderEntity,
       );
       setOfficeFrom(initialOfficeFrom);
 
       const initialOfficeTo = offices.find(
-        item => item.Code === document.ReceiverOffice,
+        item => item.Code === letterDetails.ReceiverOffice,
       );
       setOfficeTo(initialOfficeTo);
     }
-  }, [offices, document.SenderEntity, document.ReceiverOffice]);
+  }, [offices, letterDetails]);
+
+  if (letterDetailsLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading document details...</Text>
+      </View>
+    );
+  }
+
+  // Handle Error State (optional but good practice)
+  if (letterDetailsError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Failed to load document details.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.errorButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const uploadFilesToServer = async files => {
     if (files.length === 0) {
@@ -311,17 +538,66 @@ function ELogsDetailsScreen({route, navigation}) {
   };
 
   const handleSaveChanges = async () => {
-    const uploadSuccess = await uploadFilesToServer(attachedFiles);
+    try {
+      // const trackingNumberToUse =
+      //   documentType?.Type === letterDetails?.Type
+      //     ? letterDetails?.TrackingNumber
+      //     : latestTN || letterDetails?.TrackingNumber || null;
 
-    if (uploadSuccess) {
-      // You can add your API call to update the document details here.
-      // For this example, we'll just show a success alert.
+      const letterType = letterDetails?.Type;
+      const docType = documentType?.Type;
+
+      const finalType = docType ?? letterType;
+
+      //console.log("let", finalType);
+
+      // if (!trackingNumberToUse) {
+      //   Alert.alert('Error', 'Tracking number is missing.');
+      //   return;
+      // }
+
+      const dateRec = formatDateTime(dateReceived);
+      const dateRel = formatDateTime(dateReleased);
+
+      //console.log(dateRec, dateRel)
+
+      const payload = {
+        id: letterDetails?.Id,
+        tn: letterDetails?.TrackingNumber,
+        type: finalType,
+        status: status?.StatusName,
+        officeFrom: officeFrom?.Code,
+        from,
+        officeTo: officeTo?.Code,
+        to,
+        subject,
+        dateReceived: dateRec,
+        dateReleased: dateRel,
+        remarks,
+        attachments: attachedFiles,
+      };
+
+      //console.log('Saving document with payload:', payload);
+
+      //Call your mutation hook
+      updateLetterMutation(payload, {
+        onSuccess: () => {
+          Alert.alert('Success', 'Document details updated successfully!');
+          setAttachedFiles([]);
+          setSelectedTypeForTN([]);
+          navigation.goBack();
+        },
+        onError: error => {
+          console.error('Update failed:', error);
+          Alert.alert('Error', 'Failed to save document changes.');
+        },
+      });
+    } catch (error) {
+      console.error('Error saving document:', error);
       Alert.alert(
-        'Success',
-        'Document details and attachments updated successfully!',
+        'Error',
+        'An unexpected error occurred while saving changes.',
       );
-      setAttachedFiles([]);
-      navigation.goBack();
     }
   };
 
@@ -568,12 +844,21 @@ function ELogsDetailsScreen({route, navigation}) {
                 <View style={styles.headerLeft}>
                   <Text style={styles.tnLabel}>
                     TN:{' '}
-                    <Text style={styles.tnValue}>
-                      {document.TrackingNumber}
-                    </Text>
+                    {latestTNLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={COLORS.secondary}
+                      />
+                    ) : (
+                      <Text style={styles.tnValue}>
+                        {documentType?.Type === letterDetails?.Type
+                          ? letterDetails?.TrackingNumber
+                          : latestTN || letterDetails?.TrackingNumber}
+                      </Text>
+                    )}
                   </Text>
                   <Text style={styles.largeDocType}>
-                    {documentType?.Type || document.Type}
+                    {documentType?.Type || letterDetails?.Type}
                   </Text>
                 </View>
               </View>
@@ -581,13 +866,15 @@ function ELogsDetailsScreen({route, navigation}) {
                 <View style={[styles.encodedInfoItem, {flex: 1}]}>
                   <Text style={styles.encodedLabel}>Encoded By</Text>
                   <Text style={styles.encodedValue}>
-                    {document.FirstName} {document.LastName}
+                    {letterDetails?.FirstName} {letterDetails?.LastName}
                   </Text>
                 </View>
                 <View style={[styles.encodedInfoItem, {flex: 1}]}>
                   <Text style={styles.encodedLabel}>Date Encoded</Text>
                   <Text style={styles.encodedValue}>
-                    {formatDateWithTime(parseDateString(document.DateEncoded))}
+                    {formatDateWithTime(
+                      parseDateString(letterDetails?.DateEncoded),
+                    )}
                   </Text>
                 </View>
               </View>
@@ -595,14 +882,15 @@ function ELogsDetailsScreen({route, navigation}) {
 
             <View style={styles.formSection}>
               <View style={styles.inputRow}>
-                <CustomDropdown
+                <CustomDropdownTypes
                   label="Document Type"
                   value={documentType}
                   options={letterTypes || []}
                   onSelect={setDocumentType}
                   keyToShow="Type"
+                  setSelectedTypeForTN={setSelectedTypeForTN}
                 />
-                <CustomDropdown
+                <CustomDropdownStatus
                   label="Status"
                   value={status}
                   options={letterStatuses || []}
@@ -704,7 +992,6 @@ function ELogsDetailsScreen({route, navigation}) {
                 />
               </View>
 
-              {/* Combined Attachments Section */}
               <View style={styles.attachmentsContainer}>
                 <Text style={styles.attachmentsTitle}>
                   Attachments{' '}
@@ -715,14 +1002,12 @@ function ELogsDetailsScreen({route, navigation}) {
                   )}
                 </Text>
 
-                {/* Conditionally render based on if any files exist */}
                 {attachmentList.length === 0 && attachedFiles.length === 0 ? (
                   <Text style={styles.noAttachmentsText}>
                     No files attached.
                   </Text>
                 ) : (
                   <>
-                    {/* Render current attachments */}
                     {attachmentList.map((file, index) => {
                       const fileName = file.filename;
                       const fileType = fileName?.toLowerCase() || '';
@@ -765,12 +1050,10 @@ function ELogsDetailsScreen({route, navigation}) {
                       );
                     })}
 
-                    {/* Render divider only if both lists have files */}
                     {attachmentList.length > 0 && attachedFiles.length > 0 && (
                       <View style={styles.attachmentsDivider} />
                     )}
 
-                    {/* Render new files to be uploaded */}
                     {attachedFiles.map((file, index) => {
                       const fileName =
                         file.name ||
@@ -824,8 +1107,8 @@ function ELogsDetailsScreen({route, navigation}) {
                     {
                       backgroundColor:
                         attachedFiles.length >= MAX_ATTACHMENTS
-                          ? COLORS.subtle // color when max reached
-                          : COLORS.secondary, // normal color
+                          ? COLORS.subtle
+                          : COLORS.secondary,
                     },
                   ]}
                   disabled={
@@ -906,7 +1189,6 @@ function ELogsDetailsScreen({route, navigation}) {
         onSelectCustom={handleSelectCustomReleased}
       />
 
-      {/* PDF Viewer Modal */}
       <Modal
         visible={showPdfViewer}
         onRequestClose={() => setShowPdfViewer(false)}
@@ -933,7 +1215,6 @@ function ELogsDetailsScreen({route, navigation}) {
         </SafeAreaView>
       </Modal>
 
-      {/* Image Viewer Modal */}
       <Modal
         visible={showFlashImage}
         onRequestClose={() => setShowFlashImage(false)}
@@ -983,7 +1264,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 50,
     backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
   },
   backButton: {
@@ -1041,13 +1322,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    padding: 0,
   },
   card: {
     backgroundColor: COLORS.card,
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
@@ -1083,8 +1362,8 @@ const styles = StyleSheet.create({
   encodedInfoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    //borderTopWidth: 1,
+    //borderTopColor: COLORS.border,
     paddingTop: 10,
     marginTop: 10,
   },
@@ -1104,6 +1383,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   formSection: {
+    paddingTop: 40,
     backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 16,
@@ -1144,7 +1424,6 @@ const styles = StyleSheet.create({
   },
   dropdownContainer: {
     flex: 1,
-    //marginRight: 8,
   },
   dropdownButton: {
     flexDirection: 'row',
@@ -1309,6 +1588,37 @@ const styles = StyleSheet.create({
     fontFamily: FONT.regular,
     fontSize: 14,
     color: COLORS.textSecondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    padding: 20,
+  },
+  errorText: {
+    fontFamily: FONT.semiBold,
+    fontSize: 18,
+    color: COLORS.error,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  errorButtonText: {
+    fontFamily: FONT.bold,
+    fontSize: 16,
+    color: COLORS.primary,
   },
 });
 

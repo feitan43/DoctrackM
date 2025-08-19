@@ -31,6 +31,24 @@ export const removeHtmlTags = text => {
   return newText.replace(htmlRegex, ' ');
 };
 
+export const formatDate = isoString => {
+  if (!isoString) return '';
+
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return ''; // handle invalid date
+
+  const pad = n => String(n).padStart(2, '0');
+
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1); // months are 0-based
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 export const formatDateTime = text => {
   const date = new Date(text);
   const year = date.getFullYear();
@@ -45,6 +63,78 @@ export const formatDateTime = text => {
 
   const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
   return `${year}-${month}-${day} ${formattedTime}`;
+};
+
+export const formatDateWithTime = date => {
+  if (!date) return 'Select Date & Time';
+  const today = new Date();
+  const isToday =
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+  const dateString = isToday
+    ? 'Today'
+    : date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+  return (
+    dateString +
+    ' at ' +
+    date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+  );
+};
+
+export const parseDateString = dateString => {
+  if (!dateString || typeof dateString !== 'string') {
+    return null;
+  }
+
+  const trimmed = dateString.trim();
+
+  if (trimmed.includes('T') && trimmed.includes('Z')) {
+    const date = new Date(trimmed);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  // Check for AM/PM format
+  if (trimmed.includes('AM') || trimmed.includes('PM')) {
+    const parts = trimmed.split(' ');
+    if (parts.length < 3) return null;
+
+    const [datePart, timePart, ampm] = parts;
+    const [year, month, day] = (datePart || '').split('-').map(Number);
+    let [hours, minutes] = (timePart || '').split(':').map(Number);
+
+    if (ampm === 'PM' && hours < 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+
+    const date = new Date(year, month - 1, day, hours, minutes || 0);
+    return isNaN(date.getTime()) ? null : date;
+  } else {
+    // Handle the custom format (e.g., "YYYY-MM-DD HH:mm:ss")
+    const parts = trimmed.split(' ');
+    if (parts.length < 2) return null;
+
+    const [datePart, timePart] = parts;
+    const [year, month, day] = (datePart || '').split('-').map(Number);
+    const [hours, minutes, seconds] = (timePart || '').split(':').map(Number);
+
+    const date = new Date(
+      year,
+      month - 1,
+      day,
+      hours || 0,
+      minutes || 0,
+      seconds || 0,
+    );
+    return isNaN(date.getTime()) ? null : date;
+  }
 };
 
 export const categoryIconMap = {
@@ -84,7 +174,7 @@ export const categoryIconMap = {
   'Janitorial Supplies and Materials': 'broom',
   'Gardening Supplies and Materials': 'flower',
   'Gardening Tools and Equipment': 'shovel',
-  'Groceries': 'cart',
+  Groceries: 'cart',
   'IT Provider': 'desktop-mac-dashboard',
   'Lumber and Plywood': 'saw-blade',
   'Medical Equipment': 'hospital-box-outline',
@@ -99,7 +189,7 @@ export const categoryIconMap = {
   'Plumbing Supplies and Materials': 'pipe-wrench',
   'Plumbing Tools and Equipment': 'pump',
   'Printed Forms and Printing Services': 'file-document-outline',
-  'Publication': 'book-open-variant',
+  Publication: 'book-open-variant',
   'Quarry Materials': 'rock',
   'Radio Communications Equipment': 'radio',
   'Road Construction Materials': 'road',
@@ -121,16 +211,16 @@ export const categoryIconMap = {
   'Laboratory Supplies': 'flask-outline',
   'Laboratory Reagents and Chemicals': 'test-tube',
   'Computer Peripherals and Accessories': 'mouse',
-  'Glasswares': 'bottle-wine-outline',
-  'Subscription': 'cash-multiple',
+  Glasswares: 'bottle-wine-outline',
+  Subscription: 'cash-multiple',
   'FUEL, OIL, LUBRICANTS AND SERVICING': 'fuel',
   'Electronic Consumables': 'chip',
-  'TAILORING': 'hanger',
+  TAILORING: 'hanger',
   'Postage and Stamps': 'post-outline',
   'Fire and Rescue Equipment': 'fire-truck',
   'Fire and Rescue Equipment ': 'fire-truck',
   'Accountable Forms': 'file-document-edit-outline',
-  'Fabrication': 'tools',
+  Fabrication: 'tools',
   'No Category': 'help-circle-outline',
   'OXYGEN AND ACETYLENE': 'cylinder',
   'OFFICE EQUIPMENT - SPARE PARTS/REPAIR': 'cog-outline',
@@ -154,14 +244,14 @@ export const categoryIconMap = {
   'FIRE AND RESCUE SUPPLIES AND MATERIALS': 'fire-extinguisher',
   'HAULING SERVICES': 'truck-trailer',
   'MECHANICAL EQUIPMENT': 'engine',
-  'UMBRELLAS': 'umbrella',
-  'UMBRELLA': 'umbrella',
+  UMBRELLAS: 'umbrella',
+  UMBRELLA: 'umbrella',
   'Quarry Materials': 'dump-truck',
-  'SERVICES': 'handshake-outline',
+  SERVICES: 'handshake-outline',
   'MECHANICAL TOOLS, INSTRUMENTS, MATERIALS': 'wrench',
   'MECHANICAL TOOLS AND MATERIALS': 'wrench-outline',
   'Books and References': 'book-multiple-outline',
-  'Kitchenwares': 'silverware-fork-knife',
+  Kitchenwares: 'silverware-fork-knife',
   'Diving Equipment and Accessories': 'diving-scuba',
   'Measurement & Analysis Instruments': 'gauge',
   'Fruits and Vegetables': 'food-apple-outline',

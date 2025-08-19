@@ -18,6 +18,21 @@ export const useElogsLetters = () => {
   });
 };
 
+export const fetchElogsLetterDetails = async tn => {
+  const {data} = await apiClient.get(`/getElogsLetterDetails?tn=${tn}`);
+  return data;
+};
+
+export const useElogsLetterDetails = tn => {
+  return useQuery({
+    queryKey: ['getElogsLetterDetails', tn],
+    queryFn: () => fetchElogsLetterDetails(tn),
+    enabled: Boolean(tn),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+};
+
 export const fetchElogsLetterTypes = async officeCode => {
   const {data} = await apiClient.get(
     `/getElogsLetterTypes?Office=${officeCode}`,
@@ -84,7 +99,163 @@ export const useElogsAttachments = trackingNumber => {
   });
 };
 
+export const fetchLatestTN = async type => {
+  const {data} = await apiClient.get(`/getLatestTrackingNumber?type=${type}`);
+  return data;
+};
+
+export const useLatestTN = type => {
+  return useQuery({
+    queryKey: ['latestTrackingNumber', type],
+    queryFn: () => fetchLatestTN(type),
+    enabled: Boolean(type),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+};
+
 //mutation
+
+//LETTER
+
+export const addLetter = async ({
+  employeeNumber,
+  officeCode,
+  adminGroup,
+  type,
+  subject,
+  sender,
+  senderEntity,
+  receiver,
+  receiverOffice,
+  dateReceived,
+  remarks,
+  attachments,
+}) => {
+  console.log(employeeNumber,
+  officeCode,
+  adminGroup,
+  type,
+  subject,
+  sender,
+  senderEntity,
+  receiver,
+  receiverOffice,
+  dateReceived,
+  remarks,
+  attachments,);
+  const formData = new FormData();
+  formData.append('employeeNumber', employeeNumber);
+  formData.append('officeCode', officeCode);
+  formData.append('adminGroup', adminGroup);
+  formData.append('type', type);
+  formData.append('subject', subject);
+  formData.append('sender', sender);
+  formData.append('senderEntity', senderEntity);
+  formData.append('receiver', receiver);
+  formData.append('receiverOffice', receiverOffice);
+  formData.append('dateReceived', dateReceived);
+  formData.append('remarks', remarks);
+
+  if (attachments) {
+    attachments.forEach(file => {
+      formData.append('attachments', file);
+    });
+  }
+
+  const url = `/addLetter`;
+  const {data} = await apiClient.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+};
+
+export const useAddLetter = () => {
+  const queryClient = useQueryClient();
+  const {employeeNumber, officeCode, adminGroup} = useUserInfo();
+
+  return useMutation({
+    mutationFn: async letterData => {
+      return addLetter({
+        ...letterData,
+        employeeNumber,
+        officeCode,
+        adminGroup
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['getElogsLetters', officeCode]);
+    },
+    onError: error => {
+      console.error('Failed to create new letter:', error);
+    },
+  });
+};
+
+export const updateLetter = async ({
+  id,
+  tn,
+  type,
+  status,
+  officeFrom,
+  from,
+  officeTo,
+  to,
+  subject,
+  dateReceived,
+  dateReleased,
+  remarks,
+  employeeNumber,
+  officeCode,
+  attachments,
+}) => {
+  const payload = {
+    id,
+    tn,
+    type,
+    status,
+    officeFrom,
+    from,
+    officeTo,
+    to,
+    subject,
+    dateReceived,
+    dateReleased,
+    remarks,
+    employeeNumber,
+    officeCode,
+    attachments,
+  };
+
+  const url = `/updateLetter`;
+  const {data} = await apiClient.post(url, payload);
+  //console.log("d",data)
+  return data;
+};
+
+export const useUpdateLetter = () => {
+  const queryClient = useQueryClient();
+  const {employeeNumber, officeCode} = useUserInfo();
+
+  return useMutation({
+    mutationFn: async letterData => {
+      // include employee info from context
+      return updateLetter({
+        ...letterData,
+        employeeNumber,
+        officeCode,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['getElogsLetters', officeCode]);
+    },
+    onError: error => {
+      console.error('Failed to update letter status:', error);
+    },
+  });
+};
 
 export const updateLetterStatus = async ({tn, status}) => {
   const payload = {
@@ -93,9 +264,7 @@ export const updateLetterStatus = async ({tn, status}) => {
   };
 
   const url = `/updateLetterStatus`;
-  console.log('url', url);
   const {data} = await apiClient.post(url, payload);
-  console.log('data', apiClient);
   return data;
 };
 
@@ -120,7 +289,6 @@ export const useUpdateLetterStatus = () => {
 
 //LETTER TYPES
 export const addLetterTypes = async ({letterType, office, emp}) => {
-  console.log(letterType, office, emp);
   const payload = {
     letterType,
     office,
@@ -153,7 +321,7 @@ export const useAddLetterTypes = () => {
   });
 };
 
-export const updateLetterType = async ({ code, oldtype, newtype }) => {
+export const updateLetterType = async ({code, oldtype, newtype}) => {
   const payload = {
     code,
     oldtype,
@@ -162,18 +330,18 @@ export const updateLetterType = async ({ code, oldtype, newtype }) => {
 
   // The URL must match the endpoint defined on your Node.js server.
   const url = `/updateLetterType`;
-  const { data } = await apiClient.patch(url, payload);
+  const {data} = await apiClient.patch(url, payload);
   return data;
 };
 
 export const useUpdateLetterTypes = () => {
   const queryClient = useQueryClient();
-  const { officeCode } = useUserInfo();
+  const {officeCode} = useUserInfo();
 
   return useMutation({
     // The mutationFn correctly accepts 'variables' which will be an object
     // containing 'code', 'oldtype', and 'newtype' from the component.
-    mutationFn: async (variables) => {
+    mutationFn: async variables => {
       // The updateLetterType API function is called with all the required variables.
       return updateLetterType(variables);
     },
@@ -184,7 +352,7 @@ export const useUpdateLetterTypes = () => {
       // the officeCode to ensure it's specific to the current user's data.
       queryClient.invalidateQueries(['getElogsLetterTypes', officeCode]);
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Failed to update letter type:', error);
       // You can add more user-friendly error handling here, like a toast message.
     },
@@ -226,6 +394,7 @@ export const useDeleteLetterType = () => {
 };
 
 //STATUSES
+
 export const addLetterStatus = async ({
   status,
   color,
@@ -321,4 +490,76 @@ export const useDeleteLetterStatus = () => {
       console.error('Failed to delete letter type:', error);
     },
   });
+};
+const CustomDropdown = ({
+  label,
+  value,
+  options,
+  onSelect,
+  keyToShow,
+  colorKey,
+}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const handleSelect = itemValue => {
+    onSelect(itemValue);
+    setModalVisible(false);
+  };
+
+  const displayText = value?.[keyToShow] || `Select ${label}`;
+  const displayColor = value?.[colorKey] || styles.dropdownText.color;
+
+  return (
+    <View style={styles.dropdownContainer}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        style={styles.dropdownButton}>
+        <Text
+          style={[styles.dropdownText, {color: displayColor}]}
+          numberOfLines={1}>
+          {displayText}
+        </Text>
+        <Icon
+          name="chevron-down-outline"
+          size={20}
+          color={COLORS.textSecondary}
+        />
+      </TouchableOpacity>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select {label}</Text>
+            <ScrollView style={styles.modalScrollView}>
+              {options.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => handleSelect(option)}
+                  style={styles.modalItem}>
+                  <Text
+                    style={[
+                      styles.modalItemText,
+                      {color: option[colorKey] || styles.modalItemText.color},
+                    ]}>
+                    {option[keyToShow]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={styles.modalCloseButton}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
 };

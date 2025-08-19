@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "686451314799",
-    "project_id": "docmobile-6e441",
-    "storage_bucket": "docmobile-6e441.firebasestorage.app"
+    "project_number": "81849788632",
+    "project_id": "doctracknotif",
+    "storage_bucket": "doctracknotif.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:686451314799:android:d6cc79a770f9d1d78abd9a",
+        "mobilesdk_app_id": "1:81849788632:android:c86ed7cc2f417f23da0fad",
         "android_client_info": {
           "package_name": "com.doctrackm"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBNfs9rqEQP03CfwTqPaVM765uNzbh4C_Q"
+          "current_key": "AIzaSyBngsyHvtjvFdEwf_tfn8b7haDRpyvZNYo"
         }
       ],
       "services": {

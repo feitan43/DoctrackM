@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { StyleSheet, Dimensions, View, ActivityIndicator, Text, TouchableOpacity, Linking } from 'react-native';
 import Pdf from 'react-native-pdf';
 import NetInfo from '@react-native-community/netinfo'; // Using the community NetInfo
@@ -160,5 +160,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
 });
-
-export default PdfViewer;
+export default memo(PdfViewer);
